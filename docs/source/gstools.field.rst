@@ -4,6 +4,14 @@ gstools\.field package
 Submodules
 ----------
 
+gstools\.field\.srf module
+--------------------------
+
+.. automodule:: gstools.field.srf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 gstools\.field\.rng module
 --------------------------
 
