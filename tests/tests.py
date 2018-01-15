@@ -7,6 +7,8 @@ from __future__ import division, absolute_import, print_function
 
 import unittest
 import numpy as np
+from scipy.stats import (skew, kurtosis)
+from scipy.stats import normaltest
 from gstools.field import RNG
 
 
@@ -102,6 +104,9 @@ class TestRNG(unittest.TestCase):
             self.assertEqual(k.shape, (d+1, self.many_modes))
             self.assertAlmostEqual(np.mean(k), 0., places=2)
             self.assertAlmostEqual(np.std(k), 1/self.len_scale, places=2)
+            self.assertAlmostEqual(skew(k[0,:]), 0., places=2)
+            self.assertAlmostEqual(kurtosis(k[0,:]), 0., places=1)
+            self.assertGreater(normaltest(k[0,:]), 0.05)
 
 
 if __name__ == '__main__':
