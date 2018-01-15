@@ -198,7 +198,7 @@ class RNG(object):
 
     @property
     def dim(self):
-        """ The dimension of the random spatial field.
+        """ The dimension of the spatial random field.
         """
         return self._dim
 

@@ -173,6 +173,15 @@ texinfo_documents = [
 ]
 
 
+# The __call__ special member should be documented.
+
+def skip(app, what, name, obj, skip, options):
+    if name == "__call__":
+        return False
+    return skip
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
