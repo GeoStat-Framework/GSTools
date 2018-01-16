@@ -94,8 +94,9 @@ class RandMeth(object):
                                  self._k[2,a:e]*z)
 
                     summed_modes += np.squeeze(
-                            np.sum(self._Z[0,a:e] * np.cos(phase) +
-                                   self._Z[1,a:e] * np.sin(phase), axis=-1))
+                            np.sum(self._Z[0,a:e] * np.cos(2.*np.pi*phase) +
+                                   self._Z[1,a:e] * np.sin(2.*np.pi*phase),
+                                   axis=-1))
             except MemoryError:
                 chunk_no += 2**chunk_no_exp
                 chunk_no_exp += 1
