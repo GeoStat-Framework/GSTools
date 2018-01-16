@@ -25,14 +25,16 @@ class RandMeth(object):
         >>> y_tuple = np.array([-1, 0, 1])
         >>> x_tuple = np.reshape(x_tuple, (len(x_tuple), 1))
         >>> y_tuple = np.reshape(y_tuple, (len(y_tuple), 1))
-        >>> cov_model = {'model' : 'gau', 'scale' : 6.}
-        >>> rm = RandMeth(2, cov_model, 100, seed=12091986)
+        >>> cov_model = 'gau'
+        >>> len_scale = 6.
+        >>> rm = RandMeth(2, cov_model, len_scale, 100, seed=12091986)
         >>> rm(x_tuple, y_tuple)
     """
-    def __init__(self, dim, cov_model, mode_no=1000, seed=None, **kwargs):
-        self.reset(dim, cov_model, mode_no, seed, kwargs=kwargs)
+    def __init__(self, dim, cov_model, len_scale, mode_no=1000, seed=None,
+                 **kwargs):
+        self.reset(dim, cov_model, len_scale, mode_no, seed, kwargs=kwargs)
 
-    def reset(self, dim, cov_model, mode_no, seed=None, **kwargs):
+    def reset(self, dim, cov_model, len_scale, mode_no, seed=None, **kwargs):
         """Reset the random amplitudes and wave numbers with a new seed.
 
         Args:
@@ -43,12 +45,9 @@ class RandMeth(object):
                 a random seed is used
         """
         self._dim = dim
-        self._cov_model = cov_model
         self._mode_no = mode_no
         self._rng = RNG(self.dim, seed)
-        model = self.cov_model['model']
-        len_scale = self.cov_model['len_scale']
-        self._Z, self._k = self._rng(model, len_scale, mode_no=self.mode_no, kwargs=kwargs)
+        self._Z, self._k = self._rng(cov_model, len_scale, mode_no=self._mode_no, kwargs=kwargs)
         #preshape for unstructured grid
         for d in range(self.dim):
             self._k[d] = np.squeeze(self._k[d])
@@ -112,12 +111,6 @@ class RandMeth(object):
         """ The dimension of the spatial random field.
         """
         return self._dim
-
-    @property
-    def cov_model(self):
-        """ The covariance model.
-        """
-        return self._cov_model
 
     @property
     def mode_no(self):
