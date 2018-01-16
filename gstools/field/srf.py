@@ -11,7 +11,7 @@ from gstools.field import RNG
 
 
 class RandMeth(object):
-    """Randomization method for calculating standard spatial random fields.
+    """Randomization method for calculating isotropic spatial random fields.
 
     Args:
         dim (int): spatial dimension
