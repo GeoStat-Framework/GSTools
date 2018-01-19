@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-This is the unittest of gstools.
+This is the unittest of the RNG class.
 """
 from __future__ import division, absolute_import, print_function
 
@@ -106,7 +106,7 @@ class TestRNG(unittest.TestCase):
             self.assertAlmostEqual(np.std(k), 1/self.len_scale, places=2)
             self.assertAlmostEqual(skew(k[0,:]), 0., places=2)
             self.assertAlmostEqual(kurtosis(k[0,:]), 0., places=1)
-            self.assertGreater(normaltest(k[0,:]), 0.05)
+            self.assertLess(normaltest(k[0,:])[1], 0.05)
 
 class TestRandMeth(unittest.TestCase):
     def setUp(self):
