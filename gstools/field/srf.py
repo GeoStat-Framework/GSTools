@@ -5,7 +5,6 @@ A generator for standard spatial random fields.
 """
 from __future__ import division, absolute_import, print_function
 
-import sys
 import numpy as np
 from gstools.field import RNG
 
@@ -15,9 +14,9 @@ class RandMeth(object):
 
     Args:
         dim (int): spatial dimension
-        cov_model (dict): covariance model
-        mode_no (int, optional): number of Fourier modes
-        seed (int, optional): the seed of the master RNG, if "None",
+        model (dict): covariance model
+        mode_no (int, opt.): number of Fourier modes
+        seed (int, opt.): the seed of the master RNG, if "None",
             a random seed is used
 
     Examples:
@@ -25,43 +24,43 @@ class RandMeth(object):
         >>> y_tuple = np.array([-1, 0, 1])
         >>> x_tuple = np.reshape(x_tuple, (len(x_tuple), 1))
         >>> y_tuple = np.reshape(y_tuple, (len(y_tuple), 1))
-        >>> cov_model = 'gau'
+        >>> model = 'gau'
         >>> len_scale = 6.
-        >>> rm = RandMeth(2, cov_model, len_scale, 100, seed=12091986)
+        >>> rm = RandMeth(2, model, len_scale, 100, seed=12091986)
         >>> rm(x_tuple, y_tuple)
     """
-    def __init__(self, dim, cov_model, len_scale, mode_no=1000, seed=None,
+    def __init__(self, dim, model, len_scale, mode_no=1000, seed=None,
                  **kwargs):
-        self.reset(dim, cov_model, len_scale, mode_no, seed, kwargs=kwargs)
+        self.reset(dim, model, len_scale, mode_no, seed, kwargs=kwargs)
 
-    def reset(self, dim, cov_model, len_scale, mode_no, seed=None, **kwargs):
+    def reset(self, dim, model, len_scale, mode_no=1000, seed=None, **kwargs):
         """Reset the random amplitudes and wave numbers with a new seed.
 
         Args:
             dim (int): spatial dimension
-            cov_model (dict): covariance model
-            mode_no (int, optional): number of Fourier modes
-            seed (int, optional): the seed of the master RNG, if "None",
+            model (str): covariance model
+            len_scale (float): length scale
+            mode_no (int, opt.): number of Fourier modes
+            seed (int, opt.): the seed of the master RNG, if "None",
                 a random seed is used
         """
         self._dim = dim
+        self._model = model
+        self._len_scale = len_scale
         self._mode_no = mode_no
-        self._rng = RNG(self.dim, seed)
-        self._Z, self._k = self._rng(cov_model, len_scale, mode_no=self._mode_no, kwargs=kwargs)
-        #preshape for unstructured grid
-        for d in range(self.dim):
-            self._k[d] = np.squeeze(self._k[d])
-            self._k[d] = np.reshape(self._k[d], (1, len(self._k[d])))
+        self._kwargs = kwargs
+        self._seed = np.nan
+        self.seed = seed
 
     def __call__(self, x, y=None, z=None):
         """Calculates the random modes for the randomization method.
-        
+
         Args:
             x (float, ndarray): the x components of the position tuple,
                 the shape has to be (len(x), 1, 1) for 3d and accordingly
                 shorter for lower dimensions
-            y (float, ndarray, optional): the y components of the pos. tupls
-            z (float, ndarray, optional): the z components of the pos. tuple
+            y (float, ndarray, opt.): the y components of the pos. tupls
+            z (float, ndarray, opt.): the z components of the pos. tuple
 
         Returns:
             the random modes
@@ -107,16 +106,26 @@ class RandMeth(object):
         return np.sqrt(1. / self._mode_no) * summed_modes
 
     @property
-    def dim(self):
-        """ The dimension of the spatial random field.
-        """
-        return self._dim
+    def seed(self):
+        """ seed (int): the seed of the master RNG
 
-    @property
-    def mode_no(self):
-        """ The number of the Fourier modes.
+        If a new seed is given, the setter property not only saves the
+        new seed, but also creates new random modes with the new seed.
         """
-        return self._mode_no
+        return self._seed
+
+    @seed.setter
+    def seed(self, new_seed=None):
+        if new_seed is not self._seed:
+            self._seed = new_seed
+            self._rng = RNG(self._dim, self._seed)
+            self._Z, self._k = self._rng(self._model, self._len_scale,
+                                         mode_no=self._mode_no,
+                                         kwargs=self._kwargs)
+            #preshape for unstructured grid
+            for d in range(self._dim):
+                self._k[d] = np.squeeze(self._k[d])
+                self._k[d] = np.reshape(self._k[d], (1, len(self._k[d])))
 
 
 if __name__ == '__main__':
