@@ -23,7 +23,7 @@ class RNG(object):
 
     Examples:
         >>> r = RNG(dim = 2, seed=76386181534)
-        >>> Z, k = r(cov_model='gau', len_scale=10., mode_no=100)
+        >>> Z, k = r(model='gau', len_scale=10., mode_no=100)
     """
     def __init__(self, dim, seed=None):
         if dim < 1 or dim > 3:
@@ -43,11 +43,11 @@ class RNG(object):
                           lambda len_scale, r, theta, phi=None:
                               r * np.cos(theta) / len_scale]
 
-    def __call__(self, cov_model, len_scale, mode_no=1000, **kwargs):
+    def __call__(self, model, len_scale, mode_no=1000, **kwargs):
         """ A standardized interface for the different covariance models.
 
         Args:
-            cov_model (str): the covariance model (gau, exp, mat, tfg, and tfe exist)
+            model (str): the covariance model (gau, exp, mat, tfg, and tfe exist)
             len_scale (float): the length scale
             mode_no (int, opt.): number of Fourier modes
 
@@ -60,9 +60,9 @@ class RNG(object):
         """
         Z = self._create_normal_dists(mode_no)
         try:
-            k = getattr(self, cov_model.lower())(len_scale, mode_no, **kwargs)
+            k = getattr(self, model.lower())(len_scale, mode_no, **kwargs)
         except AttributeError:
-            raise ValueError('Unknown covariance model type {0}'.format(cov_model))
+            raise ValueError('Unknown covariance model type {0}'.format(model))
         return Z, k
 
     def _get_random_stream(self):
