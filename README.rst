@@ -1,7 +1,7 @@
 Welcome to GeoStatTools
 =======================
 
-|build-status| |docs|
+|docs|
 
 Purpose
 -------
