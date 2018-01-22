@@ -24,7 +24,7 @@ Topic :: Utilities
 """
 
 MAJOR      = 0
-MINOR      = 1
+MINOR      = 2
 MICRO      = 0
 ISRELEASED = False
 VERSION    = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -37,7 +37,7 @@ setup(
     maintainer = 'Lennart Schueler',
     maintainer_email = "lennart.schueler (at) ufz (dot) de",
     description = doclines[0],
-    long_description = open('README.md').read()
+    long_description = open('README.md').read(),
     author = "Lennart Schueler, Falk Hesse",
     author_email = "lennart.schueler (at) ufz (dot) de",
     license = 'GPL - see LICENSE',
@@ -45,5 +45,5 @@ setup(
     platforms = ["Linux"],
     include_package_data = True,
     install_requires = ['numpy', 'scipy'],
-    packages = find_packages(exclude=['tests*', 'docs*'),
+    packages = find_packages(exclude=['tests*', 'docs*']),
 )
