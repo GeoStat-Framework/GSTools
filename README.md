@@ -8,6 +8,16 @@
 GeoStatTools is a library providing geostatistical tools.
 
 
+## Installation
+
+##### Requirements:
+- numpy
+- scipy
+
+##### Installation:
+`pip install gstools`
+
+
 ## Documentation for GeoStatTools
 
 You can find the documentation [here][doc_link].
