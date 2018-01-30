@@ -37,10 +37,10 @@ class TestRNG(unittest.TestCase):
 
         #explicit for better debugging, so the line is found immediately
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0], Z_refs[0])
+        self.assertAlmostEqual(Z[0,0], Z_refs[0])
         self.assertAlmostEqual(k[0,0], k_refs[0])
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0], Z_refs[1])
+        self.assertAlmostEqual(Z[0,0], Z_refs[1])
         self.assertAlmostEqual(k[0,0], k_refs[1])
 
     def test_rng_consistency_2d(self):
@@ -61,10 +61,10 @@ class TestRNG(unittest.TestCase):
 
         #explicit for better debugging, so the line is found immediately
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0], Z_refs[0])
+        self.assertAlmostEqual(Z[0,0], Z_refs[0])
         self.assertAlmostEqual(k[0,0], k_refs[0])
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0], Z_refs[1])
+        self.assertAlmostEqual(Z[0,0], Z_refs[1])
         self.assertAlmostEqual(k[0,0], k_refs[1])
 
     def test_rng_consistency_3d(self):
@@ -85,10 +85,10 @@ class TestRNG(unittest.TestCase):
 
         #explicit for better debugging, so the line is found immediately
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0], Z_refs[0])
+        self.assertAlmostEqual(Z[0,0], Z_refs[0])
         self.assertAlmostEqual(k[0,0], k_refs[0])
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0], Z_refs[1])
+        self.assertAlmostEqual(Z[0,0], Z_refs[1])
         self.assertAlmostEqual(k[0,0], k_refs[1])
 
     def test_call(self):
