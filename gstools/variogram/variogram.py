@@ -14,7 +14,7 @@ from gstools.variogram.estimator import unstructured
 def estimate(field, bins, x, y=None, z=None, mesh_type='unstructured'):
     """Estimates the variogram of the input data.
 
-        .. math:: \gamma(r) = \frac{1}{2 N} \sum_{i=1}^N (z(\mathbf x_i) - z(\mathbf x_i'))^2
+    .. math:: \\gamma(r) = \\frac{1}{2 N} \\sum_{i=1}^N (z(\\mathbf x_i) - z(\\mathbf x_i'))^2
 
     Args:
         f (ndarray): the spatially distributed data
