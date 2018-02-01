@@ -48,6 +48,33 @@ field = srf(x, y, seed=19970221, mesh_type='structured')
 ```
 
 
+## Estimating variograms
+
+The spatial structure of a field can be analyzed with the variogram, which contains the same information as the covariance function.
+
+
+### Example
+
+This is an example of how to estimate the variogram of a 2 dimensional unstructured field.
+
+```python
+import numpy as np
+from gstools.field import SRF
+from gstools import variogram
+
+#random samples between 0 <= x, y < 100
+x = np.random.rand(1000) * 100.
+y = np.random.rand(1000) * 100.
+
+srf = SRF(dim=2, var=2, len_scale=30)
+field = srf(x, y, seed=20011012)
+
+bins = np.arange(0, 50)
+
+gamma = variogram.estimate(field, bins, x, y)
+```
+
+
 ## License
 
 [GPL][gpl_link] © 2018
