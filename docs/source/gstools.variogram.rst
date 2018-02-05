@@ -1,7 +1,10 @@
-gstools\.variogram module
-=========================
+gstools\.variogram package
+==========================
 
-.. automodule:: gstools.variogram
+gstools\.variogram\.variogram module
+------------------------------------
+
+.. automodule:: gstools.variogram.variogram
     :members:
     :undoc-members:
     :show-inheritance:

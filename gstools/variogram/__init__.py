@@ -3,7 +3,8 @@
 from __future__ import division, absolute_import, print_function
 
 
-from gstools.variogram.variogram import estimate
+from gstools.variogram.variogram import (estimate_structured,
+                                         estimate_unstructured)
 
 
 __all__ = ['estimate']

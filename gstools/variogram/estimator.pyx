@@ -56,6 +56,7 @@ cdef inline double _distance_3d(scalar[:] x, scalar[:] y, scalar[:] z,
 
 ctypedef double (*_dist_func)(scalar[:], scalar[:], scalar[:], int, int)
 
+
 def unstructured(scalar_f[:] f, scalar_bins[:] bins, scalar[:] x, scalar[:] y=None, scalar[:] z=None):
     if x.shape[0] != f.shape[0]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
@@ -97,6 +98,70 @@ def unstructured(scalar_f[:] f, scalar_bins[:] bins, scalar[:] x, scalar[:] y=No
                     variogram[i] += (f[k] - f[j])**2
     #avoid division by zero
     for i in range(i_max):
+        if counts[i] == 0:
+            counts[i] = 1
+        variogram[i] /= (2. * counts[i])
+    return np.asarray(variogram)
+
+
+def structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f):
+    cdef int i_max = f.shape[0] - 1
+    cdef int j_max = f.shape[1]
+    cdef int k_max = f.shape[2]
+    cdef int l_max = i_max + 1
+
+    cdef double[:] variogram = np.zeros(l_max)
+    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
+    cdef int i, j, k, l
+
+    for i in range(i_max):
+        for j in range(j_max):
+            for k in range(k_max):
+                for l in range(1, l_max-i):
+                    counts[l] += 1
+                    variogram[l] += (f[i,j,k] - f[i+l,j,k])**2
+    #avoid division by zero
+    for i in range(l_max):
+        if counts[i] == 0:
+            counts[i] = 1
+        variogram[i] /= (2. * counts[i])
+    return np.asarray(variogram)
+
+def structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f):
+    cdef int i_max = f.shape[0] - 1
+    cdef int j_max = f.shape[1]
+    cdef int k_max = i_max + 1
+
+    cdef double[:] variogram = np.zeros(k_max)
+    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
+    cdef int i, j, k
+
+    for i in range(i_max):
+        for j in range(j_max):
+            for k in range(1, k_max-i):
+                counts[k] += 1
+                variogram[k] += (f[i,j] - f[i+k,j])**2
+    #avoid division by zero
+    for i in range(k_max):
+        if counts[i] == 0:
+            counts[i] = 1
+        variogram[i] /= (2. * counts[i])
+    return np.asarray(variogram)
+
+def structured_1d(scalar[:] x, scalar_f[:] f):
+    cdef int i_max = f.shape[0] - 1
+    cdef int j_max = i_max + 1
+
+    cdef double[:] variogram = np.zeros(j_max)
+    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
+    cdef int i, j
+
+    for i in range(i_max):
+        for j in range(1, j_max-i):
+            counts[j] += 1
+            variogram[j] += (f[i] - f[i+j])**2
+    #avoid division by zero
+    for i in range(j_max):
         if counts[i] == 0:
             counts[i] = 1
         variogram[i] /= (2. * counts[i])
