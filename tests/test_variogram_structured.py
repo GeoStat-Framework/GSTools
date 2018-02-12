@@ -66,6 +66,22 @@ class TestVariogramstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[1], .4917, places=4)
         self.assertAlmostEqual(gamma[2], .7625, places=4)
 
+    def test_masked_1d(self):
+        x = np.arange(1, 11, 1, dtype=np.double)
+        #literature values
+        z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
+                      38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
+        z_ma = np.ma.masked_array(z, mask=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        gamma = variogram.estimate_structured(x, z_ma)
+        self.assertAlmostEqual(gamma[0], .0000, places=4)
+        self.assertAlmostEqual(gamma[1], .4917, places=4)
+        self.assertAlmostEqual(gamma[2], .7625, places=4)
+        z_ma = np.ma.masked_array(z, mask=[1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        gamma = variogram.estimate_structured(x, z_ma)
+        self.assertAlmostEqual(gamma[0], .0000, places=4)
+        self.assertAlmostEqual(gamma[1], .4906, places=4)
+        self.assertAlmostEqual(gamma[2], .7107, places=4)
+
     def test_uncorrelated_2d(self):
         x = np.linspace(0., 100., 80)
         y = np.linspace(0., 100., 60)

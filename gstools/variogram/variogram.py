@@ -9,7 +9,9 @@ import numpy as np
 
 from gstools.field import RNG
 from gstools.variogram.estimator import (unstructured, structured_3d,
-                                         structured_2d, structured_1d)
+                                         structured_2d, structured_1d,
+                                         ma_structured_3d, ma_structured_2d,
+                                         ma_structured_1d)
 
 
 def estimate_unstructured(field, bins, x, y=None, z=None):
@@ -66,10 +68,24 @@ def estimate_structured(pos, field, direction='x'):
     else:
         raise ValueError('Unknown direction {0}'.format(direction))
 
+    try:
+        mask = np.array(field.mask, dtype=np.int32)
+    except AttributeError:
+        mask = None
+
     if len(shape) == 3:
-        gamma = structured_3d(pos[0], pos[1], pos[2], field)
+        if mask is None:
+            gamma = structured_3d(pos[0], pos[1], pos[2], field)
+        else:
+            gamma = ma_structured_3d(pos[0], pos[1], pos[2], field, mask)
     elif len(shape) == 2:
-        gamma = structured_2d(pos[0], pos[1], field)
+        if mask is None:
+            gamma = structured_2d(pos[0], pos[1], field)
+        else:
+            gamma = ma_structured_2d(pos[0], pos[1], field, mask)
     else:
-        gamma = structured_1d(pos, field)
+        if mask is None:
+            gamma = structured_1d(pos, field)
+        else:
+            gamma = ma_structured_1d(pos, field, mask)
     return gamma
