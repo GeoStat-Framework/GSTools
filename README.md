@@ -38,8 +38,8 @@ This is an example of how to generate a 2 dimensional spatial random field with 
 import numpy as np
 from gstools.field import SRF
 
-x = np.arange(0, 10, 120)
-y = np.arange(-5, 5, 100)
+x = np.linspace(0, 10, 120)
+y = np.linspace(-5, 5, 100)
 
 cov_model = {'dim': 2, 'var': 1.6, 'len_scale': 4.5, 'model': 'gau', 'mode_no': 1000}
 
