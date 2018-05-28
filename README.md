@@ -71,7 +71,7 @@ field = srf(x, y, seed=20011012)
 
 bins = np.arange(0, 50)
 
-gamma = variogram.estimate(field, bins, x, y)
+gamma = variogram.estimate_unstructured(field, bins, x, y)
 ```
 
 
