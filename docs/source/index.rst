@@ -1,5 +1,3 @@
-.. include:: ../../README.rst
-
 Table of Content
 ----------------
 .. toctree::
