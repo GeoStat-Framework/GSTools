@@ -26,7 +26,7 @@ class SRF(object):
 
     Examples:
         >>> cov_model = {'dim': 2, 'mean': .0, 'var': 2.6, 'len_scale': 4.,
-        >>>              'model': 'gau', 'anis': 5., 'rotate': np.pi/4.
+        >>>              'model': 'gau', 'anis': 5., 'angles': np.pi/4.
         >>>              'mode_no': 100,}
         >>> x = np.arange(0, 10, 1)
         >>> y = np.arange(-5, 5, 0.5)
