@@ -54,8 +54,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'GSTools'
-copyright = '2018, Lennart Schueler, Falk Hesse'
-author = 'Lennart Schueler, Falk Hesse'
+copyright = '2018, Lennart Schueler'
+author = 'Lennart Schueler'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -147,7 +147,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'GeoStatTools.tex', 'GeoStatTools Documentation',
-     'Lennart Schueler, Falk Hesse', 'manual'),
+     'Lennart Schueler, 'manual'),
 ]
 
 

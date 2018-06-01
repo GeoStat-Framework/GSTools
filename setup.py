@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """GeostatTools: A geostatistical toolbox."""
 from __future__ import division, absolute_import, print_function
+import numpy
 
 
 doclines = __doc__.split('\n')
@@ -26,7 +27,7 @@ long_description = 'See `here <https://github.com/LSchueler/GSTools>`_ for more 
 
 MAJOR      = 0
 MINOR      = 3
-MICRO      = 0
+MICRO      = 3
 ISRELEASED = False
 VERSION    = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
@@ -46,7 +47,8 @@ if use_cython:
                                            'estimator.pyx'))
 else:
     ext_modules += [Extension('gstools.variogram.estimator',
-        [os.path.join('gstools', 'variogram', 'estimator.c')])]
+        [os.path.join('gstools', 'variogram', 'estimator.c')],
+        include_dirs = [numpy.get_include()])]
 
 setup(
     name = 'gstools',
@@ -55,7 +57,7 @@ setup(
     maintainer_email = "lennart.schueler@ufz.de",
     description = doclines[0],
     long_description = long_description,
-    author = "Lennart Schueler, Falk Hesse",
+    author = "Lennart Schueler",
     author_email = "lennart.schueler@ufz.de",
     url='https://github.com/LSchueler/GSTools',
     license = 'GPL - see LICENSE',
@@ -65,4 +67,5 @@ setup(
     install_requires = ['numpy', 'scipy'],
     packages = find_packages(exclude=['tests*', 'docs*']),
     ext_modules = ext_modules,
+    include_dirs = [numpy.get_include()],
 )
