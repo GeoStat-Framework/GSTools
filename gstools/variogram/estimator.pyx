@@ -57,12 +57,12 @@ cdef inline double _distance_3d(scalar[:] x, scalar[:] y, scalar[:] z,
 ctypedef double (*_dist_func)(scalar[:], scalar[:], scalar[:], int, int)
 
 
-def unstructured(scalar_f[:] f, scalar_bins[:] bins, scalar[:] x, scalar[:] y=None, scalar[:] z=None):
+def unstructured(scalar_f[:] f, scalar_bins[:] bin_edges, scalar[:] x, scalar[:] y=None, scalar[:] z=None):
     if x.shape[0] != f.shape[0]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
                          format(x.shape[0], f.shape[0]))
-    if bins.shape[0] < 2:
-        raise ValueError('len(bins) too small')
+    if bin_edges.shape[0] < 2:
+        raise ValueError('len(bin_edges) too small')
 
     cdef _dist_func distance
     #3d
@@ -81,11 +81,11 @@ def unstructured(scalar_f[:] f, scalar_bins[:] bins, scalar[:] x, scalar[:] y=No
     else:
         distance = _distance_1d
 
-    cdef int i_max = bins.shape[0] - 1
+    cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = x.shape[0] - 1
     cdef int k_max = x.shape[0]
 
-    cdef double[:] variogram = np.zeros(len(bins)-1)
+    cdef double[:] variogram = np.zeros(len(bin_edges)-1)
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k, d
     cdef DTYPE_t dist
@@ -93,7 +93,7 @@ def unstructured(scalar_f[:] f, scalar_bins[:] bins, scalar[:] x, scalar[:] y=No
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(x, y, z, k, j)
-                if dist >= bins[i] and dist < bins[i+1]:
+                if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     counts[i] += 1
                     variogram[i] += (f[k] - f[j])**2
     #avoid division by zero

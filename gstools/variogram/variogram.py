@@ -14,7 +14,7 @@ from gstools.variogram.estimator import (unstructured, structured_3d,
                                          ma_structured_1d)
 
 
-def estimate_unstructured(field, bins, x, y=None, z=None):
+def estimate_unstructured(field, bin_edges, x, y=None, z=None):
     """Estimates the variogram of the unstructured input data.
 
     The algorithm calculates following equation:
@@ -28,14 +28,15 @@ def estimate_unstructured(field, bins, x, y=None, z=None):
 
     Args:
         f (ndarray): the spatially distributed data
-        bins (ndarray): the bins on which the variogram will be calculated
+        bin_edges (ndarray): the bins on which the variogram will be calculated
         x (ndarray): first components of position vectors
         y (ndarray, opt.): analog to x
         z (ndarray, opt.): analog to x
     Returns:
         the estimated variogram
     """
-    return unstructured(field, bins, x, y, z)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
+    return unstructured(field, bin_edges, x, y, z), bin_centres
 
 def estimate_structured(pos, field, direction='x'):
     """Estimates the variogram of the input data on a regular grid.
