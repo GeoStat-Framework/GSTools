@@ -19,6 +19,10 @@
 #
 import os
 import sys
+if sys.version_info >= (3, 3):
+    from unittest.mock import MagicMock
+else:
+    from mock import MagicMock
 sys.path.insert(0, os.path.abspath('../../'))
 
 
@@ -182,6 +186,15 @@ def skip(app, what, name, obj, skip, options):
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
+
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(clsm, name):
+        return MagicMock()
+
+MOCK_MODULES = ['gstools.variogram.estimator']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
