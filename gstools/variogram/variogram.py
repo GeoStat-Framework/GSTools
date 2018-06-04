@@ -14,7 +14,7 @@ from gstools.variogram.estimator import (unstructured, structured_3d,
                                          ma_structured_1d)
 
 
-def estimate_unstructured(field, bin_edges, x, y=None, z=None):
+def estimate_unstructured(field, bin_edges, x, y=None, z=None, sampling_size=None):
     """Estimates the variogram of the unstructured input data.
 
     The algorithm calculates following equation:
@@ -32,10 +32,24 @@ def estimate_unstructured(field, bin_edges, x, y=None, z=None):
         x (ndarray): first components of position vectors
         y (ndarray, opt.): analog to x
         z (ndarray, opt.): analog to x
+        sampling_size (int): for large input data, this method can take a long
+            time to compute the variogram, therefore this argument specifies
+            the number of data points to sample randomly
     Returns:
         the estimated variogram
     """
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
+
+    if sampling_size is not None or sampling_size >= len(field):
+        sampled_idx = np.random.choice(np.arange(len(field)), sampling_size,
+                                       replace=False)
+        field = field[sampled_idx]
+        x = x[sampled_idx]
+        if y is not None:
+            y = y[sampled_idx]
+        if z is not None:
+            z = z[sampled_idx]
+
     return unstructured(field, bin_edges, x, y, z), bin_centres
 
 def estimate_structured(pos, field, direction='x'):

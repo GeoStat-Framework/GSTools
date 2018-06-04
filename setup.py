@@ -27,7 +27,7 @@ long_description = 'See `here <https://github.com/LSchueler/GSTools>`_ for more 
 
 MAJOR      = 0
 MINOR      = 3
-MICRO      = 3
+MICRO      = 4
 ISRELEASED = False
 VERSION    = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
