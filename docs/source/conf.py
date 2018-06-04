@@ -147,7 +147,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'GeoStatTools.tex', 'GeoStatTools Documentation',
-     'Lennart Schueler, 'manual'),
+     'Lennart Schueler', 'manual'),
 ]
 
 
