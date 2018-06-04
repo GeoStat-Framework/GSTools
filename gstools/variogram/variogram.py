@@ -26,17 +26,26 @@ def estimate_unstructured(field, bin_edges, x, y=None, z=None, sampling_size=Non
         r_k \\leq \\| \\mathbf x_i - \\mathbf x_i' \\| < r_{k+1}
 
 
-    Args:
-        f (ndarray): the spatially distributed data
-        bin_edges (ndarray): the bins on which the variogram will be calculated
-        x (ndarray): first components of position vectors
-        y (ndarray, opt.): analog to x
-        z (ndarray, opt.): analog to x
-        sampling_size (int): for large input data, this method can take a long
+    Parameters
+    ----------
+        f : ndarray
+            the spatially distributed data
+        bin_edges : ndarray
+            the bins on which the variogram will be calculated
+        x : ndarray
+            first components of position vectors
+        y : ndarray, optional
+            analog to x
+        z : ndarray, optional
+            analog to x
+        sampling_size : int
+            for large input data, this method can take a long
             time to compute the variogram, therefore this argument specifies
             the number of data points to sample randomly
-    Returns:
-        the estimated variogram
+    Returns
+    -------
+        ndarray
+            the estimated variogram
     """
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
 
@@ -64,13 +73,19 @@ def estimate_structured(pos, field, direction='x'):
 
         r_k \\leq \\| \\mathbf x_i - \\mathbf x_i' \\| < r_{k+1}
 
-    Args:
-        pos (tuple): a tuple of ndarrays containing the axes
-        field (ndarray): the spatially distributed data
-        direction (string): the axis over which the variogram
-                            will be estimated (x, y, z)
-    Returns:
-        the estimated variogram along the given direction.
+    Parameters
+    ----------
+        pos : tuple
+            a tuple of ndarrays containing the axes
+        field : ndarray
+            the spatially distributed data
+        direction : string
+            the axis over which the variogram will be estimated (x, y, z)
+
+    Returns
+    -------
+        ndarray
+            the estimated variogram along the given direction.
     """
     shape = field.shape
 
