@@ -113,6 +113,64 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[len(gamma)//2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
 
+    def test_sampling_1d(self):
+        x = np.linspace(0., 100., 21000)
+
+        rng = np.random.RandomState(1479373475)
+        field = rng.rand(len(x))
+
+        bins = np.arange(0, 100, 10)
+
+        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x,
+                                                             sampling_size=2000)
+
+        var = 1. / 12.
+        self.assertAlmostEqual(gamma[0], var, places=2)
+        self.assertAlmostEqual(gamma[len(gamma)//2], var, places=2)
+        self.assertAlmostEqual(gamma[-1], var, places=2)
+
+    def test_sampling_2d(self):
+        x_c = np.linspace(0., 100., 600)
+        y_c = np.linspace(0., 100., 600)
+        x, y = np.meshgrid(x_c, y_c)
+        x = np.reshape(x, len(x_c)*len(y_c))
+        y = np.reshape(y, len(x_c)*len(y_c))
+
+        rng = np.random.RandomState(1479373475)
+        field = rng.rand(len(x))
+
+        bins = np.arange(0, 100, 10)
+
+        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x, y,
+                                                             sampling_size=2000)
+
+        var = 1. / 12.
+        self.assertAlmostEqual(gamma[0], var, places=2)
+        self.assertAlmostEqual(gamma[len(gamma)//2], var, places=2)
+        self.assertAlmostEqual(gamma[-1], var, places=2)
+
+    def test_sampling_3d(self):
+        x_c = np.linspace(0., 100., 100)
+        y_c = np.linspace(0., 100., 100)
+        z_c = np.linspace(0., 100., 100)
+        x, y, z = np.meshgrid(x_c, y_c, z_c)
+        x = np.reshape(x, len(x_c)*len(y_c)*len(z_c))
+        y = np.reshape(y, len(x_c)*len(y_c)*len(z_c))
+        z = np.reshape(z, len(x_c)*len(y_c)*len(z_c))
+
+        rng = np.random.RandomState(1479373475)
+        field = rng.rand(len(x))
+
+        bins = np.arange(0, 100, 10)
+
+        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x, y, z,
+                                                             sampling_size=2000)
+        var = 1. / 12.
+        self.assertAlmostEqual(gamma[0], var, places=2)
+        self.assertAlmostEqual(gamma[len(gamma)//2], var, places=2)
+        self.assertAlmostEqual(gamma[-1], var, places=2)
+
+
     def test_assertions(self):
         x = np.arange(0, 10)
         x_e = np.arange(0, 11)
