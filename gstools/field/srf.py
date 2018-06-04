@@ -12,19 +12,28 @@ from gstools.field import RNG
 class SRF(object):
     """A class to generate a spatial random field (SRF).
 
-    Args:
-        dim (int): spatial dimension
-        mean (float, opt.): mean value of the SRF
-        var (float, opt.): variance of the SRF
-        len_scale (float, opt.): the length scale of the SRF in x direction
-        model (str, opt.): the covariance model ('gau', 'exp', ..., see RNG)
-        anis (float/list, opt.): the anisotropy of length scales along
-            the y- and z-directions
-        angles (float/list, opt.): the rotation of the stretching, with the
-            values corrisponding the yaw, pitch, and roll
-        mode_no (int, opt.): number of Fourier modes
+    Parameters
+    ----------
+        dim : int
+            spatial dimension
+        mean : float, optional
+            mean value of the SRF
+        var : float, optional
+            variance of the SRF
+        len_scale : float, optional
+            the length scale of the SRF in x direction
+        model : str, optional
+            the covariance model ('gau', 'exp', ..., see RNG)
+        anis : float/list, optional
+            the anisotropy of length scales along the y- and z-directions
+        angles : float/list, optional
+            the rotation of the stretching, with the values corrisponding the
+            yaw, pitch, and roll
+        mode_no : int, optional
+            number of Fourier modes
 
-    Examples:
+    Examples
+    --------
         >>> cov_model = {'dim': 2, 'mean': .0, 'var': 2.6, 'len_scale': 4.,
         >>>              'model': 'gau', 'anis': 5., 'angles': np.pi/4.
         >>>              'mode_no': 100,}
@@ -59,15 +68,23 @@ class SRF(object):
     def __call__(self, x, y=None, z=None, seed=None, mesh_type='unstructured'):
         """Generate an SRF and return it without saving it internally.
 
-        Args:
-            x (ndarray): grid axis in x-direction if structured, or
-                first components of position vectors if unstructured
-            y (ndarray, opt.): analog to x
-            z (ndarray, opt.): analog to x
-            seed (int, opt.): seed for RNG
-            mesh_type (str): 'structured' / 'unstructured'
-        Returns:
-            field (ndarray): the SRF
+        Parameters
+        ----------
+            x : ndarray
+                grid axis in x-direction if structured, or first components of
+                position vectors if unstructured
+            y : ndarray, optional
+                analog to x
+            z : ndarray, optional
+                analog to x
+            seed : int, optional
+                seed for RNG
+            mesh_type : str
+                'structured' / 'unstructured'
+        Returns
+        -------
+            field : ndarray
+                the SRF
         """
         self._check_mesh(x, y, z, mesh_type)
         mesh_type_changed = False
@@ -94,41 +111,63 @@ class SRF(object):
     def structured(self, x, y=None, z=None, seed=None):
         """Generate an SRF on a structured mesh without saving it internally.
 
-        Args:
-            x (ndarray): grid axis in x-direction if structured
-            y (ndarray, opt.): analog to x
-            z (ndarray, opt.): analog to x
-            seed (int, opt.): seed for RNG
-        Returns:
-            field (ndarray): the SRF
+        Parameters
+        ----------
+            x : ndarray
+                grid axis in x-direction if structured
+            y : ndarray, optional
+                analog to x
+            z : ndarray, optional
+                analog to x
+            seed : int, optional
+                seed for RNG
+        Returns
+        -------
+            field : ndarray
+                the SRF
         """
         return self(x, y, z, seed, 'structured')
 
     def unstructured(self, x, y=None, z=None, seed=None):
         """Generate an SRF on an unstructured mesh without saving it internally.
 
-        Args:
-            x (ndarray): first components of position vectors if unstructured
-            y (ndarray, opt.): analog to x
-            z (ndarray, opt.): analog to x
-            seed (int, opt.): seed for RNG
-        Returns:
-            field (ndarray): the SRF
+        Parameters
+        ----------
+            x : ndarray
+                first components of position vectors if unstructured
+            y : ndarray, optional
+                analog to x
+            z : ndarray, optional
+                analog to x
+            seed : int, optional
+                seed for RNG
+        Returns
+        -------
+            field : ndarray
+                the SRF
         """
         return self(x, y, z, seed)
 
     def generate(self, x, y=None, z=None, seed=None, mesh_type='unstructured'):
         """Generate an SRF and save it as an attribute self.field.
 
-        Args:
-            x (ndarray): grid axis in x-direction if structured, or
-                first components of position vectors if unstructured
-            y (ndarray, opt.): analog to x
-            z (ndarray, opt.): analog to x
-            seed (int, opt.): seed for RNG
-            mesh_type (str): 'structured' / 'unstructured'
-        Returns:
-            field (ndarray): the SRF
+        Parameters
+        ----------
+            x ndarray
+                grid axis in x-direction if structured, or first components of
+                position vectors if unstructured
+            y : ndarray, optional
+                analog to x
+            z : ndarray, optional
+                analog to x
+            seed : int, optional
+                seed for RNG
+            mesh_type : str
+                'structured' / 'unstructured'
+        Returns
+        -------
+            field : ndarray
+                the SRF
         """
         self.field = self(x, y, z, seed, mesh_type)
         return self.field
@@ -325,14 +364,19 @@ class SRF(object):
 class RandMeth(object):
     """Randomization method for calculating isotropic spatial random fields.
 
-    Args:
-        dim (int): spatial dimension
-        model (dict): covariance model
-        mode_no (int, opt.): number of Fourier modes
-        seed (int, opt.): the seed of the master RNG, if "None",
-            a random seed is used
+    Parameters
+    ----------
+        dim : int
+            spatial dimension
+        model : dict
+            covariance model
+        mode_no : int, optional
+            number of Fourier modes
+        seed : int, optional
+            the seed of the master RNG, if "None", a random seed is used
 
-    Examples:
+    Examples
+    --------
         >>> x_tuple = np.array([ 4, 0, 3])
         >>> y_tuple = np.array([-1, 0, 1])
         >>> x_tuple = np.reshape(x_tuple, (len(x_tuple), 1))
@@ -349,13 +393,18 @@ class RandMeth(object):
     def reset(self, dim, model, len_scale, mode_no=1000, seed=None, **kwargs):
         """Reset the random amplitudes and wave numbers with a new seed.
 
-        Args:
-            dim (int): spatial dimension
-            model (str): covariance model
-            len_scale (float): length scale
-            mode_no (int, opt.): number of Fourier modes
-            seed (int, opt.): the seed of the master RNG, if "None",
-                a random seed is used
+        Parameters
+        ----------
+            dim : int
+                spatial dimension
+            model : str
+                covariance model
+            len_scale : float
+                length scale
+            mode_no : int, optional
+                number of Fourier modes
+            seed : int, optional
+                the seed of the master RNG, if "None", a random seed is used
         """
         self._dim = dim
         self._model = model
@@ -368,15 +417,21 @@ class RandMeth(object):
     def __call__(self, x, y=None, z=None):
         """Calculates the random modes for the randomization method.
 
-        Args:
-            x (float, ndarray): the x components of the position tuple,
-                the shape has to be (len(x), 1, 1) for 3d and accordingly
-                shorter for lower dimensions
-            y (float, ndarray, opt.): the y components of the pos. tupls
-            z (float, ndarray, opt.): the z components of the pos. tuple
+        Parameters
+        ----------
+            x : float, ndarray
+                the x components of the position tuple, the shape has to be
+                (len(x), 1, 1) for 3d and accordingly shorter for lower
+                dimensions
+            y : float, ndarray, optional
+                the y components of the pos. tupls
+            z : float, ndarray, optional
+                the z components of the pos. tuple
 
-        Returns:
-            the random modes
+        Returns
+        -------
+            ndarray
+                the random modes
         """
         summed_modes = np.broadcast(x, y, z)
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
@@ -420,7 +475,7 @@ class RandMeth(object):
 
     @property
     def seed(self):
-        """ seed (int): the seed of the master RNG
+        """int : the seed of the master RNG
 
         If a new seed is given, the setter property not only saves the
         new seed, but also creates new random modes with the new seed.
