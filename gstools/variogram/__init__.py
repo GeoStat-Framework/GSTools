@@ -7,4 +7,4 @@ from gstools.variogram.variogram import (estimate_structured,
                                          estimate_unstructured)
 
 
-__all__ = ['estimate']
+__all__ = ['estimate_unstructured', 'estimate_structured']
