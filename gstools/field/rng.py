@@ -277,6 +277,12 @@ class RNG(object):
         self._master_RNG =  (lambda:
                              self._master_RNG_fct.random_integers(2**16 - 1))
 
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return 'RNG(dim={0:d}, seed={1})'.format(self.dim, self.seed)
+
 
 if __name__ == '__main__':
     import doctest

@@ -359,6 +359,21 @@ class SRF(object):
         """ The rotation angles (in rad) of the spatial random field.
         """
         return self._angles
+    @property
+    def mode_no(self):
+        """ number of Fourier modes
+        """
+        return self._mode_no
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return ('SRF(dim={0}, mean={1}, var={2}, len_scale={3}, model={4}, '
+                'anis={5}, angles={6}, mode_no={7})'.
+                format(self.dim, self.mean, self.var, self.len_scale,
+                       self.model, np.squeeze(self.anis),
+                       np.squeeze(self.angles), self.mode_no))
 
 
 class RandMeth(object):
@@ -494,6 +509,14 @@ class RandMeth(object):
             for d in range(self._dim):
                 self._k[d] = np.squeeze(self._k[d])
                 self._k[d] = np.reshape(self._k[d], (1, len(self._k[d])))
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return ('RandMeth(dim={0}, model={1}, len_scale={2}, mode_no={3}, '
+                'seed={4})'.format(self._dim, self._model, self._len_scale,
+                                   self._mode_no, self.seed))
 
 
 if __name__ == '__main__':
