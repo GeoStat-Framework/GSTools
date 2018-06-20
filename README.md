@@ -1,8 +1,9 @@
 # Welcome to GeoStatTools
 
 [![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://gstools.readthedocs.io/en/latest/)
-
-
+<p align="center">
+<img src="/docs/source/gstools.png" alt="GSTools-LOGO" width="251px"/>
+</p>
 ## Purpose
 
 GeoStatTools is a library providing geostatistical tools.
