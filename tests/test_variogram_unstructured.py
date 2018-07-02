@@ -5,9 +5,18 @@ This is a unittest of the variogram module.
 """
 from __future__ import division, absolute_import, print_function
 
+import sys
 import unittest
 import numpy as np
 from gstools import variogram
+
+PY3 = sys.version_info[0] == 3
+# in python3 "long" was replaced with "int"
+# https://docs.python.org/3.3/whatsnew/3.0.html#integers
+if PY3:
+    LONGTYPE = int
+else:
+    LONGTYPE = long
 
 
 class TestVariogramUnstructured(unittest.TestCase):
@@ -30,9 +39,9 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[0], 50., places=4)
 
     def test_longs(self):
-        x = np.arange(1, 5, 1, dtype=long)
-        z = np.array((10, 20, 30, 40), dtype=long)
-        bins = np.arange(1, 11, 1, dtype=long)
+        x = np.arange(1, 5, 1, dtype=LONGTYPE)
+        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
+        bins = np.arange(1, 11, 1, dtype=LONGTYPE)
         gamma, bin_centres = variogram.estimate_unstructured(z, bins, x)
         self.assertAlmostEqual(gamma[0], 50., places=4)
 
@@ -52,20 +61,20 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[0], .4917, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
-        z = np.array((10, 20, 30, 40), dtype=long)
+        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
         bins = np.arange(1, 11, 1, dtype=int)
         gamma, bin_centres = variogram.estimate_unstructured(z, bins, x)
         self.assertAlmostEqual(gamma[0], 50., places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
-        z = np.array((10, 20, 30, 40), dtype=long)
+        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
         bins = np.arange(1, 11, 1, dtype=np.double)
         gamma, bin_centres = variogram.estimate_unstructured(z, bins, x)
         self.assertAlmostEqual(gamma[0], 50., places=4)
 
     def test_1d(self):
         x = np.arange(1, 11, 1, dtype=np.double)
-        #literature values
+        # literature values
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
         bins = np.arange(1, 11, 1, dtype=np.double)
@@ -106,7 +115,8 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x, y, z)
+        gamma, bin_centres = variogram.estimate_unstructured(field,
+                                                             bins, x, y, z)
 
         var = 1. / 12.
         self.assertAlmostEqual(gamma[0], var, places=2)
@@ -121,8 +131,9 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x,
-                                                             sampling_size=2000)
+        gamma, bin_centres = variogram.estimate_unstructured(
+            field, bins, x,
+            sampling_size=5000)
 
         var = 1. / 12.
         self.assertAlmostEqual(gamma[0], var, places=2)
@@ -141,8 +152,9 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x, y,
-                                                             sampling_size=2000)
+        gamma, bin_centres = variogram.estimate_unstructured(
+            field, bins, x, y,
+            sampling_size=2000)
 
         var = 1. / 12.
         self.assertAlmostEqual(gamma[0], var, places=2)
@@ -163,13 +175,13 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        gamma, bin_centres = variogram.estimate_unstructured(field, bins, x, y, z,
-                                                             sampling_size=2000)
+        gamma, bin_centres = variogram.estimate_unstructured(
+            field, bins, x, y, z,
+            sampling_size=2000)
         var = 1. / 12.
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma)//2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
-
 
     def test_assertions(self):
         x = np.arange(0, 10)
@@ -183,13 +195,27 @@ class TestVariogramUnstructured(unittest.TestCase):
         field = np.arange(0, 10)
         field_e = np.arange(0, 9)
 
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field, bins, x_e)
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field, bins, x, y_e)
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field, bins, x, y_e, z)
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field, bins, x, y, z_e)
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field, bins, x_e, y, z)
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field_e, bins, x, y, z)
-        self.assertRaises(ValueError, variogram.estimate_unstructured, field_e, bins, x)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field, bins, x_e)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field, bins, x, y_e)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field, bins, x, y_e, z)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field, bins, x, y, z_e)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field, bins, x_e, y, z)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field_e, bins, x, y, z)
+        self.assertRaises(ValueError,
+                          variogram.estimate_unstructured,
+                          field_e, bins, x)
 
 
 if __name__ == '__main__':

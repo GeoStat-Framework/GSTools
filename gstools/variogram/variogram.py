@@ -1,55 +1,78 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-A collection of tools for estimating and fitting variograms.
+GStools subpackage providing tools for estimating and fitting variograms.
+
+.. currentmodule:: gstools.variogram.variogram
+
+The following functions are provided
+
+.. autosummary::
+   estimate_unstructured
+   estimate_structured
 """
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
+from gstools.variogram.estimator import (
+    unstructured,
+    structured_3d,
+    structured_2d,
+    structured_1d,
+    ma_structured_3d,
+    ma_structured_2d,
+    ma_structured_1d,
+)
 
-from gstools.field import RNG
-from gstools.variogram.estimator import (unstructured, structured_3d,
-                                         structured_2d, structured_1d,
-                                         ma_structured_3d, ma_structured_2d,
-                                         ma_structured_1d)
+__all__ = [
+    "estimate_unstructured",
+    "estimate_structured",
+]
 
 
-def estimate_unstructured(field, bin_edges, x, y=None, z=None, sampling_size=None):
-    """Estimates the variogram of the unstructured input data.
+def estimate_unstructured(
+        field,
+        bin_edges,
+        x,
+        y=None,
+        z=None,
+        sampling_size=None,
+):
+    r"""
+    Estimates the variogram of the unstructured input data.
 
     The algorithm calculates following equation:
 
     .. math::
-        \\gamma(r_k) = \\frac{1}{2 N} \\sum_{i=1}^N (z(\\mathbf x_i) -
-        z(\\mathbf x_i'))^2, \\; \mathrm{ with}
+       \gamma(r_k) = \frac{1}{2 N} \sum_{i=1}^N (z(\mathbf x_i) -
+       z(\mathbf x_i'))^2, \; \mathrm{ with}
 
-        r_k \\leq \\| \\mathbf x_i - \\mathbf x_i' \\| < r_{k+1}
-
+       r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
     Parameters
     ----------
-        f : ndarray
+        field : :class:`numpy.ndarray`
             the spatially distributed data
-        bin_edges : ndarray
+        bin_edges : :class:`numpy.ndarray`
             the bins on which the variogram will be calculated
-        x : ndarray
+        x : :class:`numpy.ndarray`
             first components of position vectors
-        y : ndarray, optional
+        y : :class:`numpy.ndarray`, optional
             analog to x
-        z : ndarray, optional
+        z : :class:`numpy.ndarray`, optional
             analog to x
-        sampling_size : int
+        sampling_size : :class:`int`
             for large input data, this method can take a long
             time to compute the variogram, therefore this argument specifies
             the number of data points to sample randomly
     Returns
     -------
-        ndarray
-            the estimated variogram
+        :class:`tuple` of :class:`numpy.ndarray`
+            the estimated variogram and the bin centers
     """
+
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
 
-    if sampling_size is not None or sampling_size >= len(field):
+    if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.choice(np.arange(len(field)), sampling_size,
                                        replace=False)
         field = field[sampled_idx]
@@ -61,30 +84,35 @@ def estimate_unstructured(field, bin_edges, x, y=None, z=None, sampling_size=Non
 
     return unstructured(field, bin_edges, x, y, z), bin_centres
 
-def estimate_structured(pos, field, direction='x'):
-    """Estimates the variogram of the input data on a regular grid.
+
+def estimate_structured(
+        pos,
+        field,
+        direction='x',
+):
+    r"""Estimates the variogram of the input data on a regular grid.
 
     The axis of the given direction is used for the bins.
     The algorithm calculates following equation:
 
     .. math::
-        \\gamma(r_k) = \\frac{1}{2 N} \\sum_{i=1}^N (z(\\mathbf x_i) -
-        z(\\mathbf x_i'))^2, \\; \mathrm{ with}
+       \gamma(r_k) = \frac{1}{2 N} \sum_{i=1}^N (z(\mathbf x_i) -
+       z(\mathbf x_i'))^2, \; \mathrm{ with}
 
-        r_k \\leq \\| \\mathbf x_i - \\mathbf x_i' \\| < r_{k+1}
+       r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
     Parameters
     ----------
-        pos : tuple
-            a tuple of ndarrays containing the axes
-        field : ndarray
+        pos : :class:`tuple`
+            a tuple of :class:`numpy.ndarray` containing the axes
+        field : :class:`numpy.ndarray`
             the spatially distributed data
-        direction : string
+        direction : :class:`str`
             the axis over which the variogram will be estimated (x, y, z)
 
     Returns
     -------
-        ndarray
+        :class:`numpy.ndarray`
             the estimated variogram along the given direction.
     """
     shape = field.shape
