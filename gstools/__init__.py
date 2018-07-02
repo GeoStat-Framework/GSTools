@@ -1,9 +1,31 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import division, absolute_import, print_function
+"""
+=======
+GSTools
+=======
 
-from gstools import field
-from gstools import variogram
+Contents
+--------
+GeoStatTools is a library providing geostatistical tools.
 
+Subpackages
+-----------
+The following subpackages are provided
 
-__all__ = ['field', 'variogram']
+.. autosummary::
+    field
+    variogram
+"""
+from __future__ import absolute_import
+
+from gstools import (
+    field,
+    variogram,
+)
+
+__all__ = [
+    'field',
+    'variogram',
+]
+
+__version__ = "0.3.6"
