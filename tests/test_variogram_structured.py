@@ -1,13 +1,20 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This is a unittest of the variogram module.
 """
 from __future__ import division, absolute_import, print_function
 
+import sys
 import unittest
 import numpy as np
 from gstools import variogram
+
+PY3 = sys.version_info[0] == 3
+# in python3 "long" was replaced with "int"
+if PY3:
+    LONGTYPE = int
+else:
+    LONGTYPE = long
 
 
 class TestVariogramstructured(unittest.TestCase):
@@ -28,8 +35,8 @@ class TestVariogramstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
     def test_longs(self):
-        x = np.arange(1, 5, 1, dtype=long)
-        z = np.array((10, 20, 30, 40), dtype=long)
+        x = np.arange(1, 5, 1, dtype=LONGTYPE)
+        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
         gamma = variogram.estimate_structured(x, z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
@@ -47,18 +54,18 @@ class TestVariogramstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[1], .4917, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
-        z = np.array((10, 20, 30, 40), dtype=long)
+        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
         gamma = variogram.estimate_structured(x, z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
-        z = np.array((10, 20, 30, 40), dtype=long)
+        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
         gamma = variogram.estimate_structured(x, z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
     def test_1d(self):
         x = np.arange(1, 11, 1, dtype=np.double)
-        #literature values
+        # literature values
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
         gamma = variogram.estimate_structured(x, z)
@@ -68,7 +75,7 @@ class TestVariogramstructured(unittest.TestCase):
 
     def test_masked_1d(self):
         x = np.arange(1, 11, 1, dtype=np.double)
-        #literature values
+        # literature values
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
         z_ma = np.ma.masked_array(z, mask=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -123,9 +130,9 @@ class TestVariogramstructured(unittest.TestCase):
         rng = np.random.RandomState(1479373475)
         x_rand = rng.rand(len(x))
         y_rand = rng.rand(len(y))
-        #random values repeated along y-axis
+        # random values repeated along y-axis
         field_x = np.tile(x_rand, (len(y), 1)).T
-        #random values repeated along x-axis
+        # random values repeated along x-axis
         field_y = np.tile(y_rand, (len(x), 1))
 
         gamma_x_x = variogram.estimate_structured((x, y), field_x,

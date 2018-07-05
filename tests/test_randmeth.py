@@ -1,5 +1,3 @@
-
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This is the unittest of the RandMeth class.
@@ -29,14 +27,17 @@ class TestRandMeth(unittest.TestCase):
         self.y_tuple = np.reshape(self.y_tuple, (len(self.y_tuple), 1))
         self.z_tuple = np.reshape(self.z_tuple, (len(self.z_tuple), 1))
 
-        self.rm_1d = RandMeth(1, self.cov_model, self.len_scale, 100, self.seed)
-        self.rm_2d = RandMeth(2, self.cov_model, self.len_scale, 100, self.seed)
-        self.rm_3d = RandMeth(3, self.cov_model, self.len_scale, 100, self.seed)
+        self.rm_1d = RandMeth(1, self.cov_model,
+                              self.len_scale, 100, self.seed)
+        self.rm_2d = RandMeth(2, self.cov_model,
+                              self.len_scale, 100, self.seed)
+        self.rm_3d = RandMeth(3, self.cov_model,
+                              self.len_scale, 100, self.seed)
 
     def test_unstruct_1d(self):
         modes = self.rm_1d(self.x_tuple)
         self.assertAlmostEqual(modes[0], 2.61114815)
-        self.assertAlmostEqual(modes[1],-1.09762656)
+        self.assertAlmostEqual(modes[1], -1.09762656)
 
     def test_unstruct_2d(self):
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
@@ -51,25 +52,25 @@ class TestRandMeth(unittest.TestCase):
     def test_struct_1d(self):
         modes = self.rm_1d(self.x_grid)
         self.assertAlmostEqual(modes[0], 2.61114815)
-        self.assertAlmostEqual(modes[1],-0.98901582)
+        self.assertAlmostEqual(modes[1], -0.98901582)
 
     def test_struct_2d(self):
         modes = self.rm_2d(self.x_grid, self.y_grid)
-        self.assertAlmostEqual(modes[0,0], 0.66896403)
-        self.assertAlmostEqual(modes[1,0],-0.66976332)
-        self.assertAlmostEqual(modes[0,1],-2.08766420)
-        self.assertAlmostEqual(modes[1,1], 0.71573459)
+        self.assertAlmostEqual(modes[0, 0], 0.66896403)
+        self.assertAlmostEqual(modes[1, 0], -0.66976332)
+        self.assertAlmostEqual(modes[0, 1], -2.08766420)
+        self.assertAlmostEqual(modes[1, 1], 0.71573459)
 
     def test_struct_3d(self):
         modes = self.rm_3d(self.x_grid, self.y_grid, self.z_grid)
-        self.assertAlmostEqual(modes[0,0,0], 0.28444828)
-        self.assertAlmostEqual(modes[1,0,0], 0.62812678)
-        self.assertAlmostEqual(modes[0,1,0], 2.90484916)
-        self.assertAlmostEqual(modes[0,0,1], 0.06608837)
-        self.assertAlmostEqual(modes[1,1,0],-0.49580849)
-        self.assertAlmostEqual(modes[0,1,1], 0.81327753)
-        self.assertAlmostEqual(modes[1,0,1], 1.53838263)
-        self.assertAlmostEqual(modes[1,1,1], 0.64161150)
+        self.assertAlmostEqual(modes[0, 0, 0], 0.28444828)
+        self.assertAlmostEqual(modes[1, 0, 0], 0.62812678)
+        self.assertAlmostEqual(modes[0, 1, 0], 2.90484916)
+        self.assertAlmostEqual(modes[0, 0, 1], 0.06608837)
+        self.assertAlmostEqual(modes[1, 1, 0], -0.49580849)
+        self.assertAlmostEqual(modes[0, 1, 1], 0.81327753)
+        self.assertAlmostEqual(modes[1, 0, 1], 1.53838263)
+        self.assertAlmostEqual(modes[1, 1, 1], 0.64161150)
 
     def test_reset(self):
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
@@ -84,7 +85,7 @@ class TestRandMeth(unittest.TestCase):
         self.rm_2d.reset(2, self.cov_model, self.len_scale, 100, 74893621)
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
         self.assertAlmostEqual(modes[0], 0.93183497)
-        self.assertAlmostEqual(modes[1],-1.46225851)
+        self.assertAlmostEqual(modes[1], -1.46225851)
 
     def test_scalar(self):
         mode = self.rm_1d(10.)
