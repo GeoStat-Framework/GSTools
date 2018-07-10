@@ -50,26 +50,28 @@ for ext in EXT_MODULES:
 # version import not possible due to cython (separate __version__ in __init__)
 VERSION = "0.3.6"
 
-setup(
-    name='gstools',
-    version=VERSION,
-    maintainer='Lennart Schueler',
-    maintainer_email="lennart.schueler@ufz.de",
-    description=DOCLINES[0],
-    long_description=README,
-    long_description_content_type="text/markdown",
-    author="Lennart Schueler",
-    author_email="lennart.schueler@ufz.de",
-    url='https://github.com/LSchueler/GSTools',
-    license='GPL - see LICENSE',
-    classifiers=CLASSIFIERS,
-    platforms=["Linux"],
-    include_package_data=True,
-    install_requires=[
+setup_kw = {
+    "name": 'gstools',
+    "version": VERSION,
+    "maintainer": 'Lennart Schueler',
+    "maintainer_email": "lennart.schueler@ufz.de",
+    "description": DOCLINES[0],
+    "long_description": README,
+    "long_description_content_type": "text/markdown",
+    "author": "Lennart Schueler",
+    "author_email": "lennart.schueler@ufz.de",
+    "url": 'https://github.com/LSchueler/GSTools',
+    "license": 'GPL - see LICENSE',
+    "classifiers": CLASSIFIERS,
+    "platforms": ["Linux"],
+    "include_package_data": True,
+    "install_requires": [
         'numpy',
         'scipy',
     ],
-    packages=find_packages(exclude=['tests*', 'docs*']),
-    ext_modules=EXT_MODULES,
-    include_dirs=[numpy.get_include()],
-)
+    "packages": find_packages(exclude=['tests*', 'docs*']),
+    "ext_modules": EXT_MODULES,
+    "include_dirs": [numpy.get_include()],
+}
+
+setup(**setup_kw)

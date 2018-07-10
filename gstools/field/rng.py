@@ -51,18 +51,6 @@ class RNG(object):
         self._master_RNG = None
         self.seed = seed
 
-        self._trans_1d = lambda len_scale, r: r / len_scale
-        self._trans_2d = [lambda len_scale, r, phi:
-                          r*np.cos(phi) / len_scale,
-                          lambda len_scale, r, phi:
-                          r*np.sin(phi) / len_scale]
-        self._trans_3d = [lambda len_scale, r, theta, phi:
-                          r * np.sin(theta) * np.cos(phi) / len_scale,
-                          lambda len_scale, r, theta, phi:
-                          r * np.sin(theta) * np.sin(phi) / len_scale,
-                          lambda len_scale, r, theta, phi=None:
-                          r * np.cos(theta) / len_scale]
-
     def __call__(self, model, len_scale, mode_no=1000, **kwargs):
         """ A standardized interface for the different covariance models.
 
@@ -155,9 +143,9 @@ class RNG(object):
         k = self.create_empty_k(mode_no)
         iid = np.empty_like(k)
 
-        for dim_i in range(self.dim):
+        for d in range(self.dim):
             rng = self._get_random_stream()
-            iid[dim_i] = rng.uniform(0., 1., mode_no)
+            iid[d] = rng.uniform(0., 1., mode_no)
         return k, iid
 
     def gau(self, len_scale, mode_no=1000, **kwargs):
@@ -184,9 +172,9 @@ class RNG(object):
                 the modes
         """
         k = self.create_empty_k(mode_no)
-        for dim_i in range(self.dim):
+        for d in range(self.dim):
             rng = self._get_random_stream()
-            k[dim_i] = rng.normal(0., 1./len_scale, mode_no)
+            k[d] = rng.normal(0., 1./len_scale, mode_no)
         return k
 
     def exp(self, len_scale, mode_no=1000, **kwargs):
