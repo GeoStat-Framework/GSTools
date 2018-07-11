@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# AnaFlow documentation build configuration file, created by
+# GeoStatTools documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  5 14:20:43 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -169,7 +169,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'welltestpydoc'
+htmlhelp_basename = 'GeoStatToolsdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------

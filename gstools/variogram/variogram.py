@@ -30,13 +30,8 @@ __all__ = [
 
 
 def estimate_unstructured(
-        field,
-        bin_edges,
-        x,
-        y=None,
-        z=None,
-        sampling_size=None,
-):
+        field, bin_edges, x,
+        y=None, z=None, sampling_size=None):
     r"""
     Estimates the variogram of the unstructured input data.
 
@@ -86,10 +81,8 @@ def estimate_unstructured(
 
 
 def estimate_structured(
-        pos,
-        field,
-        direction='x',
-):
+        pos, field,
+        direction='x'):
     r"""Estimates the variogram of the input data on a regular grid.
 
     The axis of the given direction is used for the bins.
