@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This is the unittest of the RNG class.
@@ -37,11 +36,11 @@ class TestRNG(unittest.TestCase):
 
         #explicit for better debugging, so the line is found immediately
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0,0], Z_refs[0])
-        self.assertAlmostEqual(k[0,0], k_refs[0])
+        self.assertAlmostEqual(Z[0, 0], Z_refs[0])
+        self.assertAlmostEqual(k[0, 0], k_refs[0])
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0,0], Z_refs[1])
-        self.assertAlmostEqual(k[0,0], k_refs[1])
+        self.assertAlmostEqual(Z[0, 0], Z_refs[1])
+        self.assertAlmostEqual(k[0, 0], k_refs[1])
 
     def test_rng_consistency_2d(self):
         rng = RNG(2, 21021997)
@@ -61,11 +60,11 @@ class TestRNG(unittest.TestCase):
 
         #explicit for better debugging, so the line is found immediately
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0,0], Z_refs[0])
-        self.assertAlmostEqual(k[0,0], k_refs[0])
+        self.assertAlmostEqual(Z[0, 0], Z_refs[0])
+        self.assertAlmostEqual(k[0, 0], k_refs[0])
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0,0], Z_refs[1])
-        self.assertAlmostEqual(k[0,0], k_refs[1])
+        self.assertAlmostEqual(Z[0, 0], Z_refs[1])
+        self.assertAlmostEqual(k[0, 0], k_refs[1])
 
     def test_rng_consistency_3d(self):
         rng = RNG(3, 21021997)
@@ -85,11 +84,11 @@ class TestRNG(unittest.TestCase):
 
         #explicit for better debugging, so the line is found immediately
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0,0], Z_refs[0])
-        self.assertAlmostEqual(k[0,0], k_refs[0])
+        self.assertAlmostEqual(Z[0, 0], Z_refs[0])
+        self.assertAlmostEqual(k[0, 0], k_refs[0])
         Z, k = rng('gau', l, mode_no=1)
-        self.assertAlmostEqual(Z[0,0], Z_refs[1])
-        self.assertAlmostEqual(k[0,0], k_refs[1])
+        self.assertAlmostEqual(Z[0, 0], Z_refs[1])
+        self.assertAlmostEqual(k[0, 0], k_refs[1])
 
     def test_call(self):
         for d in range(len(self.rngs)):
@@ -104,9 +103,9 @@ class TestRNG(unittest.TestCase):
             self.assertEqual(k.shape, (d+1, self.many_modes))
             self.assertAlmostEqual(np.mean(k), 0., places=2)
             self.assertAlmostEqual(np.std(k), 1/self.len_scale, places=2)
-            self.assertAlmostEqual(skew(k[0,:]), 0., places=2)
-            self.assertAlmostEqual(kurtosis(k[0,:]), 0., places=1)
-            self.assertLess(normaltest(k[0,:])[1], 0.05)
+            self.assertAlmostEqual(skew(k[0, :]), 0., places=2)
+            self.assertAlmostEqual(kurtosis(k[0, :]), 0., places=1)
+            self.assertLess(normaltest(k[0, :])[1], 0.05)
 
 
 if __name__ == '__main__':
