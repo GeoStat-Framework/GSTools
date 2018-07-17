@@ -13,15 +13,19 @@ The following functions are provided
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
-from gstools.variogram.estimator import (
-    unstructured,
-    structured_3d,
-    structured_2d,
-    structured_1d,
-    ma_structured_3d,
-    ma_structured_2d,
-    ma_structured_1d,
-)
+try:
+    from gstools.variogram.estimator import (
+        unstructured,
+        structured_3d,
+        structured_2d,
+        structured_1d,
+        ma_structured_3d,
+        ma_structured_2d,
+        ma_structured_1d,
+    )
+except ImportError:
+    print('Warning: No Cython functions imported, ' +
+          'hopefully this is just sphinx.')
 
 __all__ = [
     "estimate_unstructured",
