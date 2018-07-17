@@ -87,8 +87,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'GSTools'
-copyright = '2018, Lennart Schueler'
-author = 'Lennart Schueler'
+copyright = '2018, Lennart Schueler, Sebastian Mueller'
+author = 'Lennart Schueler, Sebastian Mueller'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
