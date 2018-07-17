@@ -1,5 +1,6 @@
 # Welcome to GeoStatTools
 
+[![DOI](https://zenodo.org/badge/117534635.svg)](https://zenodo.org/badge/latestdoi/117534635)
 [![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://gstools.readthedocs.io/en/latest/)
 
 <p align="center">
