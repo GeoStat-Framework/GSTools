@@ -32,7 +32,9 @@ You can find the documentation [here][doc_link].
 
 ## Spatial Random Field Generation
 
-The core of this library is the generation of spatial random fields.
+The core of this library is the generation of spatial random fields. These fields are generated using the randomisation method, described by [Heße et al. 2014][rand_link].
+
+[rand_link]: https://doi.org/10.1016/j.envsoft.2014.01.013
 
 
 ### Example
