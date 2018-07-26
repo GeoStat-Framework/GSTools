@@ -1,6 +1,7 @@
 # Welcome to GeoStatTools
 
 [![DOI](https://zenodo.org/badge/117534635.svg)](https://zenodo.org/badge/latestdoi/117534635)
+[![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
 [![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://gstools.readthedocs.io/en/latest/)
 
 <p align="center">
