@@ -129,7 +129,11 @@ class SRF(object):
             mesh_type = mesh_type_old
             field = self._reshape_field_from_unstruct_to_struct(field,
                                                                 axis_lens)
-        return self._mean + np.sqrt(self._var)*field
+        var_in = np.var(field)
+        mean_in = np.mean(field)
+        alpha = np.sqrt(self.var/var_in)
+        beta = self.mean - mean_in
+        return -(alpha - 1.0)*mean_in + beta + alpha*field
 
     def structured(self, x, y=None, z=None, seed=None):
         """Generate an SRF on a structured mesh without saving it internally.
@@ -458,8 +462,11 @@ class RandMeth(object):
                                  self._k[2, a:e]*z)
 
                     summed_modes += np.squeeze(
-                        np.sum(self._Z[0, a:e] * np.cos(2.*np.pi*phase) +
-                               self._Z[1, a:e] * np.sin(2.*np.pi*phase),
+#                        np.sum(self._Z[0, a:e] * np.cos(2.*np.pi*phase) +
+#                               self._Z[1, a:e] * np.sin(2.*np.pi*phase),
+#                               axis=-1))
+                        np.sum(self._Z[0, a:e] * np.cos(phase) +
+                               self._Z[1, a:e] * np.sin(phase),
                                axis=-1))
             except MemoryError:
                 chunk_no += 2**chunk_no_exp
