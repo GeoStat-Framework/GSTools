@@ -87,7 +87,8 @@ class SRF(object):
         # initialize attributes
         self.field = None
 
-    def __call__(self, x, y=None, z=None, seed=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, seed=None, mesh_type='unstructured',
+                 force_moments=False):
         """Generate an SRF and return it without saving it internally.
 
         Parameters
@@ -103,6 +104,9 @@ class SRF(object):
                 seed for RNG
             mesh_type : :class:`str`
                 'structured' / 'unstructured'
+            force_moments : :class:`bool`
+                Force the generator to exactly match mean and variance.
+                Default: False
         Returns
         -------
             field : :class:`numpy.ndarray`
@@ -129,11 +133,15 @@ class SRF(object):
             mesh_type = mesh_type_old
             field = self._reshape_field_from_unstruct_to_struct(field,
                                                                 axis_lens)
-        var_in = np.var(field)
-        mean_in = np.mean(field)
-        alpha = np.sqrt(self.var/var_in)
-        beta = self.mean - mean_in
-        return -(alpha - 1.0)*mean_in + beta + alpha*field
+        if force_moments:
+            var_in = np.var(field)
+            mean_in = np.mean(field)
+            scale = np.sqrt(self.var/var_in)
+            self.field = scale*(field - mean_in) + self.mean
+        else:
+            self.field = field
+
+        return self.field
 
     def structured(self, x, y=None, z=None, seed=None):
         """Generate an SRF on a structured mesh without saving it internally.
@@ -176,7 +184,8 @@ class SRF(object):
         """
         return self(x, y, z, seed)
 
-    def generate(self, x, y=None, z=None, seed=None, mesh_type='unstructured'):
+    def generate(self, x, y=None, z=None, seed=None, mesh_type='unstructured',
+                 force_moments=False):
         """Generate an SRF and save it as an attribute self.field.
 
         Parameters
@@ -192,13 +201,15 @@ class SRF(object):
                 seed for RNG
             mesh_type : :class:`str`
                 'structured' / 'unstructured'
+            force_moments : :class:`bool`
+                Force the generator to exactly match mean and variance.
+                Default: False
         Returns
         -------
             field : :class:`numpy.ndarray`
                 the SRF
         """
-        self.field = self(x, y, z, seed, mesh_type)
-        return self.field
+        return self(x, y, z, seed, mesh_type, force_moments)
 
     def _check_mesh(self, x, y, z, mesh_type):
         """Do a basic check of the shapes of the input arrays."""
@@ -461,10 +472,8 @@ class RandMeth(object):
                         phase = (self._k[0, a:e]*x + self._k[1, a:e]*y +
                                  self._k[2, a:e]*z)
 
+                    # no factor 2*pi needed
                     summed_modes += np.squeeze(
-#                        np.sum(self._Z[0, a:e] * np.cos(2.*np.pi*phase) +
-#                               self._Z[1, a:e] * np.sin(2.*np.pi*phase),
-#                               axis=-1))
                         np.sum(self._Z[0, a:e] * np.cos(phase) +
                                self._Z[1, a:e] * np.sin(phase),
                                axis=-1))

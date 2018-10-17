@@ -171,7 +171,7 @@ class RNG(object):
         if self.dim == 1:
             rng = self._get_random_stream()
             ang1 = rng.random_sample(mode_no)
-            coord[0] = 2*np.around(ang1) - 1
+            coord[0] = 2*np.around(ang1, decimals=0) - 1
         elif self.dim == 2:
             rng = self._get_random_stream()
             ang1 = rng.uniform(0.0, 2*np.pi, mode_no)
@@ -318,7 +318,7 @@ class RNG(object):
         if "kappa" in kwargs:
             kappa = kwargs["kappa"]
         else:
-            kappa = 1.0
+            kappa = 5.
 
         def cov_norm(r):
             """Normalized covariance function of the Matérn spectrum"""
@@ -326,7 +326,60 @@ class RNG(object):
                     (np.sqrt(2*kappa)*r/len_scale)**kappa *
                     sps.kv(kappa, np.sqrt(2*kappa)*r/len_scale))
 
-        pdf = gen_ft_func(cov_norm, self.dim)
+        pdf = gen_ft_func(cov_norm, self.dim, spec_dens=True)
+
+        def spec_dens(r):
+            r = np.abs(r)
+            if self.dim == 1:
+                mult = 1.0
+            elif self.dim == 2:
+                mult = 2*np.pi*r
+            elif self.dim == 3:
+                mult = 4*np.pi*r**2
+            sub1 = (r*len_scale*sps.beta(kappa, 0.5)/np.pi)**(-2)
+            return (mult*np.pi**(-self.dim/2.0)/r**self.dim *
+                    sub1**kappa/(1+sub1)**(kappa+self.dim/2.0) *
+                    sps.gamma(self.dim/2.0)/sps.beta(kappa, self.dim/2.0))
+
+        if self.dim == 1:
+            k = self._create_empty_k(mode_no)
+            rng = self._get_random_stream()
+            dist = dist_gen(pdf_in=spec_dens, seed=rng)
+            k[0] = dist.rvs(size=mode_no)
+        else:
+            coord = self._sample_sphere(mode_no)
+            rng = self._get_random_stream()
+            dist = dist_gen(pdf_in=spec_dens, a=0, seed=rng)
+            rad = dist.rvs(size=mode_no)
+            k = rad*coord
+
+        return k
+
+    def sph(self, len_scale, mode_no=1000, **kwargs):
+        """ Compute a spherical covariance model.
+
+        Parameters
+        ----------
+            len_scale : :class:`float`
+                the length scale of the distribution
+            mode_no : :class:`int`, optional
+                number of the Fourier modes
+            **kwargs
+                not used
+
+        Returns
+        -------
+            :class:`numpy.ndarray`
+                the modes
+        """
+        def cov_norm(r):
+            """Normalized covariance function of the spherical model"""
+            r = np.abs(r)
+            res = 1. - 9./16.*r/len_scale + 27./1024.*(r/len_scale)**3
+            res[r > 8./3.*len_scale] = 0.
+            return res
+
+        pdf = gen_ft_func(cov_norm, self.dim, spec_dens=True)
 
         if self.dim == 1:
             k = self._create_empty_k(mode_no)
@@ -358,7 +411,7 @@ class RNG(object):
             :class:`numpy.ndarray`
                 the modes
         """
-        pdf = gen_ft_func(cov_norm, self.dim)
+        pdf = gen_ft_func(cov_norm, self.dim, spec_dens=True)
 
         if self.dim == 1:
             k = self._create_empty_k(mode_no)
@@ -455,7 +508,7 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
                 return dist_gen_pdf_cdf(pdf_in, cdf_in, **kwargs)
     else:
         if pdf_in is None or cdf_in is None:
-            raise ValueError("pdf and cdf must be given along the ppf")
+            raise ValueError("pdf and cdf must be given along with the ppf")
         else:
             return dist_gen_pdf_cdf_ppf(pdf_in, cdf_in, ppf_in, **kwargs)
 
@@ -523,7 +576,7 @@ def gen_ft_func(func_in, dim, a=-1, b=1, N=1000, h=0.001, spec_dens=True):
             elif dim == 2:
                 mult = 2*np.pi*r
             elif dim == 3:
-                mult = 4*np.pi**3
+                mult = 4*np.pi*r**2
         else:
             mult = 1.0
         return mult*ft.transform(func_in, r, ret_err=False)
