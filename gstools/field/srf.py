@@ -133,6 +133,8 @@ class SRF(object):
             mesh_type = mesh_type_old
             field = self._reshape_field_from_unstruct_to_struct(field,
                                                                 axis_lens)
+        field = np.sqrt(self.var)*field + self.mean
+
         if force_moments:
             var_in = np.var(field)
             mean_in = np.mean(field)

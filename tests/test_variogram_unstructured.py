@@ -191,7 +191,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         z = np.arange(0, 12)
         z_e = np.arange(0, 15)
         bins = np.arange(0, 3)
-        bins_e = np.arange(0, 1)
+#        bins_e = np.arange(0, 1)
         field = np.arange(0, 10)
         field_e = np.arange(0, 9)
 
