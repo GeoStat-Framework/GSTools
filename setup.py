@@ -66,8 +66,8 @@ setup_kw = {
     'platforms': ['Linux'],
     'include_package_data': True,
     'install_requires': [
-        'numpy',
-        'scipy',
+        'numpy>=1.15.3',
+        'scipy>=0.19.1',
     ],
     'packages': find_packages(exclude=['tests*', 'docs*']),
     'ext_modules': EXT_MODULES,
