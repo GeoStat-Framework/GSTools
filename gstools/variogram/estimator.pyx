@@ -103,7 +103,7 @@ def unstructured(scalar_f[:] f, scalar_bins[:] bin_edges, scalar[:] x, scalar[:]
     return np.asarray(variogram)
 
 
-def structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f):
+def structured_3d(scalar_f[:,:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -126,7 +126,7 @@ def structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f):
+def structured_2d(scalar_f[:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -147,7 +147,7 @@ def structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def structured_1d(scalar[:] x, scalar_f[:] f):
+def structured_1d(scalar_f[:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
@@ -166,8 +166,7 @@ def structured_1d(scalar[:] x, scalar_f[:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f,
-                     bint[:,:,:] mask):
+def ma_structured_3d(scalar_f[:,:,:] f, bint[:,:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -191,8 +190,7 @@ def ma_structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f,
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f,
-                     bint[:,:] mask):
+def ma_structured_2d(scalar_f[:,:] f, bint[:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -214,7 +212,7 @@ def ma_structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f,
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_1d(scalar[:] x, scalar_f[:] f, bint[:] mask):
+def ma_structured_1d(scalar_f[:] f, bint[:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 

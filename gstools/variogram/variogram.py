@@ -84,12 +84,10 @@ def estimate_unstructured(
     return unstructured(field, bin_edges, x, y, z), bin_centres
 
 
-def estimate_structured(
-        pos, field,
-        direction='x'):
+def estimate_structured(field, direction='x'):
     r"""Estimates the variogram of the input data on a regular grid.
 
-    The axis of the given direction is used for the bins.
+    The indices of the given direction are used for the bins.
     The algorithm calculates following equation:
 
     .. math::
@@ -98,10 +96,12 @@ def estimate_structured(
 
        r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
+    Warning
+    -------
+    It is assumed that the field is defined on an equidistant Cartesian grid.
+
     Parameters
     ----------
-        pos : :class:`tuple`
-            a tuple of :class:`numpy.ndarray` containing the axes
         field : :class:`numpy.ndarray`
             the spatially distributed data
         direction : :class:`str`
@@ -130,17 +130,17 @@ def estimate_structured(
 
     if len(shape) == 3:
         if mask is None:
-            gamma = structured_3d(pos[0], pos[1], pos[2], field)
+            gamma = structured_3d(field)
         else:
-            gamma = ma_structured_3d(pos[0], pos[1], pos[2], field, mask)
+            gamma = ma_structured_3d(field, mask)
     elif len(shape) == 2:
         if mask is None:
-            gamma = structured_2d(pos[0], pos[1], field)
+            gamma = structured_2d(field)
         else:
-            gamma = ma_structured_2d(pos[0], pos[1], field, mask)
+            gamma = ma_structured_2d(field, mask)
     else:
         if mask is None:
-            gamma = structured_1d(pos, field)
+            gamma = structured_1d(field)
         else:
-            gamma = ma_structured_1d(pos, field, mask)
+            gamma = ma_structured_1d(field, mask)
     return gamma

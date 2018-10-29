@@ -25,42 +25,42 @@ class TestVariogramstructured(unittest.TestCase):
         x = np.arange(1, 11, 1, dtype=np.double)
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], .4917, places=4)
 
     def test_ints(self):
         x = np.arange(1, 5, 1, dtype=int)
         z = np.array((10, 20, 30, 40), dtype=int)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
     def test_longs(self):
         x = np.arange(1, 5, 1, dtype=LONGTYPE)
         z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
     def test_np_int(self):
         x = np.arange(1, 5, 1, dtype=np.int)
         z = np.array((10, 20, 30, 40), dtype=np.int)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
     def test_mixed(self):
         x = np.arange(1, 11, 1, dtype=np.double)
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], .4917, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
         z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
         z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[1], 50., places=4)
 
     def test_1d(self):
@@ -68,7 +68,7 @@ class TestVariogramstructured(unittest.TestCase):
         # literature values
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
-        gamma = variogram.estimate_structured(x, z)
+        gamma = variogram.estimate_structured(z)
         self.assertAlmostEqual(gamma[0], .0000, places=4)
         self.assertAlmostEqual(gamma[1], .4917, places=4)
         self.assertAlmostEqual(gamma[2], .7625, places=4)
@@ -79,12 +79,12 @@ class TestVariogramstructured(unittest.TestCase):
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
         z_ma = np.ma.masked_array(z, mask=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        gamma = variogram.estimate_structured(x, z_ma)
+        gamma = variogram.estimate_structured(z_ma)
         self.assertAlmostEqual(gamma[0], .0000, places=4)
         self.assertAlmostEqual(gamma[1], .4917, places=4)
         self.assertAlmostEqual(gamma[2], .7625, places=4)
         z_ma = np.ma.masked_array(z, mask=[1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        gamma = variogram.estimate_structured(x, z_ma)
+        gamma = variogram.estimate_structured(z_ma)
         self.assertAlmostEqual(gamma[0], .0000, places=4)
         self.assertAlmostEqual(gamma[1], .4906, places=4)
         self.assertAlmostEqual(gamma[2], .7107, places=4)
@@ -96,8 +96,8 @@ class TestVariogramstructured(unittest.TestCase):
         rng = np.random.RandomState(1479373475)
         field = rng.rand(len(x), len(y))
 
-        gamma_x = variogram.estimate_structured((x, y), field, direction='x')
-        gamma_y = variogram.estimate_structured((x, y), field, direction='y')
+        gamma_x = variogram.estimate_structured(field, direction='x')
+        gamma_y = variogram.estimate_structured(field, direction='y')
 
         var = 1. / 12.
         self.assertAlmostEqual(gamma_x[0], 0., places=2)
@@ -115,9 +115,9 @@ class TestVariogramstructured(unittest.TestCase):
         rng = np.random.RandomState(1479373475)
         field = rng.rand(len(x), len(y), len(z))
 
-        gamma = variogram.estimate_structured((x, y, z), field, 'x')
-        gamma = variogram.estimate_structured((x, y, z), field, 'y')
-        gamma = variogram.estimate_structured((x, y, z), field, 'z')
+        gamma = variogram.estimate_structured(field, 'x')
+        gamma = variogram.estimate_structured(field, 'y')
+        gamma = variogram.estimate_structured(field, 'z')
 
         var = 1. / 12.
         self.assertAlmostEqual(gamma[0], 0., places=2)
@@ -135,15 +135,11 @@ class TestVariogramstructured(unittest.TestCase):
         # random values repeated along x-axis
         field_y = np.tile(y_rand, (len(x), 1))
 
-        gamma_x_x = variogram.estimate_structured((x, y), field_x,
-                                                  direction='x')
-        gamma_x_y = variogram.estimate_structured((x, y), field_x,
-                                                  direction='y')
+        gamma_x_x = variogram.estimate_structured(field_x, direction='x')
+        gamma_x_y = variogram.estimate_structured(field_x, direction='y')
 
-        gamma_y_x = variogram.estimate_structured((x, y), field_y,
-                                                  direction='x')
-        gamma_y_y = variogram.estimate_structured((x, y), field_y,
-                                                  direction='y')
+        gamma_y_x = variogram.estimate_structured(field_y, direction='x')
+        gamma_y_y = variogram.estimate_structured(field_y, direction='y')
 
         self.assertAlmostEqual(gamma_x_y[1], 0.)
         self.assertAlmostEqual(gamma_x_y[len(gamma_x_y)//2], 0.)
@@ -165,26 +161,17 @@ class TestVariogramstructured(unittest.TestCase):
         field_y = np.tile(y_rand.reshape((1, len(y), 1)), (len(x), 1, len(z)))
         field_z = np.tile(z_rand.reshape((1, 1, len(z))), (len(x), len(y), 1))
 
-        gamma_x_x = variogram.estimate_structured((x, y, z), field_x,
-                                                  direction='x')
-        gamma_x_y = variogram.estimate_structured((x, y, z), field_x,
-                                                  direction='y')
-        gamma_x_z = variogram.estimate_structured((x, y, z), field_x,
-                                                  direction='z')
+        gamma_x_x = variogram.estimate_structured(field_x, direction='x')
+        gamma_x_y = variogram.estimate_structured(field_x, direction='y')
+        gamma_x_z = variogram.estimate_structured(field_x, direction='z')
 
-        gamma_y_x = variogram.estimate_structured((x, y, z), field_y,
-                                                  direction='x')
-        gamma_y_y = variogram.estimate_structured((x, y, z), field_y,
-                                                  direction='y')
-        gamma_y_z = variogram.estimate_structured((x, y, z), field_y,
-                                                  direction='z')
+        gamma_y_x = variogram.estimate_structured(field_y, direction='x')
+        gamma_y_y = variogram.estimate_structured(field_y, direction='y')
+        gamma_y_z = variogram.estimate_structured(field_y, direction='z')
 
-        gamma_z_x = variogram.estimate_structured((x, y, z), field_z,
-                                                  direction='x')
-        gamma_z_y = variogram.estimate_structured((x, y, z), field_z,
-                                                  direction='y')
-        gamma_z_z = variogram.estimate_structured((x, y, z), field_z,
-                                                  direction='z')
+        gamma_z_x = variogram.estimate_structured(field_z, direction='x')
+        gamma_z_y = variogram.estimate_structured(field_z, direction='y')
+        gamma_z_z = variogram.estimate_structured(field_z, direction='z')
         self.assertAlmostEqual(gamma_x_y[1], 0.)
         self.assertAlmostEqual(gamma_x_y[len(gamma_x_y)//2], 0.)
         self.assertAlmostEqual(gamma_x_y[-1], 0.)
