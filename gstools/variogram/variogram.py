@@ -47,6 +47,10 @@ def estimate_unstructured(
 
        r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
+    Note
+    ----
+    Internally uses double precision and also returns doubles.
+
     Parameters
     ----------
         field : :class:`numpy.ndarray`
@@ -69,6 +73,13 @@ def estimate_unstructured(
             the estimated variogram and the bin centers
     """
 
+    field = field.astype(np.double)
+    bin_edges = bin_edges.astype(np.double)
+    x = x.astype(np.double)
+    if y is not None:
+        y = y.astype(np.double)
+    if z is not None:
+        z = z.astype(np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
 
     if sampling_size is not None and sampling_size < len(field):
@@ -100,6 +111,10 @@ def estimate_structured(field, direction='x'):
     -------
     It is assumed that the field is defined on an equidistant Cartesian grid.
 
+    Note
+    ----
+    Internally uses double precision and also returns doubles.
+
     Parameters
     ----------
         field : :class:`numpy.ndarray`
@@ -112,6 +127,7 @@ def estimate_structured(field, direction='x'):
         :class:`numpy.ndarray`
             the estimated variogram along the given direction.
     """
+    field = field.astype(np.double)
     shape = field.shape
 
     if direction == 'x':
@@ -140,7 +156,7 @@ def estimate_structured(field, direction='x'):
             gamma = ma_structured_2d(field, mask)
     else:
         if mask is None:
-            gamma = structured_1d(field)
+            gamma = structured_1d(field.astype(np.double))
         else:
             gamma = ma_structured_1d(field, mask)
     return gamma
