@@ -22,7 +22,6 @@ class TestVariogramstructured(unittest.TestCase):
         pass
 
     def test_doubles(self):
-        x = np.arange(1, 11, 1, dtype=np.double)
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
         try:
@@ -32,7 +31,6 @@ class TestVariogramstructured(unittest.TestCase):
             pass
 
     def test_ints(self):
-        x = np.arange(1, 5, 1, dtype=int)
         z = np.array((10, 20, 30, 40), dtype=int)
         try:
             gamma = variogram.estimate_structured(z)
@@ -41,7 +39,6 @@ class TestVariogramstructured(unittest.TestCase):
             pass
 
     def test_longs(self):
-        x = np.arange(1, 5, 1, dtype=LONGTYPE)
         z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
         try:
             gamma = variogram.estimate_structured(z)
@@ -50,7 +47,6 @@ class TestVariogramstructured(unittest.TestCase):
             pass
 
     def test_np_int(self):
-        x = np.arange(1, 5, 1, dtype=np.int)
         z = np.array((10, 20, 30, 40), dtype=np.int)
         try:
             gamma = variogram.estimate_structured(z)
@@ -59,7 +55,6 @@ class TestVariogramstructured(unittest.TestCase):
             pass
 
     def test_mixed(self):
-        x = np.arange(1, 11, 1, dtype=np.double)
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
         try:
@@ -78,7 +73,6 @@ class TestVariogramstructured(unittest.TestCase):
             pass
 
     def test_1d(self):
-        x = np.arange(1, 11, 1, dtype=np.double)
         # literature values
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
@@ -91,7 +85,6 @@ class TestVariogramstructured(unittest.TestCase):
             pass
 
     def test_masked_1d(self):
-        x = np.arange(1, 11, 1, dtype=np.double)
         # literature values
         z = np.array((41.2, 40.2, 39.7, 39.2, 40.1,
                       38.3, 39.1, 40.0, 41.1, 40.3), dtype=np.double)
