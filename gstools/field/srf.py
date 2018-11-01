@@ -341,7 +341,7 @@ class SRF(object):
 
     @property
     def model(self):
-        """ The length scale of the spatial random field."""
+        """ The covariance model of the spatial random field."""
         return self._model
 
     @property
