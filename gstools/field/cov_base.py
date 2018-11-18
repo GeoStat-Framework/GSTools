@@ -20,16 +20,17 @@ from gstools.tools.tools import (
 )
 
 HANKEL_DEFAULT = {
-    "a": -1,    # should only be changed, if you know exactly what
-    "b": 1,     # you do or if you are crazy
+    "a": -1,  # should only be changed, if you know exactly what
+    "b": 1,  # you do or if you are crazy
     "N": 1000,
     "h": 0.001,
 }
 
 # The CovModel Base-Class #####################################################
 
+
 class CovModel(six.with_metaclass(InitSubclassMeta)):
-    '''
+    """
     Base class for the GSTools covariance models
 
     Notes
@@ -76,27 +77,28 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         bounds for the length scale of the model in the x-direction
     nugget_bounds : list
         bounds for the nugget of the model
-    '''
+    """
+
     def __init__(
         self,
         dim=3,
-        var=1.,
-        len_scale=1.,
-        nugget=0.,
-        anis=1.,
-        angles=0.,
+        var=1.0,
+        len_scale=1.0,
+        nugget=0.0,
+        anis=1.0,
+        angles=0.0,
         integral_scale=None,
-        var_bounds=(0., 100.),
-        len_scale_bounds=(0., 1000.),
-        nugget_bounds=(0., 100.),
+        var_bounds=(0.0, 100.0),
+        len_scale_bounds=(0.0, 1000.0),
+        nugget_bounds=(0.0, 100.0),
         hankel_kw=None,
         **kwargs
     ):
-        '''Instantiate a covariance model'''
+        """Instantiate a covariance model"""
         # assert, that we use a subclass
         # this is the case, if __init_subclass__ is called, which creates
         # the "variogram"... so we check for that
-        if not hasattr(self, 'variogram'):
+        if not hasattr(self, "variogram"):
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
         # optional arguments for the variogram-model
@@ -111,9 +113,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # add the optional arguments as attributes to the class
         for kws in kwargs:
             if kws in dir(self):  # "dir" also respects properties
-                raise ValueError("parameter '"+kws+"' has a 'bad' name, " +
-                                 "since it is already present in the class. " +
-                                 "It could not be added to the model")
+                raise ValueError(
+                    "parameter '"
+                    + kws
+                    + "' has a 'bad' name, "
+                    + "since it is already present in the class. "
+                    + "It could not be added to the model"
+                )
             # Magic happens here
             setattr(self, kws, kwargs[kws])
 
@@ -132,7 +138,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             dim = self.fix_dim
         # set the dimension
         if dim < 1 or dim > 3:
-            raise ValueError('Only dimensions of 1 <= d <= 3 are supported.')
+            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
         self._dim = dim
         # set the variance of the field
         self._var = var
@@ -142,13 +148,17 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # set the rotation angles
         self._angles = np.atleast_1d(angles)
         # fill up the rotation angle array with zeros, such that len() == dim-1
-        self._angles = np.pad(self._angles, (0, self._dim-len(self._angles)),
-                              'constant', constant_values=0.)
+        self._angles = np.pad(
+            self._angles,
+            (0, self._dim - len(self._angles)),
+            "constant",
+            constant_values=0.0,
+        )
 
         # if integral scale is given, the length-scale is overwritten
         if integral_scale is not None:
             # first set len_scale to 1, than calculate the scaling factor
-            len_scale = 1.
+            len_scale = 1.0
 
         # set the length scales and the anisotropy factors
         self._len_scale, self._anis = set_len_anis(dim, len_scale, anis)
@@ -160,7 +170,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if integral_scale is not None:
             self._integral_scale = self.calc_integral_scale()
             int_tmp, self._anis = set_len_anis(dim, integral_scale, anis)
-            self._len_scale = int_tmp/self._integral_scale
+            self._len_scale = int_tmp / self._integral_scale
             # recalculate the internal integral scale
             self._integral_scale = int_tmp
 
@@ -186,57 +196,62 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return self.var - self.covariance(r) + self.nugget
 
         def covariance(self, r):
-            return self.var*self.covariance_normed(r)
+            return self.var * self.covariance_normed(r)
 
         def covariance_normed(self, r):
-            return 1. - self.variogram_normed(r)
+            return 1.0 - self.variogram_normed(r)
 
         def variogram_normed(self, r):
             return (self.variogram(r) - self.nugget) / self.var
+
         #######################################################################
 
         abstract = True
-        if not hasattr(cls, 'variogram'):
+        if not hasattr(cls, "variogram"):
             cls.variogram = variogram
         else:
             abstract = False
-        if not hasattr(cls, 'covariance'):
+        if not hasattr(cls, "covariance"):
             cls.covariance = covariance
         else:
             abstract = False
-        if not hasattr(cls, 'covariance_normed'):
+        if not hasattr(cls, "covariance_normed"):
             cls.covariance_normed = covariance_normed
         else:
             abstract = False
-        if not hasattr(cls, 'variogram_normed'):
+        if not hasattr(cls, "variogram_normed"):
             cls.variogram_normed = variogram_normed
         else:
             abstract = False
         if abstract:
-            raise TypeError("Can't instantiate class '"+cls.__name__+"', " +
-                            "without overriding at least on of the methods " +
-                            "'variogram', 'covariance', " +
-                            "'covariance_normed', or 'variogram_normed'.")
+            raise TypeError(
+                "Can't instantiate class '"
+                + cls.__name__
+                + "', "
+                + "without overriding at least on of the methods "
+                + "'variogram', 'covariance', "
+                + "'covariance_normed', or 'variogram_normed'."
+            )
 
     ###########################################################################
     # methods for optional arguments (can be overridden) ######################
     ###########################################################################
 
     def default_opt_arg(self):
-        '''Here you can provide a dictionary with default values for
-        the optional arguments, see one of the CovModel implementations.'''
+        """Here you can provide a dictionary with default values for
+        the optional arguments, see one of the CovModel implementations."""
         return {}
 
     def default_opt_arg_bounds(self):
-        '''Here you can provide a dictionary with default boundaries for
-        the optional arguments, see one of the CovModel implementations.'''
+        """Here you can provide a dictionary with default boundaries for
+        the optional arguments, see one of the CovModel implementations."""
         res = {}
         for opt in self.opt_arg:
-            res[opt] = [0., 1000.]
+            res[opt] = [0.0, 1000.0]
         return res
 
     def check_opt_arg(self):
-        '''Here you can run checks for the optional arguments
+        """Here you can run checks for the optional arguments
 
         This is in addition to the bound-checks
 
@@ -245,36 +260,37 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         * You can use this to raise a ValueError/warning
         * Any return value will be ignored
         * This method will only be run once, when the class is initialized
-        '''
+        """
         pass
 
     def fix_dim(self):
-        '''This method can be overridden to set a fixed dimension for
-        your model'''
+        """This method can be overridden to set a fixed dimension for
+        your model"""
         return None
 
     # calculation of different scales #########################################
 
     def calc_integral_scale(self):
-        '''calculate the integral scale of the
-        isotrope model (can be overwritten)'''
+        """calculate the integral scale of the
+        isotrope model (can be overwritten)"""
         self._integral_scale = integral(self.covariance_normed, 0, np.inf)[0]
         return self._integral_scale
 
     def percentile_scale(self, per=0.9):
-        '''calculate the distance, where the given percentile of the variance
-        is reached by the variogram'''
+        """calculate the distance, where the given percentile of the variance
+        is reached by the variogram"""
         # check the given percentile
-        if not 0. < per < 1.:
-            raise ValueError("percentile needs to be within (0, 1), " +
-                             "got: "+str(per))
+        if not 0.0 < per < 1.0:
+            raise ValueError(
+                "percentile needs to be within (0, 1), " + "got: " + str(per)
+            )
 
         # define a curve, that has its root at the wanted point
         def curve(x):
             return self.variogram_normed(x) - per
 
         # take 'per * integral_scale' as initial guess
-        return root(curve, per*self.integral_scale)["x"][0]
+        return root(curve, per * self.integral_scale)["x"][0]
 
     # bounds setting and checks ###############################################
 
@@ -282,8 +298,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         for opt in kwargs:
             if opt in self.opt_arg:
                 if not check_bounds(kwargs[opt]):
-                    raise ValueError("Given bounds for '"+opt+"' are not " +
-                                     "valid, got: "+str(kwargs[opt]))
+                    raise ValueError(
+                        "Given bounds for '"
+                        + opt
+                        + "' are not "
+                        + "valid, got: "
+                        + str(kwargs[opt])
+                    )
                 self._opt_arg_bounds[opt] = kwargs[opt]
             if opt == "var":
                 self.var_bounds = kwargs[opt]
@@ -293,7 +314,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 self.nugget_bounds = kwargs[opt]
 
     def check_arg_bounds(self):
-        '''Here the arguments are checked to be within the given bounds'''
+        """Here the arguments are checked to be within the given bounds"""
         # check var, len_scale, nugget and optional-arguments
         for arg in self.arg_bounds:
             bnd = list(self.arg_bounds[arg])
@@ -302,69 +323,91 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 bnd.append("cc")
             if bnd[2][0] == "c":
                 if val < bnd[0]:
-                    raise ValueError(str(arg)+" needs to be >= "+str(bnd[0]) +
-                                     ", got: "+str(val))
+                    raise ValueError(
+                        str(arg)
+                        + " needs to be >= "
+                        + str(bnd[0])
+                        + ", got: "
+                        + str(val)
+                    )
             else:
                 if val <= bnd[0]:
-                    raise ValueError(str(arg)+" needs to be > "+str(bnd[0]) +
-                                     ", got: "+str(val))
+                    raise ValueError(
+                        str(arg)
+                        + " needs to be > "
+                        + str(bnd[0])
+                        + ", got: "
+                        + str(val)
+                    )
             if bnd[2][1] == "c":
                 if val > bnd[1]:
-                    raise ValueError(str(arg)+" needs to be <= "+str(bnd[1]) +
-                                     ", got: "+str(val))
+                    raise ValueError(
+                        str(arg)
+                        + " needs to be <= "
+                        + str(bnd[1])
+                        + ", got: "
+                        + str(val)
+                    )
             else:
                 if val >= bnd[1]:
-                    raise ValueError(str(arg)+" needs to be < "+str(bnd[1]) +
-                                     ", got: "+str(val))
+                    raise ValueError(
+                        str(arg)
+                        + " needs to be < "
+                        + str(bnd[1])
+                        + ", got: "
+                        + str(val)
+                    )
 
     ###########################################################################
     # spectrum methods (can be overridden for speedup) ########################
     ###########################################################################
 
     def spectrum(self, k):
-        '''
+        """
         The spectrum of the covariance model.
-        '''
+        """
         k = np.abs(np.array(k, dtype=float))
         f_t = SFT(ndim=self.dim, **self.hankel_kw)
         return f_t.transform(self.covariance, k, ret_err=False)
 
     def spectral_density(self, k):
-        '''
+        """
         The spectral density of the covariance model.
-        '''
-        return self.spectrum(k)/self.var
+        """
+        return self.spectrum(k) / self.var
 
     def spectral_rad_pdf(self, r):
-        '''
+        """
         The radial spectral density of the model depending on the dimension
-        '''
+        """
         r = np.abs(np.array(r, dtype=float))
         if self.dim > 1:
-            r_gz = r[r > 0.]
+            r_gz = r[r > 0.0]
             # to prevent numerical errors, we just calculate where r>0
             res = np.zeros_like(r, dtype=float)
-            res[r > 0.] = rad_fac(self.dim, r_gz)*self.spectral_density(r_gz)
+            res[r > 0.0] = rad_fac(self.dim, r_gz) * self.spectral_density(
+                r_gz
+            )
             # prevent numerical errors in hankel for small r values (set 0)
-            res[np.logical_not(np.isfinite(res))] = 0.
+            res[np.logical_not(np.isfinite(res))] = 0.0
             # prevent numerical errors in hankel for big r (set non-negative)
-            res = np.maximum(res, 0.)
+            res = np.maximum(res, 0.0)
             return res
         # TODO: this is totally hacky
         # prevent num error in hankel at r=0 in 1D
-        r[r == 0.] = 0.03/self.len_scale
-        res = rad_fac(self.dim, r)*self.spectral_density(r)
+        r[r == 0.0] = 0.03 / self.len_scale
+        res = rad_fac(self.dim, r) * self.spectral_density(r)
         # prevent numerical errors in hankel for big r (set positiv)
-        res = np.maximum(res, 0.)
+        res = np.maximum(res, 0.0)
         return res
 
     def ln_spectral_rad_pdf(self, r):
-        '''
+        """
         The log radial spectral density of the model depending on the dimension
-        '''
+        """
         spec = np.array(self.spectral_rad_pdf(r))
         res = np.full_like(spec, -np.inf, dtype=float)
-        res[spec > 0.] = np.log(spec[spec > 0.])
+        res[spec > 0.0] = np.log(spec[spec > 0.0])
         return res
 
     def _has_cdf(self):
@@ -378,7 +421,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     # fitting routine #########################################################
 
     def fit_variogram(self, x_data, y_data, **para_deselect):
-        '''
+        """
         fit the variogram-model to given data
 
         Parameters
@@ -391,20 +434,16 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             You can deselect the parameters to be fitted, by setting
             them "False" as keywords. By default, all parameters are
             fitted.
-        '''
+        """
 
-        para = {
-            "var": True,
-            "len_scale": True,
-            "nugget": True,
-        }
+        para = {"var": True, "len_scale": True, "nugget": True}
         for opt in self.opt_arg:
             para[opt] = True
         para.update(para_deselect)
 
         # we need arg1, otherwise curve_fit throws an error (bug?!)
         def curve(x, arg1, *args):
-            '''dummy function for the variogram'''
+            """dummy function for the variogram"""
             args = (arg1,) + args
             para_skip = 0
             opt_skip = 0
@@ -444,8 +483,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         print(top_bounds)
 
         # fit the variogram
-        popt, pcov = curve_fit(curve, x_data, y_data,
-                               bounds=(low_bounds, top_bounds))
+        popt, pcov = curve_fit(
+            curve, x_data, y_data, bounds=(low_bounds, top_bounds)
+        )
         out = {}
         para_skip = 0
         opt_skip = 0
@@ -488,8 +528,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     @var_bounds.setter
     def var_bounds(self, bounds):
         if not check_bounds(bounds):
-            raise ValueError("Given bounds for 'var' are not " +
-                             "valid, got: "+str(bounds))
+            raise ValueError(
+                "Given bounds for 'var' are not "
+                + "valid, got: "
+                + str(bounds)
+            )
         self._var_bounds = bounds
 
     @property
@@ -499,8 +542,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     @len_scale_bounds.setter
     def len_scale_bounds(self, bounds):
         if not check_bounds(bounds):
-            raise ValueError("Given bounds for 'len_scale' are not " +
-                             "valid, got: "+str(bounds))
+            raise ValueError(
+                "Given bounds for 'len_scale' are not "
+                + "valid, got: "
+                + str(bounds)
+            )
         self._len_scale_bounds = bounds
 
     @property
@@ -510,8 +556,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     @nugget_bounds.setter
     def nugget_bounds(self, bounds):
         if not check_bounds(bounds):
-            raise ValueError("Given bounds for 'nugget' are not " +
-                             "valid, got: "+str(bounds))
+            raise ValueError(
+                "Given bounds for 'nugget' are not "
+                + "valid, got: "
+                + str(bounds)
+            )
         self._nugget_bounds = bounds
 
     @property
@@ -562,18 +611,18 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def len_scale_vec(self):
-        '''The length scales in each direction of the spatial random field.
+        """The length scales in each direction of the spatial random field.
 
         Notes
         -----
         * len_scale_x = len_scale
         * len_scale_y = len_scale*anis_y
         * len_scale_z = len_scale*anis_z
-        '''
+        """
         res = np.zeros(self.dim, dtype=float)
         res[0] = self.len_scale
         for i in range(1, self._dim):
-            res[i] = self.len_scale*self.anis[i-1]
+            res[i] = self.len_scale * self.anis[i - 1]
         return res
 
     @property
@@ -588,12 +637,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def arg(self):
-        '''Names of all arguments'''
+        """Names of all arguments"""
         return ["var", "len_scale", "nugget"] + self._opt_arg
 
     @property
     def opt_arg(self):
-        '''Names of the optional arguments'''
+        """Names of the optional arguments"""
         return self._opt_arg
 
     @property
@@ -619,5 +668,5 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         res = np.zeros(self.dim, dtype=float)
         res[0] = self.integral_scale
         for i in range(1, self.dim):
-            res[i] = self.integral_scale*self.anis[i-1]
+            res[i] = self.integral_scale * self.anis[i - 1]
         return res

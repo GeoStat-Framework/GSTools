@@ -23,23 +23,9 @@ The following subpackages are provided
 """
 from __future__ import absolute_import
 
-from gstools.field import (
-    rng,
-    srf,
-)
+from gstools.field import rng, srf
 
-from gstools.field.rng import (
-    RNG,
-)
-from gstools.field.srf import (
-    SRF,
-    RandMeth,
-)
+from gstools.field.rng import RNG
+from gstools.field.srf import SRF, RandMeth
 
-__all__ = [
-    'SRF',
-    'RNG',
-    'RandMeth',
-    'rng',
-    'srf',
-]
+__all__ = ["SRF", "RNG", "RandMeth", "rng", "srf"]

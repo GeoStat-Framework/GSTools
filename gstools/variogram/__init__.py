@@ -19,7 +19,4 @@ from gstools.variogram.variogram import (
     estimate_unstructured,
 )
 
-__all__ = [
-    'estimate_unstructured',
-    'estimate_structured',
-]
+__all__ = ["estimate_unstructured", "estimate_structured"]

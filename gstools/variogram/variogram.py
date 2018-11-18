@@ -13,6 +13,7 @@ The following functions are provided
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
+
 try:
     from gstools.variogram.estimator import (
         unstructured,
@@ -24,18 +25,17 @@ try:
         ma_structured_1d,
     )
 except ImportError:
-    print('Warning: No Cython functions imported, ' +
-          'hopefully this is just sphinx.')
+    print(
+        "Warning: No Cython functions imported, "
+        + "hopefully this is just sphinx."
+    )
 
-__all__ = [
-    "estimate_unstructured",
-    "estimate_structured",
-]
+__all__ = ["estimate_unstructured", "estimate_structured"]
 
 
 def estimate_unstructured(
-        field, bin_edges, x,
-        y=None, z=None, sampling_size=None):
+    field, bin_edges, x, y=None, z=None, sampling_size=None
+):
     r"""
     Estimates the variogram of the unstructured input data.
 
@@ -69,11 +69,12 @@ def estimate_unstructured(
             the estimated variogram and the bin centers
     """
 
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):
-        sampled_idx = np.random.choice(np.arange(len(field)), sampling_size,
-                                       replace=False)
+        sampled_idx = np.random.choice(
+            np.arange(len(field)), sampling_size, replace=False
+        )
         field = field[sampled_idx]
         x = x[sampled_idx]
         if y is not None:
@@ -84,9 +85,7 @@ def estimate_unstructured(
     return unstructured(field, bin_edges, x, y, z), bin_centres
 
 
-def estimate_structured(
-        pos, field,
-        direction='x'):
+def estimate_structured(pos, field, direction="x"):
     r"""Estimates the variogram of the input data on a regular grid.
 
     The axis of the given direction is used for the bins.
@@ -114,14 +113,14 @@ def estimate_structured(
     """
     shape = field.shape
 
-    if direction == 'x':
+    if direction == "x":
         pass
-    elif direction == 'y':
+    elif direction == "y":
         field = field.swapaxes(0, 1)
-    elif direction == 'z':
+    elif direction == "z":
         field = field.swapaxes(0, 2)
     else:
-        raise ValueError('Unknown direction {0}'.format(direction))
+        raise ValueError("Unknown direction {0}".format(direction))
 
     try:
         mask = np.array(field.mask, dtype=np.int32)

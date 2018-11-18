@@ -18,14 +18,8 @@ The following subpackages are provided
 """
 from __future__ import absolute_import
 
-from gstools import (
-    field,
-    variogram,
-)
+from gstools import field, variogram
 
-__all__ = [
-    'field',
-    'variogram',
-]
+__all__ = ["field", "variogram"]
 
 __version__ = "0.4.0"

@@ -23,21 +23,14 @@ import numpy as np
 from scipy import special as sps
 from gstools.field.cov_base import CovModel
 
-__all__ = [
-    "Gau",
-    "Exp",
-    "Sph",
-    "SphRescaled",
-    "Rat",
-    "Mat",
-    "MatRescaled",
-]
+__all__ = ["Gau", "Exp", "Sph", "SphRescaled", "Rat", "Mat", "MatRescaled"]
 
 
 # Gaussian Model ##############################################################
 
+
 class Gau(CovModel):
-    r'''The Gaussian covariance model
+    r"""The Gaussian covariance model
 
     Notes
     -----
@@ -46,17 +39,21 @@ class Gau(CovModel):
     .. math::
        \tilde{C}(r) =
        \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
-    '''
+    """
+
     def covariance_normed(self, r):
         r = np.abs(np.array(r, dtype=float))
-        return np.exp(-np.pi/4*(r/self.len_scale)**2)
+        return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
     def spectrum(self, k):
-        return (self.var*(self.len_scale/np.pi)**self.dim *
-                np.exp(-(k*self.len_scale)**2/np.pi))
+        return (
+            self.var
+            * (self.len_scale / np.pi) ** self.dim
+            * np.exp(-(k * self.len_scale) ** 2 / np.pi)
+        )
 
     def spectral_rad_cdf(self, r):
-        r'''The cdf of the radial spectral density
+        r"""The cdf of the radial spectral density
 
         Notes
         -----
@@ -65,19 +62,21 @@ class Gau(CovModel):
 
         .. math::
            \mathrm{CDF}(r) = \intop_0^r \mathrm{PDF}(\tau) d\tau
-        '''
+        """
         if self.dim == 1:
-            return sps.erf(self.len_scale*r/np.sqrt(np.pi))
+            return sps.erf(self.len_scale * r / np.sqrt(np.pi))
         elif self.dim == 2:
-            return 1. - np.exp(-(r*self.len_scale)**2/np.pi)
+            return 1.0 - np.exp(-(r * self.len_scale) ** 2 / np.pi)
         elif self.dim == 3:
-            return (sps.erf(self.len_scale*r/np.sqrt(np.pi)) -
-                    2*r*self.len_scale/np.pi *
-                    np.exp(-(r*self.len_scale)**2/np.pi))
+            return sps.erf(
+                self.len_scale * r / np.sqrt(np.pi)
+            ) - 2 * r * self.len_scale / np.pi * np.exp(
+                -(r * self.len_scale) ** 2 / np.pi
+            )
         return None
 
     def spectral_rad_ppf(self, u):
-        r'''The ppf of the radial spectral density
+        r"""The ppf of the radial spectral density
 
         Notes
         -----
@@ -86,12 +85,11 @@ class Gau(CovModel):
 
         .. math::
            \mathrm{PPF}(u) = \mathrm{CDF}^{-1}(u)
-        '''
+        """
         if self.dim == 1:
-            return sps.erfinv(u)*np.sqrt(np.pi)/self.len_scale
+            return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
         elif self.dim == 2:
-            return (np.sqrt(np.pi)/self.len_scale *
-                    np.sqrt(-np.log(1.-u)))
+            return np.sqrt(np.pi) / self.len_scale * np.sqrt(-np.log(1.0 - u))
         return None
 
     def _has_ppf(self):
@@ -102,14 +100,15 @@ class Gau(CovModel):
         return True
 
     def calc_integral_scale(self):
-        '''The integral scale of the gaussian model is the length scale'''
+        """The integral scale of the gaussian model is the length scale"""
         return self.len_scale
 
 
 # Exponential Model ###########################################################
 
+
 class Exp(CovModel):
-    r'''The Exponential covariance model
+    r"""The Exponential covariance model
 
     Notes
     -----
@@ -118,18 +117,23 @@ class Exp(CovModel):
     .. math::
        \tilde{C}(r) =
        \exp\left(- \frac{r}{\ell} \right)
-    '''
+    """
+
     def covariance_normed(self, r):
         r = np.abs(np.array(r, dtype=float))
-        return np.exp(-r/self.len_scale)
+        return np.exp(-r / self.len_scale)
 
     def spectrum(self, k):
         return (
-            self.var*self.len_scale**self.dim*sps.gamma((self.dim+1)/2) /
-            (np.pi*(1. + (k*self.len_scale)**2))**((self.dim+1)/2))
+            self.var
+            * self.len_scale ** self.dim
+            * sps.gamma((self.dim + 1) / 2)
+            / (np.pi * (1.0 + (k * self.len_scale) ** 2))
+            ** ((self.dim + 1) / 2)
+        )
 
     def spectral_rad_cdf(self, r):
-        r'''The cdf of the radial spectral density
+        r"""The cdf of the radial spectral density
 
         Notes
         -----
@@ -138,18 +142,24 @@ class Exp(CovModel):
 
         .. math::
            \mathrm{CDF}(r) = \intop_0^r \mathrm{PDF}(\tau) d\tau
-        '''
+        """
         if self.dim == 1:
-            return np.arctan(r*self.len_scale)*2/np.pi
+            return np.arctan(r * self.len_scale) * 2 / np.pi
         elif self.dim == 2:
-            return 1. - 1/np.sqrt(1 + (r*self.len_scale)**2)
+            return 1.0 - 1 / np.sqrt(1 + (r * self.len_scale) ** 2)
         elif self.dim == 3:
-            return (np.arctan(r*self.len_scale) -
-                    r*self.len_scale/(1 + (r*self.len_scale)**2))*2/np.pi
+            return (
+                (
+                    np.arctan(r * self.len_scale)
+                    - r * self.len_scale / (1 + (r * self.len_scale) ** 2)
+                )
+                * 2
+                / np.pi
+            )
         return None
 
     def spectral_rad_ppf(self, u):
-        r'''The ppf of the radial spectral density
+        r"""The ppf of the radial spectral density
 
         Notes
         -----
@@ -158,11 +168,11 @@ class Exp(CovModel):
 
         .. math::
            \mathrm{PPF}(u) = \mathrm{CDF}^{-1}(u)
-        '''
+        """
         if self.dim == 1:
-            return np.tan(np.pi/2*u)/self.len_scale
+            return np.tan(np.pi / 2 * u) / self.len_scale
         elif self.dim == 2:
-            return np.sqrt(1/u**2 - 1.)/self.len_scale
+            return np.sqrt(1 / u ** 2 - 1.0) / self.len_scale
         return None
 
     def _has_ppf(self):
@@ -173,14 +183,15 @@ class Exp(CovModel):
         return True
 
     def calc_integral_scale(self):
-        '''The integral scale of the exponential model is the length scale'''
+        """The integral scale of the exponential model is the length scale"""
         return self.len_scale
 
 
 # Spherical Model #############################################################
 
+
 class Sph(CovModel):
-    r'''The Spherical covariance model
+    r"""The Spherical covariance model
 
     Notes
     -----
@@ -194,16 +205,21 @@ class Sph(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
-    '''
+    """
+
     def covariance_normed(self, r):
         r = np.atleast_1d(np.abs(np.array(r, dtype=float)))
-        res = 1. - 3./2.*r/self.len_scale + 1./2.*(r/self.len_scale)**3
-        res[r > self.len_scale] = 0.
+        res = (
+            1.0
+            - 3.0 / 2.0 * r / self.len_scale
+            + 1.0 / 2.0 * (r / self.len_scale) ** 3
+        )
+        res[r > self.len_scale] = 0.0
         return res
 
 
 class SphRescaled(CovModel):
-    r'''The rescaled Spherical covariance model
+    r"""The rescaled Spherical covariance model
 
     Notes
     -----
@@ -217,22 +233,28 @@ class SphRescaled(CovModel):
        & r<\frac{8}{3}\ell\\
        0 & r\geq\frac{8}{3}\ell
        \end{cases}
-    '''
+    """
+
     def covariance_normed(self, r):
         r = np.atleast_1d(np.abs(np.array(r, dtype=float)))
-        res = 1. - 9./16.*r/self.len_scale + 27./1024.*(r/self.len_scale)**3
-        res[r > 8./3.*self.len_scale] = 0.
+        res = (
+            1.0
+            - 9.0 / 16.0 * r / self.len_scale
+            + 27.0 / 1024.0 * (r / self.len_scale) ** 3
+        )
+        res[r > 8.0 / 3.0 * self.len_scale] = 0.0
         return res
 
     def calc_integral_scale(self):
-        '''The integral scale of the spherical model is the length scale'''
+        """The integral scale of the spherical model is the length scale"""
         return self.len_scale
 
 
 # Rational Model ##############################################################
 
+
 class Rat(CovModel):
-    r'''The rational quadratic covariance model
+    r"""The rational quadratic covariance model
 
     Notes
     -----
@@ -244,22 +266,26 @@ class Rat(CovModel):
        \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
 
     :math:`\alpha` is a shape parameter and should be > 0.5.
-    '''
+    """
+
     def default_opt_arg(self):
-        return {"alpha": 1.}
+        return {"alpha": 1.0}
 
     def default_opt_arg_bounds(self):
         return {"alpha": [0.5, np.inf]}
 
     def covariance_normed(self, r):
         r = np.abs(np.array(r, dtype=float))
-        return np.power(1 + 0.5/self.alpha*(r/self.len_scale)**2, -self.alpha)
+        return np.power(
+            1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
+        )
 
 
 # Stable Model ################################################################
 
+
 class Stab(CovModel):
-    r'''The stable covariance model
+    r"""The stable covariance model
 
     Notes
     -----
@@ -270,7 +296,8 @@ class Stab(CovModel):
        \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
 
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
-    '''
+    """
+
     def default_opt_arg(self):
         return {"alpha": 1.5}
 
@@ -279,13 +306,14 @@ class Stab(CovModel):
 
     def covariance_normed(self, r):
         r = np.abs(np.array(r, dtype=float))
-        return np.exp(-np.power(r/self.len_scale, self.alpha))
+        return np.exp(-np.power(r / self.len_scale, self.alpha))
 
 
 # Matérn Model ################################################################
 
+
 class Mat(CovModel):
-    r'''The Matérn covariance model
+    r"""The Matérn covariance model
 
     Notes
     -----
@@ -301,36 +329,45 @@ class Mat(CovModel):
     is the modified Bessel function of the second kind.
 
     :math:`\nu` is a shape parameter and should be >= 0.5.
-    '''
+    """
+
     def default_opt_arg(self):
-        return {"nu": 1.}
+        return {"nu": 1.0}
 
     def default_opt_arg_bounds(self):
-        return {"nu": [0.5, 60., "cc"]}
+        return {"nu": [0.5, 60.0, "cc"]}
 
     def check_opt_arg(self):
-        if self.nu > 50.:
-            warnings.warn("Mat: parameter 'nu' is > 50, " +
-                          "calculations most likely get unstable here")
+        if self.nu > 50.0:
+            warnings.warn(
+                "Mat: parameter 'nu' is > 50, "
+                + "calculations most likely get unstable here"
+            )
 
     def covariance_normed(self, r):
         r = np.abs(np.array(r, dtype=float))
-        r_gz = r[r > 0.]
+        r_gz = r[r > 0.0]
         res = np.ones_like(r)
-        with np.errstate(over='ignore', invalid='ignore'):
-            res[r > 0.] = (
-                np.power(2., 1.-self.nu) / sps.gamma(self.nu) *
-                np.power(np.sqrt(2.*self.nu) * r_gz/self.len_scale, self.nu) *
-                sps.kv(self.nu, np.sqrt(2.*self.nu) * r_gz/self.len_scale))
+        with np.errstate(over="ignore", invalid="ignore"):
+            res[r > 0.0] = (
+                np.power(2.0, 1.0 - self.nu)
+                / sps.gamma(self.nu)
+                * np.power(
+                    np.sqrt(2.0 * self.nu) * r_gz / self.len_scale, self.nu
+                )
+                * sps.kv(
+                    self.nu, np.sqrt(2.0 * self.nu) * r_gz / self.len_scale
+                )
+            )
         # if nu >> 1 we get errors for the farfield, there 0 is approached
         res[np.logical_not(np.isfinite(res))] = 0.0
         # covariance is positiv
-        res = np.maximum(res, 0.)
+        res = np.maximum(res, 0.0)
         return res
 
 
 class MatRescaled(CovModel):
-    r'''The rescaled Matérn covariance model
+    r"""The rescaled Matérn covariance model
 
     Notes
     -----
@@ -349,33 +386,42 @@ class MatRescaled(CovModel):
     of the second kind and :math:`B` is the Euler beta function.
 
     :math:`\nu` is a shape parameter and should be > 0.5.
-    '''
+    """
+
     def default_opt_arg(self):
-        return {"nu": 1.}
+        return {"nu": 1.0}
 
     def default_opt_arg_bounds(self):
-        return {"nu": [0.5, 60., "cc"]}
+        return {"nu": [0.5, 60.0, "cc"]}
 
     def check_opt_arg(self):
-        if self.nu > 50.:
-            warnings.warn("Mat: parameter 'nu' is > 50, " +
-                          "calculations most likely get unstable here")
+        if self.nu > 50.0:
+            warnings.warn(
+                "Mat: parameter 'nu' is > 50, "
+                + "calculations most likely get unstable here"
+            )
 
     def covariance_normed(self, r):
         r = np.abs(np.array(r, dtype=float))
-        r_gz = r[r > 0.]
+        r_gz = r[r > 0.0]
         res = np.ones_like(r)
-        with np.errstate(over='ignore', invalid='ignore'):
-            res[r > 0.] = (
-                np.power(2, 1.-self.nu) / sps.gamma(self.nu) *
-                np.power(np.pi/sps.beta(self.nu, .5) * r_gz/self.len_scale,
-                         self.nu) *
-                sps.kv(self.nu,
-                       np.pi/sps.beta(self.nu, .5) * r_gz/self.len_scale))
+        with np.errstate(over="ignore", invalid="ignore"):
+            res[r > 0.0] = (
+                np.power(2, 1.0 - self.nu)
+                / sps.gamma(self.nu)
+                * np.power(
+                    np.pi / sps.beta(self.nu, 0.5) * r_gz / self.len_scale,
+                    self.nu,
+                )
+                * sps.kv(
+                    self.nu,
+                    np.pi / sps.beta(self.nu, 0.5) * r_gz / self.len_scale,
+                )
+            )
         # if nu >> 1 we get errors for the farfield, there 0 is approached
         res[np.logical_not(np.isfinite(res))] = 0.0
         # covariance is positiv
-        res = np.maximum(res, 0.)
+        res = np.maximum(res, 0.0)
         return res
 
 
@@ -389,6 +435,7 @@ if __name__ == "__main__":
     if test_init:
         Crazy1 = CovModel()
     if test_sub:
+
         class Crazy(CovModel):
             pass
 
@@ -396,7 +443,7 @@ if __name__ == "__main__":
     plot_spec = 0
     plot_fit = 0
 
-    c = Mat(nu=1, integral_scale=1, len_scale_bounds=[0.5, 50., "oo"])
+    c = Mat(nu=1, integral_scale=1, len_scale_bounds=[0.5, 50.0, "oo"])
     d = Gau(integral_scale=1)
     e = Exp(integral_scale=1)
     f = Rat(alpha=1, integral_scale=1)
@@ -404,16 +451,16 @@ if __name__ == "__main__":
 
     print("Mat: attributes, properties and methods")
     print(c.arg_bounds, "arg_bounds")
-    c.set_arg_bounds(len_scale=[0.5, 100., "cc"])
+    c.set_arg_bounds(len_scale=[0.5, 100.0, "cc"])
     print(c.arg_bounds, "arg_bounds")
-    print(c.variogram(1.), "variogram(1.)")
-    print(c.variogram_normed(1.), "variogram_normed(1.)")
-    print(c.covariance(1.), "covariance(1.)")
-    print(c.covariance_normed(1.), "covariance_normed(1.)")
-    print(c.spectrum(1.), "spectrum(1.)")
-    print(c.spectral_density(1.), "spectral_density(1.)")
-    print(c.spectral_rad_pdf(1.), "spectral_rad_pdf(1.)")
-    print(c.ln_spectral_rad_pdf(1.), "ln_spectral_rad_pdf(1.)")
+    print(c.variogram(1.0), "variogram(1.)")
+    print(c.variogram_normed(1.0), "variogram_normed(1.)")
+    print(c.covariance(1.0), "covariance(1.)")
+    print(c.covariance_normed(1.0), "covariance_normed(1.)")
+    print(c.spectrum(1.0), "spectrum(1.)")
+    print(c.spectral_density(1.0), "spectral_density(1.)")
+    print(c.spectral_rad_pdf(1.0), "spectral_rad_pdf(1.)")
+    print(c.ln_spectral_rad_pdf(1.0), "ln_spectral_rad_pdf(1.)")
     print(c.len_scale_bounds, "len_scale_bounds")
     print(c.var_bounds, "var_bounds")
     print(c.arg_bounds, "arg_bounds")
