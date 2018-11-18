@@ -7,152 +7,92 @@ Created on Sat Aug  4 22:16:51 2018
 """
 from __future__ import print_function, division, absolute_import
 
-import warnings
 import six
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
-from scipy import special as sps
 from hankel import SymmetricFourierTransform as SFT
-from matplotlib import pyplot as plt
+from gstools.tools.tools import (
+    InitSubclassMeta,
+    rad_fac,
+    set_len_anis,
+    check_bounds,
+)
 
-
-# __init_subclass__ hack ######################################################
-
-if hasattr(object, "__init_subclass__"):
-    InitSubclassMeta = type
-else:
-    class InitSubclassMeta(type):
-        """Metaclass that implements PEP 487 protocol
-
-        Notes
-        -----
-        See :
-            https://www.python.org/dev/peps/pep-0487
-
-        taken from :
-            https://github.com/graphql-python/graphene/blob/master/graphene/pyutils/init_subclass.py
-        """
-        def __new__(cls, name, bases, ns, **kwargs):
-            __init_subclass__ = ns.pop("__init_subclass__", None)
-            if __init_subclass__:
-                __init_subclass__ = classmethod(__init_subclass__)
-                ns["__init_subclass__"] = __init_subclass__
-            return super(InitSubclassMeta, cls).__new__(cls, name, bases, ns,
-                                                        **kwargs)
-
-        def __init__(cls, name, bases, ns, **kwargs):
-            super(InitSubclassMeta, cls).__init__(name, bases, ns)
-            super_class = super(cls, cls)
-            if hasattr(super_class, "__init_subclass__"):
-                super_class.__init_subclass__.__func__(cls, **kwargs)
-
-
-# Helping functions ###########################################################
-
-def rad_fac(dim, r):
-    '''The volume element of the n-dimensional spherical coordinates.
-
-    As a factor for integration of a radial-symmetric function.
-
-    Parameters
-    ----------
-    dim : :class:`int`
-        spatial dimension
-    r : :class:`numpy.ndarray`
-        Given radii.
-    '''
-    if dim == 1:
-        fac = 2.0
-    elif dim == 2:
-        fac = 2*np.pi*r
-    elif dim == 3:
-        fac = 4*np.pi*r**2
-    else:  # general solution ( for the record :D )
-        fac = dim*r**(dim-1)*np.sqrt(np.pi)**dim/sps.gamma(dim/2. + 1.)
-    return fac
-
-
-def set_len_anis(dim, len_scale, anis):
-    """Setting the length scale and anisotropy factors for the given dimension.
-
-    Parameters
-    ----------
-    dim : :class:`int`
-        spatial dimension
-    len_scale : :class:`float`/list
-        the length scale of the SRF in x direction or in x- (y-, z-) direction
-    anis : :class:`float`/list
-        the anisotropy of length scales along the y- and z-directions
-
-    Returns
-    -------
-    len_scale : :class:`float`
-        the main length scale of the SRF in x direction
-    anis : :class:`float`/list, optional
-        the anisotropy of length scales along the y- and z-directions
-
-    Notes
-    -----
-    If ``len_scale`` is given as list, ``anis`` will be recalculated.
-    """
-    ls_tmp = np.atleast_1d(len_scale)[:dim]
-    # use just one length scale (x-direction)
-    out_len_scale = ls_tmp[0]
-    # set the anisotropies in y- and z-direction according to the input
-    if len(ls_tmp) == 1:
-        out_anis = np.atleast_1d(anis)[:dim-1]
-        if len(out_anis) < dim-1:
-            # fill up the anisotropies with ones, such that len()==dim-1
-            out_anis = np.pad(out_anis, (0, dim-len(out_anis)-1),
-                              'constant', constant_values=1.)
-    elif dim == 1:
-        # there is no anisotropy in 1 dimension
-        out_anis = np.empty(0)
-    else:
-        # fill up length-scales with main len_scale, such that len()==dim
-        if len(ls_tmp) < dim:
-            ls_tmp = np.pad(ls_tmp, (0, dim-len(ls_tmp)),
-                            'constant', constant_values=out_len_scale)
-        # if multiple length-scales are given, calculate the anisotropies
-        out_anis = np.zeros(dim - 1, dtype=float)
-        for i in range(1, dim):
-            out_anis[i-1] = ls_tmp[i]/ls_tmp[0]
-
-    for ani in out_anis:
-        if not ani > 0.:
-            raise ValueError("anisotropy-ratios needs to be > 0, " +
-                             "got: "+str(out_anis))
-    return out_len_scale, out_anis
-
-
-def check_bounds(bounds):
-    if len(bounds) not in (2, 3):
-        return False
-    if bounds[1] <= bounds[0]:
-        return False
-    if len(bounds) == 3 and bounds[2] not in ("oo", "oc", "co", "cc"):
-        return False
-    return True
-
+HANKEL_DEFAULT = {
+    "a": -1,    # should only be changed, if you know exactly what
+    "b": 1,     # you do or if you are crazy
+    "N": 1000,
+    "h": 0.001,
+}
 
 # The CovModel Base-Class #####################################################
 
 class CovModel(six.with_metaclass(InitSubclassMeta)):
-    # TODO: docs ... jaja
+    '''
+    Base class for the GSTools covariance models
+
+    Notes
+    -----
+    Don't instantiate this class directly. You need to inherit a child class
+    which overrides one of the following methods:
+
+        * ``CovModel.variogram(r)``
+            :math:`\\gamma\\left(r\\right)=\\sigma^2\\cdot\\left(1-\\tilde{C}\\left(r\\right)\\right)+n`
+        * ``CovModel.variogram_normed(r)``
+            :math:`\\tilde{\\gamma}\\left(r\\right)=1-\\tilde{C}\\left(r\\right)`
+        * ``CovModel.covariance(r)``
+            :math:`C\\left(r\\right)=\\sigma^2\\cdot\\tilde{C}\\left(r\\right)`
+        * ``CovModel.covariance_normed(r)``
+            :math:`\\tilde{C}\\left(r\\right)`
+
+    Attributes
+    ----------
+    dim : int
+        dimension of the model
+    var : float
+        variance of the model (the nugget is not included in "this" variance)
+    len_scale : float
+        length scale of the model in the x-direction
+    len_scale_vec : array
+        length scales of the model in the all directions
+    integral_scale : float
+        integral scale of the model in x-direction
+    integral_scale_vec : array
+        integral scales of the model in the all directions
+    nugget : float
+        nugget of the model
+    anis : array
+        anisotropy ratios in the transversal directions [y, z]
+    angles : array
+        angles of the transversal directions [y, z]
+    arg : list
+        list of all argument names (var, len_scale, nugget, [opt_arg])
+    opt_arg : list
+        list of the optional-argument names
+    var_bounds : list
+        bounds for the variance of the model
+    len_scale_bounds : list
+        bounds for the length scale of the model in the x-direction
+    nugget_bounds : list
+        bounds for the nugget of the model
+    '''
     def __init__(
         self,
         dim=3,
         var=1.,
         len_scale=1.,
+        nugget=0.,
         anis=1.,
         angles=0.,
         integral_scale=None,
         var_bounds=(0., 100.),
         len_scale_bounds=(0., 1000.),
+        nugget_bounds=(0., 100.),
         hankel_kw=None,
         **kwargs
     ):
+        '''Instantiate a covariance model'''
         # assert, that we use a subclass
         # this is the case, if __init_subclass__ is called, which creates
         # the "variogram"... so we check for that
@@ -171,18 +111,21 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # add the optional arguments as attributes to the class
         for kws in kwargs:
             if kws in dir(self):  # "dir" also respects properties
-                raise ValueError("parameter '"+kws+"' has a 'bad' name " +
-                                 "and could not be added to the model")
+                raise ValueError("parameter '"+kws+"' has a 'bad' name, " +
+                                 "since it is already present in the class. " +
+                                 "It could not be added to the model")
             # Magic happens here
             setattr(self, kws, kwargs[kws])
 
         # set standard boundaries for the optional arguments
         self._opt_arg_bounds = self.default_opt_arg_bounds()
         # set standard boundaries for len_scale and variance
-        self._len_scale_bounds = None
-        self.len_scale_bounds = len_scale_bounds
         self._var_bounds = None
         self.var_bounds = var_bounds
+        self._len_scale_bounds = None
+        self.len_scale_bounds = len_scale_bounds
+        self._nugget_bounds = None
+        self.nugget_bounds = nugget_bounds
 
         # check if a fixed dimension should be used
         if self.fix_dim() is not None:
@@ -193,6 +136,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self._dim = dim
         # set the variance of the field
         self._var = var
+        # set the nugget of the field
+        self._nugget = nugget
 
         # set the rotation angles
         self._angles = np.atleast_1d(angles)
@@ -209,10 +154,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self._len_scale, self._anis = set_len_anis(dim, len_scale, anis)
 
         # initialize the integral scale
-        self._integral_scale = self.calc_integral_scale()
+        self._integral_scale = None
 
         # recalculate the length scale, to adopt the given integral scale
         if integral_scale is not None:
+            self._integral_scale = self.calc_integral_scale()
             int_tmp, self._anis = set_len_anis(dim, integral_scale, anis)
             self._len_scale = int_tmp/self._integral_scale
             # recalculate the internal integral scale
@@ -220,12 +166,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # tuning arguments for the hankel-/fourier-transformation
         if hankel_kw is None:
-            self.hankel_kw = {
-                "a": -1,    # should only be changed, if you know exactly what
-                "b": 1,     # you do or if you are crazy
-                "N": 1000,
-                "h": 0.001,
-            }
+            self.hankel_kw = HANKEL_DEFAULT
         else:
             self.hankel_kw = hankel_kw
 
@@ -242,7 +183,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # overrid one of these ################################################
         def variogram(self, r):
-            return self.var - self.covariance(r)
+            return self.var - self.covariance(r) + self.nugget
 
         def covariance(self, r):
             return self.var*self.covariance_normed(r)
@@ -251,7 +192,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return 1. - self.variogram_normed(r)
 
         def variogram_normed(self, r):
-            return self.variogram(r)/self.var
+            return (self.variogram(r) - self.nugget) / self.var
         #######################################################################
 
         abstract = True
@@ -308,7 +249,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         pass
 
     def fix_dim(self):
-        '''This method can be overwritten to set a fixed dimension for
+        '''This method can be overridden to set a fixed dimension for
         your model'''
         return None
 
@@ -344,19 +285,21 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                     raise ValueError("Given bounds for '"+opt+"' are not " +
                                      "valid, got: "+str(kwargs[opt]))
                 self._opt_arg_bounds[opt] = kwargs[opt]
-            if opt == "len_scale":
-                self.len_scale_bounds = kwargs[opt]
             if opt == "var":
                 self.var_bounds = kwargs[opt]
+            if opt == "len_scale":
+                self.len_scale_bounds = kwargs[opt]
+            if opt == "nugget":
+                self.nugget_bounds = kwargs[opt]
 
     def check_arg_bounds(self):
         '''Here the arguments are checked to be within the given bounds'''
-        # check len_scale, var and optional-arguments
+        # check var, len_scale, nugget and optional-arguments
         for arg in self.arg_bounds:
             bnd = list(self.arg_bounds[arg])
             val = getattr(self, arg)
             if len(bnd) == 2:
-                bnd.append("oo")
+                bnd.append("cc")
             if bnd[2][0] == "c":
                 if val < bnd[0]:
                     raise ValueError(str(arg)+" needs to be >= "+str(bnd[0]) +
@@ -375,18 +318,27 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                                      ", got: "+str(val))
 
     ###########################################################################
-    # spectrum methods (can be overwritten for speedup) #######################
+    # spectrum methods (can be overridden for speedup) ########################
     ###########################################################################
 
     def spectrum(self, k):
+        '''
+        The spectrum of the covariance model.
+        '''
         k = np.abs(np.array(k, dtype=float))
         f_t = SFT(ndim=self.dim, **self.hankel_kw)
         return f_t.transform(self.covariance, k, ret_err=False)
 
     def spectral_density(self, k):
+        '''
+        The spectral density of the covariance model.
+        '''
         return self.spectrum(k)/self.var
 
     def spectral_rad_pdf(self, r):
+        '''
+        The radial spectral density of the model depending on the dimension
+        '''
         r = np.abs(np.array(r, dtype=float))
         if self.dim > 1:
             r_gz = r[r > 0.]
@@ -407,10 +359,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return res
 
     def ln_spectral_rad_pdf(self, r):
+        '''
+        The log radial spectral density of the model depending on the dimension
+        '''
         spec = np.array(self.spectral_rad_pdf(r))
-        res = np.ones_like(spec, dtype=float)
-        # inplace multiplication retains array-type for 0-dim arrays
-        res *= -np.inf
+        res = np.full_like(spec, -np.inf, dtype=float)
         res[spec > 0.] = np.log(spec[spec > 0.])
         return res
 
@@ -424,57 +377,109 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     # fitting routine #########################################################
 
-    def fit_variogram(self, x_data, y_data):
-        '''fit the variogram-model to given data'''
+    def fit_variogram(self, x_data, y_data, **para_deselect):
+        '''
+        fit the variogram-model to given data
 
-        def curve(x, len_scale, var, *args):
+        Parameters
+        ----------
+        x_data : array
+            The radii of the meassured variogram.
+        y_data : array
+            The messured variogram
+        **para_deselect
+            You can deselect the parameters to be fitted, by setting
+            them "False" as keywords. By default, all parameters are
+            fitted.
+        '''
+
+        para = {
+            "var": True,
+            "len_scale": True,
+            "nugget": True,
+        }
+        for opt in self.opt_arg:
+            para[opt] = True
+        para.update(para_deselect)
+
+        # we need arg1, otherwise curve_fit throws an error (bug?!)
+        def curve(x, arg1, *args):
             '''dummy function for the variogram'''
-            self._len_scale = len_scale
-            self._var = var
-            for opt_i, opt_e in enumerate(self.opt_arg):
-                setattr(self, opt_e, args[opt_i])
+            args = (arg1,) + args
+            para_skip = 0
+            opt_skip = 0
+            if para["var"]:
+                self._var = args[para_skip]
+                para_skip += 1
+            if para["len_scale"]:
+                self._len_scale = args[para_skip]
+                para_skip += 1
+            if para["nugget"]:
+                self._nugget = args[para_skip]
+                para_skip += 1
+            for opt in self.opt_arg:
+                if para[opt]:
+                    setattr(self, opt, args[para_skip + opt_skip])
+                    opt_skip += 1
             return self.variogram(x)
 
-        # set the lower boundaries for the variogram-parameters
+        # set the lower/upper boundaries for the variogram-parameters
         low_bounds = []
-        low_bounds.append(self.len_scale_bounds[0])
-        low_bounds.append(self.var_bounds[0])
-        for opt in self.opt_arg:
-            low_bounds.append(self.opt_arg_bounds[opt][0])
-        # set the upper boundaries for the variogram-parameters
         top_bounds = []
-        top_bounds.append(self.len_scale_bounds[1])
-        top_bounds.append(self.var_bounds[1])
+        if para["var"]:
+            low_bounds.append(self.var_bounds[0])
+            top_bounds.append(self.var_bounds[1])
+        if para["len_scale"]:
+            low_bounds.append(self.len_scale_bounds[0])
+            top_bounds.append(self.len_scale_bounds[1])
+        if para["nugget"]:
+            low_bounds.append(self.nugget_bounds[0])
+            top_bounds.append(self.nugget_bounds[1])
         for opt in self.opt_arg:
-            top_bounds.append(self.opt_arg_bounds[opt][1])
+            if para[opt]:
+                low_bounds.append(self.opt_arg_bounds[opt][0])
+                top_bounds.append(self.opt_arg_bounds[opt][1])
+
+        print(low_bounds)
+        print(top_bounds)
+
         # fit the variogram
         popt, pcov = curve_fit(curve, x_data, y_data,
                                bounds=(low_bounds, top_bounds))
         out = {}
-        self._len_scale = popt[0]
-        out["len_scale"] = popt[0]
-        self._var = popt[1]
-        out["var"] = popt[1]
-        for opt_i, opt_e in enumerate(self.opt_arg):
-            setattr(self, opt_e, popt[opt_i+2])
-            out[opt_e] = popt[opt_i+2]
+        para_skip = 0
+        opt_skip = 0
+        if para["var"]:
+            self._var = popt[para_skip]
+            out["var"] = popt[para_skip]
+            para_skip += 1
+        else:
+            out["var"] = self._var
+        if para["len_scale"]:
+            self._len_scale = popt[para_skip]
+            out["len_scale"] = popt[para_skip]
+            para_skip += 1
+        else:
+            out["len_scale"] = self._len_scale
+        if para["nugget"]:
+            self._nugget = popt[para_skip]
+            out["nugget"] = popt[para_skip]
+            para_skip += 1
+        else:
+            out["nugget"] = self._nugget
+        for opt in self.opt_arg:
+            if para[opt]:
+                setattr(self, opt, popt[para_skip + opt_skip])
+                out[opt] = popt[para_skip + opt_skip]
+                opt_skip += 1
+            else:
+                out[opt] = getattr(self, opt)
         # recalculate the integral scale
         self._integral_scale = self.calc_integral_scale()
         out["integral_scale"] = self._integral_scale
         return out, pcov
 
     # bounds ##################################################################
-
-    @property
-    def len_scale_bounds(self):
-        return self._len_scale_bounds
-
-    @len_scale_bounds.setter
-    def len_scale_bounds(self, bounds):
-        if not check_bounds(bounds):
-            raise ValueError("Given bounds for 'len_scale' are not " +
-                             "valid, got: "+str(bounds))
-        self._len_scale_bounds = bounds
 
     @property
     def var_bounds(self):
@@ -488,12 +493,38 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self._var_bounds = bounds
 
     @property
+    def len_scale_bounds(self):
+        return self._len_scale_bounds
+
+    @len_scale_bounds.setter
+    def len_scale_bounds(self, bounds):
+        if not check_bounds(bounds):
+            raise ValueError("Given bounds for 'len_scale' are not " +
+                             "valid, got: "+str(bounds))
+        self._len_scale_bounds = bounds
+
+    @property
+    def nugget_bounds(self):
+        return self._nugget_bounds
+
+    @nugget_bounds.setter
+    def nugget_bounds(self, bounds):
+        if not check_bounds(bounds):
+            raise ValueError("Given bounds for 'nugget' are not " +
+                             "valid, got: "+str(bounds))
+        self._nugget_bounds = bounds
+
+    @property
     def opt_arg_bounds(self):
         return self._opt_arg_bounds
 
     @property
     def arg_bounds(self):
-        res = {"len_scale": self.len_scale_bounds, "var": self.var_bounds}
+        res = {
+            "var": self.var_bounds,
+            "len_scale": self.len_scale_bounds,
+            "nugget": self.nugget_bounds,
+        }
         res.update(self.opt_arg_bounds)
         return res
 
@@ -525,6 +556,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return self._len_scale
 
     @property
+    def nugget(self):
+        """ The nugget of the spatial random field."""
+        return self._nugget
+
+    @property
     def len_scale_vec(self):
         '''The length scales in each direction of the spatial random field.
 
@@ -549,6 +585,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def angles(self):
         """ The rotation angles (in rad) of the spatial random field."""
         return self._angles
+
+    @property
+    def arg(self):
+        '''Names of all arguments'''
+        return ["var", "len_scale", "nugget"] + self._opt_arg
 
     @property
     def opt_arg(self):
@@ -579,224 +620,4 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         res[0] = self.integral_scale
         for i in range(1, self.dim):
             res[i] = self.integral_scale*self.anis[i-1]
-        return res
-
-    # plotting routines #######################################################
-
-    def plot_variogram(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3*self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.variogram(x_s),
-                 label=self.__class__.__name__+" vario")
-        plt.legend()
-        plt.show()
-
-    def plot_covariance(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3*self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.covariance(x_s),
-                 label=self.__class__.__name__+" cov")
-        plt.legend()
-        plt.show()
-
-    def plot_covariance_normed(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3*self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.covariance_normed(x_s),
-                 label=self.__class__.__name__+" cov normed")
-        plt.legend()
-        plt.show()
-
-    def plot_variogram_normed(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3*self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.variogram_normed(x_s),
-                 label=self.__class__.__name__+" vario normed")
-        plt.legend()
-        plt.show()
-
-    def plot_spectrum(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3/self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.spectrum(x_s),
-                 label=self.__class__.__name__+" " +
-                 str(self.dim)+"D spec")
-        plt.legend()
-        plt.show()
-
-    def plot_spectral_density(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3/self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.spectral_density(x_s),
-                 label=self.__class__.__name__+" " +
-                 str(self.dim)+"D spec-dens")
-        plt.legend()
-        plt.show()
-
-    def plot_spectral_rad_pdf(self, x_min=0.0, x_max=None):
-        if x_max is None:
-            x_max = 3/self.integral_scale
-        x_s = np.linspace(x_min, x_max)
-        plt.plot(x_s, self.spectral_rad_pdf(x_s),
-                 label=self.__class__.__name__+" " +
-                 str(self.dim)+"D spec-rad-pdf")
-        plt.legend()
-        plt.show()
-
-
-###############################################################################
-# Derived Models ##############################################################
-###############################################################################
-
-# Gaussian Model ##############################################################
-
-class Gau(CovModel):
-
-    def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
-        return np.exp(-np.pi/4*(r/self.len_scale)**2)
-
-    def spectrum(self, k):
-        return (self.var*(self.len_scale/np.pi)**self.dim *
-                np.exp(-(k*self.len_scale)**2/np.pi))
-
-    def spectral_rad_cdf(self, r):
-        if self.dim == 1:
-            return sps.erf(self.len_scale*r/np.sqrt(np.pi))
-        elif self.dim == 2:
-            return 1. - np.exp(-(r*self.len_scale)**2/np.pi)
-        elif self.dim == 3:
-            return (sps.erf(self.len_scale*r/np.sqrt(np.pi)) -
-                    2*r*self.len_scale/np.pi *
-                    np.exp(-(r*self.len_scale)**2/np.pi))
-        return None
-
-    def spectral_rad_ppf(self, u):
-        if self.dim == 1:
-            return sps.erfinv(u)*np.sqrt(np.pi)/self.len_scale
-        elif self.dim == 2:
-            return (np.sqrt(np.pi)/self.len_scale *
-                    np.sqrt(-np.log(1.-u)))
-        return None
-
-    def _has_ppf(self):
-        """ppf for 3 dimensions is not analytical"""
-        # since the ppf is not analytical for dim=3, we have to state that
-        if self.dim == 3:
-            return False
-        return True
-
-    def calc_integral_scale(self):
-        '''The integral scale of the gaussian model is the length scale'''
-        return self.len_scale
-
-
-# Exponential Model ###########################################################
-
-class Exp(CovModel):
-
-    def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
-        return np.exp(-r/self.len_scale)
-
-    def spectrum(self, k):
-        return (
-            self.var*self.len_scale**self.dim*sps.gamma((self.dim+1)/2) /
-            (np.pi*(1. + (k*self.len_scale)**2))**((self.dim+1)/2))
-
-    def spectral_rad_cdf(self, r):
-        if self.dim == 1:
-            return np.arctan(r*self.len_scale)*2/np.pi
-        elif self.dim == 2:
-            return 1. - 1/np.sqrt(1 + (r*self.len_scale)**2)
-        elif self.dim == 3:
-            return (np.arctan(r*self.len_scale) -
-                    r*self.len_scale/(1 + (r*self.len_scale)**2))*2/np.pi
-        return None
-
-    def spectral_rad_ppf(self, u):
-        if self.dim == 1:
-            return np.tan(np.pi/2*u)/self.len_scale
-        elif self.dim == 2:
-            return np.sqrt(1/u**2 - 1.)/self.len_scale
-        return None
-
-    def _has_ppf(self):
-        """ppf for 3 dimensions is not analytical"""
-        # since the ppf is not analytical for dim=3, we have to state that
-        if self.dim == 3:
-            return False
-        return True
-
-    def calc_integral_scale(self):
-        '''The integral scale of the exponential model is the length scale'''
-        return self.len_scale
-
-
-# Spherical Model #############################################################
-
-class Sph(CovModel):
-
-    def covariance_normed(self, r):
-        r = np.atleast_1d(np.abs(np.array(r, dtype=float)))
-        res = 1. - 9./16.*r/self.len_scale + 27./1024.*(r/self.len_scale)**3
-        res[r > 8./3.*self.len_scale] = 0.
-        return res
-
-    def calc_integral_scale(self):
-        '''The integral scale of the spherical model is the length scale'''
-        return self.len_scale
-
-
-# Rational Model ##############################################################
-
-class Rat(CovModel):
-
-    def default_opt_arg(self):
-        return {"alpha": 1.}
-
-    def default_opt_arg_bounds(self):
-        return {"alpha": [0.5, np.inf]}
-
-    def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
-        return np.power(1 + 0.5/self.alpha*(r/self.len_scale)**2, -self.alpha)
-
-
-# Matérn Model ################################################################
-
-class Mat(CovModel):
-
-    def default_opt_arg(self):
-        return {"nu": 1.}
-
-    def default_opt_arg_bounds(self):
-        return {"nu": [0.5, 60., "cc"]}
-
-    def check_opt_arg(self):
-        if self.nu > 50.:
-            warnings.warn("Mat: parameter 'nu' is > 50, " +
-                          "calculations most likely get unstable here")
-
-    def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
-        r_gz = r[r > 0.]
-        res = np.ones_like(r)
-        with np.errstate(over='ignore', invalid='ignore'):
-            res[r > 0.] = (
-                np.power(2, 1.-self.nu) / sps.gamma(self.nu) *
-                np.power(np.pi/sps.beta(self.nu, .5) * r_gz/self.len_scale,
-                         self.nu) *
-                sps.kv(self.nu,
-                       np.pi/sps.beta(self.nu, .5) * r_gz/self.len_scale))
-        # if nu >> 1 we get errors for the farfield, there 0 is approached
-        res[np.logical_not(np.isfinite(res))] = 0.0
-        # covariance is positiv
-        res = np.maximum(res, 0.)
         return res

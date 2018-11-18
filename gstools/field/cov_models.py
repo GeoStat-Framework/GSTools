@@ -392,9 +392,9 @@ if __name__ == "__main__":
         class Crazy(CovModel):
             pass
 
-    plot_vario = 1
-    plot_spec = 1
-    plot_fit = 1
+    plot_vario = 0
+    plot_spec = 0
+    plot_fit = 0
 
     c = Mat(nu=1, integral_scale=1, len_scale_bounds=[0.5, 50., "oo"])
     d = Gau(integral_scale=1)
@@ -403,7 +403,7 @@ if __name__ == "__main__":
     g = Sph(integral_scale=1)
 
     print("Mat: attributes, properties and methods")
-    print(c.arg_bounds)
+    print(c.arg_bounds, "arg_bounds")
     c.set_arg_bounds(len_scale=[0.5, 100., "cc"])
     print(c.arg_bounds, "arg_bounds")
     print(c.variogram(1.), "variogram(1.)")

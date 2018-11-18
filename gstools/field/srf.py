@@ -88,7 +88,7 @@ class SRF(object):
         self.field = None
 
     def __call__(self, x, y=None, z=None, seed=None, mesh_type='unstructured',
-                 force_moments=False):
+                 force_moments=False, point_volumes=0.):
         """Generate an SRF and return it without saving it internally.
 
         Parameters
@@ -133,7 +133,12 @@ class SRF(object):
             mesh_type = mesh_type_old
             field = self._reshape_field_from_unstruct_to_struct(field,
                                                                 axis_lens)
-        field = np.sqrt(self.var)*field + self.mean
+
+        scale = point_volumes**(1./self.dim)
+        var = self.var*(self.len_scale**2 /
+                        (self.len_scale**2 + scale**2/4))**(self.dim/2.)
+
+        field = np.sqrt(var)*field + self.mean
 
         if force_moments:
             var_in = np.var(field)

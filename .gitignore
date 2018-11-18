@@ -102,5 +102,8 @@ ENV/
 
 tags
 
+# own stuff
+info/
+
 # Cython generated C code
 *.c
