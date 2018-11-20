@@ -205,9 +205,7 @@ class RNG(object):
     def seed(self, new_seed=None):
         self._seed = new_seed
         self._master_rng_fct = rand.RandomState(new_seed)
-        self._master_rng = lambda: self._master_rng_fct.random_integers(
-            2 ** 16 - 1
-        )
+        self._master_rng = lambda: self._master_rng_fct.randint(1, 2 ** 16)
 
     def __str__(self):
         return self.__repr__()
