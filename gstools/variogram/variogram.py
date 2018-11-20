@@ -25,9 +25,15 @@ try:
         ma_structured_1d,
     )
 except ImportError:
-    print(
-        "Warning: No Cython functions imported, "
-        + "hopefully this is just sphinx."
+    print('Warning: No Cython functions imported')
+    from gstools.variogram.py_estimator import (
+        unstructured,
+        structured_3d,
+        structured_2d,
+        structured_1d,
+        ma_structured_3d,
+        ma_structured_2d,
+        ma_structured_1d,
     )
 
 __all__ = ["estimate_unstructured", "estimate_structured"]
@@ -46,6 +52,10 @@ def estimate_unstructured(
        z(\mathbf x_i'))^2, \; \mathrm{ with}
 
        r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
+
+    Note
+    ----
+    Internally uses double precision and also returns doubles.
 
     Parameters
     ----------
@@ -69,7 +79,14 @@ def estimate_unstructured(
             the estimated variogram and the bin centers
     """
 
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    field = field.astype(np.double)
+    bin_edges = bin_edges.astype(np.double)
+    x = x.astype(np.double)
+    if y is not None:
+        y = y.astype(np.double)
+    if z is not None:
+        z = z.astype(np.double)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
 
     if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.choice(
@@ -85,10 +102,10 @@ def estimate_unstructured(
     return unstructured(field, bin_edges, x, y, z), bin_centres
 
 
-def estimate_structured(pos, field, direction="x"):
+def estimate_structured(field, direction='x'):
     r"""Estimates the variogram of the input data on a regular grid.
 
-    The axis of the given direction is used for the bins.
+    The indices of the given direction are used for the bins.
     The algorithm calculates following equation:
 
     .. math::
@@ -97,10 +114,16 @@ def estimate_structured(pos, field, direction="x"):
 
        r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
+    Warning
+    -------
+    It is assumed that the field is defined on an equidistant Cartesian grid.
+
+    Note
+    ----
+    Internally uses double precision and also returns doubles.
+
     Parameters
     ----------
-        pos : :class:`tuple`
-            a tuple of :class:`numpy.ndarray` containing the axes
         field : :class:`numpy.ndarray`
             the spatially distributed data
         direction : :class:`str`
@@ -111,6 +134,7 @@ def estimate_structured(pos, field, direction="x"):
         :class:`numpy.ndarray`
             the estimated variogram along the given direction.
     """
+    field = field.astype(np.double)
     shape = field.shape
 
     if direction == "x":
@@ -129,17 +153,17 @@ def estimate_structured(pos, field, direction="x"):
 
     if len(shape) == 3:
         if mask is None:
-            gamma = structured_3d(pos[0], pos[1], pos[2], field)
+            gamma = structured_3d(field)
         else:
-            gamma = ma_structured_3d(pos[0], pos[1], pos[2], field, mask)
+            gamma = ma_structured_3d(field, mask)
     elif len(shape) == 2:
         if mask is None:
-            gamma = structured_2d(pos[0], pos[1], field)
+            gamma = structured_2d(field)
         else:
-            gamma = ma_structured_2d(pos[0], pos[1], field, mask)
+            gamma = ma_structured_2d(field, mask)
     else:
         if mask is None:
-            gamma = structured_1d(pos, field)
+            gamma = structured_1d(field.astype(np.double))
         else:
-            gamma = ma_structured_1d(pos, field, mask)
+            gamma = ma_structured_1d(field, mask)
     return gamma

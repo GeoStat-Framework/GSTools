@@ -14,49 +14,29 @@ cimport numpy as np
 DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
-ctypedef fused scalar:
-    short
-    int
-    long
-    float
-    double
-
-ctypedef fused scalar_bins:
-    short
-    int
-    long
-    float
-    double
-
-ctypedef fused scalar_f:
-    short
-    int
-    long
-    float
-    double
-
 
 @cython.boundscheck(False)
-cdef inline double _distance_1d(scalar[:] x, scalar[:] y, scalar[:] z,
+cdef inline double _distance_1d(double[:] x, double[:] y, double[:] z,
                                int i, int j):
     return sqrt((x[i] - x[j]) * (x[i] - x[j]))
 
 @cython.boundscheck(False)
-cdef inline double _distance_2d(scalar[:] x, scalar[:] y, scalar[:] z,
+cdef inline double _distance_2d(double[:] x, double[:] y, double[:] z,
                                int i, int j):
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]))
 
 @cython.boundscheck(False)
-cdef inline double _distance_3d(scalar[:] x, scalar[:] y, scalar[:] z,
+cdef inline double _distance_3d(double[:] x, double[:] y, double[:] z,
                                int i, int j):
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) +
                 (y[i] - y[j]) * (y[i] - y[j]) +
                 (z[i] - z[j]) * (z[i] - z[j]))
 
-ctypedef double (*_dist_func)(scalar[:], scalar[:], scalar[:], int, int)
+ctypedef double (*_dist_func)(double[:], double[:], double[:], int, int)
 
 
-def unstructured(scalar_f[:] f, scalar_bins[:] bin_edges, scalar[:] x, scalar[:] y=None, scalar[:] z=None):
+def unstructured(double[:] f, double[:] bin_edges, double[:] x,
+                 double[:] y=None, double[:] z=None):
     if x.shape[0] != f.shape[0]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
                          format(x.shape[0], f.shape[0]))
@@ -103,7 +83,7 @@ def unstructured(scalar_f[:] f, scalar_bins[:] bin_edges, scalar[:] x, scalar[:]
     return np.asarray(variogram)
 
 
-def structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f):
+def structured_3d(double[:,:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -126,7 +106,7 @@ def structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f):
+def structured_2d(double[:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -147,7 +127,7 @@ def structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def structured_1d(scalar[:] x, scalar_f[:] f):
+def structured_1d(double[:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
@@ -166,8 +146,7 @@ def structured_1d(scalar[:] x, scalar_f[:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f,
-                     bint[:,:,:] mask):
+def ma_structured_3d(double[:,:,:] f, bint[:,:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -191,8 +170,7 @@ def ma_structured_3d(scalar[:] x, scalar[:] y, scalar[:] z, scalar_f[:,:,:] f,
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f,
-                     bint[:,:] mask):
+def ma_structured_2d(double[:,:] f, bint[:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -214,7 +192,7 @@ def ma_structured_2d(scalar[:] x, scalar[:] y, scalar_f[:,:] f,
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_1d(scalar[:] x, scalar_f[:] f, bint[:] mask):
+def ma_structured_1d(double[:] f, bint[:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
