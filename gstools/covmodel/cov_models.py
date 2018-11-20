@@ -21,7 +21,7 @@ from __future__ import print_function, division, absolute_import
 import warnings
 import numpy as np
 from scipy import special as sps
-from gstools.field.cov_base import CovModel
+from gstools.covmodel.cov_base import CovModel
 
 __all__ = ["Gau", "Exp", "Sph", "SphRescaled", "Rat", "Mat", "MatRescaled"]
 

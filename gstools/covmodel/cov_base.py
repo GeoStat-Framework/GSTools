@@ -125,7 +125,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # set standard boundaries for the optional arguments
         self._opt_arg_bounds = self.default_opt_arg_bounds()
-        # set standard boundaries for len_scale and variance
+        # set standard boundaries for variance, len_scale and nugget
         self._var_bounds = None
         self.var_bounds = var_bounds
         self._len_scale_bounds = None
@@ -133,13 +133,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self._nugget_bounds = None
         self.nugget_bounds = nugget_bounds
 
-        # check if a fixed dimension should be used
-        if self.fix_dim() is not None:
-            dim = self.fix_dim
-        # set the dimension
-        if dim < 1 or dim > 3:
-            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
-        self._dim = dim
+        # set dimension
+        self._dim = None
+        self.dim = dim
         # set the variance of the field
         self._var = var
         # set the nugget of the field
@@ -282,15 +278,15 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # check the given percentile
         if not 0.0 < per < 1.0:
             raise ValueError(
-                "percentile needs to be within (0, 1), " + "got: " + str(per)
+                "percentile needs to be within (0, 1), got: " + str(per)
             )
 
         # define a curve, that has its root at the wanted point
         def curve(x):
             return self.variogram_normed(x) - per
 
-        # take 'per * integral_scale' as initial guess
-        return root(curve, per * self.integral_scale)["x"][0]
+        # take 'per * len_scale' as initial guess
+        return root(curve, per * self.len_scale)["x"][0]
 
     # bounds setting and checks ###############################################
 
@@ -301,8 +297,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                     raise ValueError(
                         "Given bounds for '"
                         + opt
-                        + "' are not "
-                        + "valid, got: "
+                        + "' are not valid, got: "
                         + str(kwargs[opt])
                     )
                 self._opt_arg_bounds[opt] = kwargs[opt]
@@ -397,7 +392,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # prevent num error in hankel at r=0 in 1D
         r[r == 0.0] = 0.03 / self.len_scale
         res = rad_fac(self.dim, r) * self.spectral_density(r)
-        # prevent numerical errors in hankel for big r (set positiv)
+        # prevent numerical errors in hankel for big r (set non-negativ)
         res = np.maximum(res, 0.0)
         return res
 
@@ -593,6 +588,16 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def dim(self):
         """ The dimension of the spatial random field."""
         return self._dim
+
+    @dim.setter
+    def dim(self, dim):
+        # check if a fixed dimension should be used
+        if self.fix_dim() is not None:
+            dim = self.fix_dim()
+        # set the dimension
+        if dim < 1 or dim > 3:
+            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
+        self._dim = int(dim)
 
     @property
     def var(self):

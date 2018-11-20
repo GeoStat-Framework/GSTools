@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-GStools subpackage providing misc tools.
+GStools subpackage providing tools for the covariance-model.
 
-.. currentmodule:: gstools.tools.tools
+.. currentmodule:: gstools.covmodel.tools
 
 The following classes and functions are provided
 

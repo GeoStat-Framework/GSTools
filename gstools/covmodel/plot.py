@@ -2,7 +2,7 @@
 """
 GStools subpackage providing plotting routines for the covariance models.
 
-.. currentmodule:: gstools.tools.plot
+.. currentmodule:: gstools.covmodel.plot
 
 The following classes and functions are provided
 
