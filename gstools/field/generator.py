@@ -18,13 +18,31 @@ __all__ = ["RandMeth"]
 
 
 class RandMeth(object):
-    """Randomization method for calculating isotropic spatial random fields.
+    r"""Randomization method for calculating isotropic spatial random fields.
 
-    Examples
-    --------
+    Notes
+    -----
+    The Randomization method is used to generate isotropic
+    spatial random fields characterized by a given covarance model.
+    The calculation looks like:
+
+    .. math::
+       u\left(x\right)=
+       \sqrt{\frac{\sigma^{2}}{N}}\cdot
+       \sum_{i=1}^{N}\left(
+       Z_{1,i}\cdot\cos\left(\left\langle k_{i},x\right\rangle \right)+
+       Z_{2,i}\cdot\sin\left(\left\langle k_{i},x\right\rangle \right)
+       \right)
+
+    where:
+
+        * :math:`N` : fourier mode number
+        * :math:`Z_{j,i}` : random samples from a normal distribution
+        * :math:`k_i` : samples from the spectral density distribution of
+          the covariance model
     """
 
-    def __init__(self, model, mode_no=1000, seed=None, **kwargs):
+    def __init__(self, model, mode_no=1000, seed=None):
         """Initialize the randomization method
 
         Parameters
@@ -39,11 +57,12 @@ class RandMeth(object):
         """
         self._seed = None
         self._rng = None
-        self._Z = None
-        self._k = None
-        self.reset(model, mode_no, seed, **kwargs)
+        self._Z_1 = None
+        self._Z_2 = None
+        self._cov_sample = None
+        self.reset(model, mode_no, seed)
 
-    def reset(self, model, mode_no=1000, seed=None, **kwargs):
+    def reset(self, model, mode_no=1000, seed=None):
         """Reset the random amplitudes and wave numbers with a new seed.
 
         Parameters
@@ -58,11 +77,10 @@ class RandMeth(object):
         """
         self._model = model
         self._mode_no = mode_no
-        self._kwargs = kwargs
         self._seed = np.nan
         self.seed = seed
 
-    def __call__(self, x, y=None, z=None):
+    def __call__(self, x, y=None, z=None, chunk_tmp_size=1e6):
         """Calculates the random modes for the randomization method.
 
         Parameters
@@ -75,32 +93,27 @@ class RandMeth(object):
                 the y components of the pos. tupls
             z : :class:`float`, :class:`numpy.ndarray`, optional
                 the z components of the pos. tuple
-
+            chunk_tmp_size : :class:`int`, optional
+                Number of temporarily stored points for an initial guess
+                of the chunk number. Default: 1e6
         Returns
         -------
             :class:`numpy.ndarray`
                 the random modes
         """
-        self._Z, self._k = self._rng(
-            self._model,
-            self._len_scale,
-            mode_no=self._mode_no,
-            kwargs=self._kwargs,
-        )
-        # preshape for unstructured grid
-        for dim_i in range(self._dim):
-            self._k[dim_i] = np.squeeze(self._k[dim_i])
-            self._k[dim_i] = np.reshape(
-                self._k[dim_i], (1, len(self._k[dim_i]))
-            )
-
         summed_modes = np.broadcast(x, y, z)
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
-
         # Test to see if enough memory is available.
         # In case there isn't, divide Fourier modes into smaller chunks
-        # TODO: make a better guess fo the chunk_no according to the input
-        chunk_no_exp = 0
+        # make a better guess fo the chunk_no according to the input
+        tmp_pnt = 0
+        if x is not None:
+            tmp_pnt += len(x)
+        if y is not None:
+            tmp_pnt += len(y)
+        if z is not None:
+            tmp_pnt += len(z)
+        chunk_no_exp = int(np.ceil(np.log2(tmp_pnt)))
         while True:
             try:
                 chunk_no = 2 ** chunk_no_exp
@@ -112,22 +125,23 @@ class RandMeth(object):
                     # e = min((chunk + 1) * chunk_len, self.mode_no-1)
                     e = (chunk + 1) * chunk_len
 
-                    if self._dim == 1:
-                        phase = self._k[0, a:e] * x
-                    elif self._dim == 2:
-                        phase = self._k[0, a:e] * x + self._k[1, a:e] * y
+                    if self._model.dim == 1:
+                        phase = self._cov_sample[0, a:e] * x
+                    elif self._model.dim == 2:
+                        phase = (
+                            self._cov_sample[0, a:e] * x
+                            + self._cov_sample[1, a:e] * y
+                        )
                     else:
                         phase = (
-                            self._k[0, a:e] * x
-                            + self._k[1, a:e] * y
-                            + self._k[2, a:e] * z
+                            self._cov_sample[0, a:e] * x
+                            + self._cov_sample[1, a:e] * y
+                            + self._cov_sample[2, a:e] * z
                         )
-
-                    # no factor 2*pi needed
                     summed_modes += np.squeeze(
                         np.sum(
-                            self._Z[0, a:e] * np.cos(phase)
-                            + self._Z[1, a:e] * np.sin(phase),
+                            self._Z_1[a:e] * np.cos(phase)
+                            + self._Z_2[a:e] * np.sin(phase),
                             axis=-1,
                         )
                     )
@@ -140,7 +154,14 @@ class RandMeth(object):
             else:
                 break
 
-        return np.sqrt(1.0 / self._mode_no) * summed_modes
+        if self._model.nugget > 0:
+            nugget = np.sqrt(self._model.nugget) * self._rng.random.normal(
+                size=len(summed_modes)
+            )
+        else:
+            nugget = 0.0
+
+        return np.sqrt(self._model.var / self._mode_no) * summed_modes + nugget
 
     @property
     def seed(self):
@@ -158,20 +179,34 @@ class RandMeth(object):
         if new_seed is not self._seed:
             self._seed = new_seed
             self._rng = RNG(self._seed)
+            self._Z_1 = self._rng.random.normal(size=self._mode_no)
+            self._Z_2 = self._rng.random.normal(size=self._mode_no)
+            # sample uniform on a sphere
+            sphere_coord = self._rng.sample_sphere(
+                self._model.dim, self._mode_no
+            )
+            # sample radii acording to radial spectral density of the model
+            if self._model.has_ppf:
+                rad = self._rng.sample_dist(
+                    size=self._mode_no,
+                    pdf=self._model.spectral_rad_pdf,
+                    cdf=self._model.spectral_rad_cdf,
+                    ppf=self._model.spectral_rad_ppf,
+                    a=0,
+                )
+            else:
+                rad = self._rng.sample_ln_pdf(
+                    ln_pdf=self._model.ln_spectral_rad_pdf, size=self._mode_no
+                )
+            # get fully spatial samples by multiplying sphere samples and radii
+            self._cov_sample = rad * sphere_coord
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
-        return (
-            "RandMeth(dim={0}, model={1}, len_scale={2}, mode_no={3}, "
-            "seed={4})".format(
-                self._dim,
-                self._model,
-                self._len_scale,
-                self._mode_no,
-                self.seed,
-            )
+        return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
+            repr(self._model), self._mode_no, self.seed
         )
 
 
