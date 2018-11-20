@@ -122,13 +122,11 @@ class RNG(object):
         # choose samples according to size
         return self.random.choice(sampler.flatchain[:, 0], size)
 
-    def sample_dist(self, size=None, pdf=None, cdf=None, ppf=None, **kwargs):
+    def sample_dist(self, pdf=None, cdf=None, ppf=None, size=None, **kwargs):
         """Sample from a distribution given by pdf, cdf or ppf
 
         Parameters
         ----------
-        size : :class:`int` or :any:`None`, optional
-            sample size. Default: None
         pdf : :any:`callable` or :any:`None`, optional
             Probability density function of the given distribution,
             that takes a single argument
@@ -141,6 +139,8 @@ class RNG(object):
             Percent point function of the given distribution, that
             takes a single argument
             Default: ``None``
+        size : :class:`int` or :any:`None`, optional
+            sample size. Default: None
         **kwargs
             Keyword-arguments that are forwarded to
             :any:`scipy.stats.rv_continuous`.
