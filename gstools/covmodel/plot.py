@@ -27,9 +27,7 @@ def plot_variogram(model, x_min=0.0, x_max=None):
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
-        x_s, model.variogram(x_s), label=model.__class__.__name__ + " vario"
-    )
+    plt.plot(x_s, model.variogram(x_s), label=model.name + " vario")
     plt.legend()
     plt.show()
 
@@ -38,9 +36,7 @@ def plot_covariance(model, x_min=0.0, x_max=None):
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
-        x_s, model.covariance(x_s), label=model.__class__.__name__ + " cov"
-    )
+    plt.plot(x_s, model.covariance(x_s), label=model.name + " cov")
     plt.legend()
     plt.show()
 
@@ -50,9 +46,7 @@ def plot_covariance_normed(model, x_min=0.0, x_max=None):
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
     plt.plot(
-        x_s,
-        model.covariance_normed(x_s),
-        label=model.__class__.__name__ + " cov normed",
+        x_s, model.covariance_normed(x_s), label=model.name + " cov normed"
     )
     plt.legend()
     plt.show()
@@ -63,9 +57,7 @@ def plot_variogram_normed(model, x_min=0.0, x_max=None):
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
     plt.plot(
-        x_s,
-        model.variogram_normed(x_s),
-        label=model.__class__.__name__ + " vario normed",
+        x_s, model.variogram_normed(x_s), label=model.name + " vario normed"
     )
     plt.legend()
     plt.show()
@@ -78,7 +70,7 @@ def plot_spectrum(model, x_min=0.0, x_max=None):
     plt.plot(
         x_s,
         model.spectrum(x_s),
-        label=model.__class__.__name__ + " " + str(model.dim) + "D spec",
+        label=model.name + " " + str(model.dim) + "D spec",
     )
     plt.legend()
     plt.show()
@@ -91,7 +83,7 @@ def plot_spectral_density(model, x_min=0.0, x_max=None):
     plt.plot(
         x_s,
         model.spectral_density(x_s),
-        label=model.__class__.__name__ + " " + str(model.dim) + "D spec-dens",
+        label=model.name + " " + str(model.dim) + "D spec-dens",
     )
     plt.legend()
     plt.show()
@@ -104,10 +96,7 @@ def plot_spectral_rad_pdf(model, x_min=0.0, x_max=None):
     plt.plot(
         x_s,
         model.spectral_rad_pdf(x_s),
-        label=model.__class__.__name__
-        + " "
-        + str(model.dim)
-        + "D spec-rad-pdf",
+        label=model.name + " " + str(model.dim) + "D spec-rad-pdf",
     )
     plt.legend()
     plt.show()

@@ -12,6 +12,7 @@ The following classes and functions are provided
    Sph
    SphRescaled
    Rat
+   Stab
    Mat
    MatRescaled
 """
@@ -23,7 +24,16 @@ import numpy as np
 from scipy import special as sps
 from gstools.covmodel.cov_base import CovModel
 
-__all__ = ["Gau", "Exp", "Sph", "SphRescaled", "Rat", "Mat", "MatRescaled"]
+__all__ = [
+    "Gau",
+    "Exp",
+    "Sph",
+    "SphRescaled",
+    "Rat",
+    "Stab",
+    "Mat",
+    "MatRescaled",
+]
 
 
 # Gaussian Model ##############################################################

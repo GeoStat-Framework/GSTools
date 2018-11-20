@@ -144,6 +144,40 @@ def set_len_anis(dim, len_scale, anis):
     return out_len_scale, out_anis
 
 
+def set_angles(dim, angles):
+    """Setting the angles for the given dimension.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension (anything different from 1 and 2 is interpreted as 3)
+    angles : :class:`float`/list
+        the angles of the SRF
+
+    Returns
+    -------
+    angles : :class:`float`
+        the angles fitting to the dimension
+    """
+    if dim == 1:
+        # no rotation in 1D
+        out_angles = np.empty(0)
+    elif dim == 2:
+        # one rotation axis in 2D
+        out_angles = np.atleast_1d(angles)[:1]
+    else:
+        # three rotation axis in 3D
+        out_angles = np.atleast_1d(angles)[:3]
+        # fill up the rotation angle array with zeros
+        out_angles = np.pad(
+            out_angles,
+            (0, 3 - len(out_angles)),
+            "constant",
+            constant_values=0.0,
+        )
+    return out_angles
+
+
 def check_bounds(bounds):
     """
     Check if given bounds are valid.

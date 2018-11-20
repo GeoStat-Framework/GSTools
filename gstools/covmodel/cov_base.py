@@ -16,6 +16,7 @@ from gstools.covmodel.tools import (
     InitSubclassMeta,
     rad_fac,
     set_len_anis,
+    set_angles,
     check_bounds,
 )
 
@@ -141,32 +142,21 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if dim < 1 or dim > 3:
             raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
         self._dim = int(dim)
+
         # set the variance of the field
         self._var = var
         # set the nugget of the field
         self._nugget = nugget
-
         # set the rotation angles
-        self._angles = np.atleast_1d(angles)
-        # fill up the rotation angle array with zeros, such that len() == dim-1
-        self._angles = np.pad(
-            self._angles,
-            (0, self._dim - len(self._angles)),
-            "constant",
-            constant_values=0.0,
-        )
-
+        self._angles = set_angles(angles)
         # if integral scale is given, the length-scale is overwritten
         if integral_scale is not None:
             # first set len_scale to 1, than calculate the scaling factor
             len_scale = 1.0
-
         # set the length scales and the anisotropy factors
         self._len_scale, self._anis = set_len_anis(dim, len_scale, anis)
-
         # initialize the integral scale
         self._integral_scale = None
-
         # recalculate the length scale, to adopt the given integral scale
         if integral_scale is not None:
             self._integral_scale = self.calc_integral_scale()
