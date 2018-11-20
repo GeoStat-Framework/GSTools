@@ -12,7 +12,7 @@ import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
 from hankel import SymmetricFourierTransform as SFT
-from gstools.tools.tools import (
+from gstools.covmodel.tools import (
     InitSubclassMeta,
     rad_fac,
     set_len_anis,
@@ -134,8 +134,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self.nugget_bounds = nugget_bounds
 
         # set dimension
-        self._dim = None
-        self.dim = dim
+        # check if a fixed dimension should be used
+        if self.fix_dim() is not None:
+            dim = self.fix_dim()
+        # set the dimension
+        if dim < 1 or dim > 3:
+            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
+        self._dim = int(dim)
         # set the variance of the field
         self._var = var
         # set the nugget of the field
@@ -589,16 +594,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """ The dimension of the spatial random field."""
         return self._dim
 
-    @dim.setter
-    def dim(self, dim):
-        # check if a fixed dimension should be used
-        if self.fix_dim() is not None:
-            dim = self.fix_dim()
-        # set the dimension
-        if dim < 1 or dim > 3:
-            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
-        self._dim = int(dim)
-
     @property
     def var(self):
         """ The variance of the spatial random field."""
@@ -675,3 +670,27 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         for i in range(1, self.dim):
             res[i] = self.integral_scale * self.anis[i - 1]
         return res
+
+    @property
+    def name(self):
+        """
+        The name of the CovModel class
+        """
+        return self.__class__.__name__
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return (
+            "{0}(dim={1}, var={2}, len_scale={3}, "
+            "nugget={4}, anis={5}, angles={6})".format(
+                self.name,
+                self.dim,
+                self.var,
+                self.len_scale,
+                self.nugget,
+                self.anis,
+                self.angles,
+            )
+        )
