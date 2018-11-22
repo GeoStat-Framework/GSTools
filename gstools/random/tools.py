@@ -45,13 +45,16 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
             if pdf_in is None:
                 raise ValueError("Either pdf or cdf must be given")
             return DistPdf(pdf_in, **kwargs)
-        else:
-            if pdf_in is None:
-                return DistCdf(cdf_in, **kwargs)
-            return DistPdfCdf(pdf_in, cdf_in, **kwargs)
+        if pdf_in is None:
+            return DistCdf(cdf_in, **kwargs)
+        return DistPdfCdf(pdf_in, cdf_in, **kwargs)
     else:
-        if pdf_in is None or cdf_in is None:
-            raise ValueError("pdf and cdf must be given along with the ppf")
+        if pdf_in is not None and cdf_in is None:
+            return DistPdfPpf(pdf_in, ppf_in, **kwargs)
+        if pdf_in is None and cdf_in is not None:
+            return DistCdfPpf(cdf_in, ppf_in, **kwargs)
+        if pdf_in is None and cdf_in is None:
+            raise ValueError("pdf or cdf must be given along with the ppf")
         return DistPdfCdfPpf(pdf_in, cdf_in, ppf_in, **kwargs)
 
 
@@ -90,6 +93,48 @@ class DistPdfCdf(rv_continuous):
 
     def _cdf(self, x, *args):
         return self.cdf_in(x)
+
+
+class DistPdfPpf(rv_continuous):
+    "Generate distribution from pdf and ppf"
+
+    def __init__(self, pdf_in, ppf_in, **kwargs):
+        self.pdf_in = pdf_in
+        self.ppf_in = ppf_in
+        super(DistPdfPpf, self).__init__(**kwargs)
+
+    def _pdf(self, x, *args):
+        return self.pdf_in(x)
+
+    def _ppf(self, q, *args):
+        return self.ppf_in(q)
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
+
+
+class DistCdfPpf(rv_continuous):
+    "Generate distribution from cdf and ppf"
+
+    def __init__(self, cdf_in, ppf_in, **kwargs):
+        self.cdf_in = cdf_in
+        self.ppf_in = ppf_in
+        super(DistCdfPpf, self).__init__(**kwargs)
+
+    def _cdf(self, x, *args):
+        return self.cdf_in(x)
+
+    def _ppf(self, q, *args):
+        return self.ppf_in(q)
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
 
 
 class DistPdfCdfPpf(rv_continuous):

@@ -49,8 +49,8 @@ class RNG(object):
         self,
         ln_pdf,
         size=None,
-        nwalkers=100,
-        burn_in=100,
+        nwalkers=50,
+        burn_in=20,
         oversampling_factor=10,
     ):
         """Sample from a distribution given by ln(pdf)
