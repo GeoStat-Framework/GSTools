@@ -99,6 +99,9 @@ setup_kw = {
     'install_requires': [
         'numpy>=1.15.3',
         'scipy>=0.19.1',
+        'hankel>=0.3.6',
+        'emcee',  # 2 and 3 should be compatible
+        'six',
     ],
     'packages': find_packages(exclude=['tests*', 'docs*']),
     'ext_modules': EXT_MODULES,
