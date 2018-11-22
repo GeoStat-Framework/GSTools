@@ -25,7 +25,7 @@ try:
         ma_structured_1d,
     )
 except ImportError:
-    print('Warning: No Cython functions imported')
+    print("Warning: No Cython functions imported")
     from gstools.variogram.py_estimator import (
         unstructured,
         structured_3d,
@@ -86,7 +86,7 @@ def estimate_unstructured(
         y = y.astype(np.double)
     if z is not None:
         z = z.astype(np.double)
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.choice(
@@ -102,7 +102,7 @@ def estimate_unstructured(
     return unstructured(field, bin_edges, x, y, z), bin_centres
 
 
-def estimate_structured(field, direction='x'):
+def estimate_structured(field, direction="x"):
     r"""Estimates the variogram of the input data on a regular grid.
 
     The indices of the given direction are used for the bins.
