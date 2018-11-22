@@ -40,11 +40,14 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     which overrides one of the following methods:
 
         * ``CovModel.variogram(r)``
-            :math:`\\gamma\\left(r\\right)=\\sigma^2\\cdot\\left(1-\\tilde{C}\\left(r\\right)\\right)+n`
+            :math:`\\gamma\\left(r\\right)=
+            \\sigma^2\\cdot\\left(1-\\tilde{C}\\left(r\\right)\\right)+n`
         * ``CovModel.variogram_normed(r)``
-            :math:`\\tilde{\\gamma}\\left(r\\right)=1-\\tilde{C}\\left(r\\right)`
+            :math:`\\tilde{\\gamma}\\left(r\\right)=
+            1-\\tilde{C}\\left(r\\right)`
         * ``CovModel.covariance(r)``
-            :math:`C\\left(r\\right)=\\sigma^2\\cdot\\tilde{C}\\left(r\\right)`
+            :math:`C\\left(r\\right)=
+            \\sigma^2\\cdot\\tilde{C}\\left(r\\right)`
         * ``CovModel.covariance_normed(r)``
             :math:`\\tilde{C}\\left(r\\right)`
 
@@ -67,7 +70,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     anis : array
         anisotropy ratios in the transversal directions [y, z]
     angles : array
-        angles of the transversal directions [y, z]
+        angles of rotation:
+            * in 2D: given as rotation around z-axis
+            * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
     arg : list
         list of all argument names (var, len_scale, nugget, [opt_arg])
     opt_arg : list
@@ -148,7 +153,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # set the nugget of the field
         self._nugget = nugget
         # set the rotation angles
-        self._angles = set_angles(angles)
+        self._angles = set_angles(dim, angles)
         # if integral scale is given, the length-scale is overwritten
         if integral_scale is not None:
             # first set len_scale to 1, than calculate the scaling factor
@@ -286,6 +291,19 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     # bounds setting and checks ###############################################
 
     def set_arg_bounds(self, **kwargs):
+        r"""Set bounds for the parameters of the model
+
+        Parameters
+        ----------
+        **kwargs
+            Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
+            and a list of 2 or 3 values as value:
+
+                * [a, b]
+                * [a, b, <type>]
+            <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
+            are open ("o") or closed ("c")
+            """
         for opt in kwargs:
             if opt in self.opt_arg:
                 if not check_bounds(kwargs[opt]):
@@ -513,6 +531,17 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def var_bounds(self):
+        """Bounds for the variance
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * [a, b]
+            * [a, b, <type>]
+        <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
+        are open ("o") or closed ("c")
+        """
         return self._var_bounds
 
     @var_bounds.setter
@@ -527,6 +556,17 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def len_scale_bounds(self):
+        """Bounds for the lenght scale
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * [a, b]
+            * [a, b, <type>]
+        <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
+        are open ("o") or closed ("c")
+        """
         return self._len_scale_bounds
 
     @len_scale_bounds.setter
@@ -541,6 +581,17 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def nugget_bounds(self):
+        """Bounds for the nugget
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * [a, b]
+            * [a, b, <type>]
+        <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
+        are open ("o") or closed ("c")
+        """
         return self._nugget_bounds
 
     @nugget_bounds.setter
@@ -555,10 +606,32 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def opt_arg_bounds(self):
+        """Bounds for the optional arguments
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * [a, b]
+            * [a, b, <type>]
+        <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
+        are open ("o") or closed ("c")
+        """
         return self._opt_arg_bounds
 
     @property
     def arg_bounds(self):
+        """Bounds for all parameters
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * [a, b]
+            * [a, b, <type>]
+        <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
+        are open ("o") or closed ("c")
+        """
         res = {
             "var": self.var_bounds,
             "len_scale": self.len_scale_bounds,
@@ -672,9 +745,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return self.__repr__()
 
     def __repr__(self):
+        opt_str = ""
+        for opt in self.opt_arg:
+            opt_str += ", " + opt + "={}".format(getattr(self, opt))
         return (
             "{0}(dim={1}, var={2}, len_scale={3}, "
-            "nugget={4}, anis={5}, angles={6})".format(
+            "nugget={4}, anis={5}, angles={6}".format(
                 self.name,
                 self.dim,
                 self.var,
@@ -683,4 +759,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 self.anis,
                 self.angles,
             )
+            + opt_str
+            + ")"
         )
