@@ -113,7 +113,7 @@ class RandMeth(object):
             tmp_pnt += len(y)
         if z is not None:
             tmp_pnt += len(z)
-        chunk_no_exp = int(np.ceil(np.log2(tmp_pnt)))
+        chunk_no_exp = int(max(0, np.ceil(np.log2(tmp_pnt / chunk_tmp_size))))
         while True:
             try:
                 chunk_no = 2 ** chunk_no_exp
@@ -156,7 +156,7 @@ class RandMeth(object):
 
         if self._model.nugget > 0:
             nugget = np.sqrt(self._model.nugget) * self._rng.random.normal(
-                size=len(summed_modes)
+                size=summed_modes.shape
             )
         else:
             nugget = 0.0
