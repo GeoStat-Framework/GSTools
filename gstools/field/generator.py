@@ -12,6 +12,7 @@ The following classes are provided
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
+from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
 
 __all__ = ["RandMeth"]
@@ -40,9 +41,26 @@ class RandMeth(object):
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
+
+    Attributes
+    ----------
+        model : :class:`gstools.CovModel`
+            covariance model
+        mode_no : :class:`int`, optional
+            number of Fourier modes. Default: 1000
+        seed : :class:`int`
+            the seed of the random number generator.
+            If "None", a random seed is used. Default: None
+        chunk_tmp_size : :class:`int`
+            Number of points (number of coordinates * mode_no)
+            to be handled by one chunk while creating the fild.
+            This is used to prevent memory overflows while
+            generating the field. Default: 1e7
     """
 
-    def __init__(self, model, mode_no=1000, seed=None):
+    def __init__(
+        self, model, mode_no=1000, seed=None, chunk_tmp_size=1e7, **kwargs
+    ):
         """Initialize the randomization method
 
         Parameters
@@ -54,33 +72,46 @@ class RandMeth(object):
             seed : :class:`int`, optional
                 the seed of the random number generator.
                 If "None", a random seed is used. Default: None
+            chunk_tmp_size : :class:`int`, optional
+                Number of points (number of coordinates * mode_no)
+                to be handled by one chunk while creating the fild.
+                This is used to prevent memory overflows while
+                generating the field. Default: 1e7
+            **kwargs
+                Placeholder for keyword-args
         """
+        if kwargs:
+            print("kwargs are ignored")
+        if isinstance(model, CovModel):
+            self.model = model
+        else:
+            raise ValueError(
+                "gstools.field.generator.RandMeth: "
+                + "'model' is not an instance of 'gstools.CovModel'"
+            )
+        self.mode_no = mode_no
+        self.chunk_tmp_size = chunk_tmp_size
+        # initialize seed related atributes
         self._seed = None
         self._rng = None
-        self._Z_1 = None
-        self._Z_2 = None
+        self._z_1 = None
+        self._z_2 = None
         self._cov_sample = None
-        self.reset(model, mode_no, seed)
+        self.reset_seed(seed)
 
-    def reset(self, model, mode_no=1000, seed=None):
+    def reset_seed(self, seed=None):
         """Reset the random amplitudes and wave numbers with a new seed.
 
         Parameters
         ----------
-            model : :class:`gstools.CovModel`
-                covariance model
-            mode_no : :class:`int`, optional
-                number of Fourier modes. Default: 1000
             seed : :class:`int`, optional
                 the seed of the random number generator.
                 If "None", a random seed is used. Default: None
         """
-        self._model = model
-        self._mode_no = mode_no
         self._seed = np.nan
         self.seed = seed
 
-    def __call__(self, x, y=None, z=None, chunk_tmp_size=1e6):
+    def __call__(self, x, y=None, z=None):
         """Calculates the random modes for the randomization method.
 
         Parameters
@@ -93,9 +124,6 @@ class RandMeth(object):
                 the y components of the pos. tupls
             z : :class:`float`, :class:`numpy.ndarray`, optional
                 the z components of the pos. tuple
-            chunk_tmp_size : :class:`int`, optional
-                Number of temporarily stored points for an initial guess
-                of the chunk number. Default: 1e6
         Returns
         -------
             :class:`numpy.ndarray`
@@ -103,45 +131,42 @@ class RandMeth(object):
         """
         summed_modes = np.broadcast(x, y, z)
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
+        # make a guess fo the chunk_no according to the input
+        tmp_pnt = np.prod(summed_modes.shape) * self.mode_no
+        chunk_no_exp = int(
+            max(0, np.ceil(np.log2(tmp_pnt / self.chunk_tmp_size)))
+        )
         # Test to see if enough memory is available.
-        # In case there isn't, divide Fourier modes into smaller chunks
-        # make a better guess fo the chunk_no according to the input
-        tmp_pnt = 0
-        if x is not None:
-            tmp_pnt += len(x)
-        if y is not None:
-            tmp_pnt += len(y)
-        if z is not None:
-            tmp_pnt += len(z)
-        chunk_no_exp = int(max(0, np.ceil(np.log2(tmp_pnt / chunk_tmp_size))))
+        # In case there isn't, divide Fourier modes into 2 smaller chunks
         while True:
             try:
                 chunk_no = 2 ** chunk_no_exp
-                chunk_len = int(np.ceil(self._mode_no / chunk_no))
+                chunk_len = int(np.ceil(self.mode_no / chunk_no))
                 for chunk in range(chunk_no):
-                    a = chunk * chunk_len
-                    # In case k[d,a:e] with e >= len(k[d,:]) causes errors in
+                    ch_start = chunk * chunk_len
+                    # In case k[d,ch_start:ch_stop] with
+                    # ch_stop >= len(k[d,:]) causes errors in
                     # numpy, use the commented min-function below
-                    # e = min((chunk + 1) * chunk_len, self.mode_no-1)
-                    e = (chunk + 1) * chunk_len
+                    # ch_stop = min((chunk + 1) * chunk_len, self.mode_no-1)
+                    ch_stop = (chunk + 1) * chunk_len
 
-                    if self._model.dim == 1:
-                        phase = self._cov_sample[0, a:e] * x
-                    elif self._model.dim == 2:
+                    if self.model.dim == 1:
+                        phase = self._cov_sample[0, ch_start:ch_stop] * x
+                    elif self.model.dim == 2:
                         phase = (
-                            self._cov_sample[0, a:e] * x
-                            + self._cov_sample[1, a:e] * y
+                            self._cov_sample[0, ch_start:ch_stop] * x
+                            + self._cov_sample[1, ch_start:ch_stop] * y
                         )
                     else:
                         phase = (
-                            self._cov_sample[0, a:e] * x
-                            + self._cov_sample[1, a:e] * y
-                            + self._cov_sample[2, a:e] * z
+                            self._cov_sample[0, ch_start:ch_stop] * x
+                            + self._cov_sample[1, ch_start:ch_stop] * y
+                            + self._cov_sample[2, ch_start:ch_stop] * z
                         )
                     summed_modes += np.squeeze(
                         np.sum(
-                            self._Z_1[a:e] * np.cos(phase)
-                            + self._Z_2[a:e] * np.sin(phase),
+                            self._z_1[ch_start:ch_stop] * np.cos(phase)
+                            + self._z_2[ch_start:ch_stop] * np.sin(phase),
                             axis=-1,
                         )
                     )
@@ -149,19 +174,21 @@ class RandMeth(object):
                 chunk_no_exp += 1
                 print(
                     "Not enough memory. Dividing Fourier modes into {} "
-                    "chunks.".format(chunk_no)
+                    "chunks.".format(2 ** chunk_no_exp)
                 )
             else:
+                # we break out of the endless loop if we don't get MemoryError
                 break
 
-        if self._model.nugget > 0:
-            nugget = np.sqrt(self._model.nugget) * self._rng.random.normal(
+        # generate normal distributed values for the nugget simulation
+        if self.model.nugget > 0:
+            nugget = np.sqrt(self.model.nugget) * self._rng.random.normal(
                 size=summed_modes.shape
             )
         else:
             nugget = 0.0
 
-        return np.sqrt(self._model.var / self._mode_no) * summed_modes + nugget
+        return np.sqrt(self.model.var / self.mode_no) * summed_modes + nugget
 
     @property
     def seed(self):
@@ -179,24 +206,24 @@ class RandMeth(object):
         if new_seed is not self._seed:
             self._seed = new_seed
             self._rng = RNG(self._seed)
-            self._Z_1 = self._rng.random.normal(size=self._mode_no)
-            self._Z_2 = self._rng.random.normal(size=self._mode_no)
+            # normal distributed samples for randmeth
+            self._z_1 = self._rng.random.normal(size=self.mode_no)
+            self._z_2 = self._rng.random.normal(size=self.mode_no)
             # sample uniform on a sphere
             sphere_coord = self._rng.sample_sphere(
-                self._model.dim, self._mode_no
+                self.model.dim, self.mode_no
             )
             # sample radii acording to radial spectral density of the model
-            if self._model.has_ppf:
+            if self.model.has_ppf:
+                pdf, cdf, ppf = self.model.dist_func
                 rad = self._rng.sample_dist(
-                    size=self._mode_no,
-                    pdf=self._model.spectral_rad_pdf,
-                    cdf=self._model.spectral_rad_cdf,
-                    ppf=self._model.spectral_rad_ppf,
-                    a=0,
+                    size=self.mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
                 )
             else:
                 rad = self._rng.sample_ln_pdf(
-                    ln_pdf=self._model.ln_spectral_rad_pdf, size=self._mode_no
+                    ln_pdf=self.model.ln_spectral_rad_pdf,
+                    size=self.mode_no,
+                    sample_around=1.0 / self.model.len_scale,
                 )
             # get fully spatial samples by multiplying sphere samples and radii
             self._cov_sample = rad * sphere_coord
@@ -206,7 +233,7 @@ class RandMeth(object):
 
     def __repr__(self):
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            repr(self._model), self._mode_no, self.seed
+            repr(self.model), self.mode_no, self.seed
         )
 
 
