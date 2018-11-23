@@ -16,6 +16,8 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from scipy import special as sps
 
+__all__ = ["InitSubclassMeta", "rad_fac", "set_len_anis", "check_bounds"]
+
 
 # __init_subclass__ hack ######################################################
 
@@ -57,7 +59,7 @@ else:
 def rad_fac(dim, r):
     """The volume element of the n-dimensional spherical coordinates.
 
-    As a factor for integration of a radial-symmetric function.
+    Given as a factor for integration of a radial-symmetric function.
 
     Parameters
     ----------

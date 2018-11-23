@@ -49,6 +49,7 @@ class RNG(object):
         self,
         ln_pdf,
         size=None,
+        sample_around=1.0,
         nwalkers=50,
         burn_in=20,
         oversampling_factor=10,
@@ -62,6 +63,8 @@ class RNG(object):
             of the given distribution, that takes a single argument
         size : :class:`int` or :any:`None`, optional
             sample size. Default: None
+        sample_around : :class:`float`, optional
+            Starting point for initial guess Default: 1.
         nwalkers : :class:`int`, optional
             The number of walkers in the mcmc sampler. Used for the
             emcee.EnsembleSampler class.
@@ -84,7 +87,9 @@ class RNG(object):
         else:
             sample_size = max(burn_in, (size / nwalkers) * oversampling_factor)
         # initial guess
-        init_guess = self.random.rand(nwalkers).reshape((nwalkers, 1)) + 1.0
+        init_guess = (
+            self.random.rand(nwalkers).reshape((nwalkers, 1)) * sample_around
+        )
         # initialize the sampler
         sampler = mc.EnsembleSampler(nwalkers, 1, ln_pdf)
         # burn in phase with saving of last position

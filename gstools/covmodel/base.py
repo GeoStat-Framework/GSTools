@@ -1,9 +1,13 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Aug  4 22:16:51 2018
+GStools subpackage providing different covariance models.
 
-@author: muellese
+.. currentmodule:: gstools.field.cov
+
+The following classes and functions are provided
+
+.. autosummary::
+   CovModel
 """
 from __future__ import print_function, division, absolute_import
 
@@ -20,6 +24,8 @@ from gstools.covmodel.tools import (
     check_bounds,
 )
 
+__all__ = ["CovModel"]
+
 HANKEL_DEFAULT = {
     "a": -1,  # should only be changed, if you know exactly what
     "b": 1,  # you do or if you are crazy
@@ -31,8 +37,7 @@ HANKEL_DEFAULT = {
 
 
 class CovModel(six.with_metaclass(InitSubclassMeta)):
-    """
-    Base class for the GSTools covariance models
+    """Base class for the GSTools covariance models
 
     Notes
     -----
@@ -57,6 +62,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         dimension of the model
     var : float
         variance of the model (the nugget is not included in "this" variance)
+    nugget : float
+        nugget of the model
+    sill : float
+        sill (limit) of the variogram given by: nugget + var
     len_scale : float
         length scale of the model in the x-direction
     len_scale_vec : array
@@ -65,8 +74,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         integral scale of the model in x-direction
     integral_scale_vec : array
         integral scales of the model in the all directions
-    nugget : float
-        nugget of the model
     anis : array
         anisotropy ratios in the transversal directions [y, z]
     angles : array
@@ -180,6 +187,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
+
+        # create fourier transform just once (recreate for dim change?!?)
+        self._ft = SFT(ndim=self.dim, **self.hankel_kw)
 
     ###########################################################################
     # one of these functions needs to be overridden ###########################
@@ -375,8 +385,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         The spectrum of the covariance model.
         """
         k = np.abs(np.array(k, dtype=float))
-        f_t = SFT(ndim=self.dim, **self.hankel_kw)
-        return f_t.transform(self.covariance, k, ret_err=False)
+        return self._ft.transform(self.covariance, k, ret_err=False)
 
     def spectral_density(self, k):
         """
@@ -643,6 +652,18 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     # properties ##############################################################
 
     @property
+    def dist_func(self):
+        """give pdf, cdf and ppf from the radial spectral density"""
+        pdf = self.spectral_rad_pdf
+        cdf = None
+        ppf = None
+        if self.has_cdf:
+            cdf = self.spectral_rad_cdf
+        if self.has_ppf:
+            ppf = self.spectral_rad_ppf
+        return pdf, cdf, ppf
+
+    @property
     def has_cdf(self):
         """State if a cdf is defined by the user"""
         return self._has_cdf()
@@ -656,6 +677,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def dim(self):
         """ The dimension of the spatial random field."""
         return self._dim
+
+    @property
+    def sill(self):
+        """ The sill of the variogram."""
+        return self._var + self._nugget
 
     @property
     def var(self):

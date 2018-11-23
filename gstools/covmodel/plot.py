@@ -19,6 +19,16 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from matplotlib import pyplot as plt
 
+__all__ = [
+    "plot_variogram",
+    "plot_variogram_normed",
+    "plot_covariance",
+    "plot_covariance_normed",
+    "plot_spectrum",
+    "plot_spectral_density",
+    "plot_spectral_rad_pdf",
+]
+
 
 # plotting routines #######################################################
 

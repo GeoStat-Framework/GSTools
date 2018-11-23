@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-GStools subpackage providing a generator for standard spatial random fields.
+GStools subpackage providing a class for standard spatial random fields.
 
 .. currentmodule:: gstools.field.srf
 
-The following classes and functions are provided
+The following classes are provided
 
 .. autosummary::
    SRF
-   RandMeth
-   r3d_x
-   r3d_y
-   r3d_z
 """
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
-from gstools.covmodel.cov_base import CovModel
+from gstools.covmodel.base import CovModel
 from gstools.field.generator import RandMeth
 from gstools.field.tools import (
     reshape_input,
@@ -72,7 +68,7 @@ class SRF(object):
         x,
         y=None,
         z=None,
-        seed=None,
+        seed=np.nan,
         mesh_type="unstructured",
         force_moments=False,
         point_volumes=0.0,
@@ -89,7 +85,7 @@ class SRF(object):
             z : :class:`numpy.ndarray`, optional
                 analog to x
             seed : :class:`int`, optional
-                seed for RNG
+                seed for RNG for reseting. Default: keep seed from generator
             mesh_type : :class:`str`
                 'structured' / 'unstructured'
             force_moments : :class:`bool`
@@ -100,6 +96,11 @@ class SRF(object):
             field : :class:`numpy.ndarray`
                 the SRF
         """
+        # reset seed if wanted
+        if seed is None or not np.isnan(seed):
+            self.generator.seed = seed
+
+        # format the positional arguments of the mesh
         check_mesh(self.dim, x, y, z, mesh_type)
         mesh_type_changed = False
         if self._do_rotation:
@@ -110,32 +111,34 @@ class SRF(object):
                 x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
                     self.dim, x, y, z
                 )
-            x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
-
-        y, z = make_isotropic(self.dim, self.anis, y, z)
+            x, y, z = unrotate_mesh(self.dim, self.model.angles, x, y, z)
+        y, z = make_isotropic(self.dim, self.model.anis, y, z)
         x, y, z = reshape_input(x, y, z, mesh_type)
 
-        self.generator.seed = seed
+        # generate the field
         field = self.generator(x, y, z)
 
+        # reshape field if we got an unstructured mesh
         if mesh_type_changed:
             mesh_type = mesh_type_old
             field = reshape_field_from_unstruct_to_struct(
                 self.dim, field, axis_lens
             )
 
+        # force variance and mean to be exactly as given (if wanted)
         if force_moments:
             var_in = np.var(field)
             mean_in = np.mean(field)
-            scale = np.sqrt(self.var / var_in)
-            field = scale * (field - mean_in)
+            rescale = np.sqrt((self.model.var + self.model.nugget) / var_in)
+            field = rescale * (field - mean_in)
 
-        # interprete volume as a hypercube
-        scale = point_volumes ** (1.0 / self.dim)
+        # interprete volume as a hypercube and calculate the edge length
+        edge = point_volumes ** (1.0 / self.dim)
 
         # coarse-grained variance-factor
         var_factor = (
-            self.len_scale ** 2 / (self.len_scale ** 2 + scale ** 2 / 4)
+            self.model.len_scale ** 2
+            / (self.model.len_scale ** 2 + edge ** 2 / 4)
         ) ** (self.dim / 2.0)
 
         # shift the field to the mean
@@ -183,31 +186,6 @@ class SRF(object):
     def mean(self):
         """ The mean of the spatial random field."""
         return self._mean
-
-    @property
-    def var(self):
-        """ The variance of the spatial random field."""
-        return self._model.var
-
-    @property
-    def len_scale(self):
-        """ The length scale of the spatial random field."""
-        return self._model.len_scale
-
-    @property
-    def anis(self):
-        """ The anisotropy factors of the spatial random field."""
-        return self._model.anis
-
-    @property
-    def angles(self):
-        """ The rotation angles (in rad) of the spatial random field."""
-        return self._model.angles
-
-    @property
-    def nugget(self):
-        """ The nugget of the spatial random field."""
-        return self._model.nugget
 
     def __str__(self):
         return self.__repr__()

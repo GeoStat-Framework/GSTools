@@ -4,15 +4,18 @@ GStools subpackage providing tools for spatial random fields.
 
 .. currentmodule:: gstools.field
 
-Included classes
-----------------
-The following classes are provided
+Included classes and functions
+------------------------------
+The following classes and functions are provided
 
 .. autosummary::
    SRF
+   vtk_export_structured
+   vtk_export_unstructured
 """
 from __future__ import absolute_import
 
 from gstools.field.srf import SRF
+from gstools.field.tools import vtk_export_structured, vtk_export_unstructured
 
-__all__ = ["SRF"]
+__all__ = ["SRF", "vtk_export_structured", "vtk_export_unstructured"]

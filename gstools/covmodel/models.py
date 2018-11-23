@@ -7,14 +7,15 @@ GStools subpackage providing different covariance models.
 The following classes and functions are provided
 
 .. autosummary::
-   Gau
-   Exp
-   Sph
-   SphRescaled
-   Rat
-   Stab
-   Mat
-   MatRescaled
+   Gaussian
+   Exponential
+   Matern
+   Rational
+   Stable
+   Spherical
+   Linear
+   MaternRescal
+   SphericalRescal
 """
 # pylint: disable=no-member
 from __future__ import print_function, division, absolute_import
@@ -22,24 +23,25 @@ from __future__ import print_function, division, absolute_import
 import warnings
 import numpy as np
 from scipy import special as sps
-from gstools.covmodel.cov_base import CovModel
+from gstools.covmodel.base import CovModel
 
 __all__ = [
-    "Gau",
-    "Exp",
-    "Sph",
-    "SphRescaled",
-    "Rat",
-    "Stab",
-    "Mat",
-    "MatRescaled",
+    "Gaussian",
+    "Exponential",
+    "Spherical",
+    "SphericalRescal",
+    "Rational",
+    "Stable",
+    "Matern",
+    "MaternRescal",
+    "Linear",
 ]
 
 
 # Gaussian Model ##############################################################
 
 
-class Gau(CovModel):
+class Gaussian(CovModel):
     r"""The Gaussian covariance model
 
     Notes
@@ -52,7 +54,7 @@ class Gau(CovModel):
     """
 
     def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
     def spectrum(self, k):
@@ -117,7 +119,7 @@ class Gau(CovModel):
 # Exponential Model ###########################################################
 
 
-class Exp(CovModel):
+class Exponential(CovModel):
     r"""The Exponential covariance model
 
     Notes
@@ -130,7 +132,7 @@ class Exp(CovModel):
     """
 
     def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         return np.exp(-r / self.len_scale)
 
     def spectrum(self, k):
@@ -200,7 +202,7 @@ class Exp(CovModel):
 # Spherical Model #############################################################
 
 
-class Sph(CovModel):
+class Spherical(CovModel):
     r"""The Spherical covariance model
 
     Notes
@@ -218,17 +220,17 @@ class Sph(CovModel):
     """
 
     def covariance_normed(self, r):
-        r = np.atleast_1d(np.abs(np.array(r, dtype=float)))
-        res = (
+        r = np.array(np.abs(r), dtype=float)
+        res = np.zeros_like(r)
+        res[r < self.len_scale] = (
             1.0
-            - 3.0 / 2.0 * r / self.len_scale
-            + 1.0 / 2.0 * (r / self.len_scale) ** 3
+            - 3.0 / 2.0 * r[r < self.len_scale] / self.len_scale
+            + 1.0 / 2.0 * (r[r < self.len_scale] / self.len_scale) ** 3
         )
-        res[r > self.len_scale] = 0.0
         return res
 
 
-class SphRescaled(CovModel):
+class SphericalRescal(CovModel):
     r"""The rescaled Spherical covariance model
 
     Notes
@@ -246,13 +248,15 @@ class SphRescaled(CovModel):
     """
 
     def covariance_normed(self, r):
-        r = np.atleast_1d(np.abs(np.array(r, dtype=float)))
-        res = (
+        r = np.array(np.abs(r), dtype=float)
+        res = np.zeros_like(r)
+        res[r < 8 / 3 * self.len_scale] = (
             1.0
-            - 9.0 / 16.0 * r / self.len_scale
-            + 27.0 / 1024.0 * (r / self.len_scale) ** 3
+            - 9.0 / 16.0 * r[r < 8 / 3 * self.len_scale] / self.len_scale
+            + 27.0
+            / 1024.0
+            * (r[r < 8 / 3 * self.len_scale] / self.len_scale) ** 3
         )
-        res[r > 8.0 / 3.0 * self.len_scale] = 0.0
         return res
 
     def calc_integral_scale(self):
@@ -263,7 +267,7 @@ class SphRescaled(CovModel):
 # Rational Model ##############################################################
 
 
-class Rat(CovModel):
+class Rational(CovModel):
     r"""The rational quadratic covariance model
 
     Notes
@@ -285,7 +289,7 @@ class Rat(CovModel):
         return {"alpha": [0.5, np.inf]}
 
     def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         return np.power(
             1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
         )
@@ -294,7 +298,7 @@ class Rat(CovModel):
 # Stable Model ################################################################
 
 
-class Stab(CovModel):
+class Stable(CovModel):
     r"""The stable covariance model
 
     Notes
@@ -315,14 +319,14 @@ class Stab(CovModel):
         return {"alpha": [0, 2, "oc"]}
 
     def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         return np.exp(-np.power(r / self.len_scale, self.alpha))
 
 
 # Matérn Model ################################################################
 
 
-class Mat(CovModel):
+class Matern(CovModel):
     r"""The Matérn covariance model
 
     Notes
@@ -355,7 +359,7 @@ class Mat(CovModel):
             )
 
     def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
         with np.errstate(over="ignore", invalid="ignore"):
@@ -376,7 +380,7 @@ class Mat(CovModel):
         return res
 
 
-class MatRescaled(CovModel):
+class MaternRescal(CovModel):
     r"""The rescaled Matérn covariance model
 
     Notes
@@ -412,7 +416,7 @@ class MatRescaled(CovModel):
             )
 
     def covariance_normed(self, r):
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
         with np.errstate(over="ignore", invalid="ignore"):
@@ -432,4 +436,30 @@ class MatRescaled(CovModel):
         res[np.logical_not(np.isfinite(res))] = 0.0
         # covariance is positiv
         res = np.maximum(res, 0.0)
+        return res
+
+
+# Bounded linear Model ########################################################
+
+
+class Linear(CovModel):
+    r"""The bounded linear covariance model
+
+    Notes
+    -----
+    This model is given by the following normalized covariance function:
+
+    .. math::
+       \tilde{C}(r) =
+       \begin{cases}
+       1-\frac{r}{\ell}
+       & r<\ell\\
+       0 & r\geq\ell
+       \end{cases}
+    """
+
+    def covariance_normed(self, r):
+        r = np.array(np.abs(r), dtype=float)
+        res = np.zeros_like(r)
+        res[r < self.len_scale] = 1.0 - r[r < self.len_scale] / self.len_scale
         return res

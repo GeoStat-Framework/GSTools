@@ -10,10 +10,11 @@ The following functions are provided
 
 .. autosummary::
    RNG
-   estimate_structured
+   dist_gen
 """
 from __future__ import absolute_import
 
 from gstools.random.rng import RNG
+from gstools.random.tools import dist_gen
 
-__all__ = ["RNG"]
+__all__ = ["RNG", "dist_gen"]
