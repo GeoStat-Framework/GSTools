@@ -18,9 +18,29 @@ The following classes and functions are provided
    unrotate_mesh
    reshape_axis_from_struct_to_unstruct
    reshape_field_from_unstruct_to_struct
+   vtk_export_structured
+   vtk_export_unstructured
 """
 from __future__ import print_function, division, absolute_import
+
 import numpy as np
+from pyevtk.hl import gridToVTK, pointsToVTK
+
+__all__ = [
+    "r3d_x",
+    "r3d_y",
+    "r3d_z",
+    "reshape_input",
+    "reshape_input_axis_from_unstruct",
+    "reshape_input_axis_from_struct",
+    "check_mesh",
+    "make_isotropic",
+    "unrotate_mesh",
+    "reshape_axis_from_struct_to_unstruct",
+    "reshape_field_from_unstruct_to_struct",
+    "vtk_export_structured",
+    "vtk_export_unstructured",
+]
 
 
 # Geometric functions #########################################################
@@ -224,3 +244,70 @@ def reshape_field_from_unstruct_to_struct(dim, field, axis_lens):
         field = np.reshape(field, axis_lens)
         return field
     return None
+
+
+# export routines #############################################################
+
+
+def vtk_export_structured(path, field, x, y=None, z=None, fieldname="field"):
+    """Export a field to vtk structured rectilinear grid file
+
+    Parameters
+    ----------
+    path : :class:`str`
+        Path to the file to be saved. Note that a ".vtr" will be added to the
+        name.
+    field : :class:`numpy.ndarray`
+        Structured field to be saved. As returned by SRF.
+    x : :class:`numpy.ndarray`
+        grid axis in x-direction
+    y : :class:`numpy.ndarray`, optional
+        analog to x
+    z : :class:`numpy.ndarray`, optional
+        analog to x
+    fieldname : :class:`str`, optional
+        Name of the field in the VTK file. Default: "field"
+    """
+    if y is None:
+        y = np.array([0])
+    if z is None:
+        z = np.array([0])
+    # need fortran order in VTK
+    field = field.reshape(-1, order="F")
+    if len(field) != len(x) * len(y) * len(z):
+        raise ValueError(
+            "gstools.vtk_export_structured: "
+            + "field shape doesn't match the given mesh"
+        )
+    gridToVTK(path, x, y, z, pointData={fieldname: field})
+
+
+def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
+    """Export a field to vtk structured rectilinear grid file
+
+    Parameters
+    ----------
+    path : :class:`str`
+        Path to the file to be saved. Note that a ".vtr" will be added to the
+        name.
+    field : :class:`numpy.ndarray`
+        Unstructured field to be saved. As returned by SRF.
+    x : :class:`numpy.ndarray`
+        first components of position vectors
+    y : :class:`numpy.ndarray`, optional
+        analog to x
+    z : :class:`numpy.ndarray`, optional
+        analog to x
+    fieldname : :class:`str`, optional
+        Name of the field in the VTK file. Default: "field"
+    """
+    if y is None:
+        y = np.zeros_like(x)
+    if z is None:
+        z = np.zeros_like(x)
+    if len(field) != len(x) or len(field) != len(y) or len(field) != len(z):
+        raise ValueError(
+            "gstools.vtk_export_unstructured: "
+            + "field shape doesn't match the given mesh"
+        )
+    pointsToVTK(path, x, y, z, data={fieldname: field})
