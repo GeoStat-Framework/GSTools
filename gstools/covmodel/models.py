@@ -105,7 +105,7 @@ class Gaussian(CovModel):
         return None
 
     def _has_ppf(self):
-        """ppf for 3 dimensions is not analytical"""
+        """ppf for 3 dimensions is not analytical given"""
         # since the ppf is not analytical for dim=3, we have to state that
         if self.dim == 3:
             return False

@@ -135,6 +135,7 @@ setup_kw = {
         "scipy>=0.19.1",
         "hankel>=0.3.6",
         "emcee",  # 2 and 3 should be compatible
+        "pyevtk",
         "six",
     ],
     "packages": find_packages(exclude=["tests*", "docs*"]),

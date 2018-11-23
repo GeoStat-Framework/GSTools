@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-GStools subpackage providing different covariance models.
+GStools subpackage providing the base class for covariance models.
 
-.. currentmodule:: gstools.field.cov
+.. currentmodule:: gstools.covmodel.base
 
-The following classes and functions are provided
+The following classes are provided
 
 .. autosummary::
    CovModel
@@ -26,6 +26,7 @@ from gstools.covmodel.tools import (
 
 __all__ = ["CovModel"]
 
+# default arguments for hankel.SymmetricFourierTransform
 HANKEL_DEFAULT = {
     "a": -1,  # should only be changed, if you know exactly what
     "b": 1,  # you do or if you are crazy
@@ -38,23 +39,6 @@ HANKEL_DEFAULT = {
 
 class CovModel(six.with_metaclass(InitSubclassMeta)):
     """Base class for the GSTools covariance models
-
-    Notes
-    -----
-    Don't instantiate this class directly. You need to inherit a child class
-    which overrides one of the following methods:
-
-        * ``CovModel.variogram(r)``
-            :math:`\\gamma\\left(r\\right)=
-            \\sigma^2\\cdot\\left(1-\\tilde{C}\\left(r\\right)\\right)+n`
-        * ``CovModel.variogram_normed(r)``
-            :math:`\\tilde{\\gamma}\\left(r\\right)=
-            1-\\tilde{C}\\left(r\\right)`
-        * ``CovModel.covariance(r)``
-            :math:`C\\left(r\\right)=
-            \\sigma^2\\cdot\\tilde{C}\\left(r\\right)`
-        * ``CovModel.covariance_normed(r)``
-            :math:`\\tilde{C}\\left(r\\right)`
 
     Attributes
     ----------
@@ -78,8 +62,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         anisotropy ratios in the transversal directions [y, z]
     angles : array
         angles of rotation:
+
             * in 2D: given as rotation around z-axis
             * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
+
     arg : list
         list of all argument names (var, len_scale, nugget, [opt_arg])
     opt_arg : list
@@ -107,7 +93,25 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         hankel_kw=None,
         **kwargs
     ):
-        """Instantiate a covariance model"""
+        """Instantiate a covariance model
+
+        Notes
+        -----
+        Don't instantiate this class directly. You need to inherit a
+        child class which overrides one of the following methods:
+
+            * ``CovModel.variogram(r)``
+                :math:`\\gamma\\left(r\\right)=
+                \\sigma^2\\cdot\\left(1-\\tilde{C}\\left(r\\right)\\right)+n`
+            * ``CovModel.variogram_normed(r)``
+                :math:`\\tilde{\\gamma}\\left(r\\right)=
+                1-\\tilde{C}\\left(r\\right)`
+            * ``CovModel.covariance(r)``
+                :math:`C\\left(r\\right)=
+                \\sigma^2\\cdot\\tilde{C}\\left(r\\right)`
+            * ``CovModel.covariance_normed(r)``
+                :math:`\\tilde{C}\\left(r\\right)`
+        """
         # assert, that we use a subclass
         # this is the case, if __init_subclass__ is called, which creates
         # the "variogram"... so we check for that
@@ -239,6 +243,24 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 + "'covariance_normed', or 'variogram_normed'."
             )
 
+        # modify the docstrings ###############################################
+
+        # class docstring gets attributes added
+        cls.__doc__ += CovModel.__doc__[44:]
+        # overridden functions get standard doc added
+        ignore = ["__", "variogram", "covariance"]
+        for attr in cls.__dict__:
+            if any(
+                [attr.startswith(ign) for ign in ignore]
+            ) or attr not in dir(CovModel):
+                continue
+            attr_doc = getattr(CovModel, attr).__doc__
+            attr_cls = cls.__dict__[attr]
+            if attr_cls.__doc__ is None:
+                attr_cls.__doc__ = attr_doc
+            else:
+                attr_cls.__doc__ += "\n\n" + attr_doc
+
     ###########################################################################
     # methods for optional arguments (can be overridden) ######################
     ###########################################################################
@@ -277,8 +299,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     # calculation of different scales #########################################
 
     def calc_integral_scale(self):
-        """calculate the integral scale of the
-        isotrope model (can be overwritten)"""
+        """calculate the integral scale of the isotrope model"""
         self._integral_scale = integral(self.covariance_normed, 0, np.inf)[0]
         return self._integral_scale
 
@@ -381,15 +402,44 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ###########################################################################
 
     def spectrum(self, k):
-        """
+        r"""
         The spectrum of the covariance model.
+
+        This is given by:
+
+        .. math:: S(k) = \left(\frac{1}{2\pi}\right)^n
+           \int C(r) e^{i b\mathbf{k}\cdot\mathbf{r}} d^n\mathbf{r}
+
+        Internally, this is calculated by the hankel transformation:
+
+        .. math:: S(k) = \left(\frac{1}{2\pi}\right)^n \cdot
+           \frac{(2\pi)^{n/2}}{(bk)^{n/2-1}}
+           \int_0^\infty r^{n/2-1} f(r) J_{n/2-1}(bkr) r dr
+
+        Where :math:`C(r)` is the covariance function of the model.
+
+        Parameters
+        ----------
+        k : float
+            Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
-        k = np.abs(np.array(k, dtype=float))
+        k = np.array(np.abs(k), dtype=float)
         return self._ft.transform(self.covariance, k, ret_err=False)
 
     def spectral_density(self, k):
         """
         The spectral density of the covariance model.
+
+        This is given by:
+
+        .. math:: \tilde{S}(k) = \frac{S(k)}{\sigma^2}
+
+        Where :math:`S(k)` is the spectrum of the covariance model.
+
+        Parameters
+        ----------
+        k : float
+            Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
         return self.spectrum(k) / self.var
 
@@ -397,7 +447,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """
         The radial spectral density of the model depending on the dimension
         """
-        r = np.abs(np.array(r, dtype=float))
+        r = np.array(np.abs(r), dtype=float)
         if self.dim > 1:
             r_gz = r[r > 0.0]
             # to prevent numerical errors, we just calculate where r>0
@@ -410,7 +460,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             # prevent numerical errors in hankel for big r (set non-negative)
             res = np.maximum(res, 0.0)
             return res
-        # TODO: this is totally hacky
+        # TODO: this is totally hacky (but working :D)
         # prevent num error in hankel at r=0 in 1D
         r[r == 0.0] = 0.03 / self.len_scale
         res = rad_fac(self.dim, r) * self.spectral_density(r)
@@ -428,18 +478,18 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return res
 
     def _has_cdf(self):
-        """State if a cdf is defined by the user (can be overwritten)"""
+        """State if a cdf is defined"""
         return hasattr(self, "spectral_rad_cdf")
 
     def _has_ppf(self):
-        """State if a ppf is defined by the user (can be overwritten)"""
+        """State if a ppf is defined"""
         return hasattr(self, "spectral_rad_ppf")
 
     # fitting routine #########################################################
 
     def fit_variogram(self, x_data, y_data, **para_deselect):
         """
-        fit the variogram-model to given data
+        fit the isotropic variogram-model to given data
 
         Parameters
         ----------
@@ -451,6 +501,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             You can deselect the parameters to be fitted, by setting
             them "False" as keywords. By default, all parameters are
             fitted.
+
+        Notes
+        -----
+        You can set the bounds for each parameter by accessing
+        ``model.set_arg_bounds(...)``
         """
 
         para = {"var": True, "len_scale": True, "nugget": True}
