@@ -54,6 +54,12 @@ class Gaussian(CovModel):
     """
 
     def covariance_normed(self, r):
+        r"""Gaussian normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+       """
         r = np.array(np.abs(r), dtype=float)
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
@@ -132,6 +138,12 @@ class Exponential(CovModel):
     """
 
     def covariance_normed(self, r):
+        """Exponential normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \exp\left(- \frac{r}{\ell} \right)
+       """
         r = np.array(np.abs(r), dtype=float)
         return np.exp(-r / self.len_scale)
 
@@ -220,6 +232,17 @@ class Spherical(CovModel):
     """
 
     def covariance_normed(self, r):
+        r"""Spherical normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \begin{cases}
+           1-\frac{3}{2}\cdot\frac{r}{\ell} +
+           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+        """
         r = np.array(np.abs(r), dtype=float)
         res = np.zeros_like(r)
         res[r < self.len_scale] = (
@@ -248,6 +271,17 @@ class SphericalRescal(CovModel):
     """
 
     def covariance_normed(self, r):
+        r"""Rescaled Spherical normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \begin{cases}
+           1-\frac{9}{16}\cdot\frac{r}{\ell} +
+           \frac{27}{1024}\cdot\left(\frac{r}{\ell}\right)^{3}
+           & r<\frac{8}{3}\ell\\
+           0 & r\geq\frac{8}{3}\ell
+           \end{cases}
+        """
         r = np.array(np.abs(r), dtype=float)
         res = np.zeros_like(r)
         res[r < 8 / 3 * self.len_scale] = (
@@ -289,6 +323,13 @@ class Rational(CovModel):
         return {"alpha": [0.5, np.inf]}
 
     def covariance_normed(self, r):
+        r"""Rational normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \left(1 + \frac{1}{2\alpha} \cdot
+           \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
+        """
         r = np.array(np.abs(r), dtype=float)
         return np.power(
             1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
@@ -319,6 +360,12 @@ class Stable(CovModel):
         return {"alpha": [0, 2, "oc"]}
 
     def covariance_normed(self, r):
+        r"""Stable normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
+        """
         r = np.array(np.abs(r), dtype=float)
         return np.exp(-np.power(r / self.len_scale, self.alpha))
 
@@ -359,6 +406,14 @@ class Matern(CovModel):
             )
 
     def covariance_normed(self, r):
+        r"""Matérn normalized covariance#
+
+        .. math::
+           \tilde{C}(r) =
+           \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
+           \left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
+           \mathrm{K}_{\nu}\left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)
+        """
         r = np.array(np.abs(r), dtype=float)
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
@@ -416,6 +471,16 @@ class MaternRescal(CovModel):
             )
 
     def covariance_normed(self, r):
+        r"""Rescaled Matérn normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
+           \left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)} \cdot
+           \frac{r}{\ell}\right)^{\nu} \cdot
+           \mathrm{K}_{\nu}\left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)}
+           \cdot\frac{r}{\ell}\right)
+        """
         r = np.array(np.abs(r), dtype=float)
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
@@ -459,6 +524,16 @@ class Linear(CovModel):
     """
 
     def covariance_normed(self, r):
+        r"""Linear normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \begin{cases}
+           1-\frac{r}{\ell}
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+        """
         r = np.array(np.abs(r), dtype=float)
         res = np.zeros_like(r)
         res[r < self.len_scale] = 1.0 - r[r < self.len_scale] / self.len_scale

@@ -93,7 +93,48 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         hankel_kw=None,
         **kwargs
     ):
-        """Instantiate a covariance model
+        r"""Instantiate a covariance model
+
+        Parameters
+        ----------
+        dim : int, optional
+            dimension of the model. Dafault: 3
+        var : float, optional
+            variance of the model
+            (the nugget is not included in "this" variance). Dafault: 1.0
+        len_scale : float or array, optional
+            length scale of the model. Either given as single value for
+            isotropic models, or as a list for anisotropic models.
+            Dafault: 1.0
+        nugget : float, optional
+            nugget of the model. Dafault: 0.0
+        anis : array, optional
+            anisotropy ratios in the transversal directions [y, z].
+            Either a single value, or a list. If len_scale is given as list,
+            these values are ignored. Dafault: 1.0
+        angles : array, optional
+            angles of rotation:
+
+                * in 2D: single value given as rotation around z-axis
+                * in 3D: given by yaw, pitch, and roll
+                  (known as Tait–Bryan angles)
+
+            Dafault: 0.0
+        integral_scale : float or None, optional
+            can be given like len_scale. Will calculate an appropriate length
+            scale. Default: None
+        var_bounds : list, optional
+            bounds for the variance of the model. Default: (0.0, 100.0)
+        len_scale_bounds : list, optional
+            bounds for the length scale of the model in the main-direction.
+            Default: (0.0, 1000.0)
+        nugget_bounds : list, optional
+            bounds for the nugget of the model. Default: (0.0, 100.0)
+        hankel_kw : :class:`dict` or :class:`None`, optional
+            keywords for :class:`hankel.SymmetricFourierTransform`.
+            Only edit if you really know what you are doing. Default: None
+        **kwargs
+            Placeholder for optional argument of derived classes.
 
         Notes
         -----
@@ -203,13 +244,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # overrid one of these ################################################
         def variogram(self, r):
-            r'''Isotropic variogram of the model
+            r"""Isotropic variogram of the model
 
             Given by: :math:`\gamma\left(r\right)=
             \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
 
             Where :math:`\tilde{C}(r)` is the normalized covariance.
-            '''
+            """
             return self.var - self.covariance(r) + self.nugget
 
         def covariance(self, r):
@@ -223,20 +264,20 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return self.var * self.covariance_normed(r)
 
         def covariance_normed(self, r):
-            r'''Normalized covariance of the model
+            r"""Normalized covariance of the model
 
             Given by: :math:`\tilde{C}\left(r\right)`
-            '''
+            """
             return 1.0 - self.variogram_normed(r)
 
         def variogram_normed(self, r):
-            r'''Normalized variogram of the model
+            r"""Normalized variogram of the model
 
             Given by: :math:`\tilde{\gamma}\left(r\right)=
             1-\tilde{C}\left(r\right)`
 
             Where :math:`\tilde{C}(r)` is the normalized covariance.
-            '''
+            """
             return (self.variogram(r) - self.nugget) / self.var
 
         #######################################################################
