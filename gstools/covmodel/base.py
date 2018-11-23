@@ -493,7 +493,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return self._ft.transform(self.covariance, k, ret_err=False)
 
     def spectral_density(self, k):
-        """
+        r"""
         The spectral density of the covariance model.
 
         This is given by:

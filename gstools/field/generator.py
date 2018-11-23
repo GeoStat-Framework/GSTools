@@ -81,7 +81,7 @@ class RandMeth(object):
                 Placeholder for keyword-args
         """
         if kwargs:
-            print("kwargs are ignored")
+            print("gstools.RandMeth: **kwargs are ignored")
         if isinstance(model, CovModel):
             self.model = model
         else:

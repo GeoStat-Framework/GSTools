@@ -83,9 +83,9 @@ class Gaussian(CovModel):
         """
         if self.dim == 1:
             return sps.erf(self.len_scale * r / np.sqrt(np.pi))
-        elif self.dim == 2:
+        if self.dim == 2:
             return 1.0 - np.exp(-(r * self.len_scale) ** 2 / np.pi)
-        elif self.dim == 3:
+        if self.dim == 3:
             return sps.erf(
                 self.len_scale * r / np.sqrt(np.pi)
             ) - 2 * r * self.len_scale / np.pi * np.exp(
@@ -106,7 +106,7 @@ class Gaussian(CovModel):
         """
         if self.dim == 1:
             return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
-        elif self.dim == 2:
+        if self.dim == 2:
             return np.sqrt(np.pi) / self.len_scale * np.sqrt(-np.log(1.0 - u))
         return None
 
@@ -138,14 +138,14 @@ class Exponential(CovModel):
     """
 
     def covariance_normed(self, r):
-        """Exponential normalized covariance
+        r"""Exponential normalized covariance
 
         .. math::
            \tilde{C}(r) =
            \exp\left(- \frac{r}{\ell} \right)
        """
         r = np.array(np.abs(r), dtype=float)
-        return np.exp(-r / self.len_scale)
+        return np.exp(-1 * r / self.len_scale)
 
     def spectrum(self, k):
         return (
@@ -169,9 +169,9 @@ class Exponential(CovModel):
         """
         if self.dim == 1:
             return np.arctan(r * self.len_scale) * 2 / np.pi
-        elif self.dim == 2:
+        if self.dim == 2:
             return 1.0 - 1 / np.sqrt(1 + (r * self.len_scale) ** 2)
-        elif self.dim == 3:
+        if self.dim == 3:
             return (
                 (
                     np.arctan(r * self.len_scale)
@@ -195,7 +195,7 @@ class Exponential(CovModel):
         """
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_scale
-        elif self.dim == 2:
+        if self.dim == 2:
             return np.sqrt(1 / u ** 2 - 1.0) / self.len_scale
         return None
 

@@ -7,6 +7,7 @@ The default Cython version is found in estimator.pyx
 This is a fallback implementation in case the Cython extension cannot
 be compiled. This version is very memory limited.
 """
+# pylint: disable=W0613
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
@@ -80,31 +81,37 @@ def unstructured(field, bin_edges, x, y=None, z=None):
     return variogram
 
 
-__except_msg = (
+__EXCEPT_MSG = (
     "A pure Python version is not yet implemented. "
     + "Only a Cython version is available."
 )
 
 
-def structured_3d(field):
-    raise NotImplementedError(__except_msg)
+def structured_3d(*args, **kwargs):
+    """not implemented"""
+    raise NotImplementedError(__EXCEPT_MSG)
 
 
-def structured_2d(field):
-    raise NotImplementedError(__except_msg)
+def structured_2d(*args, **kwargs):
+    """not implemented"""
+    raise NotImplementedError(__EXCEPT_MSG)
 
 
-def structured_1d(field):
-    raise NotImplementedError(__except_msg)
+def structured_1d(*args, **kwargs):
+    """not implemented"""
+    raise NotImplementedError(__EXCEPT_MSG)
 
 
-def ma_structured_3d(field, mask):
-    raise NotImplementedError(__except_msg)
+def ma_structured_3d(*args, **kwargs):
+    """not implemented"""
+    raise NotImplementedError(__EXCEPT_MSG)
 
 
-def ma_structured_2d(field, mask):
-    raise NotImplementedError(__except_msg)
+def ma_structured_2d(*args, **kwargs):
+    """not implemented"""
+    raise NotImplementedError(__EXCEPT_MSG)
 
 
-def ma_structured_1d(field, mask):
-    raise NotImplementedError(__except_msg)
+def ma_structured_1d(*args, **kwargs):
+    """not implemented"""
+    raise NotImplementedError(__EXCEPT_MSG)

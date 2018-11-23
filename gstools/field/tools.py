@@ -217,13 +217,13 @@ def reshape_axis_from_struct_to_unstruct(dim, x, y=None, z=None):
     """Reshape given axes from struct to unstruct for rotation."""
     if dim == 1:
         return x, y, z, (len(x),)
-    elif dim == 2:
+    if dim == 2:
         x_u, y_u = np.meshgrid(x, y, indexing="ij")
         len_unstruct = len(x) * len(y)
         x_u = np.reshape(x_u, len_unstruct)
         y_u = np.reshape(y_u, len_unstruct)
         return x_u, y_u, z, (len(x), len(y))
-    elif dim == 3:
+    if dim == 3:
         x_u, y_u, z_u = np.meshgrid(x, y, z, indexing="ij")
         len_unstruct = len(x) * len(y) * len(z)
         x_u = np.reshape(x_u, len_unstruct)
@@ -237,10 +237,10 @@ def reshape_field_from_unstruct_to_struct(dim, field, axis_lens):
     """Reshape the rotated field back to struct."""
     if dim == 1:
         return field
-    elif dim == 2:
+    if dim == 2:
         field = np.reshape(field, axis_lens)
         return field
-    elif dim == 3:
+    if dim == 3:
         field = np.reshape(field, axis_lens)
         return field
     return None
