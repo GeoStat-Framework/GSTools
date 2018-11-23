@@ -203,15 +203,40 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # overrid one of these ################################################
         def variogram(self, r):
+            r'''Isotropic variogram of the model
+
+            Given by: :math:`\gamma\left(r\right)=
+            \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
+
+            Where :math:`\tilde{C}(r)` is the normalized covariance.
+            '''
             return self.var - self.covariance(r) + self.nugget
 
         def covariance(self, r):
+            r"""Covariance of the model
+
+            Given by: :math:`C\left(r\right)=
+            \sigma^2\cdot\tilde{C}\left(r\right)`
+
+            Where :math:`\tilde{C}(r)` is the normalized covariance.
+            """
             return self.var * self.covariance_normed(r)
 
         def covariance_normed(self, r):
+            r'''Normalized covariance of the model
+
+            Given by: :math:`\tilde{C}\left(r\right)`
+            '''
             return 1.0 - self.variogram_normed(r)
 
         def variogram_normed(self, r):
+            r'''Normalized variogram of the model
+
+            Given by: :math:`\tilde{\gamma}\left(r\right)=
+            1-\tilde{C}\left(r\right)`
+
+            Where :math:`\tilde{C}(r)` is the normalized covariance.
+            '''
             return (self.variogram(r) - self.nugget) / self.var
 
         #######################################################################
