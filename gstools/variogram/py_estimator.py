@@ -7,7 +7,7 @@ The default Cython version is found in estimator.pyx
 This is a fallback implementation in case the Cython extension cannot
 be compiled. This version is very memory limited.
 """
-# pylint: disable=W0613
+# pylint: disable=W0613, E1101
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
