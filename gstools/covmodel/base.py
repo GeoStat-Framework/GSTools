@@ -786,6 +786,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         (See. CovModel.var_factor)"""
         return self._var
 
+    @var_raw.setter
+    def var_raw(self, var_raw):
+        self._var = var_raw
+        self.check_arg_bounds()
+
     @var.setter
     def var(self, var):
         self._var = var / self.var_factor()
