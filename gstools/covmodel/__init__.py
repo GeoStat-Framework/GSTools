@@ -19,6 +19,9 @@ The following classes and functions are provided
    Linear
    MaternRescal
    SphericalRescal
+   TPLGaussian
+   TPLExponential
+   TPLStable
 """
 from __future__ import absolute_import
 
@@ -33,6 +36,9 @@ from gstools.covmodel.models import (
     Linear,
     MaternRescal,
     SphericalRescal,
+    TPLGaussian,
+    TPLExponential,
+    TPLStable,
 )
 
 __all__ = [
@@ -46,4 +52,7 @@ __all__ = [
     "Linear",
     "MaternRescal",
     "SphericalRescal",
+    "TPLGaussian",
+    "TPLExponential",
+    "TPLStable",
 ]

@@ -138,21 +138,21 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         **opt_arg
             Placeholder for optional argument of derived classes.
 
-        Notes
-        -----
-        Don't instantiate this class directly. You need to inherit a
+        Caution
+        -------
+        Don't instantiate ``CovModel`` directly. You need to inherit a
         child class which overrides one of the following methods:
 
-            * ``CovModel.variogram(r)``
+            * ``model.variogram(r)``
                 :math:`\gamma\left(r\right)=
                 \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
-            * ``CovModel.variogram_normed(r)``
+            * ``model.variogram_normed(r)``
                 :math:`\tilde{\gamma}\left(r\right)=
                 1-\tilde{C}\left(r\right)`
-            * ``CovModel.covariance(r)``
+            * ``model.covariance(r)``
                 :math:`C\left(r\right)=
                 \sigma^2\cdot\tilde{C}\left(r\right)`
-            * ``CovModel.covariance_normed(r)``
+            * ``model.covariance_normed(r)``
                 :math:`\tilde{C}\left(r\right)`
         """
         # assert, that we use a subclass
@@ -201,12 +201,15 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # set parameters
         self._dim = None
         self.dim = dim
-        self._var = var
         self._nugget = nugget
         self._angles = set_angles(dim, angles)
         self._len_scale, self._anis = set_len_anis(dim, len_scale, anis)
+        # set var at last, because of the var_factor (to be right initialized)
+        self._var = None
+        self.var = var
         self._integral_scale = None
         self.integral_scale = integral_scale
+        self.var = var  # set var again, if int_scale affects var_factor
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
@@ -487,7 +490,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             para_skip = 0
             opt_skip = 0
             if para["var"]:
-                self.var = args[para_skip]
+                var_tmp = args[para_skip]
                 para_skip += 1
             if para["len_scale"]:
                 self.len_scale = args[para_skip]
@@ -499,6 +502,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 if para[opt]:
                     setattr(self, opt, args[para_skip + opt_skip])
                     opt_skip += 1
+            # set var at last because of var_factor (other parameter needed)
+            if para["var"]:
+                self.var = var_tmp
             return self.variogram(x)
 
         # set the lower/upper boundaries for the variogram-parameters
@@ -525,7 +531,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         para_skip = 0
         opt_skip = 0
         if para["var"]:
-            self.var = popt[para_skip]
+            var_tmp = popt[para_skip]
             out["var"] = popt[para_skip]
             para_skip += 1
         else:
@@ -549,6 +555,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 opt_skip += 1
             else:
                 out[opt] = getattr(self, opt)
+        # set var at last because of var_factor (other parameter needed)
+        if para["var"]:
+            self.var = var_tmp
         # recalculate the integral scale
         self._integral_scale = self.calc_integral_scale()
         out["integral_scale"] = self._integral_scale

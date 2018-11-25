@@ -16,6 +16,9 @@ The following classes and functions are provided
    Linear
    MaternRescal
    SphericalRescal
+   TPLGaussian
+   TPLExponential
+   TPLStable
 """
 # pylint: disable=no-member
 from __future__ import print_function, division, absolute_import
@@ -24,6 +27,7 @@ import warnings
 import numpy as np
 from scipy import special as sps
 from gstools.covmodel.base import CovModel
+from gstools.covmodel.tools import exp_int
 
 __all__ = [
     "Gaussian",
@@ -35,6 +39,9 @@ __all__ = [
     "Matern",
     "MaternRescal",
     "Linear",
+    "TPLGaussian",
+    "TPLExponential",
+    "TPLStable",
 ]
 
 
@@ -537,4 +544,209 @@ class Linear(CovModel):
         r = np.array(np.abs(r), dtype=float)
         res = np.zeros_like(r)
         res[r < self.len_scale] = 1.0 - r[r < self.len_scale] / self.len_scale
+        return res
+
+
+# Truncated power law #########################################################
+
+
+class TPLGaussian(CovModel):
+    r"""Truncated-Power-Law with Gaussian modes
+
+    Notes
+    -----
+    This model is given by the following variogram function:
+
+    .. math::
+       \gamma_{\ell_u}(r) =
+       \intop_0^{\ell_u} \gamma(r,\ell) \frac{\rm d \ell}{\ell}
+
+   with gaussian modes on each scale:
+
+    .. math::
+       \gamma(r,\ell) &=
+       \sigma^2(\ell)\cdot\left(1-
+       \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+       \right)\\
+       \sigma^2(\ell) &= C\cdot\ell^{2H}
+
+    This results in:
+
+    .. math::
+       \gamma(r) &=
+       \sigma^2_{\ell_u}\cdot\left(1-
+       H \cdot E_{1+H}\left( \frac{\pi}{4} \cdot
+       \left(\frac{r}{\ell_u}\right)^2\right)
+       \right) \\
+       \sigma^2_{\ell_u} &= \frac{C\cdot\ell_u^{2H}}{2H}
+
+    The following Parameters occure:
+
+        * :math:`C>0` : The scaling factor from the Power-Law.
+          This parameter will be calculated internally by the given variance.
+          You can access C directly by ``model.var_raw``
+        * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
+        * :math:`\ell_u>0` : The upper length scale for truncation
+          (``model.len_scale``)
+    """
+
+    def var_factor(self):
+        """Factor for C (Power-Law scale) to result in the right variance"""
+        return self.len_scale ** (2 * self.hurst) / (2 * self.hurst)
+
+    def default_opt_arg(self):
+        return {"hurst": 0.5}
+
+    def default_opt_arg_bounds(self):
+        return {"hurst": [0, 1, "oo"]}
+
+    def covariance_normed(self, r):
+        r"""Truncated-Power-Law with Gaussian modes - normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           H \cdot E_{1+H}\left( \frac{\pi}{4} \cdot
+           \left(\frac{r}{\ell_u}\right)^2 \right)
+       """
+        r = np.array(np.abs(r), dtype=float)
+        r[r < 1e-8] = 0
+        res = np.ones_like(r)
+        res[r > 0] = self.hurst * exp_int(
+            1 + self.hurst, np.pi / 4 * (r[r > 0] / self.len_scale) ** 2
+        )
+        return res
+
+
+class TPLExponential(CovModel):
+    r"""Truncated-Power-Law with Exponential modes
+
+    Notes
+    -----
+    This model is given by the following variogram function:
+
+    .. math::
+       \gamma_{\ell_u}(r) =
+       \intop_0^{\ell_u} \gamma(r,\ell) \frac{\rm d \ell}{\ell}
+
+   with Exponential modes on each scale:
+
+    .. math::
+       \gamma(r,\ell) &=
+       \sigma^2(\ell)\cdot\left(1-
+       \exp\left(- \frac{r}{\ell} \right)
+       \right)\\
+       \sigma^2(\ell) &= C\cdot\ell^{2H}
+
+    This results in:
+
+    .. math::
+       \gamma(r) &=
+       \sigma^2_{\ell_u}\cdot\left(1-
+       2H \cdot
+       E_{1+2H} \left(\frac{r}{\ell_u}\right)
+       \right) \\
+       \sigma^2_{\ell_u} &= \frac{C\cdot\ell_u^{2H}}{2H}
+
+    The following Parameters occure:
+
+        * :math:`C>0` : The scaling factor from the Power-Law.
+          This parameter will be calculated internally by the given variance.
+          You can access C directly by ``model.var_raw``
+        * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
+        * :math:`\ell_u>0` : The upper length scale for truncation
+          (``model.len_scale``)
+    """
+
+    def var_factor(self):
+        """Factor for C (Power-Law scale) to result in the right variance"""
+        return self.len_scale ** (2 * self.hurst) / (2 * self.hurst)
+
+    def default_opt_arg(self):
+        return {"hurst": 0.5}
+
+    def default_opt_arg_bounds(self):
+        return {"hurst": [0, 1, "oo"]}
+
+    def covariance_normed(self, r):
+        r"""Truncated-Power-Law with Exponential modes - normalized covariance
+
+        .. math::
+           \tilde{C}(r) = 2H \cdot E_{1+2H} \left( \frac{r}{\ell_u} \right)
+       """
+        r = np.array(np.abs(r), dtype=float)
+        r[r < 1e-8] = 0
+        res = np.ones_like(r)
+        res[r > 0] = (2 * self.hurst) * exp_int(
+            1 + 2 * self.hurst, r[r > 0] / self.len_scale
+        )
+        return res
+
+
+class TPLStable(CovModel):
+    r"""Truncated-Power-Law with Stable modes
+
+    Notes
+    -----
+    This model is given by the following variogram function:
+
+    .. math::
+       \gamma_{\ell_u}(r) =
+       \intop_0^{\ell_u} \gamma(r,\ell) \frac{\rm d \ell}{\ell}
+
+   with stable modes on each scale:
+
+    .. math::
+       \gamma(r,\ell) &=
+       \sigma^2(\ell)\cdot\left(1-
+       \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
+       \right)\\
+       \sigma^2(\ell) &= C\cdot\ell^{2H}
+
+    This results in:
+
+    .. math::
+       \gamma(r) &=
+       \sigma^2_{\ell_u}\cdot\left(1-
+       \frac{2H}{\alpha} \cdot
+       E_{1+\frac{2H}{\alpha}}\left(\frac{r}{\ell_u}\right)
+       \right) \\
+       \sigma^2_{\ell_u} &= \frac{C\cdot\ell_u^{2H}}{2H}
+
+    The following Parameters occure:
+
+        * :math:`0<\alpha\leq 2` : The shape parameter of the Stable model.
+        * :math:`C>0` : The scaling factor from the Power-Law.
+          This parameter will be calculated internally by the given variance.
+          You can access C directly by ``model.var_raw``
+        * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
+        * :math:`\ell_u>0` : The upper length scale for truncation
+          (``model.len_scale``)
+    """
+
+    def var_factor(self):
+        """Factor for C (Power-Law scale) to result in the right variance"""
+        return self.len_scale ** (2 * self.hurst) / (2 * self.hurst)
+
+    def default_opt_arg(self):
+        return {"hurst": 0.5, "alpha": 1.5}
+
+    def default_opt_arg_bounds(self):
+        return {"hurst": [0, 1, "oo"], "alpha": [0, 2, "oc"]}
+
+    def covariance_normed(self, r):
+        r"""Truncated-Power-Law with Stable modes - normalized covariance
+
+        .. math::
+           \tilde{C}(r) =
+           \frac{2H}{\alpha} \cdot
+           E_{1+\frac{2H}{\alpha}}
+           \left(\left(\frac{r}{\ell_u}\right)^{\alpha} \right)
+       """
+        r = np.array(np.abs(r), dtype=float)
+        r[r < 1e-8] = 0
+        res = np.ones_like(r)
+        res[r > 0] = (2 * self.hurst / self.alpha) * exp_int(
+            1 + 2 * self.hurst / self.alpha,
+            (r[r > 0] / self.len_scale) ** self.alpha,
+        )
         return res
