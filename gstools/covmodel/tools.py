@@ -17,7 +17,26 @@ The following classes and functions are provided
 """
 from __future__ import print_function, division, absolute_import
 
-from math import isclose
+try:
+    # only added to Python in version 3.5 and numpy version is buggy
+    from math import isclose
+except ImportError:
+    import cmath
+
+    def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
+        if rel_tol < 0.0 or abs_tol < 0.0:
+            raise ValueError("error tolerances must be non-negative")
+
+        if a == b:
+            return True
+        if cmath.isinf(a) or cmath.isinf(b):
+            return False
+        diff = abs(b - a)
+        return ((diff <= abs(rel_tol * b)) or (diff <= abs(rel_tol * a))) or (
+            diff <= abs_tol
+        )
+
+
 import numpy as np
 from scipy import special as sps
 
