@@ -38,7 +38,7 @@ def plot_variogram(model, x_min=0.0, x_max=None):
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(x_s, model.variogram(x_s), label=model.name + " vario")
+    plt.plot(x_s, model.variogram(x_s), label=model.name + " variogram")
     plt.legend()
     plt.show()
 

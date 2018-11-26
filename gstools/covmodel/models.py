@@ -366,6 +366,13 @@ class Stable(CovModel):
     def default_opt_arg_bounds(self):
         return {"alpha": [0, 2, "oc"]}
 
+    def check_opt_arg(self):
+        if self.alpha < 0.3:
+            warnings.warn(
+                "TPLStable: parameter 'alpha' is < 0.3, "
+                + "count with unstable results"
+            )
+
     def covariance_normed(self, r):
         r"""Stable normalized covariance
 
@@ -732,6 +739,13 @@ class TPLStable(CovModel):
 
     def default_opt_arg_bounds(self):
         return {"hurst": [0, 1, "oo"], "alpha": [0, 2, "oc"]}
+
+    def check_opt_arg(self):
+        if self.alpha < 0.3:
+            warnings.warn(
+                "TPLStable: parameter 'alpha' is < 0.3, "
+                + "count with unstable results"
+            )
 
     def covariance_normed(self, r):
         r"""Truncated-Power-Law with Stable modes - normalized covariance
