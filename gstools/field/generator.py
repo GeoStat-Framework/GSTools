@@ -59,7 +59,13 @@ class RandMeth(object):
     """
 
     def __init__(
-        self, model, mode_no=1000, seed=None, chunk_tmp_size=1e7, **kwargs
+        self,
+        model,
+        mode_no=1000,
+        seed=None,
+        chunk_tmp_size=1e7,
+        verbose=False,
+        **kwargs
     ):
         """Initialize the randomization method
 
@@ -91,6 +97,7 @@ class RandMeth(object):
             )
         self.mode_no = mode_no
         self.chunk_tmp_size = chunk_tmp_size
+        self.verbose = verbose
         # initialize seed related atributes
         self._seed = None
         self._rng = None
@@ -136,13 +143,22 @@ class RandMeth(object):
         chunk_no_exp = int(
             max(0, np.ceil(np.log2(tmp_pnt / self.chunk_tmp_size)))
         )
+        if self.verbose:
+            print("RandMeth: chunk division estimate: " + str(chunk_no_exp))
         # Test to see if enough memory is available.
         # In case there isn't, divide Fourier modes into 2 smaller chunks
         while True:
             try:
                 chunk_no = 2 ** chunk_no_exp
                 chunk_len = int(np.ceil(self.mode_no / chunk_no))
+                if self.verbose:
+                    print("RandMeth: Try with " + str(chunk_no) + " chunks")
+                    print("(chunk length " + str(chunk_len) + ")")
                 for chunk in range(chunk_no):
+                    if self.verbose:
+                        print(
+                            "chunk " + str(chunk + 1) + " of " + str(chunk_no)
+                        )
                     ch_start = chunk * chunk_len
                     # In case k[d,ch_start:ch_stop] with
                     # ch_stop >= len(k[d,:]) causes errors in
