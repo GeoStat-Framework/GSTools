@@ -49,13 +49,14 @@ This is an example of how to generate a 2 dimensional spatial random field with 
 
 ```python
 from gstools import SRF, Gaussian
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as pt
 # structured field with a size 100x100 and a grid-size of 1x1
 x = y = range(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model)
 field = srf(x, y, mesh_type='structured')
-plt.imshow(field)
+pt.imshow(field)
+pt.show()
 ```
 <p align="center">
 <img src="/docs/source/gau_field.png" alt="Random field" width="600px"/>
@@ -64,16 +65,16 @@ plt.imshow(field)
 ### Example 2
 
 GSTools also implements truncated power law variograms, which can be represented as a
-superposition of scale depended modes in form of standard variograms, which are truncated by
+superposition of scale dependant modes in form of standard variograms, which are truncated by
 an upper lengthscale <i>l<sub>u</sub></i>.
 
-The example shows the truncated power law based on the "stable" model and is given by:
+This example shows the truncated power law based on the [stable model][stable_link] and is given by
 
 <p align="center">
 <img src="http://mathurl.com/yasd47ef.png" alt="Truncated Power Law - Stable"/>
 </p>
 
-(which gives Gaussian modes for `alpha=2` or the Exponential modes for `alpha=1`)
+which gives Gaussian modes for `alpha=2` or exponential modes for `alpha=1`
 
 This results in:
 
@@ -82,10 +83,13 @@ This results in:
 </p>
 
 ```python
+import numpy as np
+import matplotlib.pyplot as pt
+from gstools import SRF, TPLStable
 x = y = np.linspace(0, 100, 100)
 model = TPLStable(
-    dim=2,           # dimension
-    var=1,           # variance (C is calculated internally, so that variance is actually 1)
+    dim=2,           # spatial dimension
+    var=1,           # variance (C is calculated internally, so that the variance is actually 1)
     len_scale=10,    # length scale (a.k.a. range)
     nugget=0.1,      # nugget
     anis=0.5,        # anisotropy between main direction and transversal ones
@@ -95,12 +99,15 @@ model = TPLStable(
 )
 srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
 field = srf(x, y, mesh_type='structured', force_moments=True)
-plt.imshow(field)
+pt.imshow(field)
+pt.show()
 ```
 
 <p align="center">
 <img src="/docs/source/tplstable_field.png" alt="Random field" width="600px"/>
 </p>
+
+[stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
 
 
 ## Estimating and fitting variograms
@@ -118,17 +125,17 @@ model again.
 import numpy as np
 from gstools import SRF, Exponential, Stable, estimate_unstructured
 from gstools.covmodel.plot import plot_variogram
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as pt
 # generate a synthetic field with an exponential model
 x = np.random.RandomState(19970221).rand(1000) * 100.
 y = np.random.RandomState(20011012).rand(1000) * 100.
 model = Exponential(dim=2, var=2, len_scale=8)
 srf = SRF(model, mean=0, seed=19970221)
 field = srf(x, y)
-# estimate the variogram of the field
+# estimate the variogram of the field with 40 bins
 bins = np.arange(40)
 gamma, bin_center = estimate_unstructured(field, bins, x, y)
-plt.plot(bin_center, gamma)
+pt.plot(bin_center, gamma)
 # fit the variogram with a stable model. (no nugget fitted)
 fit_model = Stable(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
