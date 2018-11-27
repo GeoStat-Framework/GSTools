@@ -79,7 +79,7 @@ which gives Gaussian modes for `alpha=2` or exponential modes for `alpha=1`
 This results in:
 
 <p align="center">
-<img src="http://mathurl.com/yd2eh9fl.png" alt="Truncated Power Law - Stable"/>
+<img src="http://mathurl.com/yc669evd.png" alt="Truncated Power Law - Stable"/>
 </p>
 
 ```python
