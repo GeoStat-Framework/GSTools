@@ -317,7 +317,7 @@ def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
     pointsToVTK(path, x, y, z, data={fieldname: field})
 
 
-# export routines #############################################################
+# scaling routines ############################################################
 
 
 def var_coarse_graining(model, point_volumes=0.0):
@@ -372,7 +372,7 @@ def var_coarse_graining(model, point_volumes=0.0):
     return model.var * var_factor
 
 
-def var_no_scaling(model, **kwargs):
+def var_no_scaling(model, *args, **kwargs):
     r"""Dummy function to bypass scaling
 
     Parameters

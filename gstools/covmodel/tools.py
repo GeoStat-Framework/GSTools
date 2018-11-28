@@ -199,6 +199,13 @@ def set_angles(dim, angles):
     elif dim == 2:
         # one rotation axis in 2D
         out_angles = np.atleast_1d(angles)[:1]
+        # fill up the rotation angle array with zeros
+        out_angles = np.pad(
+            out_angles,
+            (0, 1 - len(out_angles)),
+            "constant",
+            constant_values=0.0,
+        )
     else:
         # three rotation axis in 3D
         out_angles = np.atleast_1d(angles)[:3]
