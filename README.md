@@ -134,7 +134,7 @@ srf = SRF(model, mean=0, seed=19970221)
 field = srf(x, y)
 # estimate the variogram of the field with 40 bins
 bins = np.arange(40)
-gamma, bin_center = estimate_unstructured(field, bins, x, y)
+gamma, bin_center = estimate_unstructured((x, y), field, bins)
 pt.plot(bin_center, gamma)
 # fit the variogram with a stable model. (no nugget fitted)
 fit_model = Stable(dim=2)

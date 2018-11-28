@@ -40,7 +40,7 @@ __all__ = ["estimate_unstructured", "estimate_structured"]
 
 
 def estimate_unstructured(
-    field, bin_edges, x, y=None, z=None, sampling_size=None
+    pos, field, bin_edges, sampling_size=None
 ):
     r"""
     Estimates the variogram of the unstructured input data.
@@ -59,16 +59,13 @@ def estimate_unstructured(
 
     Parameters
     ----------
+        pos : :class:`list`
+            the position tuple, containing main direction and transversal
+            directions
         field : :class:`numpy.ndarray`
             the spatially distributed data
         bin_edges : :class:`numpy.ndarray`
             the bins on which the variogram will be calculated
-        x : :class:`numpy.ndarray`
-            first components of position vectors
-        y : :class:`numpy.ndarray`, optional
-            analog to x
-        z : :class:`numpy.ndarray`, optional
-            analog to x
         sampling_size : :class:`int`
             for large input data, this method can take a long
             time to compute the variogram, therefore this argument specifies
@@ -81,11 +78,15 @@ def estimate_unstructured(
 
     field = field.astype(np.double)
     bin_edges = bin_edges.astype(np.double)
-    x = x.astype(np.double)
-    if y is not None:
-        y = y.astype(np.double)
-    if z is not None:
-        z = z.astype(np.double)
+    x = pos[0].astype(np.double)
+    dim = 1
+    y = z = None
+    if len(pos) > 1:
+        dim = 2
+        y = pos[1].astype(np.double)
+    if len(pos) > 2:
+        dim = 3
+        z = pos[2].astype(np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):
@@ -94,12 +95,12 @@ def estimate_unstructured(
         )
         field = field[sampled_idx]
         x = x[sampled_idx]
-        if y is not None:
+        if dim > 1:
             y = y[sampled_idx]
-        if z is not None:
+        if dim > 2:
             z = z[sampled_idx]
 
-    return unstructured(field, bin_edges, x, y, z), bin_centres
+    return bin_centres, unstructured(field, bin_edges, x, y, z)
 
 
 def estimate_structured(field, direction="x"):
@@ -137,6 +138,7 @@ def estimate_structured(field, direction="x"):
     field = field.astype(np.double)
     shape = field.shape
 
+    # TODO shall this be renamed?
     if direction == "x":
         pass
     elif direction == "y":
