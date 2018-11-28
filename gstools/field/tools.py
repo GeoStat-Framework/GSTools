@@ -329,7 +329,8 @@ def var_coarse_graining(model, point_volumes=0.0):
     upscaling procedure 'Coarse Graining' to the Groundwater flow equation
     under uniform flow on a lognormal distributed conductivity field following
     a gaussian covariance function. A filter over a cube with a given
-    edge-length is applied and an upscaled conductivity field is obtained.
+    edge-length :math:`\lambda` is applied and an upscaled conductivity field
+    is obtained.
     The upscaled field is again following a gaussian covariance function with
     scale dependent variance and length-scale:
 
@@ -342,8 +343,10 @@ def var_coarse_graining(model, point_volumes=0.0):
        \ell\left(\lambda\right) &=
        \left(\ell^2+\left(\frac{\lambda}{2}\right)^2\right)^{\frac{1}{2}}
 
-    Therby :math:`\lambda` is the scale which will be calculated from the given
-    ``point_volumes`` :math:`V` by assuming a cube with the given volume.
+    Therby :math:`\lambda` will be calculated from the given
+    ``point_volumes`` :math:`V` by assuming a cube with the same volume.
+
+    The upscaled length scale will be ignored by this routine.
 
     Parameters
     ----------
@@ -379,6 +382,7 @@ def var_no_scaling(model, *args, **kwargs):
     ----------
     model : :any:`CovModel`
         Covariance Model used for the field.
+
     Returns
     -------
     var : :class:`float`
