@@ -246,6 +246,11 @@ class RandMeth(object):
             # get fully spatial samples by multiplying sphere samples and radii
             self._cov_sample = rad * sphere_coord
 
+    @property
+    def dim(self):
+        """ The dimension of the spatial random field."""
+        return self.model.dim
+
     def __str__(self):
         return self.__repr__()
 
