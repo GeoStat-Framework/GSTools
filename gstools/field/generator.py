@@ -89,13 +89,13 @@ class RandMeth(object):
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
         if isinstance(model, CovModel):
-            self.model = model
+            self._model = model
         else:
             raise ValueError(
                 "gstools.field.generator.RandMeth: "
                 + "'model' is not an instance of 'gstools.CovModel'"
             )
-        self.mode_no = mode_no
+        self._mode_no = mode_no
         self.chunk_tmp_size = chunk_tmp_size
         self.verbose = verbose
         # initialize seed related atributes
@@ -139,7 +139,7 @@ class RandMeth(object):
         summed_modes = np.broadcast(x, y, z)
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
         # make a guess fo the chunk_no according to the input
-        tmp_pnt = np.prod(summed_modes.shape) * self.mode_no
+        tmp_pnt = np.prod(summed_modes.shape) * self._mode_no
         chunk_no_exp = int(
             max(0, np.ceil(np.log2(tmp_pnt / self.chunk_tmp_size)))
         )
@@ -148,7 +148,7 @@ class RandMeth(object):
         while True:
             try:
                 chunk_no = 2 ** chunk_no_exp
-                chunk_len = int(np.ceil(self.mode_no / chunk_no))
+                chunk_len = int(np.ceil(self._mode_no / chunk_no))
                 if self.verbose:
                     print(
                         "RandMeth: Generating field with "
@@ -165,12 +165,12 @@ class RandMeth(object):
                     # In case k[d,ch_start:ch_stop] with
                     # ch_stop >= len(k[d,:]) causes errors in
                     # numpy, use the commented min-function below
-                    # ch_stop = min((chunk + 1) * chunk_len, self.mode_no-1)
+                    # ch_stop = min((chunk + 1) * chunk_len, self._mode_no-1)
                     ch_stop = (chunk + 1) * chunk_len
 
-                    if self.model.dim == 1:
+                    if self.dim == 1:
                         phase = self._cov_sample[0, ch_start:ch_stop] * x
-                    elif self.model.dim == 2:
+                    elif self.dim == 2:
                         phase = (
                             self._cov_sample[0, ch_start:ch_stop] * x
                             + self._cov_sample[1, ch_start:ch_stop] * y
@@ -199,14 +199,40 @@ class RandMeth(object):
                 break
 
         # generate normal distributed values for the nugget simulation
-        if self.model.nugget > 0:
-            nugget = np.sqrt(self.model.nugget) * self._rng.random.normal(
+        if self._model.nugget > 0:
+            nugget = np.sqrt(self._model.nugget) * self._rng.random.normal(
                 size=summed_modes.shape
             )
         else:
             nugget = 0.0
 
-        return np.sqrt(self.model.var / self.mode_no) * summed_modes + nugget
+        return np.sqrt(self._model.var / self._mode_no) * summed_modes + nugget
+
+    def _set_seed(self, new_seed):
+        """Set a new seed for the random number generation."""
+        self._seed = new_seed
+        self._rng = RNG(self._seed)
+        # normal distributed samples for randmeth
+        self._z_1 = self._rng.random.normal(size=self._mode_no)
+        self._z_2 = self._rng.random.normal(size=self._mode_no)
+        # sample uniform on a sphere
+        sphere_coord = self._rng.sample_sphere(
+            self.dim, self._mode_no
+        )
+        # sample radii acording to radial spectral density of the model
+        if self._model.has_ppf:
+            pdf, cdf, ppf = self._model.dist_func
+            rad = self._rng.sample_dist(
+                size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
+            )
+        else:
+            rad = self._rng.sample_ln_pdf(
+                ln_pdf=self._model.ln_spectral_rad_pdf,
+                size=self._mode_no,
+                sample_around=1.0 / self._model.len_scale,
+            )
+        # get fully spatial samples by multiplying sphere samples and radii
+        self._cov_sample = rad * sphere_coord
 
     @property
     def seed(self):
@@ -221,42 +247,49 @@ class RandMeth(object):
 
     @seed.setter
     def seed(self, new_seed=None):
+        """ Set a new seed for the random number generation, if it differs."""
         if new_seed is not self._seed:
-            self._seed = new_seed
-            self._rng = RNG(self._seed)
-            # normal distributed samples for randmeth
-            self._z_1 = self._rng.random.normal(size=self.mode_no)
-            self._z_2 = self._rng.random.normal(size=self.mode_no)
-            # sample uniform on a sphere
-            sphere_coord = self._rng.sample_sphere(
-                self.model.dim, self.mode_no
-            )
-            # sample radii acording to radial spectral density of the model
-            if self.model.has_ppf:
-                pdf, cdf, ppf = self.model.dist_func
-                rad = self._rng.sample_dist(
-                    size=self.mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
-                )
-            else:
-                rad = self._rng.sample_ln_pdf(
-                    ln_pdf=self.model.ln_spectral_rad_pdf,
-                    size=self.mode_no,
-                    sample_around=1.0 / self.model.len_scale,
-                )
-            # get fully spatial samples by multiplying sphere samples and radii
-            self._cov_sample = rad * sphere_coord
+            self._set_seed(new_seed)
 
     @property
     def dim(self):
         """ The dimension of the spatial random field."""
-        return self.model.dim
+        return self._model.dim
+
+    @property
+    def model(self):
+        """ The covariance model of the spatial random field."""
+        return self._model
+
+    @model.setter
+    def model(self, model):
+        """ Set a new covariance model and generate new random numbers."""
+        if isinstance(model, CovModel):
+            self._model = model
+        else:
+            raise ValueError(
+                "gstools.field.generator.RandMeth: 'model' is not an " +
+                "instance of 'gstools.CovModel'"
+            )
+        self._set_seed(self._seed)
+
+    @property
+    def mode_no(self):
+        """ The number of modes."""
+        return self._mode_no
+
+    @mode_no.setter
+    def mode_no(self, mode_no):
+        """ Set a new mode number and generate new random numbers."""
+        self._mode_no = mode_no
+        self._set_seed(self._seed)
 
     def __str__(self):
         return self.__repr__()
 
     def __repr__(self):
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            repr(self.model), self.mode_no, self.seed
+            repr(self._model), self._mode_no, self.seed
         )
 
 
