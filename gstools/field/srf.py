@@ -11,6 +11,8 @@ The following classes are provided
 """
 from __future__ import division, absolute_import, print_function
 
+from functools import partial
+
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.field.generator import RandMeth
@@ -21,11 +23,17 @@ from gstools.field.tools import (
     unrotate_mesh,
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
+    var_coarse_graining,
+    var_no_scaling,
 )
 
 __all__ = ["SRF"]
 
 GENERATOR = {"RandMeth": RandMeth}
+UPSCALING = {
+    "coarse_graining": var_coarse_graining,
+    "no_scaling": var_no_scaling,
+}
 
 
 class SRF(object):
@@ -33,7 +41,12 @@ class SRF(object):
     """
 
     def __init__(
-        self, model, mean=0.0, generator="RandMeth", **generator_kwargs
+        self,
+        model,
+        mean=0.0,
+        upscaling="no_scaling",
+        generator="RandMeth",
+        **generator_kwargs
     ):
         """Initialize a spatial random field
 
@@ -43,25 +56,28 @@ class SRF(object):
                 Covariance Model to use for the field.
             mean : :class:`float`, optional
                 mean value of the SRF
+            var_upscaling : :class:`str`, optional
+                Method to be used for upscaling the variance at each point
+                depending on the related element volume.
+                See the ``point_volumes`` keyword in the ``__call__`` routine.
+                Default: "no_scaling"
             generator : :class:`str`, optional
                 Name of the generator to use for field generation.
                 Default: "RandMeth"
+            **generator_kwargs
+                keyword arguments that are forwarded to the generator in use.
         """
-        self._mean = mean
-        if isinstance(model, CovModel):
-            self._model = model
-        else:
-            raise ValueError(
-                "gstools.SRF: 'model' is not an instance of 'gstools.CovModel'"
-            )
-        self._do_rotation = not np.all(np.isclose(self._model.angles, 0.0))
-        if generator in GENERATOR:
-            gen = GENERATOR[generator]
-            self._generator = gen(self._model, **generator_kwargs)
-        else:
-            raise ValueError("gstools.SRF: Unknown generator: " + generator)
+        # initialize private attributes
+        self._model = None
+        self._generator = None
+        self._upscaling = None
+        self._upscaling_func = None
         # initialize attributes
         self.field = None
+        self.mean = mean
+        self.model = model
+        self.set_generator(generator, **generator_kwargs)
+        self.upscaling = upscaling
 
     def __call__(
         self,
@@ -69,9 +85,9 @@ class SRF(object):
         y=None,
         z=None,
         seed=np.nan,
-        mesh_type="unstructured",
         force_moments=False,
         point_volumes=0.0,
+        mesh_type="unstructured",
     ):
         """Generate an SRF and return it without saving it internally.
 
@@ -86,11 +102,17 @@ class SRF(object):
                 analog to x
             seed : :class:`int`, optional
                 seed for RNG for reseting. Default: keep seed from generator
-            mesh_type : :class:`str`
-                'structured' / 'unstructured'
             force_moments : :class:`bool`
                 Force the generator to exactly match mean and variance.
-                Default: False
+                Default: ``False``
+            point_volumes : :class:`float` or :class:`numpy.ndarray`
+                If your evaluation points for the field are coming from a mesh,
+                they are probably representing a certain element volume.
+                This volumes can be passed by `point_volumes` to apply the
+                given variance upscaling. If `point_volumes` is ``0`` nothing
+                is changed. Default: ``0``
+            mesh_type : :class:`str`
+                'structured' / 'unstructured'
         Returns
         -------
             field : :class:`numpy.ndarray`
@@ -103,7 +125,7 @@ class SRF(object):
         # format the positional arguments of the mesh
         check_mesh(self.dim, x, y, z, mesh_type)
         mesh_type_changed = False
-        if self._do_rotation:
+        if self.do_rotation:
             if mesh_type == "structured":
                 mesh_type_changed = True
                 mesh_type_old = mesh_type
@@ -132,45 +154,46 @@ class SRF(object):
             rescale = np.sqrt((self.model.var + self.model.nugget) / var_in)
             field = rescale * (field - mean_in)
 
-        # interprete volume as a hypercube and calculate the edge length
-        edge = point_volumes ** (1.0 / self.dim)
+        # upscaled variance
+        scaled_var = self.upscaling_func(self.model, point_volumes)
 
-        # coarse-grained variance-factor
-        var_factor = (
-            self.model.len_scale ** 2
-            / (self.model.len_scale ** 2 + edge ** 2 / 4)
-        ) ** (self.dim / 2.0)
-
-        # shift the field to the mean
-        self.field = np.sqrt(var_factor) * field + self.mean
+        # rescale and shift the field to the mean
+        self.field = np.sqrt(scaled_var / self.model.var) * field + self.mean
 
         return self.field
 
-    def structured(self, x, y=None, z=None, seed=None):
+    def structured(self, *args, **kwargs):
         """Generate an SRF on a structured mesh
 
         See SRF.__call__
         """
-        return self(x, y, z, seed, "structured")
+        call = partial(self.__call__, mesh_type="structured")
+        return call(*args, **kwargs)
 
-    def unstructured(self, x, y=None, z=None, seed=None):
+    def unstructured(self, *args, **kwargs):
         """Generate an SRF on an unstructured mesh
 
         See SRF.__call__
         """
-        return self(x, y, z, seed)
+        call = partial(self.__call__, mesh_type="unstructured")
+        return call(*args, **kwargs)
 
-    def generate(self, **kwargs):
-        """Generate an SRF and save it as an attribute self.field.
+    def set_generator(self, generator, **generator_kwargs):
+        """Set the generator for the field
 
-        See SRF.__call__
+        Parameters
+        ----------
+            generator : :class:`str`, optional
+                Name of the generator to use for field generation.
+                Default: "RandMeth"
+            **generator_kwargs
+                keyword arguments that are forwarded to the generator in use.
         """
-        return self(**kwargs)
-
-    @property
-    def model(self):
-        """ The covariance model of the spatial random field."""
-        return self._model
+        if generator in GENERATOR:
+            gen = GENERATOR[generator]
+            self._generator = gen(self.model, **generator_kwargs)
+        else:
+            raise ValueError("gstools.SRF: Unknown generator: " + generator)
 
     @property
     def generator(self):
@@ -178,14 +201,48 @@ class SRF(object):
         return self._generator
 
     @property
-    def dim(self):
-        """ The dimension of the spatial random field."""
-        return self._model.dim
+    def model(self):
+        """ The covariance model of the spatial random field."""
+        return self._model
+
+    @model.setter
+    def model(self, model):
+        if isinstance(model, CovModel):
+            self._model = model
+        else:
+            raise ValueError(
+                "gstools.SRF: 'model' is not an instance of 'gstools.CovModel'"
+            )
 
     @property
-    def mean(self):
-        """ The mean of the spatial random field."""
-        return self._mean
+    def upscaling(self):
+        """ The upscaling method applied to the field variance"""
+        return self._upscaling
+
+    @upscaling.setter
+    def upscaling(self, upscaling):
+        if upscaling in UPSCALING:
+            self._upscaling = upscaling
+            self._upscaling_func = UPSCALING[upscaling]
+        else:
+            raise ValueError(
+                "gstools.SRF: Unknown upscaling method: " + upscaling
+            )
+
+    @property
+    def upscaling_func(self):
+        """ The upscaling method applied to the field variance (function)"""
+        return self._upscaling_func
+
+    @property
+    def do_rotation(self):
+        """State if a rotation should be performed depending on the model"""
+        return not np.all(np.isclose(self.model.angles, 0.0))
+
+    @property
+    def dim(self):
+        """ The dimension of the spatial random field."""
+        return self.model.dim
 
     def __str__(self):
         return self.__repr__()

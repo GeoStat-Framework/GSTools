@@ -198,12 +198,16 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self.hankel_kw = HANKEL_DEFAULT if hankel_kw is None else hankel_kw
         self._ft = None
 
-        # set parameters
+        # prepare dim setting
         self._dim = None
+        self._len_scale = None
+        self._anis = None
+        self._angles = None
         self.dim = dim
+        # set parameters
         self._nugget = nugget
-        self._angles = set_angles(dim, angles)
-        self._len_scale, self._anis = set_len_anis(dim, len_scale, anis)
+        self._angles = set_angles(self.dim, angles)
+        self._len_scale, self._anis = set_len_anis(self.dim, len_scale, anis)
         # set var at last, because of the var_factor (to be right initialized)
         self._var = None
         self.var = var
@@ -773,6 +777,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self._dim = int(dim)
         # create fourier transform just once (recreate for dim change)
         self._ft = SFT(ndim=self.dim, **self.hankel_kw)
+        # recalculate dimension related parameters
+        if self._anis is not None:
+            self._len_scale, self._anis = set_len_anis(
+                self.dim, self._len_scale, self._anis
+            )
+        if self._angles is not None:
+            self._angles = set_angles(self.dim, self._angles)
 
     @property
     def var(self):
