@@ -36,12 +36,7 @@ class TestSRF(unittest.TestCase):
         self.z_tuple = rng.uniform(0., 10, 100)
 
     def test_shape_1d(self):
-        self.cov_model = Gaussian(
-            dim = 1,
-            var = 1.5,
-            len_scale = 4.,
-            mode_no = 100,
-        )
+        self.cov_model.dim = 1
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_str = srf(self.x_grid, seed=self.seed,
                         mesh_type='structured')
@@ -51,12 +46,6 @@ class TestSRF(unittest.TestCase):
         self.assertEqual(field_unstr.shape, (len(self.x_tuple), ))
 
     def test_shape_2d(self):
-        self.cov_model = Gaussian(
-            dim = 2,
-            var = 1.5,
-            len_scale = 4.,
-            mode_no = 100,
-        )
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_str = srf(self.x_grid, self.y_grid, seed=self.seed,
                         mesh_type='structured')
@@ -66,12 +55,7 @@ class TestSRF(unittest.TestCase):
         self.assertEqual(field_unstr.shape, (len(self.x_tuple), ))
 
     def test_shape_3d(self):
-        self.cov_model = Gaussian(
-            dim = 3,
-            var = 1.5,
-            len_scale = 4.,
-            mode_no = 100,
-        )
+        self.cov_model.dim = 3
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_str = srf(self.x_grid, self.y_grid, self.z_grid, seed=self.seed,
                         mesh_type='structured')
@@ -82,22 +66,10 @@ class TestSRF(unittest.TestCase):
         self.assertEqual(field_unstr.shape, (len(self.x_tuple), ))
 
     def test_anisotropy_2d(self):
-        self.cov_model = Gaussian(
-            dim = 2,
-            var = 1.5,
-            len_scale = 4.,
-            mode_no = 100,
-        )
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_iso = srf(self.x_grid, self.y_grid, seed=self.seed,
                         mesh_type='structured')
-        self.cov_model = Gaussian(
-            dim = 2,
-            var = 1.5,
-            len_scale = 4.,
-            anis = .5,
-            mode_no = 100,
-        )
+        self.cov_model.anis = .5
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_aniso = srf(self.x_grid, self.y_grid, seed=self.seed,
                           mesh_type='structured')
@@ -106,12 +78,7 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field_iso[0, 10], field_aniso[0, 5])
 
     def test_anisotropy_3d(self):
-        self.cov_model = Gaussian(
-            dim = 3,
-            var = 1.5,
-            len_scale = 4.,
-            mode_no = 100,
-        )
+        self.cov_model.dim = 3
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_iso = srf(self.x_grid, self.y_grid, self.z_grid, seed=self.seed,
                         mesh_type='structured')
@@ -183,14 +150,11 @@ class TestSRF(unittest.TestCase):
     def test_calls(self):
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf(self.x_tuple, self.y_tuple, seed=self.seed)
-        srf.generate(x=self.x_tuple, y=self.y_tuple, seed=self.seed)
         field2 = srf.unstructured(self.x_tuple, self.y_tuple, seed=self.seed)
         self.assertAlmostEqual(field[0], srf.field[0])
         self.assertAlmostEqual(field[0], field2[0])
         field = srf(self.x_tuple, self.y_tuple, seed=self.seed,
                     mesh_type='structured')
-        srf.generate(x=self.x_tuple, y=self.y_tuple, seed=self.seed,
-                     mesh_type='structured')
         field2 = srf.structured(self.x_tuple, self.y_tuple, seed=self.seed)
         self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
@@ -201,29 +165,17 @@ class TestSRF(unittest.TestCase):
         #self.assertRaises(ValueError, SRF, self.cov_model, self.mean, self.mode_no)
         #self.cov_model.dim = 4
         #self.assertRaises(ValueError, SRF, self.cov_model, self.mean, self.mode_no)
-        self.cov_model = Gaussian(
-            dim = 3,
-            var = 1.5,
-            len_scale = 4.,
-            anis = (.25, .5),
-            mode_no = 100,
-        )
+        self.cov_model.dim = 3
+        self.cov_model.anis = (.25, .5)
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         self.assertRaises(ValueError, srf, self.x_tuple)
         self.assertRaises(ValueError, srf, self.x_grid, self.y_grid)
-        self.cov_model = Gaussian(
-            dim = 3,
-            var = 1.5,
-            len_scale = 4.,
-            anis = (.25, .5),
-            mode_no = 100,
-        )
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         self.assertRaises(ValueError, srf, self.x_tuple, self.y_tuple)
         self.assertRaises(ValueError, srf,
                           self.x_grid, self.y_grid, self.z_grid)
         self.assertRaises(ValueError, srf, self.x_tuple, self.y_tuple,
-                          self.z_tuple, self.seed, 'hyper_mesh')
+                          self.z_tuple, self.seed, mesh_type='hyper_mesh')
 
 
 if __name__ == '__main__':
