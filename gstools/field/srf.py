@@ -118,10 +118,8 @@ class SRF(object):
             field : :class:`numpy.ndarray`
                 the SRF
         """
-        # reset seed if wanted
-        if seed is None or not np.isnan(seed):
-            self.generator.seed = seed
-
+        # update the model/seed in the generator if any changes were made
+        self.generator.update(self.model, seed)
         # format the positional arguments of the mesh
         check_mesh(self.dim, x, y, z, mesh_type)
         mesh_type_changed = False
@@ -165,7 +163,7 @@ class SRF(object):
     def structured(self, *args, **kwargs):
         """Generate an SRF on a structured mesh
 
-        See SRF.__call__
+        See :any:`SRF.__call__`
         """
         call = partial(self.__call__, mesh_type="structured")
         return call(*args, **kwargs)
@@ -173,7 +171,7 @@ class SRF(object):
     def unstructured(self, *args, **kwargs):
         """Generate an SRF on an unstructured mesh
 
-        See SRF.__call__
+        See :any:`SRF.__call__`
         """
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
@@ -197,12 +195,12 @@ class SRF(object):
 
     @property
     def generator(self):
-        """ The generator-class of the spatial random field."""
+        """The generator-class of the spatial random field."""
         return self._generator
 
     @property
     def model(self):
-        """ The covariance model of the spatial random field."""
+        """The covariance model of the spatial random field."""
         return self._model
 
     @model.setter
@@ -216,7 +214,7 @@ class SRF(object):
 
     @property
     def upscaling(self):
-        """ The upscaling method applied to the field variance"""
+        """The upscaling method applied to the field variance"""
         return self._upscaling
 
     @upscaling.setter
@@ -231,7 +229,7 @@ class SRF(object):
 
     @property
     def upscaling_func(self):
-        """ The upscaling method applied to the field variance (function)"""
+        """The upscaling method applied to the field variance (function)"""
         return self._upscaling_func
 
     @property
@@ -241,7 +239,7 @@ class SRF(object):
 
     @property
     def dim(self):
-        """ The dimension of the spatial random field."""
+        """The dimension of the spatial random field."""
         return self.model.dim
 
     def __str__(self):

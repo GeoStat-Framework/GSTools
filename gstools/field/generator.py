@@ -11,6 +11,7 @@ The following classes are provided
 """
 from __future__ import division, absolute_import, print_function
 
+from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
@@ -24,7 +25,7 @@ class RandMeth(object):
     Notes
     -----
     The Randomization method is used to generate isotropic
-    spatial random fields characterized by a given covarance model.
+    spatial random fields characterized by a given covariance model.
     The calculation looks like:
 
     .. math::
@@ -88,23 +89,46 @@ class RandMeth(object):
         """
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
-        if isinstance(model, CovModel):
-            self._model = model
-        else:
-            raise ValueError(
-                "gstools.field.generator.RandMeth: "
-                + "'model' is not an instance of 'gstools.CovModel'"
-            )
+        # initialize atributes
         self._mode_no = mode_no
         self.chunk_tmp_size = chunk_tmp_size
         self.verbose = verbose
-        # initialize seed related atributes
+        # initialize private atributes
+        self._model = None
         self._seed = None
         self._rng = None
         self._z_1 = None
         self._z_2 = None
         self._cov_sample = None
-        self.reset_seed(seed)
+        # set model and seed
+        self.update(model, seed)
+
+    def update(self, model, seed=np.nan):
+        """Update the model and the generated modes.
+
+        If model and seed are not different, nothing will be done.
+
+        Parameters
+        ----------
+            model : :class:`gstools.CovModel`
+                covariance model
+            seed : :class:`int` or None or np.nan, optional
+                the seed of the random number generator.
+                If "None", a random seed is used. If "np.nan", the actual seed
+                will be kept. Default: np.nan
+        """
+        if isinstance(model, CovModel):
+            if self.model != model:
+                self._model = dcp(model)
+                if seed is None or not np.isnan(seed):
+                    self._set_seed(seed)
+                else:
+                    self._set_seed(self._seed)
+        else:
+            raise ValueError(
+                "gstools.field.generator.RandMeth: 'model' is not an " +
+                "instance of 'gstools.CovModel'"
+            )
 
     def reset_seed(self, seed=None):
         """Reset the random amplitudes and wave numbers with a new seed.
@@ -199,14 +223,14 @@ class RandMeth(object):
                 break
 
         # generate normal distributed values for the nugget simulation
-        if self._model.nugget > 0:
-            nugget = np.sqrt(self._model.nugget) * self._rng.random.normal(
+        if self.model.nugget > 0:
+            nugget = np.sqrt(self.model.nugget) * self._rng.random.normal(
                 size=summed_modes.shape
             )
         else:
             nugget = 0.0
 
-        return np.sqrt(self._model.var / self._mode_no) * summed_modes + nugget
+        return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
     def _set_seed(self, new_seed):
         """Set a new seed for the random number generation."""
@@ -220,16 +244,16 @@ class RandMeth(object):
             self.dim, self._mode_no
         )
         # sample radii acording to radial spectral density of the model
-        if self._model.has_ppf:
-            pdf, cdf, ppf = self._model.dist_func
+        if self.model.has_ppf:
+            pdf, cdf, ppf = self.model.dist_func
             rad = self._rng.sample_dist(
                 size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
             )
         else:
             rad = self._rng.sample_ln_pdf(
-                ln_pdf=self._model.ln_spectral_rad_pdf,
+                ln_pdf=self.model.ln_spectral_rad_pdf,
                 size=self._mode_no,
-                sample_around=1.0 / self._model.len_scale,
+                sample_around=1.0 / self.model.len_scale,
             )
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
@@ -254,7 +278,7 @@ class RandMeth(object):
     @property
     def dim(self):
         """ The dimension of the spatial random field."""
-        return self._model.dim
+        return self.model.dim
 
     @property
     def model(self):
@@ -264,14 +288,7 @@ class RandMeth(object):
     @model.setter
     def model(self, model):
         """ Set a new covariance model and generate new random numbers."""
-        if isinstance(model, CovModel):
-            self._model = model
-        else:
-            raise ValueError(
-                "gstools.field.generator.RandMeth: 'model' is not an " +
-                "instance of 'gstools.CovModel'"
-            )
-        self._set_seed(self._seed)
+        self.update(model)
 
     @property
     def mode_no(self):
@@ -289,7 +306,7 @@ class RandMeth(object):
 
     def __repr__(self):
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            repr(self._model), self._mode_no, self.seed
+            repr(self.model), self._mode_no, self.seed
         )
 
 

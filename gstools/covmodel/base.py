@@ -249,6 +249,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             r"""Normalized covariance of the model
 
             Given by: :math:`\tilde{C}\left(r\right)`
+
+            It has to be a monotonic decreasing function with
+            :math:`\tilde{C}(0)=1` and :math:`\tilde{C}(\infty)=0`.
             """
             return 1.0 - self.variogram_normed(r)
 
@@ -762,7 +765,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def dim(self):
-        """ The dimension of the model."""
+        """The dimension of the model."""
         return self._dim
 
     @dim.setter
@@ -787,7 +790,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def var(self):
-        """ The variance of the model."""
+        """The variance of the model."""
         return self._var * self.var_factor()
 
     @var.setter
@@ -797,7 +800,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def var_raw(self):
-        """ The raw variance of the model without factor
+        """The raw variance of the model without factor
 
         (See. CovModel.var_factor)"""
         return self._var
@@ -809,7 +812,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def nugget(self):
-        """ The nugget of the model."""
+        """The nugget of the model."""
         return self._nugget
 
     @nugget.setter
@@ -819,7 +822,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def len_scale(self):
-        """ The main length scale of the model."""
+        """The main length scale of the model."""
         return self._len_scale
 
     @len_scale.setter
@@ -831,7 +834,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def anis(self):
-        """ The anisotropy factors of the model."""
+        """The anisotropy factors of the model."""
         return self._anis
 
     @anis.setter
@@ -843,7 +846,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def angles(self):
-        """ The rotation angles (in rad) of the model."""
+        """The rotation angles (in rad) of the model."""
         return self._angles
 
     @angles.setter
@@ -891,7 +894,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def sill(self):
-        """ The sill of the variogram."""
+        """The sill of the variogram."""
         return self.var + self.nugget
 
     @property
@@ -946,6 +949,30 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return self.__class__.__name__
 
     # magic methods ###########################################################
+
+    def __eq__(self, other):
+        if not isinstance(other, CovModel):
+            return False
+        # prevent attribute error in opt_arg if the are not equal
+        if set(self.opt_arg) != set(other.opt_arg):
+            return False
+        # prevent dim error in anis and angles
+        if self.dim != other.dim:
+            return False
+        equal = True
+        equal &= self.name == other.name
+        equal &= np.isclose(self.var, other.var)
+        equal &= np.isclose(self.var_raw, other.var_raw)  # ?! needless?
+        equal &= np.isclose(self.nugget, other.nugget)
+        equal &= np.isclose(self.len_scale, other.len_scale)
+        equal &= np.all(np.isclose(self.anis, other.anis))
+        equal &= np.all(np.isclose(self.angles, other.angles))
+        for opt in self.opt_arg:
+            equal &= np.isclose(getattr(self, opt), getattr(other, opt))
+        return equal
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         return self.__repr__()
