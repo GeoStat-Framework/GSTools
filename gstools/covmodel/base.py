@@ -900,7 +900,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     @property
     def arg(self):
         """Names of all arguments"""
-        return ["var", "len_scale", "nugget"] + self._opt_arg
+        return ["var", "len_scale", "nugget", "anis", "angles"] + self._opt_arg
 
     @property
     def opt_arg(self):

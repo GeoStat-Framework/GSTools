@@ -23,6 +23,8 @@ from gstools.field.tools import (
     unrotate_mesh,
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
+)
+from gstools.field.upscaling import (
     var_coarse_graining,
     var_no_scaling,
 )
@@ -149,14 +151,14 @@ class SRF(object):
         if force_moments:
             var_in = np.var(field)
             mean_in = np.mean(field)
-            rescale = np.sqrt((self.model.var + self.model.nugget) / var_in)
+            rescale = np.sqrt(self.model.sill / var_in)
             field = rescale * (field - mean_in)
 
         # upscaled variance
         scaled_var = self.upscaling_func(self.model, point_volumes)
 
         # rescale and shift the field to the mean
-        self.field = np.sqrt(scaled_var / self.model.var) * field + self.mean
+        self.field = np.sqrt(scaled_var / self.model.sill) * field + self.mean
 
         return self.field
 

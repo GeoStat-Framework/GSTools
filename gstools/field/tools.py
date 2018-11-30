@@ -20,6 +20,7 @@ The following classes and functions are provided
    reshape_field_from_unstruct_to_struct
    vtk_export_structured
    vtk_export_unstructured
+   vtk_export
    var_coarse_graining
    var_no_scaling
 """
@@ -42,6 +43,7 @@ __all__ = [
     "reshape_field_from_unstruct_to_struct",
     "vtk_export_structured",
     "vtk_export_unstructured",
+    "vtk_export",
     "var_coarse_graining",
     "var_no_scaling",
 ]
@@ -315,6 +317,48 @@ def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
             + "field shape doesn't match the given mesh"
         )
     pointsToVTK(path, x, y, z, data={fieldname: field})
+
+
+def vtk_export(path, field, x, y=None, z=None, fieldname="field",
+        mesh_type="unstructured"):
+    """Export a field to vtk
+
+    Parameters
+    ----------
+    path : :class:`str`
+        Path to the file to be saved. Note that a ".vtr" will be added to the
+        name.
+    field : :class:`numpy.ndarray`
+        Unstructured field to be saved. As returned by SRF.
+    x : :class:`numpy.ndarray`
+        first components of position vectors
+    y : :class:`numpy.ndarray`, optional
+        analog to x
+    z : :class:`numpy.ndarray`, optional
+        analog to x
+    fieldname : :class:`str`, optional
+        Name of the field in the VTK file. Default: "field"
+    mesh_type : :class:`str`
+        'structured' / 'unstructured'
+    """
+    if mesh_type == "structured":
+        vtk_export_structured(
+            path=path,
+            field=field,
+            x=x,
+            y=y,
+            z=z,
+            fieldname=fieldname
+        )
+    else:
+        vtk_export_unstructured(
+            path=path,
+            field=field,
+            x=x,
+            y=y,
+            z=z,
+            fieldname=fieldname
+        )
 
 
 # scaling routines ############################################################
