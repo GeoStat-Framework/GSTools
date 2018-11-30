@@ -24,10 +24,7 @@ from gstools.field.tools import (
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
 )
-from gstools.field.upscaling import (
-    var_coarse_graining,
-    var_no_scaling,
-)
+from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
 

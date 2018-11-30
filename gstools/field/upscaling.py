@@ -15,10 +15,7 @@ from __future__ import print_function, division, absolute_import
 import warnings
 import numpy as np
 
-__all__ = [
-    "var_coarse_graining",
-    "var_no_scaling",
-]
+__all__ = ["var_coarse_graining", "var_no_scaling"]
 
 
 # scaling routines ############################################################

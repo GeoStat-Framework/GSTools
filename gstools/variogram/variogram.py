@@ -39,9 +39,7 @@ except ImportError:
 __all__ = ["estimate_unstructured", "estimate_structured"]
 
 
-def estimate_unstructured(
-    pos, field, bin_edges, sampling_size=None
-):
+def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
     r"""
     Estimates the variogram of the unstructured input data.
 

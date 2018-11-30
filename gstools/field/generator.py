@@ -126,8 +126,8 @@ class RandMeth(object):
                     self._set_seed(self._seed)
         else:
             raise ValueError(
-                "gstools.field.generator.RandMeth: 'model' is not an " +
-                "instance of 'gstools.CovModel'"
+                "gstools.field.generator.RandMeth: 'model' is not an "
+                + "instance of 'gstools.CovModel'"
             )
 
     def reset_seed(self, seed=None):
@@ -240,9 +240,7 @@ class RandMeth(object):
         self._z_1 = self._rng.random.normal(size=self._mode_no)
         self._z_2 = self._rng.random.normal(size=self._mode_no)
         # sample uniform on a sphere
-        sphere_coord = self._rng.sample_sphere(
-            self.dim, self._mode_no
-        )
+        sphere_coord = self._rng.sample_sphere(self.dim, self._mode_no)
         # sample radii acording to radial spectral density of the model
         if self.model.has_ppf:
             pdf, cdf, ppf = self.model.dist_func

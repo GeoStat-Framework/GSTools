@@ -319,8 +319,9 @@ def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
     pointsToVTK(path, x, y, z, data={fieldname: field})
 
 
-def vtk_export(path, field, x, y=None, z=None, fieldname="field",
-        mesh_type="unstructured"):
+def vtk_export(
+    path, field, x, y=None, z=None, fieldname="field", mesh_type="unstructured"
+):
     """Export a field to vtk
 
     Parameters
@@ -343,21 +344,11 @@ def vtk_export(path, field, x, y=None, z=None, fieldname="field",
     """
     if mesh_type == "structured":
         vtk_export_structured(
-            path=path,
-            field=field,
-            x=x,
-            y=y,
-            z=z,
-            fieldname=fieldname
+            path=path, field=field, x=x, y=y, z=z, fieldname=fieldname
         )
     else:
         vtk_export_unstructured(
-            path=path,
-            field=field,
-            x=x,
-            y=y,
-            z=z,
-            fieldname=fieldname
+            path=path, field=field, x=x, y=y, z=z, fieldname=fieldname
         )
 
 

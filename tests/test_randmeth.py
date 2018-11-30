@@ -14,25 +14,22 @@ from gstools.field.generator import RandMeth
 class TestRandMeth(unittest.TestCase):
     def setUp(self):
         self.cov_model_1d = Gaussian(
-            dim = 1,
-            var = 1.5,
-            len_scale = 3.5,
-            mode_no = 100,
+            dim=1, var=1.5, len_scale=3.5, mode_no=100
         )
         self.cov_model_2d = copy.deepcopy(self.cov_model_1d)
         self.cov_model_2d.dim = 2
         self.cov_model_3d = copy.deepcopy(self.cov_model_1d)
         self.cov_model_3d.dim = 3
         self.seed = 19031977
-        self.x_grid = np.linspace(0., 10., 9)
-        self.y_grid = np.linspace(-5., 5., 16)
-        self.z_grid = np.linspace(-6., 7., 8)
+        self.x_grid = np.linspace(0.0, 10.0, 9)
+        self.y_grid = np.linspace(-5.0, 5.0, 16)
+        self.z_grid = np.linspace(-6.0, 7.0, 8)
         self.x_grid = np.reshape(self.x_grid, (len(self.x_grid), 1, 1, 1))
         self.y_grid = np.reshape(self.y_grid, (1, len(self.y_grid), 1, 1))
         self.z_grid = np.reshape(self.z_grid, (1, 1, len(self.z_grid), 1))
-        self.x_tuple = np.linspace(0., 10., 10)
-        self.y_tuple = np.linspace(-5., 5., 10)
-        self.z_tuple = np.linspace(-6., 8., 10)
+        self.x_tuple = np.linspace(0.0, 10.0, 10)
+        self.y_tuple = np.linspace(-5.0, 5.0, 10)
+        self.z_tuple = np.linspace(-6.0, 8.0, 10)
         self.x_tuple = np.reshape(self.x_tuple, (len(self.x_tuple), 1))
         self.y_tuple = np.reshape(self.y_tuple, (len(self.y_tuple), 1))
         self.z_tuple = np.reshape(self.z_tuple, (len(self.z_tuple), 1))
@@ -105,5 +102,5 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[1], -2.62032778)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
