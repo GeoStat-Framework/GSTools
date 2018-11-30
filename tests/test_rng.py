@@ -61,9 +61,11 @@ class TestRNG(unittest.TestCase):
 
     def test_sample_sphere_3d(self):
         dim = 3
-        # TODO any trigonometric identity similar to sphere_2d?
         sphere_coord = self.rng.sample_sphere(dim, self.few_modes)
         self.assertEqual(sphere_coord.shape, (dim, self.few_modes))
+        np.testing.assert_allclose(np.ones(self.few_modes),
+                sphere_coord[0,:]**2 + sphere_coord[1,:]**2 +
+                sphere_coord[2,:]**2)
         sphere_coord = self.rng.sample_sphere(dim, self.many_modes)
         self.assertAlmostEqual(np.mean(sphere_coord), 0.0, places=3)
 
