@@ -51,7 +51,12 @@ The following functions are provided directly
 from __future__ import absolute_import
 
 from gstools import field, variogram, random, covmodel
-from gstools.field import SRF, vtk_export_structured, vtk_export_unstructured
+from gstools.field import (
+    SRF,
+    vtk_export_structured,
+    vtk_export_unstructured,
+    vtk_export,
+)
 from gstools.variogram import estimate_structured, estimate_unstructured
 from gstools.covmodel import (
     CovModel,
@@ -89,6 +94,11 @@ __all__ += [
 
 __all__ += ["estimate_structured", "estimate_unstructured"]
 
-__all__ += ["SRF", "vtk_export_structured", "vtk_export_unstructured"]
+__all__ += [
+    "SRF",
+    "vtk_export_structured",
+    "vtk_export_unstructured",
+    "vtk_export",
+]
 
 __version__ = "1.0.0rc3"
