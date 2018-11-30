@@ -91,4 +91,4 @@ __all__ += ["estimate_structured", "estimate_unstructured"]
 
 __all__ += ["SRF", "vtk_export_structured", "vtk_export_unstructured"]
 
-__version__ = "0.5.0rc2"
+__version__ = "1.0.0rc3"
