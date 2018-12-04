@@ -17,15 +17,6 @@ GeoStatTools is a library providing geostatistical tools.
 
 ## Installation
 
-##### Requirements:
-- [NumPy >= 1.15.3](https://www.numpy.org)
-- [SciPy >= 0.19.1](https://www.scipy.org/scipylib)
-- [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
-- [emcee](https://github.com/dfm/emcee)
-- [pyevtk](https://bitbucket.org/pauloh/pyevtk)
-- [six](https://github.com/benjaminp/six)
-
-##### Installation:
 `pip install gstools`
 
 
@@ -151,7 +142,14 @@ Which gives:
 <img src="/docs/source/exp_vario_fit.png" alt="Variogram" width="600px"/>
 </p>
 
+## Requirements:
 
+- [NumPy >= 1.8.2](https://www.numpy.org)
+- [SciPy >= 0.19.1](https://www.scipy.org/scipylib)
+- [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
+- [emcee](https://github.com/dfm/emcee)
+- [pyevtk](https://bitbucket.org/pauloh/pyevtk)
+- [six](https://github.com/benjaminp/six)
 
 
 ## License

@@ -131,7 +131,7 @@ setup_kw = {
     "platforms": ["Linux"],
     "include_package_data": True,
     "install_requires": [
-        "numpy>=1.15.3",
+        "numpy>=1.8.2",
         "scipy>=0.19.1",
         "hankel>=0.3.6",
         "emcee",  # 2 and 3 should be compatible
