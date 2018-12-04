@@ -27,7 +27,7 @@ import warnings
 import numpy as np
 from scipy import special as sps
 from gstools.covmodel.base import CovModel
-from gstools.covmodel.tools import exp_int
+from gstools.tools import exp_int
 
 __all__ = [
     "Gaussian",
