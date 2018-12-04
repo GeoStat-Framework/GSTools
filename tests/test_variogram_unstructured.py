@@ -76,6 +76,13 @@ class TestVariogramUnstructured(unittest.TestCase):
         bin_centres, gamma = variogram.estimate_unstructured([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
+    def test_list(self):
+        x = np.arange(1, 11, 1, dtype=np.double)
+        z = [41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3]
+        bins = np.arange(1, 11, 1, dtype=np.double)
+        bin_centres, gamma = variogram.estimate_unstructured([x], z, bins)
+        self.assertAlmostEqual(gamma[1], 0.7625, places=4)
+
     def test_1d(self):
         x = np.arange(1, 11, 1, dtype=np.double)
         # literature values

@@ -74,17 +74,17 @@ def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
             the estimated variogram and the bin centers
     """
 
-    field = field.astype(np.double)
-    bin_edges = bin_edges.astype(np.double)
-    x = pos[0].astype(np.double)
+    field = np.array(field, ndmin=1, dtype=np.double)
+    bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
+    x = np.array(pos[0], ndmin=1, dtype=np.double)
     dim = 1
     y = z = None
     if len(pos) > 1:
         dim = 2
-        y = pos[1].astype(np.double)
+        y = np.array(pos[1], ndmin=1, dtype=np.double)
     if len(pos) > 2:
         dim = 3
-        z = pos[2].astype(np.double)
+        z = np.array(pos[2], ndmin=1, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):
@@ -133,7 +133,13 @@ def estimate_structured(field, direction="x"):
         :class:`numpy.ndarray`
             the estimated variogram along the given direction.
     """
-    field = field.astype(np.double)
+
+    try:
+        mask = np.array(field.mask, dtype=np.int32)
+        field = np.ma.array(field, ndmin=1, dtype=np.double)
+    except AttributeError:
+        mask = None
+        field = np.array(field, ndmin=1, dtype=np.double)
     shape = field.shape
 
     # TODO shall this be renamed?
@@ -145,11 +151,6 @@ def estimate_structured(field, direction="x"):
         field = field.swapaxes(0, 2)
     else:
         raise ValueError("Unknown direction {0}".format(direction))
-
-    try:
-        mask = np.array(field.mask, dtype=np.int32)
-    except AttributeError:
-        mask = None
 
     if len(shape) == 3:
         if mask is None:
@@ -163,7 +164,7 @@ def estimate_structured(field, direction="x"):
             gamma = ma_structured_2d(field, mask)
     else:
         if mask is None:
-            gamma = structured_1d(field.astype(np.double))
+            gamma = structured_1d(np.array(field, ndmin=1, dtype=np.double))
         else:
             gamma = ma_structured_1d(field, mask)
     return gamma
