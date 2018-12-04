@@ -103,20 +103,21 @@ class RandMeth(object):
         # set model and seed
         self.update(model, seed)
 
-    def update(self, model, seed=np.nan):
+    def update(self, model=None, seed=np.nan):
         """Update the model and the generated modes.
 
         If model and seed are not different, nothing will be done.
 
         Parameters
         ----------
-            model : :class:`gstools.CovModel`
-                covariance model
+            model : :class:`gstools.CovModel` or None, optional
+                covariance model. Default: None
             seed : :class:`int` or None or np.nan, optional
                 the seed of the random number generator.
                 If "None", a random seed is used. If "np.nan", the actual seed
                 will be kept. Default: np.nan
         """
+        # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
                 self._model = dcp(model)
@@ -124,6 +125,32 @@ class RandMeth(object):
                     self._set_seed(seed)
                 else:
                     self._set_seed(self._seed)
+            # just update the seed, if its a new one
+            elif seed is None or not np.isnan(seed):
+                self.seed = seed
+        # or just update the seed, when no model is given
+        elif model is None and (seed is None or not np.isnan(seed)):
+            if isinstance(self._model, CovModel):
+                self.seed = seed
+            else:
+                raise ValueError(
+                    "gstools.field.generator.RandMeth: no 'model' given"
+                )
+        # if the user tries to trick us, we beat him!
+        elif model is None and np.isnan(seed):
+            if (
+                isinstance(self._model, CovModel)
+                and self._z_1 is not None
+                and self._z_2 is not None
+                and self._cov_sample is not None
+            ):
+                print("RandMeth.update: Nothing given...")
+            else:
+                raise ValueError(
+                    "gstools.field.generator.RandMeth: "
+                    + "neither 'model' nor 'seed' given!"
+                )
+        # wrong model type
         else:
             raise ValueError(
                 "gstools.field.generator.RandMeth: 'model' is not an "

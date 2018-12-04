@@ -37,6 +37,28 @@ UPSCALING = {
 
 class SRF(object):
     """A class to generate a spatial random field (SRF).
+
+    Attributes
+    ----------
+        model : :any:`CovModel`
+            Covariance Model to use for the field.
+        mean : :class:`float`, optional
+            mean value of the SRF
+        generator : :any:`callable`
+            The generator of the field.
+            Default: :any:`gstools.field.generator.RandMeth`
+        upscaling : :class:`str`
+            Name of the method to be used for upscaling the variance at each
+            point depending on the related element volume.
+            See the ``point_volumes`` keyword in the ``__call__`` routine.
+            Default: "no_scaling"
+        upscaling_func : :any:`callable`
+            Method in use for upscaling the variance at each
+            point depending on the related element volume.
+            See the ``point_volumes`` keyword in the ``__call__`` routine.
+            Default: :any:`gstools.field.upscaling.var_no_scaling`
+        do_rotation : :any:`bool`
+            State, if a rotation will be applied to the field.
     """
 
     def __init__(
