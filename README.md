@@ -34,7 +34,8 @@ The core of this library is the generation of spatial random fields. These field
 [rand_link]: https://doi.org/10.1016/j.envsoft.2014.01.013
 
 
-### Example 1
+### Examples
+#### Gaussian Covariance Model
 
 This is an example of how to generate a 2 dimensional spatial random field with a gaussian covariance model.
 
@@ -53,7 +54,7 @@ pt.show()
 <img src="/docs/source/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
-### Example 2
+#### Truncated Power Law Model
 
 GSTools also implements truncated power law variograms, which can be represented as a
 superposition of scale dependant modes in form of standard variograms, which are truncated by
