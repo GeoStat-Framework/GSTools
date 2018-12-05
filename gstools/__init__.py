@@ -51,8 +51,8 @@ The following functions are provided directly
 from __future__ import absolute_import
 
 from gstools import field, variogram, random, covmodel
-from gstools.field import (
-    SRF,
+from gstools.field import SRF
+from gstools.tools import (
     vtk_export_structured,
     vtk_export_unstructured,
     vtk_export,
