@@ -16,6 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from pyevtk.hl import gridToVTK, pointsToVTK
+from gstools.tools.geometric import pos2xyz
 
 __all__ = ["vtk_export_structured", "vtk_export_unstructured", "vtk_export"]
 
@@ -23,7 +24,7 @@ __all__ = ["vtk_export_structured", "vtk_export_unstructured", "vtk_export"]
 # export routines #############################################################
 
 
-def vtk_export_structured(path, field, x, y=None, z=None, fieldname="field"):
+def vtk_export_structured(path, pos, field, fieldname="field"):
     """Export a field to vtk structured rectilinear grid file
 
     Parameters
@@ -31,17 +32,15 @@ def vtk_export_structured(path, field, x, y=None, z=None, fieldname="field"):
     path : :class:`str`
         Path to the file to be saved. Note that a ".vtr" will be added to the
         name.
+    pos : :class:`list`
+        the position tuple, containing main direction and transversal
+        directions
     field : :class:`numpy.ndarray`
         Structured field to be saved. As returned by SRF.
-    x : :class:`numpy.ndarray`
-        grid axis in x-direction
-    y : :class:`numpy.ndarray`, optional
-        analog to x
-    z : :class:`numpy.ndarray`, optional
-        analog to x
     fieldname : :class:`str`, optional
         Name of the field in the VTK file. Default: "field"
     """
+    x, y, z = pos2xyz(pos)
     if y is None:
         y = np.array([0])
     if z is None:
@@ -56,7 +55,7 @@ def vtk_export_structured(path, field, x, y=None, z=None, fieldname="field"):
     gridToVTK(path, x, y, z, pointData={fieldname: field})
 
 
-def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
+def vtk_export_unstructured(path, pos, field, fieldname="field"):
     """Export a field to vtk structured rectilinear grid file
 
     Parameters
@@ -64,21 +63,20 @@ def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
     path : :class:`str`
         Path to the file to be saved. Note that a ".vtr" will be added to the
         name.
+    pos : :class:`list`
+        the position tuple, containing main direction and transversal
+        directions
     field : :class:`numpy.ndarray`
         Unstructured field to be saved. As returned by SRF.
-    x : :class:`numpy.ndarray`
-        first components of position vectors
-    y : :class:`numpy.ndarray`, optional
-        analog to x
-    z : :class:`numpy.ndarray`, optional
-        analog to x
     fieldname : :class:`str`, optional
         Name of the field in the VTK file. Default: "field"
     """
+    x, y, z = pos2xyz(pos)
     if y is None:
         y = np.zeros_like(x)
     if z is None:
         z = np.zeros_like(x)
+    field = np.array(field).reshape(-1)
     if len(field) != len(x) or len(field) != len(y) or len(field) != len(z):
         raise ValueError(
             "gstools.vtk_export_unstructured: "
@@ -87,9 +85,7 @@ def vtk_export_unstructured(path, field, x, y=None, z=None, fieldname="field"):
     pointsToVTK(path, x, y, z, data={fieldname: field})
 
 
-def vtk_export(
-    path, field, x, y=None, z=None, fieldname="field", mesh_type="unstructured"
-):
+def vtk_export(path, pos, field, fieldname="field", mesh_type="unstructured"):
     """Export a field to vtk
 
     Parameters
@@ -97,24 +93,21 @@ def vtk_export(
     path : :class:`str`
         Path to the file to be saved. Note that a ".vtr" will be added to the
         name.
+    pos : :class:`list`
+        the position tuple, containing main direction and transversal
+        directions
     field : :class:`numpy.ndarray`
         Unstructured field to be saved. As returned by SRF.
-    x : :class:`numpy.ndarray`
-        first components of position vectors
-    y : :class:`numpy.ndarray`, optional
-        analog to x
-    z : :class:`numpy.ndarray`, optional
-        analog to x
     fieldname : :class:`str`, optional
         Name of the field in the VTK file. Default: "field"
-    mesh_type : :class:`str`
-        'structured' / 'unstructured'
+    mesh_type : :class:`str`, optional
+        'structured' / 'unstructured'. Default: structured
     """
     if mesh_type == "structured":
         vtk_export_structured(
-            path=path, field=field, x=x, y=y, z=z, fieldname=fieldname
+            path=path, pos=pos, field=field, fieldname=fieldname
         )
     else:
         vtk_export_unstructured(
-            path=path, field=field, x=x, y=y, z=z, fieldname=fieldname
+            path=path, pos=pos, field=field, fieldname=fieldname
         )

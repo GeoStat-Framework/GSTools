@@ -14,6 +14,8 @@ from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
+from gstools.tools.geometric import pos2xyz
+
 try:
     from gstools.variogram.estimator import (
         unstructured,
@@ -76,15 +78,7 @@ def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
 
     field = np.array(field, ndmin=1, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
-    x = np.array(pos[0], ndmin=1, dtype=np.double)
-    dim = 1
-    y = z = None
-    if len(pos) > 1:
-        dim = 2
-        y = np.array(pos[1], ndmin=1, dtype=np.double)
-    if len(pos) > 2:
-        dim = 3
-        z = np.array(pos[2], ndmin=1, dtype=np.double)
+    x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):

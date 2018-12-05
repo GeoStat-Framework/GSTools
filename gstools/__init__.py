@@ -52,7 +52,7 @@ from __future__ import absolute_import
 
 from gstools import field, variogram, random, covmodel
 from gstools.field import SRF
-from gstools.tools import (
+from gstools.tools.export import (
     vtk_export_structured,
     vtk_export_unstructured,
     vtk_export,
@@ -101,4 +101,4 @@ __all__ += [
     "vtk_export",
 ]
 
-__version__ = "1.0.0rc3"
+__version__ = "1.0.0rc4"

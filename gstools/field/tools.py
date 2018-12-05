@@ -19,7 +19,7 @@ The following classes and functions are provided
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
-from gstools.tools import r3d_x, r3d_y, r3d_z
+from gstools.tools.geometric import r3d_x, r3d_y, r3d_z
 
 __all__ = [
     "reshape_input",
