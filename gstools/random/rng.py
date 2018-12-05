@@ -117,15 +117,18 @@ class RNG(object):
                 N=sample_size,
                 rstate0=self.random.get_state(),
             )
+            samples = sampler.flatchain[:, 0]
         else:
             from emcee.state import State
 
             initial_state = State(burn_in_state, copy=True)
             initial_state.random_state = self.random.get_state()
             sampler.run_mcmc(initial_state=initial_state, nsteps=sample_size)
+            samples = sampler.get_chain(flat=True)[:, 0]
         ##################### mc 2 and 3 compatibility
+
         # choose samples according to size
-        return self.random.choice(sampler.flatchain[:, 0], size)
+        return self.random.choice(samples, size)
 
     def sample_dist(self, pdf=None, cdf=None, ppf=None, size=None, **kwargs):
         """Sample from a distribution given by pdf, cdf or ppf

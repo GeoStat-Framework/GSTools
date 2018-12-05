@@ -24,6 +24,7 @@ from gstools.field.tools import (
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
 )
+from gstools.tools.geometric import pos2xyz
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
@@ -102,9 +103,7 @@ class SRF(object):
 
     def __call__(
         self,
-        x,
-        y=None,
-        z=None,
+        pos,
         seed=np.nan,
         force_moments=False,
         point_volumes=0.0,
@@ -114,13 +113,9 @@ class SRF(object):
 
         Parameters
         ----------
-            x : :class:`numpy.ndarray`
-                grid axis in x-direction if structured, or first components of
-                position vectors if unstructured
-            y : :class:`numpy.ndarray`, optional
-                analog to x
-            z : :class:`numpy.ndarray`, optional
-                analog to x
+            pos : :class:`list`
+                the position tuple, containing main direction and transversal
+                directions
             seed : :class:`int`, optional
                 seed for RNG for reseting. Default: keep seed from generator
             force_moments : :class:`bool`
@@ -139,6 +134,8 @@ class SRF(object):
             field : :class:`numpy.ndarray`
                 the SRF
         """
+        # internal conversation
+        x, y, z = pos2xyz(pos)
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # format the positional arguments of the mesh

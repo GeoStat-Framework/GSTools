@@ -5,15 +5,15 @@ import os
 import codecs
 import re
 import logging
-import numpy
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
-from setuptools.command.build_ext import build_ext
 from distutils.errors import (
     CCompilerError,
     DistutilsExecError,
     DistutilsPlatformError,
 )
+from setuptools import setup, find_packages
+from setuptools.extension import Extension
+from setuptools.command.build_ext import build_ext
+import numpy
 
 logging.basicConfig()
 log = logging.getLogger(__file__)
@@ -24,6 +24,9 @@ ext_errors = (
     DistutilsPlatformError,
     IOError,
 )
+
+
+# version finder ##############################################################
 
 
 def read(*parts):
@@ -44,33 +47,48 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+# cython handler ##############################################################
+
+
 class BuildFailed(Exception):
+    """Exeption for Cython build failed"""
+
     pass
 
 
-def construct_build_ext(build_ext):
-    class WrappedBuildExt(build_ext):
-        # This class allows C extension building to fail.
+def construct_build_ext(build_ext_base):
+    """Construct a wrapper class for build_ext"""
+
+    class WrappedBuildExt(build_ext_base):
+        """This class allows C extension building to fail."""
+
         def run(self):
+            """overridden run with try-except"""
             try:
-                build_ext.run(self)
+                build_ext_base.run(self)
             except DistutilsPlatformError as x:
                 raise BuildFailed(x)
 
         def build_extension(self, ext):
+            """overridden build_extension with try-except"""
             try:
-                build_ext.build_extension(self, ext)
+                build_ext_base.build_extension(self, ext)
             except ext_errors as x:
                 raise BuildFailed(x)
 
     return WrappedBuildExt
 
 
+# setup #######################################################################
+
+
 try:
     from Cython.Build import cythonize
 except ImportError:
+    print("## GSTOOLS setup: cython not used")
     USE_CYTHON = False
 else:
+    print("## GSTOOLS setup: cython used")
     USE_CYTHON = True
 
 DOCLINES = __doc__.split("\n")
@@ -109,8 +127,8 @@ else:
 # embed signature information in docstrings. Sphinx then knows how to extract
 # and use those signatures.
 # python setup.py build_ext --inplace --> then sphinx build
-for ext in EXT_MODULES:
-    ext.cython_directives = {"embedsignature": True}
+for ext_m in EXT_MODULES:
+    ext_m.cython_directives = {"embedsignature": True}
 # version import not possible due to cython
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
 VERSION = find_version("gstools", "__init__.py")
@@ -146,10 +164,12 @@ setup_kw = {
 cmd_classes = setup_kw.setdefault("cmdclass", {})
 
 try:
+    print("## GSTOOLS setup: try build with c code")
     # try building with c code :
     setup_kw["cmdclass"]["build_ext"] = construct_build_ext(build_ext)
     setup(**setup_kw)
 except BuildFailed as ex:
+    print("The C extension could not be compiled")
     log.warn(ex)
     log.warn("The C extension could not be compiled")
 
@@ -162,4 +182,6 @@ except BuildFailed as ex:
     # If this new 'setup' call doesn't fail, the module
     # will be successfully installed, without the C extensions
     setup(**setup_kw)
-    print("Plain-Python installation successful.")
+    print("## GSTOOLS setup: Plain-Python installation successful.")
+else:
+    print("## GSTOOLS setup: cython installation successful.")
