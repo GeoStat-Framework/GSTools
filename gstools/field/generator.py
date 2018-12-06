@@ -9,6 +9,7 @@ The following classes are provided
 .. autosummary::
    RandMeth
 """
+# pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
 
 from copy import deepcopy as dcp
@@ -45,18 +46,18 @@ class RandMeth(object):
 
     Attributes
     ----------
-        model : :class:`gstools.CovModel`
-            covariance model
-        mode_no : :class:`int`, optional
-            number of Fourier modes. Default: 1000
-        seed : :class:`int`
-            the seed of the random number generator.
-            If "None", a random seed is used. Default: None
-        chunk_tmp_size : :class:`int`
-            Number of points (number of coordinates * mode_no)
-            to be handled by one chunk while creating the fild.
-            This is used to prevent memory overflows while
-            generating the field. Default: 1e7
+    model : :class:`gstools.CovModel`
+        covariance model
+    mode_no : :class:`int`, optional
+        number of Fourier modes. Default: 1000
+    seed : :class:`int`
+        the seed of the random number generator.
+        If "None", a random seed is used. Default: None
+    chunk_tmp_size : :class:`int`
+        Number of points (number of coordinates * mode_no)
+        to be handled by one chunk while creating the fild.
+        This is used to prevent memory overflows while
+        generating the field. Default: 1e7
     """
 
     def __init__(
@@ -72,20 +73,20 @@ class RandMeth(object):
 
         Parameters
         ----------
-            model : :class:`gstools.CovModel`
-                covariance model
-            mode_no : :class:`int`, optional
-                number of Fourier modes. Default: 1000
-            seed : :class:`int`, optional
-                the seed of the random number generator.
-                If "None", a random seed is used. Default: None
-            chunk_tmp_size : :class:`int`, optional
-                Number of points (number of coordinates * mode_no)
-                to be handled by one chunk while creating the fild.
-                This is used to prevent memory overflows while
-                generating the field. Default: 1e7
-            **kwargs
-                Placeholder for keyword-args
+        model : :class:`gstools.CovModel`
+            covariance model
+        mode_no : :class:`int`, optional
+            number of Fourier modes. Default: 1000
+        seed : :class:`int`, optional
+            the seed of the random number generator.
+            If "None", a random seed is used. Default: None
+        chunk_tmp_size : :class:`int`, optional
+            Number of points (number of coordinates * mode_no)
+            to be handled by one chunk while creating the fild.
+            This is used to prevent memory overflows while
+            generating the field. Default: 1e7
+        **kwargs
+            Placeholder for keyword-args
         """
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
@@ -110,12 +111,12 @@ class RandMeth(object):
 
         Parameters
         ----------
-            model : :class:`gstools.CovModel` or None, optional
-                covariance model. Default: None
-            seed : :class:`int` or None or np.nan, optional
-                the seed of the random number generator.
-                If "None", a random seed is used. If "np.nan", the actual seed
-                will be kept. Default: np.nan
+        model : :class:`gstools.CovModel` or None, optional
+            covariance model. Default: None
+        seed : :class:`int` or None or np.nan, optional
+            the seed of the random number generator.
+            If "None", a random seed is used. If "np.nan", the actual seed
+            will be kept. Default: np.nan
         """
         # check if a new model is given
         if isinstance(model, CovModel):
@@ -174,18 +175,18 @@ class RandMeth(object):
 
         Parameters
         ----------
-            x : :class:`float`, :class:`numpy.ndarray`
-                the x components of the position tuple, the shape has to be
-                (len(x), 1, 1) for 3d and accordingly shorter for lower
-                dimensions
-            y : :class:`float`, :class:`numpy.ndarray`, optional
-                the y components of the pos. tupls
-            z : :class:`float`, :class:`numpy.ndarray`, optional
-                the z components of the pos. tuple
+        x : :class:`float`, :class:`numpy.ndarray`
+            the x components of the position tuple, the shape has to be
+            (len(x), 1, 1) for 3d and accordingly shorter for lower
+            dimensions
+        y : :class:`float`, :class:`numpy.ndarray`, optional
+            the y components of the pos. tupls
+        z : :class:`float`, :class:`numpy.ndarray`, optional
+            the z components of the pos. tuple
         Returns
         -------
-            :class:`numpy.ndarray`
-                the random modes
+        :class:`numpy.ndarray`
+            the random modes
         """
         summed_modes = np.broadcast(x, y, z)
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
@@ -219,9 +220,9 @@ class RandMeth(object):
                     # ch_stop = min((chunk + 1) * chunk_len, self._mode_no-1)
                     ch_stop = (chunk + 1) * chunk_len
 
-                    if self.dim == 1:
+                    if self.model.dim == 1:
                         phase = self._cov_sample[0, ch_start:ch_stop] * x
-                    elif self.dim == 2:
+                    elif self.model.dim == 2:
                         phase = (
                             self._cov_sample[0, ch_start:ch_stop] * x
                             + self._cov_sample[1, ch_start:ch_stop] * y
@@ -267,7 +268,7 @@ class RandMeth(object):
         self._z_1 = self._rng.random.normal(size=self._mode_no)
         self._z_2 = self._rng.random.normal(size=self._mode_no)
         # sample uniform on a sphere
-        sphere_coord = self._rng.sample_sphere(self.dim, self._mode_no)
+        sphere_coord = self._rng.sample_sphere(self.model.dim, self._mode_no)
         # sample radii acording to radial spectral density of the model
         if self.model.has_ppf:
             pdf, cdf, ppf = self.model.dist_func
@@ -301,11 +302,6 @@ class RandMeth(object):
             self._set_seed(new_seed)
 
     @property
-    def dim(self):
-        """ The dimension of the spatial random field."""
-        return self.model.dim
-
-    @property
     def model(self):
         """ The covariance model of the spatial random field."""
         return self._model
@@ -323,8 +319,16 @@ class RandMeth(object):
     @mode_no.setter
     def mode_no(self, mode_no):
         """ Set a new mode number and generate new random numbers."""
-        self._mode_no = mode_no
-        self._set_seed(self._seed)
+        if int(mode_no) != self._mode_no:
+            self._mode_no = int(mode_no)
+            self._set_seed(self._seed)
+
+    @property
+    def name(self):
+        """
+        The name of the generator
+        """
+        return self.__class__.__name__
 
     def __str__(self):
         return self.__repr__()

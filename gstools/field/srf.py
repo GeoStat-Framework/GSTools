@@ -9,6 +9,7 @@ The following classes are provided
 .. autosummary::
    SRF
 """
+# pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
 
 from functools import partial
@@ -37,7 +38,7 @@ UPSCALING = {
 
 
 class SRF(object):
-    """A class to generate a spatial random field (SRF).
+    """A class to generate spatial random fields (SRF).
 
     Attributes
     ----------
@@ -74,20 +75,34 @@ class SRF(object):
 
         Parameters
         ----------
-            model : :any:`CovModel`
-                Covariance Model to use for the field.
-            mean : :class:`float`, optional
-                mean value of the SRF
-            var_upscaling : :class:`str`, optional
-                Method to be used for upscaling the variance at each point
-                depending on the related element volume.
-                See the ``point_volumes`` keyword in the ``__call__`` routine.
-                Default: "no_scaling"
-            generator : :class:`str`, optional
-                Name of the generator to use for field generation.
-                Default: "RandMeth"
-            **generator_kwargs
-                keyword arguments that are forwarded to the generator in use.
+        model : :any:`CovModel`
+            Covariance Model to use for the field.
+        mean : :class:`float`, optional
+            mean value of the SRF
+        var_upscaling : :class:`str`, optional
+            Method to be used for upscaling the variance at each point
+            depending on the related element volume.
+            See the ``point_volumes`` keyword in the ``__call__`` routine.
+            At the moment, the following upscaling methods are provided:
+
+                * "no_scaling" : No upscaling is applied to the variance.
+                  See: :any:`var_no_scaling`
+                * "coarse_graining" : A volume depended variance is
+                  calculated by the upscaling technique coarse graining.
+                  See: :any:`var_coarse_graining`
+
+            Default: "no_scaling"
+        generator : :class:`str`, optional
+            Name of the generator to use for field generation.
+            At the moment, the following generators are provided:
+
+                * "RandMeth" : The Randomization Methode.
+                  See: :any:`RandMeth`
+
+            Default: "RandMeth"
+        **generator_kwargs
+            keyword arguments that are forwarded to the generator in use.
+            Have a look at the provided generators for further information.
         """
         # initialize private attributes
         self._model = None
@@ -109,7 +124,7 @@ class SRF(object):
         point_volumes=0.0,
         mesh_type="unstructured",
     ):
-        """Generate an SRF and return it without saving it internally.
+        """Generate the spatial random field.
 
         Parameters
         ----------
@@ -154,7 +169,7 @@ class SRF(object):
         x, y, z = reshape_input(x, y, z, mesh_type)
 
         # generate the field
-        field = self.generator(x, y, z)
+        field = self.generator.__call__(x, y, z)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:
@@ -194,6 +209,10 @@ class SRF(object):
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
+    def upscaling_func(self, *args, **kwargs):
+        """The upscaling method applied to the field variance (function)"""
+        return self._upscaling_func(*args, **kwargs)
+
     def set_generator(self, generator, **generator_kwargs):
         """Set the generator for the field
 
@@ -217,20 +236,6 @@ class SRF(object):
         return self._generator
 
     @property
-    def model(self):
-        """The covariance model of the spatial random field."""
-        return self._model
-
-    @model.setter
-    def model(self, model):
-        if isinstance(model, CovModel):
-            self._model = model
-        else:
-            raise ValueError(
-                "gstools.SRF: 'model' is not an instance of 'gstools.CovModel'"
-            )
-
-    @property
     def upscaling(self):
         """The upscaling method applied to the field variance"""
         return self._upscaling
@@ -246,9 +251,18 @@ class SRF(object):
             )
 
     @property
-    def upscaling_func(self):
-        """The upscaling method applied to the field variance (function)"""
-        return self._upscaling_func
+    def model(self):
+        """The covariance model of the spatial random field."""
+        return self._model
+
+    @model.setter
+    def model(self, model):
+        if isinstance(model, CovModel):
+            self._model = model
+        else:
+            raise ValueError(
+                "gstools.SRF: 'model' is not an instance of 'gstools.CovModel'"
+            )
 
     @property
     def do_rotation(self):
