@@ -46,7 +46,7 @@ import matplotlib.pyplot as pt
 x = y = range(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model)
-field = srf(x, y, mesh_type='structured')
+field = srf((x, y), mesh_type='structured')
 pt.imshow(field)
 pt.show()
 ```
@@ -90,7 +90,7 @@ model = TPLStable(
     hurst=0.7,       # hurst coefficient from the power law
 )
 srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-field = srf(x, y, mesh_type='structured', force_moments=True)
+field = srf((x, y), mesh_type='structured', force_moments=True)
 pt.imshow(field)
 pt.show()
 ```
