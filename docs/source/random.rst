@@ -5,6 +5,7 @@ random
    :members:
    :undoc-members:
    :show-inheritance:
+   :inherited-members:
 
    .. only:: html
 
@@ -12,4 +13,4 @@ random
          :maxdepth: 1
 
    Details
-   -------
+   ^^^^^^^

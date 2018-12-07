@@ -80,39 +80,6 @@ class SRF(object):
         generator="RandMeth",
         **generator_kwargs
     ):
-        """Initialize a spatial random field
-
-        Parameters
-        ----------
-        model : :any:`CovModel`
-            Covariance Model to use for the field.
-        mean : :class:`float`, optional
-            mean value of the SRF
-        var_upscaling : :class:`str`, optional
-            Method to be used for upscaling the variance at each point
-            depending on the related element volume.
-            See the ``point_volumes`` keyword in the ``__call__`` routine.
-            At the moment, the following upscaling methods are provided:
-
-                * "no_scaling" : No upscaling is applied to the variance.
-                  See: :any:`var_no_scaling`
-                * "coarse_graining" : A volume depended variance is
-                  calculated by the upscaling technique coarse graining.
-                  See: :any:`var_coarse_graining`
-
-            Default: "no_scaling"
-        generator : :class:`str`, optional
-            Name of the generator to use for field generation.
-            At the moment, the following generators are provided:
-
-                * "RandMeth" : The Randomization Methode.
-                  See: :any:`RandMeth`
-
-            Default: "RandMeth"
-        **generator_kwargs
-            keyword arguments that are forwarded to the generator in use.
-            Have a look at the provided generators for further information.
-        """
         # initialize private attributes
         self._model = None
         self._generator = None
@@ -153,6 +120,7 @@ class SRF(object):
                 is changed. Default: ``0``
             mesh_type : :class:`str`
                 'structured' / 'unstructured'
+
         Returns
         -------
             field : :class:`numpy.ndarray`
@@ -219,7 +187,7 @@ class SRF(object):
         return call(*args, **kwargs)
 
     def upscaling_func(self, *args, **kwargs):
-        """The upscaling method applied to the field variance (function)"""
+        """The upscaling method applied to the field variance"""
         return self._upscaling_func(*args, **kwargs)
 
     def set_generator(self, generator, **generator_kwargs):

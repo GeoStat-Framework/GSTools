@@ -6,11 +6,10 @@ field
    :undoc-members:
    :show-inheritance:
 
-
-   Subpackages
-   ^^^^^^^^^^^
-
    .. only:: html
+
+      Subpackages
+      ^^^^^^^^^^^
 
       .. toctree::
          :maxdepth: 1
@@ -18,4 +17,4 @@ field
          upscaling.rst
 
    Details
-   -------
+   ^^^^^^^

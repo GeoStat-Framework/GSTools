@@ -93,50 +93,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         hankel_kw=None,
         **opt_arg
     ):
-        r"""The gstools covariance model
-
-        Parameters
-        ----------
-        dim : int, optional
-            dimension of the model. Dafault: 3
-        var : float, optional
-            variance of the model
-            (the nugget is not included in "this" variance). Dafault: 1.0
-        len_scale : float or array, optional
-            length scale of the model. Either given as single value for
-            isotropic models, or as a list for anisotropic models.
-            Dafault: 1.0
-        nugget : float, optional
-            nugget of the model. The nugget is just added to the standard
-            variogram and will not be included in any scale calculations.
-            Dafault: 0.0
-        anis : array, optional
-            anisotropy ratios in the transversal directions [y, z].
-            Either a single value, or a list. If len_scale is given as list,
-            these values are ignored. Dafault: 1.0
-        angles : array, optional
-            angles of rotation:
-
-                * in 2D: single value given as rotation around z-axis
-                * in 3D: given by yaw, pitch, and roll
-                  (known as Tait–Bryan angles)
-
-            Dafault: 0.0
-        integral_scale : float or None, optional
-            can be given like len_scale. Will calculate an appropriate length
-            scale. Default: None
-        var_bounds : list, optional
-            bounds for the variance of the model. Default: (0.0, 100.0)
-        len_scale_bounds : list, optional
-            bounds for the length scale of the model in the main-direction.
-            Default: (0.0, 1000.0)
-        nugget_bounds : list, optional
-            bounds for the nugget of the model. Default: (0.0, 100.0)
-        hankel_kw : :class:`dict` or :class:`None`, optional
-            keywords for :class:`hankel.SymmetricFourierTransform`.
-            Only edit if you really know what you are doing. Default: None
-        **opt_arg
-            Placeholder for optional argument of derived classes.
+        r"""Initialize gstools covariance model
 
         Warnings
         --------
