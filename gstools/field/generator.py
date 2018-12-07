@@ -23,8 +23,8 @@ __all__ = ["RandMeth"]
 class RandMeth(object):
     r"""Randomization method for calculating isotropic spatial random fields.
 
-    Note
-    ----
+    Notes
+    -----
     The Randomization method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
     The calculation looks like:
@@ -288,8 +288,8 @@ class RandMeth(object):
     def seed(self):
         """:class:`int`: the seed of the master RNG
 
-        Note
-        ----
+        Notes
+        -----
         If a new seed is given, the setter property not only saves the
         new seed, but also creates new random modes with the new seed.
         """

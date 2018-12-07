@@ -42,25 +42,34 @@ class SRF(object):
 
     Parameters
     ----------
-        model : :any:`CovModel`
-            Covariance Model to use for the field.
-        mean : :class:`float`, optional
-            mean value of the SRF
-        generator : :any:`callable`
-            The generator of the field.
-            Default: :any:`gstools.field.RandMeth`
-        upscaling : :class:`str`
-            Name of the method to be used for upscaling the variance at each
-            point depending on the related element volume.
-            See the ``point_volumes`` keyword in the ``__call__`` routine.
-            Default: "no_scaling"
-        upscaling_func : :any:`callable`
-            Method in use for upscaling the variance at each
-            point depending on the related element volume.
-            See the ``point_volumes`` keyword in the ``__call__`` routine.
-            Default: :any:`gstools.field.upscaling.var_no_scaling`
-        do_rotation : :any:`bool`
-            State, if a rotation will be applied to the field.
+    model : :any:`CovModel`
+        Covariance Model to use for the field.
+    mean : :class:`float`, optional
+        mean value of the SRF
+    var_upscaling : :class:`str`, optional
+        Method to be used for upscaling the variance at each point
+        depending on the related element volume.
+        See the ``point_volumes`` keyword in the :any:`SRF.__call__` routine.
+        At the moment, the following upscaling methods are provided:
+
+            * "no_scaling" : No upscaling is applied to the variance.
+              See: :any:`var_no_scaling`
+            * "coarse_graining" : A volume depended variance is
+              calculated by the upscaling technique coarse graining.
+              See: :any:`var_coarse_graining`
+
+        Default: "no_scaling"
+    generator : :class:`str`, optional
+        Name of the generator to use for field generation.
+        At the moment, the following generators are provided:
+
+            * "RandMeth" : The Randomization Methode.
+              See: :any:`RandMeth`
+
+        Default: "RandMeth"
+    **generator_kwargs
+        keyword arguments that are forwarded to the generator in use.
+        Have a look at the provided generators for further information.
     """
 
     def __init__(
@@ -154,7 +163,7 @@ class SRF(object):
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # format the positional arguments of the mesh
-        check_mesh(self.dim, x, y, z, mesh_type)
+        check_mesh(self.model.dim, x, y, z, mesh_type)
         mesh_type_changed = False
         if self.do_rotation:
             if mesh_type == "structured":
@@ -162,10 +171,10 @@ class SRF(object):
                 mesh_type_old = mesh_type
                 mesh_type = "unstructured"
                 x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                    self.dim, x, y, z
+                    self.model.dim, x, y, z
                 )
-            x, y, z = unrotate_mesh(self.dim, self.model.angles, x, y, z)
-        y, z = make_isotropic(self.dim, self.model.anis, y, z)
+            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
+        y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
         x, y, z = reshape_input(x, y, z, mesh_type)
 
         # generate the field
@@ -175,7 +184,7 @@ class SRF(object):
         if mesh_type_changed:
             mesh_type = mesh_type_old
             field = reshape_field_from_unstruct_to_struct(
-                self.dim, field, axis_lens
+                self.model.dim, field, axis_lens
             )
 
         # force variance and mean to be exactly as given (if wanted)
@@ -232,12 +241,20 @@ class SRF(object):
 
     @property
     def generator(self):
-        """The generator-class of the spatial random field."""
+        """:any:`callable` The generator of the field.
+
+        Default: :any:`RandMeth`
+        """
         return self._generator
 
     @property
     def upscaling(self):
-        """The upscaling method applied to the field variance"""
+        """:class:`str`: Name of the upscaling method for the variance at each
+        point depending on the related element volume.
+
+        See the ``point_volumes`` keyword in the :any:`SRF.__call__` routine.
+        Default: "no_scaling"
+        """
         return self._upscaling
 
     @upscaling.setter
@@ -252,7 +269,9 @@ class SRF(object):
 
     @property
     def model(self):
-        """The covariance model of the spatial random field."""
+        """:any:`CovModel`:
+        The covariance model of the spatial random field.
+        """
         return self._model
 
     @model.setter
@@ -266,13 +285,10 @@ class SRF(object):
 
     @property
     def do_rotation(self):
-        """State if a rotation should be performed depending on the model"""
+        """:any:`bool`: State if a rotation should be performed
+        depending on the model.
+        """
         return not np.all(np.isclose(self.model.angles, 0.0))
-
-    @property
-    def dim(self):
-        """The dimension of the spatial random field."""
-        return self.model.dim
 
     def __str__(self):
         return self.__repr__()

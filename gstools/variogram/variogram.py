@@ -53,8 +53,8 @@ def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
 
        r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
-    Note
-    ----
+    Notes
+    -----
     Internally uses double precision and also returns doubles.
 
     Parameters
@@ -107,12 +107,12 @@ def estimate_structured(field, direction="x"):
 
        r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
 
-    Warning
-    -------
+    Warnings
+    --------
     It is assumed that the field is defined on an equidistant Cartesian grid.
 
-    Note
-    ----
+    Notes
+    -----
     Internally uses double precision and also returns doubles.
 
     Parameters

@@ -150,8 +150,8 @@ class RNG(object):
             Keyword-arguments that are forwarded to
             :any:`scipy.stats.rv_continuous`.
 
-        Note
-        ----
+        Notes
+        -----
         At least pdf or cdf needs to be given.
         """
         kwargs["seed"] = self.random

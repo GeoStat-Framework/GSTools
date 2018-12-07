@@ -138,8 +138,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         **opt_arg
             Placeholder for optional argument of derived classes.
 
-        Caution
-        -------
+        Warnings
+        --------
         Don't instantiate ``CovModel`` directly. You need to inherit a
         child class which overrides one of the following methods:
 
@@ -334,8 +334,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         This is in addition to the bound-checks
 
-        Note
-        ----
+        Notes
+        -----
         * You can use this to raise a ValueError/warning
         * Any return value will be ignored
         * This method will only be run once, when the class is initialized
@@ -478,8 +478,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             them "False" as keywords. By default, all parameters are
             fitted.
 
-        Note
-        ----
+        Notes
+        -----
         You can set the bounds for each parameter by accessing
         ``model.set_arg_bounds(...)``
         """
@@ -655,8 +655,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def var_bounds(self):
         """Bounds for the variance
 
-        Note
-        ----
+        Notes
+        -----
         Is a list of 2 or 3 values:
 
             * [a, b]
@@ -681,8 +681,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def len_scale_bounds(self):
         """Bounds for the lenght scale
 
-        Note
-        ----
+        Notes
+        -----
         Is a list of 2 or 3 values:
 
             * [a, b]
@@ -707,8 +707,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def nugget_bounds(self):
         """Bounds for the nugget
 
-        Note
-        ----
+        Notes
+        -----
         Is a list of 2 or 3 values:
 
             * [a, b]
@@ -733,8 +733,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def opt_arg_bounds(self):
         """Bounds for the optional arguments
 
-        Note
-        ----
+        Notes
+        -----
         Is a list of 2 or 3 values:
 
             * [a, b]
@@ -749,8 +749,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def arg_bounds(self):
         """Bounds for all parameters
 
-        Note
-        ----
+        Notes
+        -----
         Is a list of 2 or 3 values:
 
             * [a, b]
@@ -917,8 +917,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def len_scale_vec(self):
         """The length scales in each direction of the model.
 
-        Note
-        ----
+        Notes
+        -----
         * len_scale_x = len_scale
         * len_scale_y = len_scale*anis_y
         * len_scale_z = len_scale*anis_z
@@ -934,8 +934,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """
         The integral scales in each direction of the model.
 
-        Note
-        ----
+        Notes
+        -----
         This is calculated by:
             * integral_scale_x = integral_scale
             * integral_scale_y = integral_scale*anis_y

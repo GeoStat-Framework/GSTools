@@ -28,7 +28,8 @@ else:
 
 
 def skip(app, what, name, obj, skip, options):
-    if name in ["__init__", "__call__"]:
+#    if name in ["__init__", "__call__"]:
+    if name in ["__call__"]:
         return False
     return skip
 
@@ -65,13 +66,17 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
-    'sphinx.ext.autosummary',
+#    'sphinx.ext.autosummary',
+    'numpydoc',
 ]
 
 autoclass_content = 'class'
-autodoc_member_order = 'groupwise'
+#autodoc_member_order = 'groupwise'
+autodoc_member_order = 'bysource'
 
-numpydoc_show_class_members = False
+#napoleon_use_ivar = True
+numpydoc_show_class_members = True
+class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

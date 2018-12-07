@@ -24,8 +24,20 @@ __all__ = ["var_coarse_graining", "var_no_scaling"]
 def var_coarse_graining(model, point_volumes=0.0):
     r"""Coarse Graning procedure to upscale the variance for uniform flow
 
-    Note
-    ----
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        Covariance Model used for the field.
+    point_volumes : :class:`float` or :class:`numpy.ndarray`
+        Volumes of the elements at the given points. Default: ``0``
+
+    Returns
+    -------
+    scaled_var : :class:`float` or :class:`numpy.ndarray`
+        The upscaled variance
+
+    Notes
+    -----
     This procedure was presented in [Attinger03]_. It applies the
     upscaling procedure 'Coarse Graining' to the Groundwater flow equation
     under uniform flow on a lognormal distributed conductivity field following
@@ -48,18 +60,6 @@ def var_coarse_graining(model, point_volumes=0.0):
     ``point_volumes`` :math:`V` by assuming a cube with the given volume.
 
     The upscaled length scale will be ignored by this routine.
-
-    Parameters
-    ----------
-    model : :any:`CovModel`
-        Covariance Model used for the field.
-    point_volumes : :class:`float` or :class:`numpy.ndarray`
-        Volumes of the elements at the given points. Default: ``0``
-
-    Returns
-    -------
-    scaled_var : :class:`float` or :class:`numpy.ndarray`
-        The upscaled variance
 
     References
     ----------
