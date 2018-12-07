@@ -209,6 +209,7 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+suppress_warnings = ['image.nonlocal_uri']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
