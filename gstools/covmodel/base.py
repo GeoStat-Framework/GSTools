@@ -40,7 +40,7 @@ HANKEL_DEFAULT = {
 class CovModel(six.with_metaclass(InitSubclassMeta)):
     """Base class for the GSTools covariance models
 
-    Attributes
+    Parameters
     ----------
     dim : int
         dimension of the model
@@ -334,8 +334,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         This is in addition to the bound-checks
 
-        Notes
-        -----
+        Note
+        ----
         * You can use this to raise a ValueError/warning
         * Any return value will be ignored
         * This method will only be run once, when the class is initialized
@@ -478,8 +478,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             them "False" as keywords. By default, all parameters are
             fitted.
 
-        Notes
-        -----
+        Note
+        ----
         You can set the bounds for each parameter by accessing
         ``model.set_arg_bounds(...)``
         """
@@ -583,9 +583,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
                 * [a, b]
                 * [a, b, <type>]
+
             <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
             are open ("o") or closed ("c")
-            """
+        """
         for opt in kwargs:
             if opt in self.opt_arg:
                 if not check_bounds(kwargs[opt]):
@@ -654,12 +655,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def var_bounds(self):
         """Bounds for the variance
 
-        Notes
-        -----
+        Note
+        ----
         Is a list of 2 or 3 values:
 
             * [a, b]
             * [a, b, <type>]
+
         <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
         are open ("o") or closed ("c")
         """
@@ -679,12 +681,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def len_scale_bounds(self):
         """Bounds for the lenght scale
 
-        Notes
-        -----
+        Note
+        ----
         Is a list of 2 or 3 values:
 
             * [a, b]
             * [a, b, <type>]
+
         <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
         are open ("o") or closed ("c")
         """
@@ -704,12 +707,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def nugget_bounds(self):
         """Bounds for the nugget
 
-        Notes
-        -----
+        Note
+        ----
         Is a list of 2 or 3 values:
 
             * [a, b]
             * [a, b, <type>]
+
         <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
         are open ("o") or closed ("c")
         """
@@ -729,12 +733,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def opt_arg_bounds(self):
         """Bounds for the optional arguments
 
-        Notes
-        -----
+        Note
+        ----
         Is a list of 2 or 3 values:
 
             * [a, b]
             * [a, b, <type>]
+
         <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
         are open ("o") or closed ("c")
         """
@@ -744,12 +749,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def arg_bounds(self):
         """Bounds for all parameters
 
-        Notes
-        -----
+        Note
+        ----
         Is a list of 2 or 3 values:
 
             * [a, b]
             * [a, b, <type>]
+
         <type> is one of "oo", "cc", "oc" or "co" to define if the bounds
         are open ("o") or closed ("c")
         """
@@ -911,8 +917,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def len_scale_vec(self):
         """The length scales in each direction of the model.
 
-        Notes
-        -----
+        Note
+        ----
         * len_scale_x = len_scale
         * len_scale_y = len_scale*anis_y
         * len_scale_z = len_scale*anis_z

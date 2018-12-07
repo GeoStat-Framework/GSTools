@@ -104,8 +104,8 @@ def pos2xyz(pos, dtype=None, calc_dim=False):
         dim : :class:`int`, optional
             dimension (only if calc_dim is True)
 
-    Notes
-    -----
+    Note
+    ----
     If len(pos) > 3, everything after pos[2] will be ignored.
     """
     x = np.array(pos[0], dtype=dtype).reshape(-1)

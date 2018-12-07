@@ -1,21 +1,15 @@
-field
------
+random
+------
 
-.. automodule:: gstools.field
+.. automodule:: gstools.random
    :members:
    :undoc-members:
    :show-inheritance:
-
-
-   Subpackages
-   ^^^^^^^^^^^
 
    .. only:: html
 
       .. toctree::
          :maxdepth: 1
-
-         upscaling.rst
 
    Details
    -------

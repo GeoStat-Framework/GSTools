@@ -36,8 +36,8 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
     **kwargs
         Keyword-arguments that are forwarded to ``scipy.stats.rv_continuous``.
 
-    Notes
-    -----
+    Note
+    ----
     At least pdf or cdf needs to given.
     """
     if ppf_in is None:

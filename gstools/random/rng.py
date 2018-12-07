@@ -2,7 +2,7 @@
 """
 GStools subpackage providing the core of the spatial random field generation.
 
-.. currentmodule:: gstools.field.rng
+.. currentmodule:: gstools.random.rng
 
 The following classes are provided
 
@@ -25,9 +25,6 @@ MC_VER = int(mc.__version__.split(".")[0])
 class RNG(object):
     """
     A random number generator for different distributions and multiple streams.
-
-    Examples
-    --------
     """
 
     def __init__(self, seed=None):
@@ -153,8 +150,8 @@ class RNG(object):
             Keyword-arguments that are forwarded to
             :any:`scipy.stats.rv_continuous`.
 
-        Notes
-        -----
+        Note
+        ----
         At least pdf or cdf needs to be given.
         """
         kwargs["seed"] = self.random

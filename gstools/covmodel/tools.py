@@ -32,8 +32,8 @@ else:
     class InitSubclassMeta(type):
         """Metaclass that implements PEP 487 protocol
 
-        Notes
-        -----
+        Note
+        ----
         See :
             https://www.python.org/dev/peps/pep-0487
 
@@ -107,8 +107,8 @@ def set_len_anis(dim, len_scale, anis):
     anis : :class:`float`/list, optional
         the anisotropy of length scales along the y- and z-directions
 
-    Notes
-    -----
+    Note
+    ----
     If ``len_scale`` is given as list, ``anis`` will be recalculated.
     """
     ls_tmp = np.atleast_1d(len_scale)[:dim]

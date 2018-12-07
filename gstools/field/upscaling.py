@@ -24,8 +24,8 @@ __all__ = ["var_coarse_graining", "var_no_scaling"]
 def var_coarse_graining(model, point_volumes=0.0):
     r"""Coarse Graning procedure to upscale the variance for uniform flow
 
-    Notes
-    -----
+    Note
+    ----
     This procedure was presented in [Attinger03]_. It applies the
     upscaling procedure 'Coarse Graining' to the Groundwater flow equation
     under uniform flow on a lognormal distributed conductivity field following

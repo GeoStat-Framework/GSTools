@@ -1,7 +1,7 @@
-srf
----
+covmodel
+--------
 
-.. automodule:: gstools.field.srf
+.. automodule:: gstools.covmodel
    :members:
    :undoc-members:
    :show-inheritance:
