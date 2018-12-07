@@ -51,8 +51,8 @@ __all__ = [
 class Gaussian(CovModel):
     r"""The Gaussian covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -80,8 +80,8 @@ class Gaussian(CovModel):
     def spectral_rad_cdf(self, r):
         r"""The cdf of the radial spectral density
 
-        Note
-        ----
+        Notes
+        -----
         Since the spectrum is radial-symmetric, we can calculate, the pdf and
         cdf of the radii-distribution according to the spectral density
 
@@ -103,8 +103,8 @@ class Gaussian(CovModel):
     def spectral_rad_ppf(self, u):
         r"""The ppf of the radial spectral density
 
-        Note
-        ----
+        Notes
+        -----
         To sample the radii of the given spectral density we can calculate
         the PPF (Percent Point Function), to sample from a uniform distribution
 
@@ -135,8 +135,8 @@ class Gaussian(CovModel):
 class Exponential(CovModel):
     r"""The Exponential covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -166,8 +166,8 @@ class Exponential(CovModel):
     def spectral_rad_cdf(self, r):
         r"""The cdf of the radial spectral density
 
-        Note
-        ----
+        Notes
+        -----
         Since the spectrum is radial-symmetric, we can calculate, the pdf and
         cdf of the radii-distribution according to the spectral density
 
@@ -192,8 +192,8 @@ class Exponential(CovModel):
     def spectral_rad_ppf(self, u):
         r"""The ppf of the radial spectral density
 
-        Note
-        ----
+        Notes
+        -----
         To sample the radii of the given spectral density we can calculate
         the PPF (Percent Point Function), to sample from a uniform distribution
 
@@ -224,8 +224,8 @@ class Exponential(CovModel):
 class Spherical(CovModel):
     r"""The Spherical covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -263,8 +263,8 @@ class Spherical(CovModel):
 class SphericalRescal(CovModel):
     r"""The rescaled Spherical covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -311,8 +311,8 @@ class SphericalRescal(CovModel):
 class Rational(CovModel):
     r"""The rational quadratic covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -349,8 +349,8 @@ class Rational(CovModel):
 class Stable(CovModel):
     r"""The stable covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -390,8 +390,8 @@ class Stable(CovModel):
 class Matern(CovModel):
     r"""The Matérn covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -452,8 +452,8 @@ class Matern(CovModel):
 class MaternRescal(CovModel):
     r"""The rescaled Matérn covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -524,8 +524,8 @@ class MaternRescal(CovModel):
 class Linear(CovModel):
     r"""The bounded linear covariance model
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following normalized covariance function:
 
     .. math::
@@ -560,8 +560,8 @@ class Linear(CovModel):
 class TPLGaussian(CovModel):
     r"""Truncated-Power-Law with Gaussian modes
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following variogram function:
 
     .. math::
@@ -627,8 +627,8 @@ class TPLGaussian(CovModel):
 class TPLExponential(CovModel):
     r"""Truncated-Power-Law with Exponential modes
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following variogram function:
 
     .. math::
@@ -692,8 +692,8 @@ class TPLExponential(CovModel):
 class TPLStable(CovModel):
     r"""Truncated-Power-Law with Stable modes
 
-    Note
-    ----
+    Notes
+    -----
     This model is given by the following variogram function:
 
     .. math::
