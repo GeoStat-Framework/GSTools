@@ -1,0 +1,8 @@
+#required for readthedocs.org
+cython>=0.25
+numpy>=1.8.2
+scipy>=0.19.1
+hankel>=0.3.6
+emcee
+pyevtk
+six
