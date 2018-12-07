@@ -1,0 +1,59 @@
+Sphinx v1.8.2 in Verwendung
+Erstelle Ausgabeverzeichnis…
+loading intersphinx inventory from https://docs.python.org/3.6/objects.inv...
+loading intersphinx inventory from https://docs.python.org/objects.inv...
+intersphinx inventory has moved: https://docs.python.org/objects.inv -> https://docs.python.org/3/objects.inv
+loading intersphinx inventory from http://docs.scipy.org/doc/numpy/objects.inv...
+intersphinx inventory has moved: http://docs.scipy.org/doc/numpy/objects.inv -> https://docs.scipy.org/doc/numpy/objects.inv
+loading intersphinx inventory from http://docs.scipy.org/doc/scipy/reference/objects.inv...
+intersphinx inventory has moved: http://docs.scipy.org/doc/scipy/reference/objects.inv -> https://docs.scipy.org/doc/scipy/reference/objects.inv
+loading intersphinx inventory from http://matplotlib.org/objects.inv...
+intersphinx inventory has moved: http://matplotlib.org/objects.inv -> https://matplotlib.org/objects.inv
+loading intersphinx inventory from http://www.sphinx-doc.org/en/stable/objects.inv...
+[autosummary] generating autosummary for: covmodel.rst, field.rst, index.rst, main.rst, random.rst, upscaling.rst, variogram.rst
+building [mo]: targets for 0 po files that are out of date
+building [html]: targets for 7 source files that are out of date
+updating environment: 7 added, 0 changed, 0 removed
+reading sources... [ 14%] covmodel
+reading sources... [ 28%] field
+reading sources... [ 42%] index
+reading sources... [ 57%] main
+reading sources... [ 71%] random
+reading sources... [ 85%] upscaling
+reading sources... [100%] variogram
+
+looking for now-outdated files... none found
+pickling environment... erledigt
+checking consistency... erledigt
+preparing documents... erledigt
+writing output... [ 14%] covmodel
+writing output... [ 28%] field
+writing output... [ 42%] index
+writing output... [ 57%] main
+writing output... [ 71%] random
+writing output... [ 85%] upscaling
+writing output... [100%] variogram
+
+generating indices... genindex py-modindex
+highlighting module code... [ 12%] gstools.covmodel.base
+highlighting module code... [ 25%] gstools.covmodel.models
+highlighting module code... [ 37%] gstools.field.generator
+highlighting module code... [ 50%] gstools.field.srf
+highlighting module code... [ 62%] gstools.field.upscaling
+highlighting module code... [ 75%] gstools.random.rng
+highlighting module code... [ 87%] gstools.random.tools
+highlighting module code... [100%] gstools.variogram.variogram
+
+writing additional pages... search
+copying images... [ 25%] gstools.png
+copying images... [ 50%] gau_field.png
+copying images... [ 75%] tplstable_field.png
+copying images... [100%] exp_vario_fit.png
+
+copying static files... done
+copying extra files... erledigt
+dumping search index in English (code: en) ... erledigt
+dumping object inventory... erledigt
+build abgeschlossen, 5640 warnings.
+
+The HTML pages are in build/html.

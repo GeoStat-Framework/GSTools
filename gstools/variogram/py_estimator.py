@@ -3,6 +3,8 @@
 """
 A pure Python implementation of the variogram estimator.
 
+.. currentmodule:: gstools.variogram.py_estimator
+
 The default Cython version is found in estimator.pyx
 This is a fallback implementation in case the Cython extension cannot
 be compiled. This version is very memory limited.

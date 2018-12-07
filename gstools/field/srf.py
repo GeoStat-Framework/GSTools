@@ -104,27 +104,27 @@ class SRF(object):
 
         Parameters
         ----------
-            pos : :class:`list`
-                the position tuple, containing main direction and transversal
-                directions
-            seed : :class:`int`, optional
-                seed for RNG for reseting. Default: keep seed from generator
-            force_moments : :class:`bool`
-                Force the generator to exactly match mean and variance.
-                Default: ``False``
-            point_volumes : :class:`float` or :class:`numpy.ndarray`
-                If your evaluation points for the field are coming from a mesh,
-                they are probably representing a certain element volume.
-                This volumes can be passed by `point_volumes` to apply the
-                given variance upscaling. If `point_volumes` is ``0`` nothing
-                is changed. Default: ``0``
-            mesh_type : :class:`str`
-                'structured' / 'unstructured'
+        pos : :class:`list`
+            the position tuple, containing main direction and transversal
+            directions
+        seed : :class:`int`, optional
+            seed for RNG for reseting. Default: keep seed from generator
+        force_moments : :class:`bool`
+            Force the generator to exactly match mean and variance.
+            Default: ``False``
+        point_volumes : :class:`float` or :class:`numpy.ndarray`
+            If your evaluation points for the field are coming from a mesh,
+            they are probably representing a certain element volume.
+            This volumes can be passed by `point_volumes` to apply the
+            given variance upscaling. If `point_volumes` is ``0`` nothing
+            is changed. Default: ``0``
+        mesh_type : :class:`str`
+            'structured' / 'unstructured'
 
         Returns
         -------
-            field : :class:`numpy.ndarray`
-                the SRF
+        field : :class:`numpy.ndarray`
+            the SRF
         """
         # internal conversation
         x, y, z = pos2xyz(pos)
@@ -195,11 +195,11 @@ class SRF(object):
 
         Parameters
         ----------
-            generator : :class:`str`, optional
-                Name of the generator to use for field generation.
-                Default: "RandMeth"
-            **generator_kwargs
-                keyword arguments that are forwarded to the generator in use.
+        generator : :class:`str`, optional
+            Name of the generator to use for field generation.
+            Default: "RandMeth"
+        **generator_kwargs
+            keyword arguments that are forwarded to the generator in use.
         """
         if generator in GENERATOR:
             gen = GENERATOR[generator]

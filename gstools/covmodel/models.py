@@ -2,7 +2,7 @@
 """
 GStools subpackage providing different covariance models.
 
-.. currentmodule:: gstools.field.cov
+.. currentmodule:: gstools.covmodel.models
 
 The following classes and functions are provided
 

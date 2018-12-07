@@ -59,22 +59,22 @@ def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
 
     Parameters
     ----------
-        pos : :class:`list`
-            the position tuple, containing main direction and transversal
-            directions
-        field : :class:`numpy.ndarray`
-            the spatially distributed data
-        bin_edges : :class:`numpy.ndarray`
-            the bins on which the variogram will be calculated
-        sampling_size : :class:`int`
-            for large input data, this method can take a long
-            time to compute the variogram, therefore this argument specifies
-            the number of data points to sample randomly
+    pos : :class:`list`
+        the position tuple, containing main direction and transversal
+        directions
+    field : :class:`numpy.ndarray`
+        the spatially distributed data
+    bin_edges : :class:`numpy.ndarray`
+        the bins on which the variogram will be calculated
+    sampling_size : :class:`int`
+        for large input data, this method can take a long
+        time to compute the variogram, therefore this argument specifies
+        the number of data points to sample randomly
 
     Returns
     -------
-        :class:`tuple` of :class:`numpy.ndarray`
-            the estimated variogram and the bin centers
+    :class:`tuple` of :class:`numpy.ndarray`
+        the estimated variogram and the bin centers
     """
 
     field = np.array(field, ndmin=1, dtype=np.double)
@@ -118,15 +118,15 @@ def estimate_structured(field, direction="x"):
 
     Parameters
     ----------
-        field : :class:`numpy.ndarray`
-            the spatially distributed data
-        direction : :class:`str`
-            the axis over which the variogram will be estimated (x, y, z)
+    field : :class:`numpy.ndarray`
+        the spatially distributed data
+    direction : :class:`str`
+        the axis over which the variogram will be estimated (x, y, z)
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            the estimated variogram along the given direction.
+    :class:`numpy.ndarray`
+        the estimated variogram along the given direction.
     """
 
     try:

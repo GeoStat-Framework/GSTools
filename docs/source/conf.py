@@ -65,18 +65,19 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-#    'sphinx.ext.napoleon',
+    'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'numpydoc',
 ]
 
-autoclass_content = 'class'
+#autoclass_content = 'class'
 #autodoc_member_order = 'groupwise'
 autodoc_member_order = 'bysource'
 
 #napoleon_use_ivar = True
-numpydoc_show_class_members = True
+numpydoc_show_class_members = False
 class_members_toctree = False
+autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
