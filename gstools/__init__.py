@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-=======
-GSTools
-=======
-
-Contents
---------
-GeoStatTools is a library providing geostatistical tools.
+Package Content
+---------------
+GSTools is a library providing geostatistical tools.
+The following functionalities are directly provided on module-level.
 
 Subpackages
------------
+^^^^^^^^^^^
 The following subpackages are provided
 
 .. autosummary::
@@ -17,9 +14,10 @@ The following subpackages are provided
     field
     variogram
     random
+    tools
 
 Classes
--------
+^^^^^^^
 The following classes are provided directly
 
 .. autosummary::
@@ -39,10 +37,11 @@ The following classes are provided directly
    TPLStable
 
 Functions
----------
+^^^^^^^^^
 The following functions are provided directly
 
 .. autosummary::
+   vtk_export
    vtk_export_structured
    vtk_export_unstructured
    estimate_structured
@@ -50,7 +49,7 @@ The following functions are provided directly
 """
 from __future__ import absolute_import
 
-from gstools import field, variogram, random, covmodel
+from gstools import field, variogram, random, covmodel, tools
 from gstools.field import SRF
 from gstools.tools.export import (
     vtk_export_structured,
@@ -74,7 +73,7 @@ from gstools.covmodel import (
     TPLStable,
 )
 
-__all__ = ["covmodel", "field", "variogram", "random"]
+__all__ = ["covmodel", "field", "variogram", "random", "tools"]
 
 __all__ += [
     "CovModel",
@@ -101,4 +100,4 @@ __all__ += [
     "vtk_export",
 ]
 
-__version__ = "1.0.0rc5"
+__version__ = "1.0rc6"

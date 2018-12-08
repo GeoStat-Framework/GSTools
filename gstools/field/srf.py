@@ -209,7 +209,7 @@ class SRF(object):
 
     @property
     def generator(self):
-        """:any:`callable` The generator of the field.
+        """:any:`callable`: The generator of the field.
 
         Default: :any:`RandMeth`
         """
@@ -237,8 +237,7 @@ class SRF(object):
 
     @property
     def model(self):
-        """:any:`CovModel`:
-        The covariance model of the spatial random field.
+        """:any:`CovModel`: The covariance model of the spatial random field.
         """
         return self._model
 

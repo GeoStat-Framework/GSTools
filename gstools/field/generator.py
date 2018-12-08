@@ -23,6 +23,25 @@ __all__ = ["RandMeth"]
 class RandMeth(object):
     r"""Randomization method for calculating isotropic spatial random fields.
 
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        covariance model
+    mode_no : :class:`int`, optional
+        number of Fourier modes. Default: 1000
+    seed : :class:`int`
+        the seed of the random number generator.
+        If "None", a random seed is used. Default: None
+    chunk_tmp_size : :class:`int`
+        Number of points (number of coordinates * mode_no)
+        to be handled by one chunk while creating the fild.
+        This is used to prevent memory overflows while
+        generating the field. Default: 1e7
+    verbose : :class:`bool`
+        State if there should be output during the generation.
+    **kwargs
+        Placeholder for keyword-args
+
     Notes
     -----
     The Randomization method is used to generate isotropic
@@ -43,21 +62,6 @@ class RandMeth(object):
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
-
-    Parameters
-    ----------
-    model : :class:`gstools.CovModel`
-        covariance model
-    mode_no : :class:`int`, optional
-        number of Fourier modes. Default: 1000
-    seed : :class:`int`
-        the seed of the random number generator.
-        If "None", a random seed is used. Default: None
-    chunk_tmp_size : :class:`int`
-        Number of points (number of coordinates * mode_no)
-        to be handled by one chunk while creating the fild.
-        This is used to prevent memory overflows while
-        generating the field. Default: 1e7
     """
 
     def __init__(
@@ -69,31 +73,13 @@ class RandMeth(object):
         verbose=False,
         **kwargs
     ):
-        """Initialize the randomization method
-
-        Parameters
-        ----------
-        model : :class:`gstools.CovModel`
-            covariance model
-        mode_no : :class:`int`, optional
-            number of Fourier modes. Default: 1000
-        seed : :class:`int`, optional
-            the seed of the random number generator.
-            If "None", a random seed is used. Default: None
-        chunk_tmp_size : :class:`int`, optional
-            Number of points (number of coordinates * mode_no)
-            to be handled by one chunk while creating the fild.
-            This is used to prevent memory overflows while
-            generating the field. Default: 1e7
-        **kwargs
-            Placeholder for keyword-args
-        """
+        """Initialize the randomization method"""
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
         # initialize atributes
         self._mode_no = mode_no
-        self.chunk_tmp_size = chunk_tmp_size
-        self.verbose = verbose
+        self.chunk_tmp_size = chunk_tmp_size  #: temporary chunk size
+        self.verbose = verbose  #: verbosity of the generator
         # initialize private atributes
         self._model = None
         self._seed = None
@@ -201,7 +187,7 @@ class RandMeth(object):
 
         Parameters
         ----------
-        model : :class:`gstools.CovModel` or None, optional
+        model : :any:`CovModel` or None, optional
             covariance model. Default: None
         seed : :class:`int` or None or np.nan, optional
             the seed of the random number generator.
@@ -297,37 +283,33 @@ class RandMeth(object):
 
     @seed.setter
     def seed(self, new_seed=None):
-        """ Set a new seed for the random number generation, if it differs."""
         if new_seed is not self._seed:
             self._set_seed(new_seed)
 
     @property
     def model(self):
-        """ The covariance model of the spatial random field."""
+        """:any:`CovModel`: The covariance model of the spatial random field.
+        """
         return self._model
 
     @model.setter
     def model(self, model):
-        """ Set a new covariance model and generate new random numbers."""
         self.update(model)
 
     @property
     def mode_no(self):
-        """ The number of modes."""
+        """:class:`int`: The number of modes in the randomization method."""
         return self._mode_no
 
     @mode_no.setter
     def mode_no(self, mode_no):
-        """ Set a new mode number and generate new random numbers."""
         if int(mode_no) != self._mode_no:
             self._mode_no = int(mode_no)
             self._set_seed(self._seed)
 
     @property
     def name(self):
-        """
-        The name of the generator
-        """
+        """The name of the generator"""
         return self.__class__.__name__
 
     def __str__(self):

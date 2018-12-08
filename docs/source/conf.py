@@ -64,20 +64,40 @@ extensions = [
     'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.napoleon',
+#    'sphinx.ext.githubpages',
     'sphinx.ext.autosummary',
-    'numpydoc',
+    'sphinx.ext.napoleon',
+#    'numpydoc',
 ]
 
-#autoclass_content = 'class'
-#autodoc_member_order = 'groupwise'
-autodoc_member_order = 'bysource'
-
-#napoleon_use_ivar = True
-numpydoc_show_class_members = False
-class_members_toctree = False
+# ?!
 autosummary_generate = True
+# dont show __init__ docstring
+autoclass_content = 'class'
+
+# idea from:
+# https://wwoods.github.io/2016/06/09/easy-sphinx-documentation-without-the-boilerplate/
+#autodoc_default_flags = [
+#    # Make sure that any autodoc declarations show the right members
+#    "members",
+#    "inherited-members",
+#    "private-members",
+#    "show-inheritance",
+#]
+
+# sort class members
+autodoc_member_order = 'groupwise'
+#autodoc_member_order = 'bysource'
+
+# Notes in boxes
+napoleon_use_admonition_for_notes = True
+# Attributes like parameters
+#napoleon_use_ivar = False
+
+# https://github.com/numpy/numpydoc/issues/69
+# if set to True, over 5000 warning plop up... but it looks better in the end
+#numpydoc_show_class_members = False
+class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -131,14 +151,10 @@ todo_include_todos = False
 #
 html_theme = "sphinx_rtd_theme"
 
-#html_theme = "classic"
-#html_theme = 'sphinxdoc'
-
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
 html_theme_options = {
 #    'canonical_url': '',
 #    'analytics_id': '',
@@ -182,7 +198,7 @@ htmlhelp_basename = 'GeoStatToolsdoc'
 
 latex_elements = {
     'preamble': r'\setcounter{tocdepth}{3}',
-    'pointsize': '9pt',
+    'pointsize': '8pt',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -190,7 +206,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'GeoStatTools.tex', 'GeoStatTools Documentation',
-     'Lennart Schueler', 'howto'),
+     'Lennart Schueler, Sebastian Mueller', 'howto'),
 ]
 
 
@@ -215,7 +231,10 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-suppress_warnings = ['image.nonlocal_uri']
+suppress_warnings = [
+    'image.nonlocal_uri',
+#    'app.add_directive',  # this evtl. suppresses the numpydoc induced warning
+]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {

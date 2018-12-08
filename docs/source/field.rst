@@ -14,6 +14,7 @@ field
       .. toctree::
          :maxdepth: 1
 
+         generator.rst
          upscaling.rst
 
    Details

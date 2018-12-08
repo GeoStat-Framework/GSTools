@@ -10,11 +10,9 @@ The following classes are provided
 
 .. autosummary::
    SRF
-   RandMeth
 """
 from __future__ import absolute_import
 
 from gstools.field.srf import SRF
-from gstools.field.generator import RandMeth
 
-__all__ = ["SRF", "RandMeth"]
+__all__ = ["SRF"]

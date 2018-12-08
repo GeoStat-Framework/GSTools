@@ -1,6 +1,6 @@
-#######################
-Welcome to GeoStatTools
-#######################
+==================
+GSTools Quickstart
+==================
 
 .. image:: gstools.png
    :width: 251px
@@ -10,7 +10,8 @@ Welcome to GeoStatTools
 Purpose
 =======
 
-GeoStatTools is a library providing geostatistical tools.
+GeoStatTools is a library providing geostatistical tools for random field generation and
+variogram estimation based on a list of provided or even user-defined covariance models.
 
 
 Installation
@@ -31,7 +32,7 @@ Examples
 Gaussian Covariance Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is an example of how to generate a 2 dimensional spatial random field with a gaussian covariance model.
+This is an example of how to generate a 2 dimensional spatial random field (SRF) with a gaussian covariance model.
 
 .. code-block:: python
 
@@ -136,7 +137,7 @@ model again.
 
 Which gives:
 
-``Stable(dim=2, var=1.9235043464004502, len_scale=8.151129163855275, nugget=0.0, anis=[1.], angles=[0.], alpha=1.0518003172227908)``
+``Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)``
 
 .. image:: exp_vario_fit.png
    :width: 600px
@@ -153,16 +154,16 @@ Requirements
 - `six <https://github.com/benjaminp/six>`_
 
 
+Content
+=======
+
+.. toctree::
+   :maxdepth: 1
+
+   main
+
+
 License
 =======
 
 `GPL <https://github.com/LSchueler/GSTools/blob/master/LICENSE>`_ © 2018
-
-
-Modules
-=======
-
-.. toctree::
-   :maxdepth: 2
-
-   main
