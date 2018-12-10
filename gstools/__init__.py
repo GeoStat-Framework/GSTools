@@ -134,4 +134,4 @@ __all__ += [
     "vtk_export",
 ]
 
-__version__ = "1.0rc6"
+__version__ = "1.0rc7"

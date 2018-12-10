@@ -48,8 +48,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     var : :class:`float`, optional
         variance of the model (the nugget is not included in "this" variance)
         Default: ``1.0``
-    len_scale : :class:`float`, optional
-        length scale of the model in the x-direction. Default: ``1.0``
+    len_scale : :class:`float` or :class:`list`, optional
+        length scale of the model.
+        If a single value is given, the same length-scale will be used for
+        every direction. If multiple values (for main and transversal
+        directions) are given, `anis` will be
+        recalculated accordingly.
+        Default: ``1.0``
     nugget : :class:`float`, optional
         nugget of the model. Default: ``0.0``
     anis : :class:`float` or :class:`list`, optional
@@ -62,7 +67,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
 
          Default: ``0.0``
-    integral_scale : :class:`float` or :any:`None`, optional
+    integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
         If given, the len_scale will be calculated, so that the integral
         scale of the model matches the given one. Default: ``None``
     var_bounds : :class:`list`, optional

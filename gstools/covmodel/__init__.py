@@ -12,6 +12,7 @@ Subpackages
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
+Class to construct user defined covariance models
 
 .. autosummary::
    CovModel
@@ -29,6 +30,11 @@ Predefined Covariance Models
    Linear
    MaternRescal
    SphericalRescal
+
+Truncated Power Law Covariance Models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
    TPLGaussian
    TPLExponential
    TPLStable
@@ -46,6 +52,8 @@ from gstools.covmodel.models import (
     Linear,
     MaternRescal,
     SphericalRescal,
+)
+from gstools.covmodel.tpl_models import (
     TPLGaussian,
     TPLExponential,
     TPLStable,

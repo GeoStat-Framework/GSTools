@@ -10,6 +10,7 @@ The following functions are provided
    inc_gamma
    exp_int
    inc_beta
+   stable_cov_norm
 """
 # pylint: disable=C0103, E1101
 from __future__ import print_function, division, absolute_import
@@ -17,7 +18,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from scipy import special as sps
 
-__all__ = ["inc_gamma", "exp_int", "inc_beta"]
+__all__ = ["inc_gamma", "exp_int", "inc_beta", "stable_cov_norm"]
 
 
 # special functions ###########################################################
@@ -61,6 +62,38 @@ def exp_int(s, x):
     if np.isclose(s, np.around(s)) and s > -1:
         return sps.expn(int(np.around(s)), x)
     return inc_gamma(1 - s, x) * x ** (s - 1)
+
+
+def stable_cov_norm(r, len_scale, hurst, alpha):
+    r"""The normalized covariance function of the stable model
+
+    Given by
+
+    .. math::
+       \tilde{C}(r) =
+       \frac{2H}{\alpha} \cdot
+       E_{1+\frac{2H}{\alpha}}
+       \left(\left(\frac{r}{\ell}\right)^{\alpha} \right)
+
+
+    Parameters
+    ----------
+    r : :class:`numpy.ndarray`
+        input values
+    len_scale : :class:`float`
+        length-scale of the model.
+    hurst : :class:`float`
+        Hurst coefficient of the power law.
+    alpha : :class:`float`, optional
+        Shape parameter of the stable model.
+    """
+    r = np.array(np.abs(r / len_scale), dtype=float)
+    r[r < 1e-8] = 0  # hack to prevent numerical errors
+    res = np.ones_like(r)
+    res[r > 0] = (2 * hurst / alpha) * exp_int(
+        1 + 2 * hurst / alpha, (r[r > 0]) ** alpha
+    )
+    return res
 
 
 def inc_beta(a, b, x):
