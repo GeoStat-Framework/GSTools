@@ -19,11 +19,7 @@ import numpy as np
 from gstools.covmodel import CovModel
 from gstools.tools.special import stable_cov_norm
 
-__all__ = [
-    "TPLGaussian",
-    "TPLExponential",
-    "TPLStable",
-]
+__all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
 
 
 # Truncated power law #########################################################
@@ -158,10 +154,7 @@ class TPLGaussian(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {
-            "hurst": [0, 1, "oo"],
-            "len_low": [0, 1000, "cc"],
-        }
+        return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
     def covariance_normed(self, r):
         r"""Truncated-Power-Law with Gaussian modes - normalized covariance
@@ -329,10 +322,7 @@ class TPLExponential(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {
-            "hurst": [0, 1, "oo"],
-            "len_low": [0, 1000, "cc"],
-        }
+        return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
     def covariance_normed(self, r):
         r"""Truncated-Power-Law with Exponential modes - normalized covariance

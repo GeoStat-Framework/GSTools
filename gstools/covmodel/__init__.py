@@ -53,11 +53,7 @@ from gstools.covmodel.models import (
     MaternRescal,
     SphericalRescal,
 )
-from gstools.covmodel.tpl_models import (
-    TPLGaussian,
-    TPLExponential,
-    TPLStable,
-)
+from gstools.covmodel.tpl_models import TPLGaussian, TPLExponential, TPLStable
 
 __all__ = [
     "CovModel",

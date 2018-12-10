@@ -10,6 +10,7 @@ The following functions are provided
    estimate_unstructured
    estimate_structured
 """
+# pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
@@ -137,7 +138,7 @@ def estimate_structured(field, direction="x"):
         field = np.array(field, ndmin=1, dtype=np.double)
     shape = field.shape
 
-    # TODO shall this be renamed?
+    # TODO should this be renamed?
     if direction == "x":
         pass
     elif direction == "y":

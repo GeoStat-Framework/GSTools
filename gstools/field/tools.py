@@ -16,6 +16,7 @@ The following classes and functions are provided
    reshape_axis_from_struct_to_unstruct
    reshape_field_from_unstruct_to_struct
 """
+# pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
 
 import numpy as np

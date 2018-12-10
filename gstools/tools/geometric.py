@@ -11,6 +11,7 @@ The following functions are provided
    r3d_y
    r3d_z
 """
+# pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
