@@ -32,7 +32,8 @@ Examples
 Gaussian Covariance Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is an example of how to generate a 2 dimensional spatial random field (SRF) with a gaussian covariance model.
+This is an example of how to generate a 2 dimensional spatial random field (:any:`SRF`)
+with a :any:`Gaussian` covariance model.
 
 .. code-block:: python
 
@@ -56,21 +57,38 @@ Truncated Power Law Model
 
 GSTools also implements truncated power law variograms, which can be represented as a
 superposition of scale dependant modes in form of standard variograms, which are truncated by
-an upper lengthscale :math:`l_u`.
+a lower- :math:`\ell_{\mathrm{low}}` and an upper length-scale :math:`\ell_{\mathrm{up}}`.
 
-This example shows the truncated power law based on the `stable model <https://en.wikipedia.org/wiki/Stable_distribution>`_ and is given by
+This example shows the truncated power law (:any:`TPLStable`) based on the
+:any:`Stable` covariance model and is given by
 
-.. image:: http://mathurl.com/yasd47ef.png
-   :alt: 'Truncated Power Low - Stable'
-   :align: center
+.. math::
+   \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
+   \intop_{\ell_{\mathrm{low}}}^{\ell_{\mathrm{up}}}
+   \gamma(r,\lambda) \frac{\rm d \lambda}{\lambda}
 
-which gives Gaussian modes for ``alpha=2`` or exponential modes for ``alpha=1``
+with `Stable` modes on each scale:
 
-This results in:
+.. math::
+   \gamma(r,\lambda) &=
+   \sigma^2(\lambda)\cdot\left(1-
+   \exp\left[- \left(\frac{r}{\lambda}\right)^{\alpha}\right]
+   \right)\\
+   \sigma^2(\lambda) &= C\cdot\lambda^{2H}
 
-.. image:: http://mathurl.com//yc669evd.png
-   :alt: 'Truncated Power Low - Stable'
-   :align: center
+which gives Gaussian modes for ``alpha=2`` or Exponential modes for ``alpha=1``.
+
+For :math:`\ell_{\mathrm{low}}=0` this results in:
+
+.. math::
+   \gamma_{\ell_{\mathrm{up}}}(r) &=
+   \sigma^2_{\ell_{\mathrm{up}}}\cdot\left(1-
+   \frac{2H}{\alpha} \cdot
+   E_{1+\frac{2H}{\alpha}}
+   \left[\left(\frac{r}{\ell_{\mathrm{up}}}\right)^{\alpha}\right]
+   \right) \\
+   \sigma^2_{\ell_{\ell_{\mathrm{up}}}} &=
+   C\cdot\frac{\ell_{\mathrm{up}}^{2H}}{2H}
 
 .. code-block:: python
 
@@ -81,7 +99,8 @@ This results in:
     model = TPLStable(
         dim=2,           # spatial dimension
         var=1,           # variance (C is calculated internally, so that the variance is actually 1)
-        len_scale=10,    # length scale (a.k.a. range)
+        len_low=0,       # lower truncation of the power law
+        len_scale=10,    # length scale (a.k.a. range), len_up = len_low + len_scale
         nugget=0.1,      # nugget
         anis=0.5,        # anisotropy between main direction and transversal ones
         angles=np.pi/4,  # rotation angles
@@ -134,8 +153,8 @@ model again.
     fit_model.fit_variogram(bin_center, gamma, nugget=False)
     plot_variogram(fit_model, x_max=40)
     # output
-    plt.show()
     print(fit_model)
+    plt.show()
 
 Which gives:
 
