@@ -26,7 +26,7 @@ from __future__ import print_function, division, absolute_import
 import warnings
 import numpy as np
 from scipy import special as sps
-from gstools.covmodel.base import CovModel
+from gstools.covmodel import CovModel
 from gstools.tools.special import exp_int
 
 __all__ = [
@@ -78,16 +78,7 @@ class Gaussian(CovModel):
         )
 
     def spectral_rad_cdf(self, r):
-        r"""The cdf of the radial spectral density
-
-        Notes
-        -----
-        Since the spectrum is radial-symmetric, we can calculate, the pdf and
-        cdf of the radii-distribution according to the spectral density
-
-        .. math::
-           \mathrm{CDF}(r) = \intop_0^r \mathrm{PDF}(\tau) d\tau
-        """
+        """The cdf of the radial spectral density"""
         if self.dim == 1:
             return sps.erf(self.len_scale * r / np.sqrt(np.pi))
         if self.dim == 2:
@@ -101,16 +92,7 @@ class Gaussian(CovModel):
         return None
 
     def spectral_rad_ppf(self, u):
-        r"""The ppf of the radial spectral density
-
-        Notes
-        -----
-        To sample the radii of the given spectral density we can calculate
-        the PPF (Percent Point Function), to sample from a uniform distribution
-
-        .. math::
-           \mathrm{PPF}(u) = \mathrm{CDF}^{-1}(u)
-        """
+        """The ppf of the radial spectral density"""
         if self.dim == 1:
             return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
         if self.dim == 2:
@@ -164,16 +146,7 @@ class Exponential(CovModel):
         )
 
     def spectral_rad_cdf(self, r):
-        r"""The cdf of the radial spectral density
-
-        Notes
-        -----
-        Since the spectrum is radial-symmetric, we can calculate, the pdf and
-        cdf of the radii-distribution according to the spectral density
-
-        .. math::
-           \mathrm{CDF}(r) = \intop_0^r \mathrm{PDF}(\tau) d\tau
-        """
+        """The cdf of the radial spectral density"""
         if self.dim == 1:
             return np.arctan(r * self.len_scale) * 2 / np.pi
         if self.dim == 2:
@@ -190,16 +163,7 @@ class Exponential(CovModel):
         return None
 
     def spectral_rad_ppf(self, u):
-        r"""The ppf of the radial spectral density
-
-        Notes
-        -----
-        To sample the radii of the given spectral density we can calculate
-        the PPF (Percent Point Function), to sample from a uniform distribution
-
-        .. math::
-           \mathrm{PPF}(u) = \mathrm{CDF}^{-1}(u)
-        """
+        """The ppf of the radial spectral density"""
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_scale
         if self.dim == 2:
@@ -301,7 +265,7 @@ class SphericalRescal(CovModel):
         return res
 
     def calc_integral_scale(self):
-        """The integral scale of the spherical model is the length scale"""
+        """The integral scale of this spherical model is the length scale"""
         return self.len_scale
 
 
@@ -321,12 +285,38 @@ class Rational(CovModel):
        \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
 
     :math:`\alpha` is a shape parameter and should be > 0.5.
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    alpha : :class:`float`, optional
+        Shape parameter. Standard range: ``(0, inf)``
+        Default: ``1.0``
     """
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"alpha": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"alpha": 1.0}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"alpha": [0.5, inf]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"alpha": [0.5, np.inf]}
 
     def covariance_normed(self, r):
@@ -358,15 +348,49 @@ class Stable(CovModel):
        \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
 
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    alpha : :class:`float`, optional
+        Shape parameter. Standard range: ``(0, 2]``
+        Default: ``1.5``
     """
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"alpha": 1.5}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"alpha": 1.5}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"alpha": [0, 2, "oc"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"alpha": [0, 2, "oc"]}
 
     def check_opt_arg(self):
+        """Checks for the optional arguments
+
+        Warns
+        -----
+        alpha
+            If alpha is < 0.3, the model tends to a nugget model and gets
+            numerically unstable.
+        """
         if self.alpha < 0.3:
             warnings.warn(
                 "TPLStable: parameter 'alpha' is < 0.3, "
@@ -404,15 +428,48 @@ class Matern(CovModel):
     is the modified Bessel function of the second kind.
 
     :math:`\nu` is a shape parameter and should be >= 0.5.
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[0.5, 60]``
+        Default: ``1.0``
     """
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"nu": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"nu": 1.0}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"nu": [0.5, 60.0, "cc"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"nu": [0.5, 60.0, "cc"]}
 
     def check_opt_arg(self):
+        """Checks for the optional arguments
+
+        Warns
+        -----
+        nu
+            If nu is > 50, the model gets numerically unstable.
+        """
         if self.nu > 50.0:
             warnings.warn(
                 "Mat: parameter 'nu' is > 50, "
@@ -469,15 +526,48 @@ class MaternRescal(CovModel):
     of the second kind and :math:`B` is the Euler beta function.
 
     :math:`\nu` is a shape parameter and should be > 0.5.
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[0.5, 60]``
+        Default: ``1.0``
     """
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"nu": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"nu": 1.0}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"nu": [0.5, 60.0, "cc"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"nu": [0.5, 60.0, "cc"]}
 
     def check_opt_arg(self):
+        """Checks for the optional arguments
+
+        Warns
+        -----
+        nu
+            If nu is > 50, the model gets numerically unstable.
+        """
         if self.nu > 50.0:
             warnings.warn(
                 "Mat: parameter 'nu' is > 50, "
@@ -595,16 +685,54 @@ class TPLGaussian(CovModel):
         * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
         * :math:`\ell_u>0` : The upper length scale for truncation
           (``model.len_scale``)
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    hurst : :class:`float`, optional
+        Hurst coefficient of the power law. Standard range: ``(0, 1)``
+        Default: ``0.5``
     """
 
     def var_factor(self):
-        """Factor for C (Power-Law scale) to result in the right variance"""
+        r"""Factor for C (Power-Law factor)
+
+        This is used to result in the right variance, which is depending
+        on the hurst coefficient and the length-scale extents
+
+        .. math::
+           \frac{\ell_u^{2H}}{2H}
+
+        Returns
+        -------
+        :class:`float`
+            factor
+        """
         return self.len_scale ** (2 * self.hurst) / (2 * self.hurst)
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"hurst": 0.5}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"hurst": 0.5}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"hurst": [0, 1, "oo"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"hurst": [0, 1, "oo"]}
 
     def covariance_normed(self, r):
@@ -662,16 +790,54 @@ class TPLExponential(CovModel):
         * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
         * :math:`\ell_u>0` : The upper length scale for truncation
           (``model.len_scale``)
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    hurst : :class:`float`, optional
+        Hurst coefficient of the power law. Standard range: ``(0, 1)``
+        Default: ``0.5``
     """
 
     def var_factor(self):
-        """Factor for C (Power-Law scale) to result in the right variance"""
+        r"""Factor for C (Power-Law factor)
+
+        This is used to result in the right variance, which is depending
+        on the hurst coefficient and the length-scale extents
+
+        .. math::
+           \frac{\ell_u^{2H}}{2H}
+
+        Returns
+        -------
+        :class:`float`
+            factor
+        """
         return self.len_scale ** (2 * self.hurst) / (2 * self.hurst)
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"hurst": 0.5}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"hurst": 0.5}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"hurst": [0, 1, "oo"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"hurst": [0, 1, "oo"]}
 
     def covariance_normed(self, r):
@@ -728,19 +894,68 @@ class TPLStable(CovModel):
         * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
         * :math:`\ell_u>0` : The upper length scale for truncation
           (``model.len_scale``)
+
+    Other Parameters
+    ----------------
+    **opt_arg
+        The following parameters are covered by these keyword arguments
+    hurst : :class:`float`, optional
+        Hurst coefficient of the power law. Standard range: ``(0, 1)``
+        Default: ``0.5``
+    alpha : :class:`float`, optional
+        Shape parameter of the stable model. Standard range: ``(0, 2]``
+        Default: ``1.5``
     """
 
     def var_factor(self):
-        """Factor for C (Power-Law scale) to result in the right variance"""
+        r"""Factor for C (Power-Law factor)
+
+        This is used to result in the right variance, which is depending
+        on the hurst coefficient and the length-scale extents
+
+        .. math::
+           \frac{\ell_u^{2H}}{2H}
+
+        Returns
+        -------
+        :class:`float`
+            factor
+        """
         return self.len_scale ** (2 * self.hurst) / (2 * self.hurst)
 
     def default_opt_arg(self):
+        """The defaults for the optional arguments:
+
+            * ``{"hurst": 0.5, "alpha": 1.5}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
         return {"hurst": 0.5, "alpha": 1.5}
 
     def default_opt_arg_bounds(self):
+        """The defaults boundaries for the optional arguments:
+
+            * ``{"hurst": [0, 1, "oo"], "alpha": [0, 2, "oc"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
         return {"hurst": [0, 1, "oo"], "alpha": [0, 2, "oc"]}
 
     def check_opt_arg(self):
+        """Checks for the optional arguments
+
+        Warns
+        -----
+        alpha
+            If alpha is < 0.3, the model tends to a nugget model and gets
+            numerically unstable.
+        """
         if self.alpha < 0.3:
             warnings.warn(
                 "TPLStable: parameter 'alpha' is < 0.3, "

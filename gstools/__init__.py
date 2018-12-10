@@ -20,9 +20,29 @@ Classes
 ^^^^^^^
 The following classes are provided directly
 
+Spatial Random Field
+~~~~~~~~~~~~~~~~~~~~
+Class for random field generation
+
+.. currentmodule:: gstools.field
+
 .. autosummary::
    SRF
+
+Covariance Base-Class
+~~~~~~~~~~~~~~~~~~~~~
+Class to construct user defined covariance models
+
+.. currentmodule:: gstools.covmodel
+
+.. autosummary::
    CovModel
+
+Covariance Models
+~~~~~~~~~~~~~~~~~
+Predefined covariance models
+
+.. autosummary::
    Gaussian
    Exponential
    Matern
@@ -40,10 +60,24 @@ Functions
 ^^^^^^^^^
 The following functions are provided directly
 
+VTK-Export
+~~~~~~~~~~
+Routines to export fields to the vtk format
+
+.. currentmodule:: gstools.tools
+
 .. autosummary::
    vtk_export
    vtk_export_structured
    vtk_export_unstructured
+
+variogram estimation
+~~~~~~~~~~~~~~~~~~~~
+Estimate the variogram of a given field
+
+.. currentmodule:: gstools.variogram
+
+.. autosummary::
    estimate_structured
    estimate_unstructured
 """

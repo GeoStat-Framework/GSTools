@@ -4,9 +4,8 @@ GStools subpackage providing tools for estimating and fitting variograms.
 
 .. currentmodule:: gstools.variogram
 
-Included functions
-------------------
-The following functions are provided
+Variogram estimation
+^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    estimate_unstructured

@@ -34,11 +34,11 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
         takes a single argument
         Default: ``None``
     **kwargs
-        Keyword-arguments that are forwarded to ``scipy.stats.rv_continuous``.
+        Keyword-arguments forwarded to :any:`scipy.stats.rv_continuous`.
 
     Notes
     -----
-    At least pdf or cdf needs to given.
+    At least pdf or cdf needs to be given.
     """
     if ppf_in is None:
         if pdf_in is not None and cdf_in is None:

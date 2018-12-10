@@ -2,7 +2,7 @@
 GSTools Quickstart
 ==================
 
-.. image:: gstools.png
+.. image:: pics/gstools.png
    :width: 251px
    :align: center
 
@@ -46,7 +46,7 @@ This is an example of how to generate a 2 dimensional spatial random field (SRF)
     pt.imshow(field)
     pt.show()
 
-.. image:: gau_field.png
+.. image:: pics/gau_field.png
    :width: 600px
    :align: center
 
@@ -94,7 +94,7 @@ This results in:
     pt.imshow(field.T, origin="lower")
     pt.show()
 
-.. image:: tplstable_field.png
+.. image:: pics/tplstable_field.png
    :width: 600px
    :align: center
 
@@ -139,7 +139,7 @@ Which gives:
 
 ``Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)``
 
-.. image:: exp_vario_fit.png
+.. image:: pics/exp_vario_fit.png
    :width: 600px
    :align: center
 
@@ -158,9 +158,9 @@ Content
 =======
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 4
 
-   main
+   package
 
 
 License

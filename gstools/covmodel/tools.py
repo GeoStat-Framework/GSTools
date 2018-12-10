@@ -95,7 +95,7 @@ def set_len_anis(dim, len_scale, anis):
     ----------
     dim : :class:`int`
         spatial dimension
-    len_scale : :class:`float`/list
+    len_scale : :class:`float` or :class:`list`
         the length scale of the SRF in x direction or in x- (y-, z-) direction
     anis : :class:`float`/list
         the anisotropy of length scales along the y- and z-directions

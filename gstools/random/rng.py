@@ -25,17 +25,16 @@ MC_VER = int(mc.__version__.split(".")[0])
 class RNG(object):
     """
     A random number generator for different distributions and multiple streams.
+
+    Parameters
+    ----------
+    seed : :class:`int` or :any:`None`, optional
+        The seed of the master RNG, if ``None``,
+        a random seed is used. Default: ``None``
     """
 
     def __init__(self, seed=None):
-        """Initialize a random number generator
-
-        Parameters
-        ----------
-            seed : :class:`int` or :any:`None`, optional
-                set the seed of the master RNG, if "None",
-                a random seed is used
-        """
+        """Initialize a random number generator"""
         # set seed
         self._seed = None
         self._master_rng_fct = None
@@ -52,6 +51,10 @@ class RNG(object):
         oversampling_factor=10,
     ):
         """Sample from a distribution given by ln(pdf)
+
+        This algorithm uses the ``emcee.EnsembleSampler``
+
+        See: http://dfm.io/emcee
 
         Parameters
         ----------
@@ -128,7 +131,7 @@ class RNG(object):
         return self.random.choice(samples, size)
 
     def sample_dist(self, pdf=None, cdf=None, ppf=None, size=None, **kwargs):
-        """Sample from a distribution given by pdf, cdf or ppf
+        """Sample from a distribution given by pdf, cdf and/or ppf
 
         Parameters
         ----------
@@ -163,13 +166,15 @@ class RNG(object):
 
         Parameters
         ----------
-            size : :class:`int`, optional
-                sample size
+        dim : :class:`int`
+            Dimension of the sphere. Just 1, 2, and 3 supported.
+        size : :class:`int`, optional
+            sample size
 
         Returns
         -------
-            coord : :class:`numpy.ndarray`
-                x[, y[, z]] coordinates on the sphere with shape (dim, size)
+        coord : :class:`numpy.ndarray`
+            x[, y[, z]] coordinates on the sphere with shape (dim, size)
         """
         if size is None:
             coord = np.empty(dim, dtype=float)
@@ -191,9 +196,11 @@ class RNG(object):
 
     @property
     def random(self):
-        """Get a stream to the numpy Random number generator
+        """:any:`numpy.random.RandomState`:
+        Get a stream to the numpy Random number generator
 
-        You can use this, to call any provided distribution from `numpy.random`
+        You can use this, to call any provided distribution
+        from :any:`numpy.random.RandomState`.
         """
         return rand.RandomState(self._master_rng())
 

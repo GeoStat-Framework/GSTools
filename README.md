@@ -6,7 +6,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
-<img src="/docs/source/gstools.png" alt="GSTools-LOGO" width="251px"/>
+<img src="/docs/source/pics/gstools.png" alt="GSTools-LOGO" width="251px"/>
 </p>
 
 
@@ -51,7 +51,7 @@ pt.imshow(field)
 pt.show()
 ```
 <p align="center">
-<img src="/docs/source/gau_field.png" alt="Random field" width="600px"/>
+<img src="/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
 #### Truncated Power Law Model
@@ -97,7 +97,7 @@ pt.show()
 ```
 
 <p align="center">
-<img src="/docs/source/tplstable_field.png" alt="Random field" width="600px"/>
+<img src="/docs/source/pics/tplstable_field.png" alt="Random field" width="600px"/>
 </p>
 
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
@@ -141,7 +141,7 @@ Which gives:
 `Stable(dim=2, var=1.9235043464004502, len_scale=8.151129163855275, nugget=0.0, anis=[1.], angles=[0.], alpha=1.0518003172227908)`
 
 <p align="center">
-<img src="/docs/source/exp_vario_fit.png" alt="Variogram" width="600px"/>
+<img src="/docs/source/pics/exp_vario_fit.png" alt="Variogram" width="600px"/>
 </p>
 
 ## Requirements:

@@ -4,17 +4,26 @@ GStools subpackage providing miscellaneous tools.
 
 .. currentmodule:: gstools.tools
 
-Functions
----------
-The following functions are provided
+Export
+^^^^^^
 
 .. autosummary::
+   vtk_export
    vtk_export_structured
    vtk_export_unstructured
-   vtk_export
+
+Special functions
+^^^^^^^^^^^^^^^^^
+
+.. autosummary::
    inc_gamma
    exp_int
    inc_beta
+
+Geometric
+^^^^^^^^^
+
+.. autosummary::
    xyz2pos
    pos2xyz
    r3d_x
