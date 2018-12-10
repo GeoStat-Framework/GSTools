@@ -1,5 +1,5 @@
-random
-------
+gstools.random
+--------------
 
 .. automodule:: gstools.random
    :members:

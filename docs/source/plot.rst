@@ -1,5 +1,5 @@
-plot
-----
+gstools.covmodel.plot
+---------------------
 
 .. automodule:: gstools.covmodel.plot
    :members:

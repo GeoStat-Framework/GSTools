@@ -1,5 +1,5 @@
-variogram
----------
+gstools.variogram
+-----------------
 
 .. automodule:: gstools.variogram
    :members:

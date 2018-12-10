@@ -1,5 +1,5 @@
-field
------
+gstools.field
+-------------
 
 .. automodule:: gstools.field
    :members:

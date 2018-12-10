@@ -1,5 +1,5 @@
-generator
----------
+gstools.field.generator
+-----------------------
 
 .. automodule:: gstools.field.generator
    :members:

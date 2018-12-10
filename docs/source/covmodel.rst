@@ -1,5 +1,5 @@
-covmodel
---------
+gstools.covmodel
+----------------
 
 .. automodule:: gstools.covmodel
    :members:

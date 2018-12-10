@@ -1,5 +1,5 @@
-tools
------
+gstools.tools
+-------------
 
 .. automodule:: gstools.tools
    :members:
