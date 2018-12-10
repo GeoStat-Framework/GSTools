@@ -6,21 +6,18 @@ GStools subpackage providing a set of handy covariance models.
 
 Subpackages
 ^^^^^^^^^^^
-The following subpackages are provided
 
 .. autosummary::
     plot
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
-Class to construct user defined covariance models
 
 .. autosummary::
    CovModel
 
-Covariance Models
-^^^^^^^^^^^^^^^^^
-Predefined covariance models
+Predefined Covariance Models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    Gaussian

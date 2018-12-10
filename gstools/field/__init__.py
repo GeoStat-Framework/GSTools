@@ -6,7 +6,6 @@ GStools subpackage providing tools for spatial random fields.
 
 Subpackages
 ^^^^^^^^^^^
-The following subpackages are provided
 
 .. autosummary::
     generator
@@ -14,11 +13,9 @@ The following subpackages are provided
 
 Classes
 ^^^^^^^
-The following classes are provided
 
 Spatial Random Field
 ~~~~~~~~~~~~~~~~~~~~
-Class for random field generation
 
 .. autosummary::
    SRF

@@ -75,7 +75,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         bounds for the nugget of the model.
         Default: ``(0.0, 100.0, "cc")``
     hankel_kw: :class:`dict` or :any:`None`, optional
-        Modify the init-arguments of `hankel.SymmetricFourierTransform`
+        Modify the init-arguments of
+        :any:`hankel.hankel.SymmetricFourierTransform`
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
         Default: ``None``

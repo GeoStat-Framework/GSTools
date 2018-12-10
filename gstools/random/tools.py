@@ -36,6 +36,11 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
     **kwargs
         Keyword-arguments forwarded to :any:`scipy.stats.rv_continuous`.
 
+    Returns
+    -------
+    dist : :class:`scipy.stats.rv_continuous`
+        The constructed distribution.
+
     Notes
     -----
     At least pdf or cdf needs to be given.

@@ -75,7 +75,7 @@ This results in:
 .. code-block:: python
 
     import numpy as np
-    import matplotlib.pyplot as pt
+    import matplotlib.pyplot as plt
     from gstools import SRF, TPLStable
     x = y = np.linspace(0, 100, 100)
     model = TPLStable(
@@ -90,9 +90,9 @@ This results in:
     )
     srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
     field = srf((x, y), mesh_type='structured', force_moments=True)
-    # show the field in xy coordinates
-    pt.imshow(field.T, origin="lower")
-    pt.show()
+    # show the field in correct xy coordinates
+    plt.imshow(field.T, origin="lower")
+    plt.show()
 
 .. image:: pics/tplstable_field.png
    :width: 600px
@@ -118,7 +118,7 @@ model again.
     import numpy as np
     from gstools import SRF, Exponential, Stable, estimate_unstructured
     from gstools.covmodel.plot import plot_variogram
-    import matplotlib.pyplot as pt
+    import matplotlib.pyplot as plt
     # generate a synthetic field with an exponential model
     x = np.random.RandomState(19970221).rand(1000) * 100.
     y = np.random.RandomState(20011012).rand(1000) * 100.
@@ -128,11 +128,13 @@ model again.
     # estimate the variogram of the field with 40 bins
     bins = np.arange(40)
     bin_center, gamma = estimate_unstructured((x, y), field, bins)
-    pt.plot(bin_center, gamma)
+    plt.plot(bin_center, gamma)
     # fit the variogram with a stable model. (no nugget fitted)
     fit_model = Stable(dim=2)
     fit_model.fit_variogram(bin_center, gamma, nugget=False)
     plot_variogram(fit_model, x_max=40)
+    # output
+    plt.show()
     print(fit_model)
 
 Which gives:

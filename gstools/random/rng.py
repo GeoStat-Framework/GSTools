@@ -52,9 +52,7 @@ class RNG(object):
     ):
         """Sample from a distribution given by ln(pdf)
 
-        This algorithm uses the ``emcee.EnsembleSampler``
-
-        See: http://dfm.io/emcee
+        This algorithm uses the :any:`emcee.EnsembleSampler`
 
         Parameters
         ----------
@@ -152,6 +150,11 @@ class RNG(object):
         **kwargs
             Keyword-arguments that are forwarded to
             :any:`scipy.stats.rv_continuous`.
+
+        Returns
+        -------
+        samples : :class:`float` or :class:`numpy.ndarray`
+            the samples from the given distribution
 
         Notes
         -----

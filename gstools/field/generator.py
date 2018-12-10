@@ -78,8 +78,10 @@ class RandMeth(object):
             print("gstools.RandMeth: **kwargs are ignored")
         # initialize atributes
         self._mode_no = mode_no
-        self.chunk_tmp_size = chunk_tmp_size  #: temporary chunk size
-        self.verbose = verbose  #: verbosity of the generator
+        #: :class:`int`: temporary chunk size
+        self.chunk_tmp_size = chunk_tmp_size
+        #: :class:`bool`: verbosity of the generator
+        self.verbose = verbose
         # initialize private atributes
         self._model = None
         self._seed = None
@@ -221,7 +223,7 @@ class RandMeth(object):
                 and self._z_2 is not None
                 and self._cov_sample is not None
             ):
-                print("RandMeth.update: Nothing given...")
+                print("RandMeth.update: Nothing will be done...")
             else:
                 raise ValueError(
                     "gstools.field.generator.RandMeth: "
@@ -309,7 +311,7 @@ class RandMeth(object):
 
     @property
     def name(self):
-        """The name of the generator"""
+        """:class:`str`: The name of the generator"""
         return self.__class__.__name__
 
     def __str__(self):

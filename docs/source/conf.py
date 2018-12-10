@@ -243,4 +243,7 @@ intersphinx_mapping = {
     'NumPy': ('http://docs.scipy.org/doc/numpy/', None),
     'SciPy': ('http://docs.scipy.org/doc/scipy/reference', None),
     'matplotlib': ('http://matplotlib.org', None),
-    'Sphinx': ('http://www.sphinx-doc.org/en/stable/', None)}
+    'Sphinx': ('http://www.sphinx-doc.org/en/stable/', None),
+    'hankel': ('https://hankel.readthedocs.io/en/latest/', None),
+    'emcee': ('http://dfm.io/emcee/current/', None),
+}
