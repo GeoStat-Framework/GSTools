@@ -9,9 +9,6 @@ gstools.field
    Details
    ^^^^^^^
 
-Index
-^^^^^
-
 .. toctree::
    :maxdepth: 2
 

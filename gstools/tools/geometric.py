@@ -10,13 +10,15 @@ The following functions are provided
    r3d_x
    r3d_y
    r3d_z
+   pos2xyz
+   xyz2pos
 """
 # pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
-__all__ = ["r3d_x", "r3d_y", "r3d_z"]
+__all__ = ["r3d_x", "r3d_y", "r3d_z", "pos2xyz", "xyz2pos"]
 
 
 # Geometric functions #########################################################
@@ -151,10 +153,11 @@ def xyz2pos(x, y=None, z=None, dtype=None):
             is changed. Default: ``0``
         mesh_type : :class:`str`
             'structured' / 'unstructured'
+
     Returns
     -------
-        field : :class:`numpy.ndarray`
-            the SRF
+        pos : :class:`numpy.ndarray`
+            the position tuple
     """
     if y is None and z is not None:
         raise ValueError("gstools.tools.xyz2pos: if z is given, y is needed!")

@@ -9,9 +9,6 @@ gstools.covmodel
    Details
    ^^^^^^^
 
-Index
-^^^^^
-
 .. toctree::
    :maxdepth: 2
 

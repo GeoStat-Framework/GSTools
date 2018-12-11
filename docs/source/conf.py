@@ -195,20 +195,35 @@ htmlhelp_basename = 'GeoStatToolsdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
+#latex_engine = 'lualatex'
+# logo to big
+latex_logo = 'pics/gstools_150.png'
 
+#latex_show_urls = 'footnote'
+# http://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-latex-output
 latex_elements = {
-    'preamble': r'\setcounter{tocdepth}{3}',
-    'pointsize': '8pt',
+    'preamble': r'''
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{3}
+\pagestyle{fancy}
+''',
+    'pointsize': '10pt',
+    'papersize': 'a4paper',
+    'fncychap': '\\usepackage[Glenn]{fncychap}',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'GeoStatTools.tex', 'GeoStatTools Documentation',
-     'Lennart Schueler, Sebastian Mueller', 'howto'),
+    (
+     master_doc,
+     'GeoStatTools.tex',
+     'GeoStatTools Documentation',
+     'Lennart Schueler, Sebastian Mueller',
+     'manual'
+    ),
 ]
-
 
 # -- Options for manual page output ---------------------------------------
 
@@ -227,7 +242,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'GeoStatTools', 'GeoStatTools Documentation',
-     author, 'GeoStatTools', 'One line description of project.',
+     author, 'GeoStatTools', 'Geo-statistical toolbox.',
      'Miscellaneous'),
 ]
 

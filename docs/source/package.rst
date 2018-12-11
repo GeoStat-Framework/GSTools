@@ -1,13 +1,13 @@
 .. automodule:: gstools
 
-   GSTools-API
-   ^^^^^^^^^^^
+GSTools-API
+^^^^^^^^^^^
 
-   .. toctree::
-      :maxdepth: 3
+.. toctree::
+   :maxdepth: 3
 
-      covmodel.rst
-      field.rst
-      variogram.rst
-      random.rst
-      tools.rst
+   covmodel.rst
+   field.rst
+   variogram.rst
+   random.rst
+   tools.rst

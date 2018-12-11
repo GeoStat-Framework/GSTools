@@ -1,36 +1,36 @@
-==================
-GSTools Quickstart
-==================
+
+=======
+GSTools
+=======
+
+Quickstart
+==========
 
 .. image:: pics/gstools.png
-   :width: 251px
+   :width: 150px
    :align: center
-
-
-Purpose
-=======
 
 GeoStatTools is a library providing geostatistical tools for random field generation and
 variogram estimation based on a list of provided or even user-defined covariance models.
 
 
 Installation
-============
+------------
 
     ``pip install gstools``
 
 
 Spatial Random Field Generation
-===============================
+-------------------------------
 
 The core of this library is the generation of spatial random fields. These fields are generated using the randomisation method, described by `Heße et al. 2014 <https://doi.org/10.1016/j.envsoft.2014.01.013>`_.
 
 
 Examples
---------
+^^^^^^^^
 
 Gaussian Covariance Model
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is an example of how to generate a 2 dimensional spatial random field (:any:`SRF`)
 with a :any:`Gaussian` covariance model.
@@ -38,22 +38,22 @@ with a :any:`Gaussian` covariance model.
 .. code-block:: python
 
     from gstools import SRF, Gaussian
-    import matplotlib.pyplot as pt
+    import matplotlib.pyplot as plt
     # structured field with a size 100x100 and a grid-size of 1x1
     x = y = range(100)
     model = Gaussian(dim=2, var=1, len_scale=10)
     srf = SRF(model)
     field = srf((x, y), mesh_type='structured')
-    pt.imshow(field)
-    pt.show()
+    plt.imshow(field)
+    plt.show()
 
 .. image:: pics/gau_field.png
-   :width: 600px
+   :width: 400px
    :align: center
 
 
 Truncated Power Law Model
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 GSTools also implements truncated power law variograms, which can be represented as a
 superposition of scale dependant modes in form of standard variograms, which are truncated by
@@ -98,7 +98,7 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
     x = y = np.linspace(0, 100, 100)
     model = TPLStable(
         dim=2,           # spatial dimension
-        var=1,           # variance (C is calculated internally, so that the variance is actually 1)
+        var=1,           # variance (C calculated internally, so that `var` is 1)
         len_low=0,       # lower truncation of the power law
         len_scale=10,    # length scale (a.k.a. range), len_up = len_low + len_scale
         nugget=0.1,      # nugget
@@ -114,12 +114,12 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
     plt.show()
 
 .. image:: pics/tplstable_field.png
-   :width: 600px
+   :width: 400px
    :align: center
 
 
 Estimating and fitting variograms
-=================================
+---------------------------------
 
 The spatial structure of a field can be analyzed with the variogram, which contains the same information as the covariance function.
 
@@ -127,7 +127,7 @@ All covariance models can be used to fit given variogram data by a simple interf
 
 
 Examples
---------
+^^^^^^^^
 
 This is an example of how to estimate the variogram of a 2 dimensional unstructured field and estimate the parameters of the covariance
 model again.
@@ -161,12 +161,12 @@ Which gives:
 ``Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)``
 
 .. image:: pics/exp_vario_fit.png
-   :width: 600px
+   :width: 400px
    :align: center
 
 
 Requirements
-============
+------------
 - `Numpy >= 1.8.2 <http://www.numpy.org>`_
 - `SciPy >= 0.19.1 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
@@ -174,6 +174,10 @@ Requirements
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
 - `six <https://github.com/benjaminp/six>`_
 
+License
+-------
+
+`GPL <https://github.com/LSchueler/GSTools/blob/master/LICENSE>`_ © 2018
 
 Content
 =======
@@ -182,9 +186,3 @@ Content
    :maxdepth: 4
 
    package
-
-
-License
-=======
-
-`GPL <https://github.com/LSchueler/GSTools/blob/master/LICENSE>`_ © 2018
