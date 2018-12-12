@@ -24,8 +24,6 @@ GeoStatTools is a library providing geostatistical tools.
 
 You can find the documentation [here][doc_link].
 
-[doc_link]: https://gstools.readthedocs.io/en/latest/
-
 
 ## Spatial Random Field Generation
 
@@ -35,6 +33,7 @@ The core of this library is the generation of spatial random fields. These field
 
 
 ### Examples
+
 #### Gaussian Covariance Model
 
 This is an example of how to generate a 2 dimensional spatial random field with a gaussian covariance model.
@@ -100,8 +99,6 @@ plt.show()
 <img src="/docs/source/pics/tplstable_field.png" alt="Random field" width="600px"/>
 </p>
 
-[stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
-
 
 ## Estimating and fitting variograms
 
@@ -140,11 +137,39 @@ plt.show()
 
 Which gives:
 
-`Stable(dim=2, var=1.9235043464004502, len_scale=8.151129163855275, nugget=0.0, anis=[1.], angles=[0.], alpha=1.0518003172227908)`
+`Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)`
 
 <p align="center">
 <img src="/docs/source/pics/exp_vario_fit.png" alt="Variogram" width="600px"/>
 </p>
+
+
+## User defined covariance models
+
+One of the core-features of GSTools is the powerfull
+[CovModel][cov_link]
+class, which allows to easy define covariance models by the user.
+
+### Example
+
+Here we reimplement the Gaussian covariance model by defining just the
+[correlation][cor_link] function:
+
+```python
+from gstools import CovModel
+import numpy as np
+# use CovModel as the base-class
+class Gau(CovModel):
+    def correlation(self, r):
+        return np.exp(-(r/self.len_scale)**2)
+```
+
+And that's it! With ``Gau`` you now have a fully working covariance model,
+which you could use for field generation or variogram fitting as shown above.
+
+Have a look at the [documentation ][doc_link] for further information on incorporating
+optional parameters and optimizations.
+
 
 ## Requirements:
 
@@ -161,3 +186,7 @@ Which gives:
 [GPL][gpl_link] © 2018
 
 [gpl_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
+[cov_link]: https://gstools.readthedocs.io/en/latest/covmodel.html#gstools.covmodel.CovModel
+[stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
+[doc_link]: https://gstools.readthedocs.io/en/latest/
+[cor_link]: https://en.wikipedia.org/wiki/Autocorrelation

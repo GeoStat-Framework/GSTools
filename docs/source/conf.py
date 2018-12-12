@@ -19,8 +19,10 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../'))
+
+sys.path.insert(0, os.path.abspath("../../"))
 from gstools import __version__ as ver
+
 if sys.version_info >= (3, 3):
     from unittest.mock import MagicMock
 else:
@@ -28,14 +30,83 @@ else:
 
 
 def skip(app, what, name, obj, skip, options):
-#    if name in ["__init__", "__call__"]:
+    #    if name in ["__init__", "__call__"]:
     if name in ["__call__"]:
         return False
     return skip
 
 
 def setup(app):
+    ##################################
+    # https://stackoverflow.com/a/30783465/6696397
+    # https://github.com/markovmodel/PyEMMA/blob/devel/doc/source/conf.py#L285
+    # maybe use this:
+    # https://github.com/sphinx-doc/sphinx/blob/master/sphinx/ext/autosummary/templates/autosummary/class.rst
+    # http://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html#customizing-templates
+    from sphinx.ext.autosummary import Autosummary
+    from sphinx.ext.autosummary import get_documenter
+    from docutils.parsers.rst import directives
+    from sphinx.util.inspect import safe_getattr
+
+    class AutoAutoSummary(Autosummary):
+
+        option_spec = {
+            "methods": directives.unchanged,
+            "attributes": directives.unchanged,
+        }
+
+        required_arguments = 1
+
+        @staticmethod
+        def get_members(obj, typ, include_public=None):
+            if not include_public:
+                include_public = []
+            items = []
+            for name in dir(obj):
+                try:
+                    documenter = get_documenter(
+                        app, safe_getattr(obj, name), obj
+                    )
+                except AttributeError:
+                    continue
+                if documenter.objtype == typ:
+                    items.append(name)
+            public = [
+                x
+                for x in items
+                if x in include_public or not x.startswith("_")
+            ]
+            return public, items
+
+        def run(self):
+            clazz = self.arguments[0]
+            try:
+                (module_name, class_name) = clazz.rsplit(".", 1)
+                m = __import__(module_name, globals(), locals(), [class_name])
+                c = getattr(m, class_name)
+                if "methods" in self.options:
+                    _, methods = self.get_members(c, "method", ["__call__"])
+
+                    self.content = [
+                        "~%s.%s" % (clazz, method)
+                        for method in methods
+                        if (not method.startswith("_") or method == "__call__")
+                    ]
+                if "attributes" in self.options:
+                    _, attribs = self.get_members(c, "attribute")
+                    self.content = [
+                        "~%s.%s" % (clazz, attrib)
+                        for attrib in attribs
+                        if not attrib.startswith("_")
+                    ]
+            finally:
+                return super(AutoAutoSummary, self).run()
+
     app.connect("autodoc-skip-member", skip)
+    app.add_directive("autoautosummary", AutoAutoSummary)
+
+
+##################################
 
 
 class Mock(MagicMock):
@@ -44,7 +115,7 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ['gstools.variogram.estimator']
+MOCK_MODULES = ["gstools.variogram.estimator"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
@@ -57,64 +128,64 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.coverage',
-    'sphinx.ext.imgmath',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-#    'sphinx.ext.githubpages',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
-#    'numpydoc',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.coverage",
+    "sphinx.ext.imgmath",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.viewcode",
+    #    'sphinx.ext.githubpages',
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+#    "numpydoc",
 ]
 
 # ?!
 autosummary_generate = True
 # dont show __init__ docstring
-autoclass_content = 'class'
+autoclass_content = "class"
 
 # idea from:
 # https://wwoods.github.io/2016/06/09/easy-sphinx-documentation-without-the-boilerplate/
-#autodoc_default_flags = [
+# autodoc_default_flags = [
 #    # Make sure that any autodoc declarations show the right members
 #    "members",
 #    "inherited-members",
 #    "private-members",
 #    "show-inheritance",
-#]
+# ]
 
 # sort class members
-autodoc_member_order = 'groupwise'
-#autodoc_member_order = 'bysource'
+autodoc_member_order = "groupwise"
+# autodoc_member_order = 'bysource'
 
 # Notes in boxes
 napoleon_use_admonition_for_notes = True
 # Attributes like parameters
-#napoleon_use_ivar = False
+# napoleon_use_ivar = False
 
 # https://github.com/numpy/numpydoc/issues/69
 # if set to True, over 5000 warning plop up... but it looks better in the end
-#numpydoc_show_class_members = False
+#numpydoc_show_class_members = True
 class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'GSTools'
-copyright = '2018, Lennart Schueler, Sebastian Mueller'
-author = 'Lennart Schueler, Sebastian Mueller'
+project = "GSTools"
+copyright = "2018, Lennart Schueler, Sebastian Mueller"
+author = "Lennart Schueler, Sebastian Mueller"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -138,7 +209,7 @@ language = None
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -156,19 +227,19 @@ html_theme = "sphinx_rtd_theme"
 # documentation.
 #
 html_theme_options = {
-#    'canonical_url': '',
-#    'analytics_id': '',
-    'logo_only': False,
-    'display_version': True,
-    'prev_next_buttons_location': 'top',
-#    'style_external_links': False,
-#    'vcs_pageview_mode': '',
+    #    'canonical_url': '',
+    #    'analytics_id': '',
+    "logo_only": False,
+    "display_version": True,
+    "prev_next_buttons_location": "top",
+    #    'style_external_links': False,
+    #    'vcs_pageview_mode': '',
     # Toc options
-    'collapse_navigation': False,
-    'sticky_navigation': True,
-    'navigation_depth': 4,
-    'includehidden': True,
-    'titles_only': False
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "navigation_depth": 4,
+    "includehidden": True,
+    "titles_only": False,
 }
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -181,9 +252,9 @@ html_theme_options = {
 # This is required for the alabaster theme
 # refs: http://alabaster.readthedocs.io/en/latest/installation.html#sidebars
 html_sidebars = {
-    '**': [
-        'relations.html',  # needs 'show_related': True theme option to display
-        'searchbox.html',
+    "**": [
+        "relations.html",  # needs 'show_related': True theme option to display
+        "searchbox.html",
     ]
 }
 
@@ -191,25 +262,25 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GeoStatToolsdoc'
+htmlhelp_basename = "GeoStatToolsdoc"
 
 
 # -- Options for LaTeX output ---------------------------------------------
-#latex_engine = 'lualatex'
+# latex_engine = 'lualatex'
 # logo to big
-latex_logo = 'pics/gstools_150.png'
+latex_logo = "pics/gstools_150.png"
 
-#latex_show_urls = 'footnote'
+# latex_show_urls = 'footnote'
 # http://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-latex-output
 latex_elements = {
-    'preamble': r'''
+    "preamble": r"""
 \setcounter{secnumdepth}{2}
 \setcounter{tocdepth}{3}
 \pagestyle{fancy}
-''',
-    'pointsize': '10pt',
-    'papersize': 'a4paper',
-    'fncychap': '\\usepackage[Glenn]{fncychap}',
+""",
+    "pointsize": "10pt",
+    "papersize": "a4paper",
+    "fncychap": "\\usepackage[Glenn]{fncychap}",
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -217,12 +288,12 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (
-     master_doc,
-     'GeoStatTools.tex',
-     'GeoStatTools Documentation',
-     'Lennart Schueler, Sebastian Mueller',
-     'manual'
-    ),
+        master_doc,
+        "GeoStatTools.tex",
+        "GeoStatTools Documentation",
+        "Lennart Schueler, Sebastian Mueller",
+        "manual",
+    )
 ]
 
 # -- Options for manual page output ---------------------------------------
@@ -230,8 +301,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'geostattools', 'GeoStatTools Documentation',
-     [author], 1)
+    (master_doc, "geostattools", "GeoStatTools Documentation", [author], 1)
 ]
 
 
@@ -241,24 +311,30 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'GeoStatTools', 'GeoStatTools Documentation',
-     author, 'GeoStatTools', 'Geo-statistical toolbox.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "GeoStatTools",
+        "GeoStatTools Documentation",
+        author,
+        "GeoStatTools",
+        "Geo-statistical toolbox.",
+        "Miscellaneous",
+    )
 ]
 
 suppress_warnings = [
-    'image.nonlocal_uri',
-#    'app.add_directive',  # this evtl. suppresses the numpydoc induced warning
+    "image.nonlocal_uri",
+    #    'app.add_directive',  # this evtl. suppresses the numpydoc induced warning
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'Python 3.6': ('https://docs.python.org/3.6', None),
-    'Python': ('https://docs.python.org/', None),
-    'NumPy': ('http://docs.scipy.org/doc/numpy/', None),
-    'SciPy': ('http://docs.scipy.org/doc/scipy/reference', None),
-    'matplotlib': ('http://matplotlib.org', None),
-    'Sphinx': ('http://www.sphinx-doc.org/en/stable/', None),
-    'hankel': ('https://hankel.readthedocs.io/en/latest/', None),
-    'emcee': ('http://dfm.io/emcee/current/', None),
+    "Python 3.6": ("https://docs.python.org/3.6", None),
+    "Python": ("https://docs.python.org/", None),
+    "NumPy": ("http://docs.scipy.org/doc/numpy/", None),
+    "SciPy": ("http://docs.scipy.org/doc/scipy/reference", None),
+    "matplotlib": ("http://matplotlib.org", None),
+    "Sphinx": ("http://www.sphinx-doc.org/en/stable/", None),
+    "hankel": ("https://hankel.readthedocs.io/en/latest/", None),
+    "emcee": ("http://dfm.io/emcee/current/", None),
 }

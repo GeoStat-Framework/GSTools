@@ -18,7 +18,7 @@ The following subpackages are provided
 
 Classes
 ^^^^^^^
-The following classes are provided directly
+The following classes are provided directly on module-level
 
 Spatial Random Field
 ~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +40,7 @@ Class to construct user defined covariance models
 
 Covariance Models
 ~~~~~~~~~~~~~~~~~
-Predefined covariance models
+Standard Covariance Models
 
 .. autosummary::
    Gaussian
@@ -52,13 +52,17 @@ Predefined covariance models
    Linear
    MaternRescal
    SphericalRescal
+
+Truncated Power Law Covariance Models
+
+.. autosummary::
    TPLGaussian
    TPLExponential
    TPLStable
 
 Functions
 ^^^^^^^^^
-The following functions are provided directly
+The following functions are provided directly on module-level
 
 VTK-Export
 ~~~~~~~~~~

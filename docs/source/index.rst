@@ -165,14 +165,43 @@ Which gives:
    :align: center
 
 
+User defined covariance models
+------------------------------
+
+One of the core-features of GSTools is the powerfull
+:any:`CovModel`
+class, which allows to easy define covariance models by the user.
+
+
+Examples
+^^^^^^^^
+
+Here we reimplement the Gaussian covariance model by defining just the
+`correlation <https://en.wikipedia.org/wiki/Autocorrelation>`_ function:
+
+.. code-block:: python
+
+    from gstools import CovModel
+    import numpy as np
+    # use CovModel as the base-class
+    class Gau(CovModel):
+        def correlation(self, r):
+            return np.exp(-(r/self.len_scale)**2)
+
+And that's it! With ``Gau`` you now have a fully working covariance model,
+which you could use for field generation or variogram fitting as shown above.
+
+
 Requirements
 ------------
+
 - `Numpy >= 1.8.2 <http://www.numpy.org>`_
 - `SciPy >= 0.19.1 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
 - `six <https://github.com/benjaminp/six>`_
+
 
 License
 -------

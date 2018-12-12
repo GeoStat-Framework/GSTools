@@ -11,11 +11,8 @@ Subpackages
     generator
     upscaling
 
-Classes
-^^^^^^^
-
 Spatial Random Field
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    SRF
