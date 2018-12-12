@@ -303,7 +303,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 + CovModel.__doc__[44:]
             )
         else:
-            cls.__doc__ += CovModel.__doc__[44 : -316]
+            cls.__doc__ += CovModel.__doc__[44 : -384]
         # overridden functions get standard doc if no new doc was created
         ignore = ["__", "variogram", "covariance", "correlation"]
         for attr in cls.__dict__:
@@ -876,7 +876,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def integral_scale(self):
-        """:class:`float`: The main integral scale of the model."""
+        """:class:`float`: The main integral scale of the model.
+
+        Warnings
+        --------
+        If integral scale is not setable, a warning is raised and a standard
+        len_scale of 1 is used!
+        """
         self._integral_scale = self.calc_integral_scale()
         return self._integral_scale
 
@@ -886,7 +892,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             self.len_scale = 1.0
             int_tmp = self.calc_integral_scale()
             self.len_scale = integral_scale / int_tmp
-            self.check_arg_bounds()
+            if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
+                raise ValueError(
+                    self.name
+                    + ": Integral scale could not be set correctly!"
+                    + " Please just give a len_scale!"
+                )
 
     @property
     def hankel_kw(self):
