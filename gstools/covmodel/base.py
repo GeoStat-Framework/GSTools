@@ -356,7 +356,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     # calculation of different scales #########################################
 
-    def calc_integral_scale(self):
+    def _calc_integral_scale(self):
         """calculate the integral scale of the isotrope model"""
         self._integral_scale = integral(self.correlation, 0, np.inf)[0]
         return self._integral_scale
@@ -579,9 +579,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # set var at last because of var_factor (other parameter needed)
         if para["var"]:
             self.var = var_tmp
-        # recalculate the integral scale
-        self._integral_scale = self.calc_integral_scale()
-        fit_para["integral_scale"] = self._integral_scale
         return fit_para, pcov
 
     # bounds setting and checks ###############################################
@@ -883,14 +880,14 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         If integral scale is not setable, a warning is raised and a standard
         len_scale of 1 is used!
         """
-        self._integral_scale = self.calc_integral_scale()
+        self._integral_scale = self._calc_integral_scale()
         return self._integral_scale
 
     @integral_scale.setter
     def integral_scale(self, integral_scale):
         if integral_scale is not None:
             self.len_scale = 1.0
-            int_tmp = self.calc_integral_scale()
+            int_tmp = self._calc_integral_scale()
             self.len_scale = integral_scale / int_tmp
             if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
                 raise ValueError(
