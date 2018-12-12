@@ -10,7 +10,7 @@ The following classes and functions are provided
    plot_variogram
    plot_variogram_normed
    plot_covariance
-   plot_covariance_normed
+   plot_correlation
    plot_spectrum
    plot_spectral_density
    plot_spectral_rad_pdf
@@ -23,7 +23,7 @@ __all__ = [
     "plot_variogram",
     "plot_variogram_normed",
     "plot_covariance",
-    "plot_covariance_normed",
+    "plot_correlation",
     "plot_spectrum",
     "plot_spectral_density",
     "plot_spectral_rad_pdf",
@@ -53,13 +53,13 @@ def plot_covariance(model, x_min=0.0, x_max=None):
     plt.show()
 
 
-def plot_covariance_normed(model, x_min=0.0, x_max=None):
-    """plot normalized covariance of a given CovModel"""
+def plot_correlation(model, x_min=0.0, x_max=None):
+    """plot correlation function of a given CovModel"""
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
     plt.plot(
-        x_s, model.covariance_normed(x_s), label=model.name + " cov normed"
+        x_s, model.correlation(x_s), label=model.name + " cov normed"
     )
     plt.legend()
     plt.show()

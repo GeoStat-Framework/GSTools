@@ -156,13 +156,13 @@ class TPLGaussian(CovModel):
         """
         return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
-    def covariance_normed(self, r):
-        r"""Truncated-Power-Law with Gaussian modes - normalized covariance
+    def correlation(self, r):
+        r"""Truncated-Power-Law with Gaussian modes - correlation function
 
         If ``len_low=0`` we have a simple representation:
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            H \cdot
            E_{1+H}
            \left[
@@ -172,7 +172,7 @@ class TPLGaussian(CovModel):
         The general case:
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            H \cdot
            \frac{\ell_{\mathrm{up}}^{2H} \cdot
            E_{1+H}
@@ -324,13 +324,13 @@ class TPLExponential(CovModel):
         """
         return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
-    def covariance_normed(self, r):
-        r"""Truncated-Power-Law with Exponential modes - normalized covariance
+    def correlation(self, r):
+        r"""Truncated-Power-Law with Exponential modes - correlation function
 
         If ``len_low=0`` we have a simple representation:
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            H \cdot
            E_{1+H}
            \left[
@@ -340,7 +340,7 @@ class TPLExponential(CovModel):
         The general case:
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            2H \cdot
            \frac{\ell_{\mathrm{up}}^{2H} \cdot
            E_{1+2H}\left[\frac{r}{\ell_{\mathrm{up}}}\right]
@@ -520,13 +520,13 @@ class TPLStable(CovModel):
                 + "count with unstable results"
             )
 
-    def covariance_normed(self, r):
-        r"""Truncated-Power-Law with Stable modes - normalized covariance
+    def correlation(self, r):
+        r"""Truncated-Power-Law with Stable modes - correlation function
 
         If ``len_low=0`` we have a simple representation:
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \frac{2H}{\alpha} \cdot
            E_{1+\frac{2H}{\alpha}}
            \left[
@@ -536,7 +536,7 @@ class TPLStable(CovModel):
         The general case:
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \frac{2H}{\alpha} \cdot
            \frac{\ell_{\mathrm{up}}^{2H} \cdot
            E_{1+\frac{2H}{\alpha}}

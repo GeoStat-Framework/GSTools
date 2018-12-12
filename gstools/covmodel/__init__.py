@@ -17,8 +17,9 @@ Class to construct user defined covariance models
 .. autosummary::
    CovModel
 
-Predefined Covariance Models
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Covariance Models
+^^^^^^^^^^^^^^^^^
+Standard Covariance Models
 
 .. autosummary::
    Gaussian
@@ -32,7 +33,6 @@ Predefined Covariance Models
    SphericalRescal
 
 Truncated Power Law Covariance Models
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    TPLGaussian

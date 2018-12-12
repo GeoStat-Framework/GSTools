@@ -46,18 +46,18 @@ class Gaussian(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
     """
 
-    def covariance_normed(self, r):
-        r"""Gaussian normalized covariance
+    def correlation(self, r):
+        r"""Gaussian correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
        """
         r = np.array(np.abs(r), dtype=float)
@@ -112,18 +112,18 @@ class Exponential(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \exp\left(- \frac{r}{\ell} \right)
     """
 
-    def covariance_normed(self, r):
-        r"""Exponential normalized covariance
+    def correlation(self, r):
+        r"""Exponential correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \exp\left(- \frac{r}{\ell} \right)
        """
         r = np.array(np.abs(r), dtype=float)
@@ -183,10 +183,10 @@ class Spherical(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \begin{cases}
        1-\frac{3}{2}\cdot\frac{r}{\ell} +
        \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
@@ -195,11 +195,11 @@ class Spherical(CovModel):
        \end{cases}
     """
 
-    def covariance_normed(self, r):
-        r"""Spherical normalized covariance
+    def correlation(self, r):
+        r"""Spherical correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \begin{cases}
            1-\frac{3}{2}\cdot\frac{r}{\ell} +
            \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
@@ -222,10 +222,10 @@ class SphericalRescal(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \begin{cases}
        1-\frac{9}{16}\cdot\frac{r}{\ell} +
        \frac{27}{1024}\cdot\left(\frac{r}{\ell}\right)^{3}
@@ -234,11 +234,11 @@ class SphericalRescal(CovModel):
        \end{cases}
     """
 
-    def covariance_normed(self, r):
-        r"""Rescaled Spherical normalized covariance
+    def correlation(self, r):
+        r"""Rescaled Spherical correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \begin{cases}
            1-\frac{9}{16}\cdot\frac{r}{\ell} +
            \frac{27}{1024}\cdot\left(\frac{r}{\ell}\right)^{3}
@@ -270,10 +270,10 @@ class Rational(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \left(1 + \frac{1}{2\alpha} \cdot
        \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
 
@@ -312,11 +312,11 @@ class Rational(CovModel):
         """
         return {"alpha": [0.5, np.inf]}
 
-    def covariance_normed(self, r):
-        r"""Rational normalized covariance
+    def correlation(self, r):
+        r"""Rational correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \left(1 + \frac{1}{2\alpha} \cdot
            \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
         """
@@ -334,10 +334,10 @@ class Stable(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
 
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
@@ -390,11 +390,11 @@ class Stable(CovModel):
                 + "count with unstable results"
             )
 
-    def covariance_normed(self, r):
-        r"""Stable normalized covariance
+    def correlation(self, r):
+        r"""Stable correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
         """
         r = np.array(np.abs(r), dtype=float)
@@ -409,10 +409,10 @@ class Matern(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
        \left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
        \mathrm{K}_{\nu}\left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)
@@ -469,11 +469,11 @@ class Matern(CovModel):
                 + "calculations most likely get unstable here"
             )
 
-    def covariance_normed(self, r):
-        r"""Matérn normalized covariance#
+    def correlation(self, r):
+        r"""Matérn correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
            \left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
            \mathrm{K}_{\nu}\left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)
@@ -504,10 +504,10 @@ class MaternRescal(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
        \left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)} \cdot
        \frac{r}{\ell}\right)^{\nu} \cdot
@@ -567,11 +567,11 @@ class MaternRescal(CovModel):
                 + "calculations most likely get unstable here"
             )
 
-    def covariance_normed(self, r):
-        r"""Rescaled Matérn normalized covariance
+    def correlation(self, r):
+        r"""Rescaled Matérn correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
            \left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)} \cdot
            \frac{r}{\ell}\right)^{\nu} \cdot
@@ -609,10 +609,10 @@ class Linear(CovModel):
 
     Notes
     -----
-    This model is given by the following normalized covariance function:
+    This model is given by the following correlation function:
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \begin{cases}
        1-\frac{r}{\ell}
        & r<\ell\\
@@ -620,11 +620,11 @@ class Linear(CovModel):
        \end{cases}
     """
 
-    def covariance_normed(self, r):
-        r"""Linear normalized covariance
+    def correlation(self, r):
+        r"""Linear correlation function
 
         .. math::
-           \tilde{C}(r) =
+           \mathrm{cor}(r) =
            \begin{cases}
            1-\frac{r}{\ell}
            & r<\ell\\

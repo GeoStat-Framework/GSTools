@@ -98,7 +98,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     >>> from gstools import CovModel
     >>> import numpy as np
     >>> class Gau(CovModel):
-    ...     def covariance_normed(self, r):
+    ...     def correlation(self, r):
     ...         return np.exp(-(r/self.len_scale)**2)
     ...
     >>> model = Gau()
@@ -212,24 +212,26 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
             * ``model.variogram(r)``
                 :math:`\gamma\left(r\right)=
-                \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
+                \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
             * ``model.variogram_normed(r)``
                 :math:`\tilde{\gamma}\left(r\right)=
-                1-\tilde{C}\left(r\right)`
+                1-\mathrm{cor}\left(r\right)`
             * ``model.covariance(r)``
                 :math:`C\left(r\right)=
-                \sigma^2\cdot\tilde{C}\left(r\right)`
-            * ``model.covariance_normed(r)``
-                :math:`\tilde{C}\left(r\right)`
+                \sigma^2\cdot\mathrm{cor}\left(r\right)`
+            * ``model.correlation(r)``
+                :math:`\mathrm{cor}\left(r\right)`
+
+        Best practice is to use the ``correlation`` function!
         """
         # overrid one of these ################################################
         def variogram(self, r):
             r"""Isotropic variogram of the model
 
             Given by: :math:`\gamma\left(r\right)=
-            \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
+            \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
 
-            Where :math:`\tilde{C}(r)` is the normalized covariance.
+            Where :math:`\mathrm{cor}(r)` is the correlation function.
             """
             return self.var - self.covariance(r) + self.nugget
 
@@ -237,19 +239,19 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             r"""Covariance of the model
 
             Given by: :math:`C\left(r\right)=
-            \sigma^2\cdot\tilde{C}\left(r\right)`
+            \sigma^2\cdot\mathrm{cor}\left(r\right)`
 
-            Where :math:`\tilde{C}(r)` is the normalized covariance.
+            Where :math:`\mathrm{cor}(r)` is the correlation function.
             """
-            return self.var * self.covariance_normed(r)
+            return self.var * self.correlation(r)
 
-        def covariance_normed(self, r):
-            r"""Normalized covariance (or correlation function) of the model
+        def correlation(self, r):
+            r"""correlation function (or normalized covariance) of the model
 
-            Given by: :math:`\tilde{C}\left(r\right)`
+            Given by: :math:`\mathrm{cor}\left(r\right)`
 
             It has to be a monotonic decreasing function with
-            :math:`\tilde{C}(0)=1` and :math:`\tilde{C}(\infty)=0`.
+            :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
             """
             return 1.0 - self.variogram_normed(r)
 
@@ -257,9 +259,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             r"""Normalized variogram of the model
 
             Given by: :math:`\tilde{\gamma}\left(r\right)=
-            1-\tilde{C}\left(r\right)`
+            1-\mathrm{cor}\left(r\right)`
 
-            Where :math:`\tilde{C}(r)` is the normalized covariance.
+            Where :math:`\mathrm{cor}(r)` is the correlation function.
             """
             return (self.variogram(r) - self.nugget) / self.var
 
@@ -274,8 +276,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             cls.covariance = covariance
         else:
             abstract = False
-        if not hasattr(cls, "covariance_normed"):
-            cls.covariance_normed = covariance_normed
+        if not hasattr(cls, "correlation"):
+            cls.correlation = correlation
         else:
             abstract = False
         if not hasattr(cls, "variogram_normed"):
@@ -289,7 +291,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 + "', "
                 + "without overriding at least on of the methods "
                 + "'variogram', 'covariance', "
-                + "'covariance_normed', or 'variogram_normed'."
+                + "'correlation', or 'variogram_normed'."
             )
 
         # modify the docstrings ###############################################
@@ -303,7 +305,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         else:
             cls.__doc__ += CovModel.__doc__[44 : -316]
         # overridden functions get standard doc if no new doc was created
-        ignore = ["__", "variogram", "covariance"]
+        ignore = ["__", "variogram", "covariance", "correlation"]
         for attr in cls.__dict__:
             if any(
                 [attr.startswith(ign) for ign in ignore]
@@ -356,7 +358,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     def calc_integral_scale(self):
         """calculate the integral scale of the isotrope model"""
-        self._integral_scale = integral(self.covariance_normed, 0, np.inf)[0]
+        self._integral_scale = integral(self.correlation, 0, np.inf)[0]
         return self._integral_scale
 
     def percentile_scale(self, per=0.9):
