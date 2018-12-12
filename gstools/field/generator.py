@@ -28,17 +28,18 @@ class RandMeth(object):
     model : :any:`CovModel`
         covariance model
     mode_no : :class:`int`, optional
-        number of Fourier modes. Default: 1000
-    seed : :class:`int`
+        number of Fourier modes. Default: ``1000``
+    seed : :class:`int` or :any:`None`, optional
         the seed of the random number generator.
-        If "None", a random seed is used. Default: None
-    chunk_tmp_size : :class:`int`
+        If "None", a random seed is used. Default: :any:`None`
+    chunk_tmp_size : :class:`int`, optional
         Number of points (number of coordinates * mode_no)
         to be handled by one chunk while creating the fild.
         This is used to prevent memory overflows while
-        generating the field. Default: 1e7
-    verbose : :class:`bool`
+        generating the field. Default: ``1e7``
+    verbose : :class:`bool`, optional
         State if there should be output during the generation.
+        Default: :any:`False`
     **kwargs
         Placeholder for keyword-args
 
@@ -62,6 +63,12 @@ class RandMeth(object):
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
+
+
+    **Methods**
+
+    .. autoautosummary:: gstools.field.generator.RandMeth
+       :methods:
     """
 
     def __init__(
@@ -183,27 +190,27 @@ class RandMeth(object):
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
     def update(self, model=None, seed=np.nan):
-        """Update the model and the generated modes.
+        """Update the model and the seed.
 
         If model and seed are not different, nothing will be done.
 
         Parameters
         ----------
-        model : :any:`CovModel` or None, optional
-            covariance model. Default: None
-        seed : :class:`int` or None or np.nan, optional
+        model : :any:`CovModel` or :any:`None`, optional
+            covariance model. Default: :any:`None`
+        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
             the seed of the random number generator.
-            If "None", a random seed is used. If "np.nan", the actual seed
-            will be kept. Default: np.nan
+            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
+            the actual seed will be kept. Default: :any:`numpy.nan`
         """
         # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
                 self._model = dcp(model)
                 if seed is None or not np.isnan(seed):
-                    self._set_seed(seed)
+                    self.reset_seed(seed)
                 else:
-                    self._set_seed(self._seed)
+                    self.reset_seed(self._seed)
             # just update the seed, if its a new one
             elif seed is None or not np.isnan(seed):
                 self.seed = seed
@@ -223,7 +230,8 @@ class RandMeth(object):
                 and self._z_2 is not None
                 and self._cov_sample is not None
             ):
-                print("RandMeth.update: Nothing will be done...")
+                if self.verbose:
+                    print("RandMeth.update: Nothing will be done...")
             else:
                 raise ValueError(
                     "gstools.field.generator.RandMeth: "
@@ -236,21 +244,23 @@ class RandMeth(object):
                 + "instance of 'gstools.CovModel'"
             )
 
-    def reset_seed(self, seed=None):
-        """Reset the random amplitudes and wave numbers with a new seed.
+    def reset_seed(self, seed=np.nan):
+        """
+        Recalculate the random amplitudes and wave numbers with the given seed.
 
         Parameters
         ----------
-            seed : :class:`int`, optional
-                the seed of the random number generator.
-                If "None", a random seed is used. Default: None
-        """
-        self._seed = np.nan
-        self.seed = seed
+        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
+            the seed of the random number generator.
+            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
+            the actual seed will be kept. Default: :any:`numpy.nan`
 
-    def _set_seed(self, new_seed):
-        """Set a new seed for the random number generation."""
-        self._seed = new_seed
+        Notes
+        -----
+        Even if the given seed is the present one, modes will be racalculated.
+        """
+        if seed is None or not np.isnan(seed):
+            self._seed = seed
         self._rng = RNG(self._seed)
         # normal distributed samples for randmeth
         self._z_1 = self._rng.random.normal(size=self._mode_no)
@@ -284,9 +294,9 @@ class RandMeth(object):
         return self._seed
 
     @seed.setter
-    def seed(self, new_seed=None):
+    def seed(self, new_seed):
         if new_seed is not self._seed:
-            self._set_seed(new_seed)
+            self.reset_seed(new_seed)
 
     @property
     def model(self):
@@ -307,7 +317,7 @@ class RandMeth(object):
     def mode_no(self, mode_no):
         if int(mode_no) != self._mode_no:
             self._mode_no = int(mode_no)
-            self._set_seed(self._seed)
+            self.reset_seed(self._seed)
 
     @property
     def name(self):
