@@ -68,8 +68,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
          Default: ``0.0``
     integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
-        If given, the len_scale will be calculated, so that the integral
-        scale of the model matches the given one. Default: ``None``
+        If given, ``len_scale`` will be ignored and recalculated,
+        so that the integral scale of the model matches the given one.
+        Default: ``None``
     var_bounds : :class:`list`, optional
         bounds for the variance of the model.
         Default: ``(0.0, 100.0, "cc")``
@@ -79,12 +80,36 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     nugget_bounds : :class:`list`, optional
         bounds for the nugget of the model.
         Default: ``(0.0, 100.0, "cc")``
+    var_raw : :class:`float` or :any:`None`, optional
+        raw variance of the model which will be multiplied with
+        :any:`CovModel.var_factor` to result in the actual variance.
+        If given, ``var`` will be ignored.
+        (This is just for models that override :any:`CovModel.var_factor`)
+        Default: :any:`None`
     hankel_kw: :class:`dict` or :any:`None`, optional
         Modify the init-arguments of
         :any:`hankel.SymmetricFourierTransform`
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
-        Default: ``None``
+        Default: :any:`None`
+
+    Examples
+    --------
+    >>> from gstools import CovModel
+    >>> import numpy as np
+    >>> class Gau(CovModel):
+    ...     def covariance_normed(self, r):
+    ...         return np.exp(-(r/self.len_scale)**2)
+    ...
+    >>> model = Gau()
+    >>> model.spectrum(2)
+    0.00825830126008459
+
+
+    **Methods**
+
+    .. autoautosummary:: gstools.covmodel.CovModel
+       :methods:
     """
 
     def __init__(
@@ -99,28 +124,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         var_bounds=(0.0, 100.0, "cc"),
         len_scale_bounds=(0.0, 1000.0, "oo"),
         nugget_bounds=(0.0, 100.0, "cc"),
+        var_raw=None,
         hankel_kw=None,
         **opt_arg
     ):
-        r"""Initialize gstools covariance model
-
-        Warnings
-        --------
-        Don't instantiate ``CovModel`` directly. You need to inherit a
-        child class which overrides one of the following methods:
-
-            * ``model.variogram(r)``
-                :math:`\gamma\left(r\right)=
-                \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
-            * ``model.variogram_normed(r)``
-                :math:`\tilde{\gamma}\left(r\right)=
-                1-\tilde{C}\left(r\right)`
-            * ``model.covariance(r)``
-                :math:`C\left(r\right)=
-                \sigma^2\cdot\tilde{C}\left(r\right)`
-            * ``model.covariance_normed(r)``
-                :math:`\tilde{C}\left(r\right)`
-        """
         # assert, that we use a subclass
         # this is the case, if __init_subclass__ is called, which creates
         # the "variogram"... so we check for that
@@ -158,28 +165,35 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # set standard boundaries for the optional arguments
         self._opt_arg_bounds = self.default_opt_arg_bounds()
 
-        # tuning arguments for the hankel-/fourier-transformation
-        # set before "dim" set, because SFT needs the dimension
-        # SFT class will be created within dim.setter
-        self.hankel_kw = HANKEL_DEFAULT if hankel_kw is None else hankel_kw
-        self._ft = None
-
         # prepare dim setting
         self._dim = None
         self._len_scale = None
         self._anis = None
         self._angles = None
+        # SFT class will be created within dim.setter but needs hankel_kw
+        self._hankel_kw = None
+        self._sft = None
+        self.hankel_kw = hankel_kw
         self.dim = dim
         # set parameters
         self._nugget = nugget
         self._angles = set_angles(self.dim, angles)
         self._len_scale, self._anis = set_len_anis(self.dim, len_scale, anis)
         # set var at last, because of the var_factor (to be right initialized)
-        self._var = None
-        self.var = var
+        if var_raw is None:
+            self._var = None
+            self.var = var
+        else:
+            self._var = var_raw
         self._integral_scale = None
         self.integral_scale = integral_scale
-        self.var = var  # set var again, if int_scale affects var_factor
+        # set var again, if int_scale affects var_factor
+        if var_raw is None:
+            self._var = None
+            self.var = var
+        else:
+            self._var = var_raw
+        # final check for parameter bounds
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
@@ -189,7 +203,25 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ###########################################################################
 
     def __init_subclass__(cls):
+        r"""Initialize gstools covariance model
 
+        Warnings
+        --------
+        Don't instantiate ``CovModel`` directly. You need to inherit a
+        child class which overrides one of the following methods:
+
+            * ``model.variogram(r)``
+                :math:`\gamma\left(r\right)=
+                \sigma^2\cdot\left(1-\tilde{C}\left(r\right)\right)+n`
+            * ``model.variogram_normed(r)``
+                :math:`\tilde{\gamma}\left(r\right)=
+                1-\tilde{C}\left(r\right)`
+            * ``model.covariance(r)``
+                :math:`C\left(r\right)=
+                \sigma^2\cdot\tilde{C}\left(r\right)`
+            * ``model.covariance_normed(r)``
+                :math:`\tilde{C}\left(r\right)`
+        """
         # overrid one of these ################################################
         def variogram(self, r):
             r"""Isotropic variogram of the model
@@ -212,7 +244,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return self.var * self.covariance_normed(r)
 
         def covariance_normed(self, r):
-            r"""Normalized covariance of the model
+            r"""Normalized covariance (or correlation function) of the model
 
             Given by: :math:`\tilde{C}\left(r\right)`
 
@@ -263,7 +295,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         # modify the docstrings ###############################################
 
         # class docstring gets attributes added
-        cls.__doc__ += CovModel.__doc__[44:]
+        if cls.__doc__ is None:
+            cls.__doc__ = (
+                "User defined GSTools Covariance-Model "
+                + CovModel.__doc__[44:]
+            )
+        else:
+            cls.__doc__ += CovModel.__doc__[44 : -316]
         # overridden functions get standard doc if no new doc was created
         ignore = ["__", "variogram", "covariance"]
         for attr in cls.__dict__:
@@ -364,7 +402,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
         k = np.array(np.abs(k), dtype=float)
-        return self._ft.transform(self.covariance, k, ret_err=False)
+        return self._sft.transform(self.covariance, k, ret_err=False)
 
     def spectral_density(self, k):
         r"""
@@ -433,19 +471,29 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         Parameters
         ----------
-        x_data : array
+        x_data : :class:`numpy.ndarray`
             The radii of the meassured variogram.
-        y_data : array
+        y_data : :class:`numpy.ndarray`
             The messured variogram
         **para_deselect
             You can deselect the parameters to be fitted, by setting
             them "False" as keywords. By default, all parameters are
             fitted.
 
+        Returns
+        -------
+        fit_para : :class:`dict`
+            Dictonary with the fitted parameter values
+        pcov : :class:`numpy.ndarray`
+            The estimated covariance of `popt` from
+            :any:`scipy.optimize.curve_fit`
+
         Notes
         -----
         You can set the bounds for each parameter by accessing
-        :any:`CovModel.set_arg_bounds`
+        :any:`CovModel.set_arg_bounds`.
+
+        The fitted parameters will be instantly set in the model.
         """
         # select all parameters to be fitted
         para = {"var": True, "len_scale": True, "nugget": True}
@@ -498,41 +546,41 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         popt, pcov = curve_fit(
             curve, x_data, y_data, bounds=(low_bounds, top_bounds)
         )
-        out = {}
+        fit_para = {}
         para_skip = 0
         opt_skip = 0
         if para["var"]:
             var_tmp = popt[para_skip]
-            out["var"] = popt[para_skip]
+            fit_para["var"] = popt[para_skip]
             para_skip += 1
         else:
-            out["var"] = self.var
+            fit_para["var"] = self.var
         if para["len_scale"]:
             self.len_scale = popt[para_skip]
-            out["len_scale"] = popt[para_skip]
+            fit_para["len_scale"] = popt[para_skip]
             para_skip += 1
         else:
-            out["len_scale"] = self.len_scale
+            fit_para["len_scale"] = self.len_scale
         if para["nugget"]:
             self.nugget = popt[para_skip]
-            out["nugget"] = popt[para_skip]
+            fit_para["nugget"] = popt[para_skip]
             para_skip += 1
         else:
-            out["nugget"] = self.nugget
+            fit_para["nugget"] = self.nugget
         for opt in self.opt_arg:
             if para[opt]:
                 setattr(self, opt, popt[para_skip + opt_skip])
-                out[opt] = popt[para_skip + opt_skip]
+                fit_para[opt] = popt[para_skip + opt_skip]
                 opt_skip += 1
             else:
-                out[opt] = getattr(self, opt)
+                fit_para[opt] = getattr(self, opt)
         # set var at last because of var_factor (other parameter needed)
         if para["var"]:
             self.var = var_tmp
         # recalculate the integral scale
         self._integral_scale = self.calc_integral_scale()
-        out["integral_scale"] = self._integral_scale
-        return out, pcov
+        fit_para["integral_scale"] = self._integral_scale
+        return fit_para, pcov
 
     # bounds setting and checks ###############################################
 
@@ -749,7 +797,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
         self._dim = int(dim)
         # create fourier transform just once (recreate for dim change)
-        self._ft = SFT(ndim=self.dim, **self.hankel_kw)
+        self._sft = SFT(ndim=self.dim, **self.hankel_kw)
         # recalculate dimension related parameters
         if self._anis is not None:
             self._len_scale, self._anis = set_len_anis(
@@ -838,6 +886,18 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             self.len_scale = integral_scale / int_tmp
             self.check_arg_bounds()
 
+    @property
+    def hankel_kw(self):
+        """:class:`dict`: Keywords for :any:`hankel.SymmetricFourierTransform`
+        """
+        return self._hankel_kw
+
+    @hankel_kw.setter
+    def hankel_kw(self, hankel_kw):
+        self._hankel_kw = HANKEL_DEFAULT if hankel_kw is None else hankel_kw
+        if self.dim is not None:
+            self._sft = SFT(ndim=self.dim, **self.hankel_kw)
+
     # properties ##############################################################
 
     @property
@@ -865,7 +925,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def sill(self):
-        """:class:`float`: The sill of the variogram."""
+        """:class:`float`: The sill of the variogram.
+
+        Notes
+        -----
+        This is calculated by:
+            * ``sill = variance + nugget``
+        """
         return self.var + self.nugget
 
     @property
@@ -884,6 +950,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         Notes
         -----
+        This is calculated by:
         * ``len_scale[0] = len_scale``
         * ``len_scale[1] = len_scale*anis[0]``
         * ``len_scale[2] = len_scale*anis[1]``
@@ -963,3 +1030,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             + opt_str
             + ")"
         )
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
