@@ -70,12 +70,6 @@ class SRF(object):
     **generator_kwargs
         keyword arguments that are forwarded to the generator in use.
         Have a look at the provided generators for further information.
-
-
-    **Methods**
-
-    .. autoautosummary:: gstools.field.SRF
-       :methods:
     """
 
     def __init__(

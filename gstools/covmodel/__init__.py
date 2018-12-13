@@ -2,17 +2,22 @@
 """
 GStools subpackage providing a set of handy covariance models.
 
-.. currentmodule:: gstools.covmodel
-
 Subpackages
 ^^^^^^^^^^^
 
+.. currentmodule:: gstools.covmodel
+
 .. autosummary::
+    base
+    models
+    tpl_models
     plot
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
 Class to construct user defined covariance models
+
+.. currentmodule:: gstools.covmodel.base
 
 .. autosummary::
    CovModel
@@ -20,6 +25,8 @@ Class to construct user defined covariance models
 Covariance Models
 ^^^^^^^^^^^^^^^^^
 Standard Covariance Models
+
+.. currentmodule:: gstools.covmodel.models
 
 .. autosummary::
    Gaussian
@@ -33,6 +40,8 @@ Standard Covariance Models
    SphericalRescal
 
 Truncated Power Law Covariance Models
+
+.. currentmodule:: gstools.covmodel.tpl_models
 
 .. autosummary::
    TPLGaussian

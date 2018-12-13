@@ -1,15 +1,13 @@
 gstools.covmodel
-----------------
+================
 
 .. automodule:: gstools.covmodel
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-   Details
-   ^^^^^^^
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
 
-   plot.rst
+   covmodel.base.rst
+   covmodel.models.rst
+   covmodel.tpl_models.rst
+   covmodel.plot.rst

@@ -1,10 +1,6 @@
-
-=======
-GSTools
-=======
-
-Quickstart
-==========
+==================
+GSTools Quickstart
+==================
 
 .. image:: pics/gstools.png
    :width: 150px
@@ -15,22 +11,23 @@ variogram estimation based on a list of provided or even user-defined covariance
 
 
 Installation
-------------
+============
 
     ``pip install gstools``
 
 
 Spatial Random Field Generation
--------------------------------
+===============================
 
 The core of this library is the generation of spatial random fields. These fields are generated using the randomisation method, described by `Heße et al. 2014 <https://doi.org/10.1016/j.envsoft.2014.01.013>`_.
 
 
 Examples
-^^^^^^^^
+--------
+
 
 Gaussian Covariance Model
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is an example of how to generate a 2 dimensional spatial random field (:any:`SRF`)
 with a :any:`Gaussian` covariance model.
@@ -53,7 +50,7 @@ with a :any:`Gaussian` covariance model.
 
 
 Truncated Power Law Model
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 GSTools also implements truncated power law variograms, which can be represented as a
 superposition of scale dependant modes in form of standard variograms, which are truncated by
@@ -119,7 +116,7 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
 
 
 Estimating and fitting variograms
----------------------------------
+=================================
 
 The spatial structure of a field can be analyzed with the variogram, which contains the same information as the covariance function.
 
@@ -127,7 +124,7 @@ All covariance models can be used to fit given variogram data by a simple interf
 
 
 Examples
-^^^^^^^^
+--------
 
 This is an example of how to estimate the variogram of a 2 dimensional unstructured field and estimate the parameters of the covariance
 model again.
@@ -166,7 +163,7 @@ Which gives:
 
 
 User defined covariance models
-------------------------------
+==============================
 
 One of the core-features of GSTools is the powerfull
 :any:`CovModel`
@@ -174,10 +171,10 @@ class, which allows to easy define covariance models by the user.
 
 
 Examples
-^^^^^^^^
+--------
 
 Here we reimplement the Gaussian covariance model by defining just the
-`correlation <https://en.wikipedia.org/wiki/Autocorrelation>`_ function:
+`correlation <https://en.wikipedia.org/wiki/Autocovariance#Normalization>`_ function:
 
 .. code-block:: python
 
@@ -192,8 +189,26 @@ And that's it! With ``Gau`` you now have a fully working covariance model,
 which you could use for field generation or variogram fitting as shown above.
 
 
+VTK Export
+==========
+
+After you have created a field, you may want to save it to file, so we provide
+a handy `VTK <https://www.vtk.org/>`_ export routine (:any:`vtk_export`):
+
+.. code-block:: python
+
+    from gstools import SRF, Gaussian, vtk_export
+    x = y = range(100)
+    model = Gaussian(dim=2, var=1, len_scale=10)
+    srf = SRF(model)
+    field = srf((x, y), mesh_type='structured')
+    vtk_export("field", (x, y), field, mesh_type='structured')
+
+Which gives a RectilinearGrid VTK file ``field.vtr``.
+
+
 Requirements
-------------
+============
 
 - `Numpy >= 1.8.2 <http://www.numpy.org>`_
 - `SciPy >= 0.19.1 <http://www.scipy.org>`_
@@ -204,14 +219,6 @@ Requirements
 
 
 License
--------
-
-`GPL <https://github.com/LSchueler/GSTools/blob/master/LICENSE>`_ © 2018
-
-Content
 =======
 
-.. toctree::
-   :maxdepth: 4
-
-   package
+`GPL <https://github.com/LSchueler/GSTools/blob/master/LICENSE>`_ © 2018

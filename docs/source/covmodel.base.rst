@@ -1,7 +1,7 @@
-gstools.covmodel.plot
+gstools.covmodel.base
 ---------------------
 
-.. automodule:: gstools.covmodel.plot
+.. automodule:: gstools.covmodel.base
    :members:
    :undoc-members:
    :show-inheritance:

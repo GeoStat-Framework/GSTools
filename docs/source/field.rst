@@ -1,16 +1,21 @@
 gstools.field
--------------
+=============
 
 .. automodule:: gstools.field
    :members:
    :undoc-members:
-   :show-inheritance:
+
+   .. only:: html
+
+      .. toctree::
+         :maxdepth: 1
 
    Details
-   ^^^^^^^
+   -------
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
 
-   generator.rst
-   upscaling.rst
+   field.generator.rst
+   field.upscaling.rst

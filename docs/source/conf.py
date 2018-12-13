@@ -30,83 +30,13 @@ else:
 
 
 def skip(app, what, name, obj, skip, options):
-    #    if name in ["__init__", "__call__"]:
     if name in ["__call__"]:
         return False
     return skip
 
 
 def setup(app):
-    ##################################
-    # https://stackoverflow.com/a/30783465/6696397
-    # https://github.com/markovmodel/PyEMMA/blob/devel/doc/source/conf.py#L285
-    # maybe use this:
-    # https://github.com/sphinx-doc/sphinx/blob/master/sphinx/ext/autosummary/templates/autosummary/class.rst
-    # http://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html#customizing-templates
-    from sphinx.ext.autosummary import Autosummary
-    from sphinx.ext.autosummary import get_documenter
-    from docutils.parsers.rst import directives
-    from sphinx.util.inspect import safe_getattr
-
-    class AutoAutoSummary(Autosummary):
-
-        option_spec = {
-            "methods": directives.unchanged,
-            "attributes": directives.unchanged,
-        }
-
-        required_arguments = 1
-
-        @staticmethod
-        def get_members(obj, typ, include_public=None):
-            if not include_public:
-                include_public = []
-            items = []
-            for name in dir(obj):
-                try:
-                    documenter = get_documenter(
-                        app, safe_getattr(obj, name), obj
-                    )
-                except AttributeError:
-                    continue
-                if documenter.objtype == typ:
-                    items.append(name)
-            public = [
-                x
-                for x in items
-                if x in include_public or not x.startswith("_")
-            ]
-            return public, items
-
-        def run(self):
-            clazz = self.arguments[0]
-            try:
-                (module_name, class_name) = clazz.rsplit(".", 1)
-                m = __import__(module_name, globals(), locals(), [class_name])
-                c = getattr(m, class_name)
-                if "methods" in self.options:
-                    _, methods = self.get_members(c, "method", ["__call__"])
-
-                    self.content = [
-                        "~%s.%s" % (clazz, method)
-                        for method in methods
-                        if (not method.startswith("_") or method == "__call__")
-                    ]
-                if "attributes" in self.options:
-                    _, attribs = self.get_members(c, "attribute")
-                    self.content = [
-                        "~%s.%s" % (clazz, attrib)
-                        for attrib in attribs
-                        if not attrib.startswith("_")
-                    ]
-            finally:
-                return super(AutoAutoSummary, self).run()
-
     app.connect("autodoc-skip-member", skip)
-    app.add_directive("autoautosummary", AutoAutoSummary)
-
-
-##################################
 
 
 class Mock(MagicMock):
@@ -135,27 +65,15 @@ extensions = [
     "sphinx.ext.imgmath",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
-    #    'sphinx.ext.githubpages',
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
-#    "numpydoc",
+    "numpydoc",
 ]
 
-# ?!
+# autosummaries from source-files
 autosummary_generate = True
 # dont show __init__ docstring
 autoclass_content = "class"
-
-# idea from:
-# https://wwoods.github.io/2016/06/09/easy-sphinx-documentation-without-the-boilerplate/
-# autodoc_default_flags = [
-#    # Make sure that any autodoc declarations show the right members
-#    "members",
-#    "inherited-members",
-#    "private-members",
-#    "show-inheritance",
-# ]
-
 # sort class members
 autodoc_member_order = "groupwise"
 # autodoc_member_order = 'bysource'
@@ -163,24 +81,26 @@ autodoc_member_order = "groupwise"
 # Notes in boxes
 napoleon_use_admonition_for_notes = True
 # Attributes like parameters
-# napoleon_use_ivar = False
-
-# https://github.com/numpy/numpydoc/issues/69
-# if set to True, over 5000 warning plop up... but it looks better in the end
-#numpydoc_show_class_members = True
-class_members_toctree = False
-
+#napoleon_use_ivar = True
+# this is a nice class-doc layout
+numpydoc_show_class_members = True
+# class members have no separate file, so they are not in a toctree
+numpydoc_class_members_toctree = False
+# for the covmodels alot of classmembers show up...
+numpydoc_show_inherited_class_members = False
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
 # source_suffix = ['.rst', '.md']
 source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = "index"
+# --> this is the sitemap (or content-list in latex -> needs a heading)
+# for html: the quickstart (in index.rst)
+# gets the "index.html" and is therefore opened first
+master_doc = "contents"
 
 # General information about the project.
 project = "GSTools"
@@ -210,10 +130,6 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
-
-# If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = False
-
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -274,8 +190,8 @@ latex_logo = "pics/gstools_150.png"
 # http://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-latex-output
 latex_elements = {
     "preamble": r"""
-\setcounter{secnumdepth}{2}
-\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{1}
+\setcounter{tocdepth}{2}
 \pagestyle{fancy}
 """,
     "pointsize": "10pt",
@@ -295,6 +211,7 @@ latex_documents = [
         "manual",
     )
 ]
+#latex_use_parts = True
 
 # -- Options for manual page output ---------------------------------------
 

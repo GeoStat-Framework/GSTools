@@ -63,12 +63,6 @@ class RandMeth(object):
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
-
-
-    **Methods**
-
-    .. autoautosummary:: gstools.field.generator.RandMeth
-       :methods:
     """
 
     def __init__(

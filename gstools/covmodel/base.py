@@ -104,12 +104,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     >>> model = Gau()
     >>> model.spectrum(2)
     0.00825830126008459
-
-
-    **Methods**
-
-    .. autoautosummary:: gstools.covmodel.CovModel
-       :methods:
     """
 
     def __init__(
@@ -875,10 +869,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def integral_scale(self):
         """:class:`float`: The main integral scale of the model.
 
-        Warnings
-        --------
-        If integral scale is not setable, a warning is raised and a standard
-        len_scale of 1 is used!
+        Raises
+        ------
+        ValueError
+            If integral scale is not setable.
         """
         self._integral_scale = self._calc_integral_scale()
         return self._integral_scale

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Package Content
----------------
-GSTools is a library providing geostatistical tools.
+GeoStatTools is a library providing geostatistical tools for random field generation and
+variogram estimation based on a list of provided or even user-defined covariance models.
+
 The following functionalities are directly provided on module-level.
 
 Subpackages
 ^^^^^^^^^^^
-The following subpackages are provided
 
 .. autosummary::
     covmodel
@@ -18,7 +17,6 @@ The following subpackages are provided
 
 Classes
 ^^^^^^^
-The following classes are provided directly on module-level
 
 Spatial Random Field
 ~~~~~~~~~~~~~~~~~~~~
@@ -33,7 +31,7 @@ Covariance Base-Class
 ~~~~~~~~~~~~~~~~~~~~~
 Class to construct user defined covariance models
 
-.. currentmodule:: gstools.covmodel
+.. currentmodule:: gstools.covmodel.base
 
 .. autosummary::
    CovModel
@@ -41,6 +39,8 @@ Class to construct user defined covariance models
 Covariance Models
 ~~~~~~~~~~~~~~~~~
 Standard Covariance Models
+
+.. currentmodule:: gstools.covmodel.models
 
 .. autosummary::
    Gaussian
@@ -55,6 +55,7 @@ Standard Covariance Models
 
 Truncated Power Law Covariance Models
 
+.. currentmodule:: gstools.covmodel.tpl_models
 .. autosummary::
    TPLGaussian
    TPLExponential
@@ -62,7 +63,6 @@ Truncated Power Law Covariance Models
 
 Functions
 ^^^^^^^^^
-The following functions are provided directly on module-level
 
 VTK-Export
 ~~~~~~~~~~

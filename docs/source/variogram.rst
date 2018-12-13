@@ -1,11 +1,9 @@
 gstools.variogram
------------------
+=================
 
 .. automodule:: gstools.variogram
    :members:
    :undoc-members:
-   :show-inheritance:
-   :inherited-members:
 
    .. only:: html
 
@@ -13,4 +11,4 @@ gstools.variogram
          :maxdepth: 1
 
    Details
-   ^^^^^^^
+   -------

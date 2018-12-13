@@ -81,7 +81,8 @@ x = y = np.linspace(0, 100, 100)
 model = TPLStable(
     dim=2,           # spatial dimension
     var=1,           # variance (C is calculated internally, so that the variance is actually 1)
-    len_scale=10,    # length scale (a.k.a. range)
+    len_low=0,       # lower truncation of the power law
+    len_scale=10,    # length scale (a.k.a. range), len_up = len_low + len_scale
     nugget=0.1,      # nugget
     anis=0.5,        # anisotropy between main direction and transversal ones
     angles=np.pi/4,  # rotation angles
@@ -171,6 +172,23 @@ Have a look at the [documentation ][doc_link] for further information on incorpo
 optional parameters and optimizations.
 
 
+## VTK Export
+
+After you have created a field, you may want to save it to file, so we provide
+a handy [VTK][vtk_link] export routine:
+
+```python
+from gstools import SRF, Gaussian, vtk_export
+x = y = range(100)
+model = Gaussian(dim=2, var=1, len_scale=10)
+srf = SRF(model)
+field = srf((x, y), mesh_type='structured')
+vtk_export("field", (x, y), field, mesh_type='structured')
+```
+
+Which gives a RectilinearGrid VTK file ``field.vtr``.
+
+
 ## Requirements:
 
 - [NumPy >= 1.8.2](https://www.numpy.org)
@@ -186,7 +204,8 @@ optional parameters and optimizations.
 [GPL][gpl_link] © 2018
 
 [gpl_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
-[cov_link]: https://gstools.readthedocs.io/en/latest/covmodel.html#gstools.covmodel.CovModel
+[cov_link]: https://gstools.readthedocs.io/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
 [doc_link]: https://gstools.readthedocs.io/en/latest/
-[cor_link]: https://en.wikipedia.org/wiki/Autocorrelation
+[cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
+[vtk_link]: https://www.vtk.org/

@@ -31,12 +31,6 @@ class RNG(object):
     seed : :class:`int` or :any:`None`, optional
         The seed of the master RNG, if ``None``,
         a random seed is used. Default: ``None``
-
-
-    **Methods**
-
-    .. autoautosummary:: gstools.random.rng
-       :methods:
     """
 
     def __init__(self, seed=None):

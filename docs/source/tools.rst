@@ -1,11 +1,9 @@
 gstools.tools
--------------
+=============
 
 .. automodule:: gstools.tools
    :members:
    :undoc-members:
-   :show-inheritance:
-   :inherited-members:
 
    .. only:: html
 
@@ -13,4 +11,4 @@ gstools.tools
          :maxdepth: 1
 
    Details
-   ^^^^^^^
+   -------

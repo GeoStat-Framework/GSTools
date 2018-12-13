@@ -1,9 +1,13 @@
+===========
+GSTools API
+===========
+
 .. automodule:: gstools
 
-GSTools-API
-^^^^^^^^^^^
-
 .. toctree::
+   :hidden:
+   :caption: Table of Contents
+   :name: mastertoc
    :maxdepth: 3
 
    covmodel.rst
