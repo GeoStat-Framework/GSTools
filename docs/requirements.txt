@@ -6,3 +6,4 @@ hankel>=0.3.6
 emcee
 pyevtk
 six
+numpydoc
