@@ -71,15 +71,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         If given, ``len_scale`` will be ignored and recalculated,
         so that the integral scale of the model matches the given one.
         Default: ``None``
-    var_bounds : :class:`list`, optional
-        bounds for the variance of the model.
-        Default: ``(0.0, 100.0, "cc")``
-    len_scale_bounds : :class:`list`, optional
-        bounds for the length scale of the model in the x-direction.
-        Default: ``(0.0, 1000.0, "oo")``
-    nugget_bounds : :class:`list`, optional
-        bounds for the nugget of the model.
-        Default: ``(0.0, 100.0, "cc")``
     var_raw : :class:`float` or :any:`None`, optional
         raw variance of the model which will be multiplied with
         :any:`CovModel.var_factor` to result in the actual variance.
@@ -115,9 +106,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         anis=1.0,
         angles=0.0,
         integral_scale=None,
-        var_bounds=(0.0, 100.0, "cc"),
-        len_scale_bounds=(0.0, 1000.0, "oo"),
-        nugget_bounds=(0.0, 100.0, "cc"),
         var_raw=None,
         hankel_kw=None,
         **opt_arg
@@ -151,11 +139,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # set standard boundaries for variance, len_scale and nugget
         self._var_bounds = None
-        self.var_bounds = var_bounds
+        self.var_bounds = (0.0, 100.0, "cc")
         self._len_scale_bounds = None
-        self.len_scale_bounds = len_scale_bounds
+        self.len_scale_bounds = (0.0, 1000.0, "oo")
         self._nugget_bounds = None
-        self.nugget_bounds = nugget_bounds
+        self.nugget_bounds = (0.0, 100.0, "cc")
         # set standard boundaries for the optional arguments
         self._opt_arg_bounds = self.default_opt_arg_bounds()
 
