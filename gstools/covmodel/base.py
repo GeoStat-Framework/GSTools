@@ -436,7 +436,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return res
         # TODO: this is totally hacky (but working :D)
         # prevent num error in hankel at r=0 in 1D
-        r[r == 0.0] = 0.03 / self.len_scale
+        if self.dim == 1:
+            r[r == 0.0] = 0.03 / self.len_scale
         res = rad_fac(self.dim, r) * self.spectral_density(r)
         # prevent numerical errors in hankel for big r (set non-negativ)
         res = np.maximum(res, 0.0)
@@ -880,6 +881,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     @integral_scale.setter
     def integral_scale(self, integral_scale):
         if integral_scale is not None:
+            # format int-scale right
+            self.len_scale = integral_scale
+            integral_scale = self.len_scale
+            # reset len_scale
             self.len_scale = 1.0
             int_tmp = self._calc_integral_scale()
             self.len_scale = integral_scale / int_tmp
@@ -955,9 +960,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         Notes
         -----
         This is calculated by:
-        * ``len_scale[0] = len_scale``
-        * ``len_scale[1] = len_scale*anis[0]``
-        * ``len_scale[2] = len_scale*anis[1]``
+            * ``len_scale_vec[0] = len_scale``
+            * ``len_scale_vec[1] = len_scale*anis[0]``
+            * ``len_scale_vec[2] = len_scale*anis[1]``
         """
         res = np.zeros(self.dim, dtype=float)
         res[0] = self.len_scale
@@ -972,9 +977,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         Notes
         -----
         This is calculated by:
-            * ``integral_scale[0] = integral_scale``
-            * ``integral_scale[1] = integral_scale*anis[0]``
-            * ``integral_scale[2] = integral_scale*anis[1]``
+            * ``integral_scale_vec[0] = integral_scale``
+            * ``integral_scale_vec[1] = integral_scale*anis[0]``
+            * ``integral_scale_vec[2] = integral_scale*anis[1]``
         """
         res = np.zeros(self.dim, dtype=float)
         res[0] = self.integral_scale
