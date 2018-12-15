@@ -86,26 +86,26 @@ def pos2xyz(pos, dtype=None, calc_dim=False):
 
     Parameters
     ----------
-        pos : :any:`iterable`
-            the position tuple, containing main direction and transversal
-            directions
-        dtype : data-type, optional
-            The desired data-type for the array.
-            If not given, then the type will be determined as the minimum type
-            required to hold the objects in the sequence. Default: None
-        calc_dim : :class:`bool`
-            State if the dimension should be returned
+    pos : :any:`iterable`
+        the position tuple, containing main direction and transversal
+        directions
+    dtype : data-type, optional
+        The desired data-type for the array.
+        If not given, then the type will be determined as the minimum type
+        required to hold the objects in the sequence. Default: None
+    calc_dim : :class:`bool`
+        State if the dimension should be returned
 
     Returns
     -------
-        x : :class:`numpy.ndarray`
-            first components of position vectors
-        y : :class:`numpy.ndarray` or None
-            analog to x
-        z : :class:`numpy.ndarray` or None
-            analog to x
-        dim : :class:`int`, optional
-            dimension (only if calc_dim is True)
+    x : :class:`numpy.ndarray`
+        first components of position vectors
+    y : :class:`numpy.ndarray` or None
+        analog to x
+    z : :class:`numpy.ndarray` or None
+        analog to x
+    dim : :class:`int`, optional
+        dimension (only if calc_dim is True)
 
     Notes
     -----
@@ -130,34 +130,22 @@ def xyz2pos(x, y=None, z=None, dtype=None):
 
     Parameters
     ----------
-        pos : :any:`iterable`
-            the position tuple, containing main direction and transversal
-            directions
-        x : :class:`numpy.ndarray`
-            grid axis in x-direction if structured, or first components of
-            position vectors if unstructured
-        y : :class:`numpy.ndarray`, optional
-            analog to x
-        z : :class:`numpy.ndarray`, optional
-            analog to x
-        seed : :class:`int`, optional
-            seed for RNG for reseting. Default: keep seed from generator
-        force_moments : :class:`bool`
-            Force the generator to exactly match mean and variance.
-            Default: ``False``
-        point_volumes : :class:`float` or :class:`numpy.ndarray`
-            If your evaluation points for the field are coming from a mesh,
-            they are probably representing a certain element volume.
-            This volumes can be passed by `point_volumes` to apply the
-            given variance upscaling. If `point_volumes` is ``0`` nothing
-            is changed. Default: ``0``
-        mesh_type : :class:`str`
-            'structured' / 'unstructured'
+    x : :class:`numpy.ndarray`
+        grid axis in x-direction if structured, or first components of
+        position vectors if unstructured
+    y : :class:`numpy.ndarray`, optional
+        analog to x
+    z : :class:`numpy.ndarray`, optional
+        analog to x
+    dtype : data-type, optional
+        The desired data-type for the array.
+        If not given, then the type will be determined as the minimum type
+        required to hold the objects in the sequence. Default: None
 
     Returns
     -------
-        pos : :class:`numpy.ndarray`
-            the position tuple
+    pos : :class:`numpy.ndarray`
+        the position tuple
     """
     if y is None and z is not None:
         raise ValueError("gstools.tools.xyz2pos: if z is given, y is needed!")

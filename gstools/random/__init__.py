@@ -16,6 +16,7 @@ Distribution factory
 .. autosummary::
    dist_gen
 
+----
 """
 from __future__ import absolute_import
 

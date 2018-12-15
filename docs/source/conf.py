@@ -66,7 +66,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",
+    "sphinx.ext.napoleon",  # parameters look better than with numpydoc only
     "numpydoc",
 ]
 
@@ -81,7 +81,7 @@ autodoc_member_order = "groupwise"
 # Notes in boxes
 napoleon_use_admonition_for_notes = True
 # Attributes like parameters
-#napoleon_use_ivar = True
+# napoleon_use_ivar = True
 # this is a nice class-doc layout
 numpydoc_show_class_members = True
 # class members have no separate file, so they are not in a toctree

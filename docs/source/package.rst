@@ -6,9 +6,6 @@ GSTools API
 
 .. toctree::
    :hidden:
-   :caption: Table of Contents
-   :name: mastertoc
-   :maxdepth: 3
 
    covmodel.rst
    field.rst

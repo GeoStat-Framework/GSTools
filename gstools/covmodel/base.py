@@ -294,10 +294,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if cls.__doc__ is None:
             cls.__doc__ = (
                 "User defined GSTools Covariance-Model "
-                + CovModel.__doc__[44:]
+                + CovModel.__doc__[44 : -296]
             )
         else:
-            cls.__doc__ += CovModel.__doc__[44 : -384]
+            cls.__doc__ += CovModel.__doc__[44 : -296]
         # overridden functions get standard doc if no new doc was created
         ignore = ["__", "variogram", "covariance", "correlation"]
         for attr in cls.__dict__:

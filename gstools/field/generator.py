@@ -74,15 +74,12 @@ class RandMeth(object):
         verbose=False,
         **kwargs
     ):
-        """Initialize the randomization method"""
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
         # initialize atributes
-        self._mode_no = mode_no
-        #: :class:`int`: temporary chunk size
-        self.chunk_tmp_size = chunk_tmp_size
-        #: :class:`bool`: verbosity of the generator
-        self.verbose = verbose
+        self._mode_no = int(mode_no)
+        self._chunk_tmp_size = int(chunk_tmp_size)
+        self._verbose = bool(verbose)
         # initialize private atributes
         self._model = None
         self._seed = None
@@ -106,6 +103,7 @@ class RandMeth(object):
             the y components of the pos. tupls
         z : :class:`float`, :class:`numpy.ndarray`, optional
             the z components of the pos. tuple
+
         Returns
         -------
         :class:`numpy.ndarray`
@@ -312,6 +310,24 @@ class RandMeth(object):
         if int(mode_no) != self._mode_no:
             self._mode_no = int(mode_no)
             self.reset_seed(self._seed)
+
+    @property
+    def chunk_tmp_size(self):
+        """:class:`int`: temporary chunk size"""
+        return self._chunk_tmp_size
+
+    @chunk_tmp_size.setter
+    def chunk_tmp_size(self, size):
+        self._chunk_tmp_size = int(size)
+
+    @property
+    def verbose(self):
+        """:class:`bool`: verbosity of the generator"""
+        return self._chunk_tmp_size
+
+    @verbose.setter
+    def verbose(self, verbose):
+        self._verbose = bool(verbose)
 
     @property
     def name(self):

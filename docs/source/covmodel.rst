@@ -5,7 +5,6 @@ gstools.covmodel
 
 .. toctree::
    :hidden:
-   :maxdepth: 2
 
    covmodel.base.rst
    covmodel.models.rst

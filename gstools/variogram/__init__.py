@@ -10,6 +10,8 @@ Variogram estimation
 .. autosummary::
    estimate_unstructured
    estimate_structured
+
+----
 """
 from __future__ import absolute_import
 
