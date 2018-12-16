@@ -58,9 +58,7 @@ def plot_correlation(model, x_min=0.0, x_max=None):
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
-        x_s, model.correlation(x_s), label=model.name + " cov normed"
-    )
+    plt.plot(x_s, model.correlation(x_s), label=model.name + " cov normed")
     plt.legend()
     plt.show()
 

@@ -137,15 +137,14 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             # Magic happens here
             setattr(self, opt_name, opt_arg[opt_name])
 
-        # set standard boundaries for variance, len_scale and nugget
+        # set standard boundaries for variance, len_scale, nugget and opt_arg
         self._var_bounds = None
-        self.var_bounds = (0.0, 100.0, "cc")
         self._len_scale_bounds = None
-        self.len_scale_bounds = (0.0, 1000.0, "oo")
         self._nugget_bounds = None
-        self.nugget_bounds = (0.0, 100.0, "cc")
-        # set standard boundaries for the optional arguments
-        self._opt_arg_bounds = self.default_opt_arg_bounds()
+        self._opt_arg_bounds = {}
+        bounds = self.default_arg_bounds()
+        bounds.update(self.default_opt_arg_bounds())
+        self.set_arg_bounds(**bounds)
 
         # prepare dim setting
         self._dim = None
@@ -282,10 +281,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if cls.__doc__ is None:
             cls.__doc__ = (
                 "User defined GSTools Covariance-Model "
-                + CovModel.__doc__[44 : -296]
+                + CovModel.__doc__[44:-296]
             )
         else:
-            cls.__doc__ += CovModel.__doc__[44 : -296]
+            cls.__doc__ += CovModel.__doc__[44:-296]
         # overridden functions get standard doc if no new doc was created
         ignore = ["__", "variogram", "covariance", "correlation"]
         for attr in cls.__dict__:
@@ -566,6 +565,16 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     # bounds setting and checks ###############################################
 
+    def default_arg_bounds(self):
+        """Here you can provide a dictionary with default boundaries for
+        the standard arguments."""
+        res = {
+            "var": (0.0, 100.0, "oc"),
+            "len_scale": (0.0, 1000.0, "oo"),
+            "nugget": (0.0, 100.0, "cc"),
+        }
+        return res
+
     def set_arg_bounds(self, **kwargs):
         r"""Set bounds for the parameters of the model
 
@@ -605,7 +614,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             bnd = list(self.arg_bounds[arg])
             val = getattr(self, arg)
             if len(bnd) == 2:
-                bnd.append("cc")
+                bnd.append("cc")  # use closed intervals by default
             if bnd[2][0] == "c":
                 if val < bnd[0]:
                     raise ValueError(
@@ -1028,6 +1037,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             + ")"
         )
 
+
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
