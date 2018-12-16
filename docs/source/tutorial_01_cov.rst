@@ -1,5 +1,5 @@
-The covariance model
-====================
+Tutorial 1: The Covariance Model
+================================
 
 One of the core-features of GSTools is the powerfull :any:`CovModel`
 class, which allows to easy define covariance models by yourself.
@@ -106,8 +106,8 @@ Which gives:
 .. note::
 
    - The sill of the variogram is calculated by ``sill = variance + nugget``
-     So we treat the variance as everything **above** the sill, which is sometimes
-     calles a **partial sill**.
+     So we treat the variance as everything **above** the nugget, which is sometimes
+     called **partial sill**.
    - A covariance model can also have additional parameters.
 
 Anisotropy
@@ -409,13 +409,15 @@ variogram data. Have a look at the following:
 
 .. code-block:: python
 
+    # data
     x = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0]
     y = [0.2, 0.5, 0.6, 0.8, 0.8, 0.9]
     # fitting model
     model = Stab(dim=2)
     # we have to provide boundaries for the parameters
     model.set_arg_bounds(alpha=[0, 3])
-    results, pcov = model.fit_variogram(x, y)
+    # fit the model to given data, deselect nugget
+    results, pcov = model.fit_variogram(x, y, nugget=False)
     print(results)
     # show the fitting
     from matplotlib import pyplot as plt
@@ -428,10 +430,10 @@ Which gives:
 
 .. code-block:: python
 
-    {'var': 1.0245757212272784,
-     'len_scale': 5.081620075724563,
-     'nugget': 6.648778607848923e-41,
-     'alpha': 0.9067052283812672}
+    {'var': 1.024575782651677,
+     'len_scale': 5.081620691462197,
+     'nugget': 0.0,
+     'alpha': 0.906705123369987}
 
 .. image:: pics/stab_vario_fit.png
    :width: 400px
@@ -445,12 +447,19 @@ Standardly the following bounds are set:
 - len_scale: ``[0.0, 1000.0]``
 - nugget: ``[0.0, 100.0]``
 
-You can use the following methods to manipulate these bounds:
+Also, you can deselect parameters from fitting, so their predefined values
+will be kept. In our case, we fixed a ``nugget`` of ``0.0``, which was set
+by default. You can deselect any standard or optional argument of the covariance model.
+The second return value ``pcov`` is the estimated covariance of ``popt`` from
+the used scipy routine :any:`scipy.optimize.curve_fit`.
+
+You can use the following methods to manipulate the used bounds:
 
 .. currentmodule:: gstools.covmodel.base
 
 .. autosummary::
    CovModel.default_opt_arg_bounds
+   CovModel.default_arg_bounds
    CovModel.set_arg_bounds
    CovModel.check_arg_bounds
 
@@ -462,6 +471,7 @@ To access the bounds you can use:
 .. autosummary::
    CovModel.var_bounds
    CovModel.len_scale_bounds
+   CovModel.nugget_bounds
    CovModel.opt_arg_bounds
    CovModel.arg_bounds
 
