@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """
+Purpose
+=======
+
 GeoStatTools is a library providing geostatistical tools for random field generation and
 variogram estimation based on a list of provided or even user-defined covariance models.
 
 The following functionalities are directly provided on module-level.
 
 Subpackages
-^^^^^^^^^^^
+===========
 
 .. autosummary::
     covmodel
@@ -16,10 +19,10 @@ Subpackages
     tools
 
 Classes
-^^^^^^^
+=======
 
 Spatial Random Field
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 Class for random field generation
 
 .. currentmodule:: gstools.field
@@ -28,7 +31,7 @@ Class for random field generation
    SRF
 
 Covariance Base-Class
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
 Class to construct user defined covariance models
 
 .. currentmodule:: gstools.covmodel.base
@@ -37,8 +40,10 @@ Class to construct user defined covariance models
    CovModel
 
 Covariance Models
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
 Standard Covariance Models
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. currentmodule:: gstools.covmodel.models
 
@@ -54,6 +59,7 @@ Standard Covariance Models
    SphericalRescal
 
 Truncated Power Law Covariance Models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. currentmodule:: gstools.covmodel.tpl_models
 .. autosummary::
@@ -62,10 +68,10 @@ Truncated Power Law Covariance Models
    TPLStable
 
 Functions
-^^^^^^^^^
+=========
 
 VTK-Export
-~~~~~~~~~~
+^^^^^^^^^^
 Routines to export fields to the vtk format
 
 .. currentmodule:: gstools.tools
@@ -76,7 +82,7 @@ Routines to export fields to the vtk format
    vtk_export_unstructured
 
 variogram estimation
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 Estimate the variogram of a given field
 
 .. currentmodule:: gstools.variogram
