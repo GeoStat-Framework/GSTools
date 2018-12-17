@@ -17,7 +17,7 @@ GeoStatTools is a library providing geostatistical tools.
 
 ## Installation
 
-`pip install gstools`
+    pip install gstools
 
 
 ## Documentation for GeoStatTools
@@ -138,7 +138,9 @@ plt.show()
 
 Which gives:
 
-`Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)`
+```python
+Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)
+```
 
 <p align="center">
 <img src="/docs/source/pics/exp_vario_fit.png" alt="Variogram" width="600px"/>

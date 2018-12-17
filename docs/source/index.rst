@@ -13,7 +13,7 @@ variogram estimation based on a list of provided or even user-defined covariance
 Installation
 ============
 
-    ``pip install gstools``
+    pip install gstools
 
 
 Spatial Random Field Generation
@@ -155,7 +155,9 @@ model again.
 
 Which gives:
 
-``Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)``
+.. code-block:: python
+
+    Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)
 
 .. image:: pics/exp_vario_fit.png
    :width: 400px
