@@ -13,6 +13,10 @@ variogram estimation based on a list of provided or even user-defined covariance
 Installation
 ============
 
+The package can be installed via `pip <https://pypi.org/project/gstools/>`_.
+On Windows you can install `WinPython <https://winpython.github.io/>`_ to get
+Python and pip running.
+
 .. code-block:: none
 
     pip install gstools

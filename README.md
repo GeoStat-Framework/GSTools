@@ -17,6 +17,10 @@ GeoStatTools is a library providing geostatistical tools.
 
 ## Installation
 
+The package can be installed via [pip][pip_link].
+On Windows you can install [WinPython][winpy_link] to get
+Python and pip running.
+
     pip install gstools
 
 
@@ -205,6 +209,8 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 
 [GPL][gpl_link] © 2018
 
+[pip_link]: https://pypi.org/project/gstools
+[winpy_link]: https://winpython.github.io/
 [gpl_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
 [cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
