@@ -13,6 +13,8 @@ variogram estimation based on a list of provided or even user-defined covariance
 Installation
 ============
 
+.. code-block:: none
+
     pip install gstools
 
 
