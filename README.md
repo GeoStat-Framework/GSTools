@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/117534635.svg)](https://zenodo.org/badge/latestdoi/117534635)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
-[![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://gstools.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://geostat-framework.readthedocs.io/projects/gstools/en/latest/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
@@ -204,8 +204,8 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 [GPL][gpl_link] © 2018
 
 [gpl_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
-[cov_link]: https://gstools.readthedocs.io/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
+[cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
-[doc_link]: https://gstools.readthedocs.io/en/latest/
+[doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
