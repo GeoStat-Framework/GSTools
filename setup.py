@@ -148,6 +148,7 @@ setup_kw = {
     "classifiers": CLASSIFIERS,
     "platforms": ["Linux"],
     "include_package_data": True,
+    "setup_requires": ["numpy>=1.8.2"],  # numpy imported in setup.py
     "install_requires": [
         "numpy>=1.8.2",
         "scipy>=0.19.1",
