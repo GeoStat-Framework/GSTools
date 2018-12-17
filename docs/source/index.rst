@@ -90,7 +90,7 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
    E_{1+\frac{2H}{\alpha}}
    \left[\left(\frac{r}{\ell_{\mathrm{up}}}\right)^{\alpha}\right]
    \right) \\
-   \sigma^2_{\ell_{\ell_{\mathrm{up}}}} &=
+   \sigma^2_{\ell_{\mathrm{up}}} &=
    C\cdot\frac{\ell_{\mathrm{up}}^{2H}}{2H}
 
 .. code-block:: python
