@@ -1,9 +1,16 @@
 language: python
 
 python:
-  - 2.7
-  - 3.5
-  - 3.6
+  - "2.7"
+  - "3.5"
+  - "3.6"
+
+install:
+  - pip install -r docs/requirements.txt
+  - pip install .
+
+script:
+  python -m unittest discover tests/
 
 notifications:
   email:
