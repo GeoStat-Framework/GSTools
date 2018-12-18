@@ -6,7 +6,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
-<img src="https://github.com/GeoStat-Framework/GSTools/tree/master/docs/source/pics/gstools.png" alt="GSTools-LOGO" width="251px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gstools.png" alt="GSTools-LOGO" width="251px"/>
 </p>
 
 
@@ -54,7 +54,7 @@ plt.imshow(field)
 plt.show()
 ```
 <p align="center">
-<img src="https://github.com/GeoStat-Framework/GSTools/tree/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
 #### Truncated Power Law Model
@@ -101,7 +101,7 @@ plt.show()
 ```
 
 <p align="center">
-<img src="https://github.com/GeoStat-Framework/GSTools/tree/master/docs/source/pics/tplstable_field.png" alt="Random field" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/tplstable_field.png" alt="Random field" width="600px"/>
 </p>
 
 
@@ -147,7 +147,7 @@ Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alph
 ```
 
 <p align="center">
-<img src="https://github.com/GeoStat-Framework/GSTools/tree/master/docs/source/pics/exp_vario_fit.png" alt="Variogram" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/exp_vario_fit.png" alt="Variogram" width="600px"/>
 </p>
 
 
