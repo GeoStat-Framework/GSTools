@@ -1,0 +1,3 @@
+[run]
+include = */gstools/*
+omit = *docs*, *examples*, *tests*
