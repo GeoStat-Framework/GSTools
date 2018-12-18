@@ -10,7 +10,8 @@ install:
   - pip install .
 
 script:
-  python -m unittest discover tests/
+  cd tests/
+  python -m unittest discover .
 
 notifications:
   email:
