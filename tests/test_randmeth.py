@@ -9,6 +9,10 @@ import unittest
 import numpy as np
 from gstools import Gaussian
 from gstools.field.generator import RandMeth
+import emcee as mc
+
+
+MC_VER = int(mc.__version__.split('.')[0])
 
 
 class TestRandMeth(unittest.TestCase):
@@ -50,8 +54,12 @@ class TestRandMeth(unittest.TestCase):
 
     def test_unstruct_3d(self):
         modes = self.rm_3d(self.x_tuple, self.y_tuple, self.z_tuple)
-        self.assertAlmostEqual(modes[0], 0.55488481)
-        self.assertAlmostEqual(modes[1], 1.18506639)
+        if MC_VER < 3:
+            self.assertAlmostEqual(modes[0], 0.58808155)
+            self.assertAlmostEqual(modes[1], 0.54844907)
+        else:
+            self.assertAlmostEqual(modes[0], 0.55488481)
+            self.assertAlmostEqual(modes[1], 1.18506639)
 
     def test_struct_1d(self):
         modes = self.rm_1d(self.x_grid)
@@ -67,14 +75,24 @@ class TestRandMeth(unittest.TestCase):
 
     def test_struct_3d(self):
         modes = self.rm_3d(self.x_grid, self.y_grid, self.z_grid)
-        self.assertAlmostEqual(modes[0, 0, 0], 0.55488481)
-        self.assertAlmostEqual(modes[1, 0, 0], 1.17684277)
-        self.assertAlmostEqual(modes[0, 1, 0], 0.41858766)
-        self.assertAlmostEqual(modes[0, 0, 1], 0.69300397)
-        self.assertAlmostEqual(modes[1, 1, 0], 0.95133855)
-        self.assertAlmostEqual(modes[0, 1, 1], 0.65475042)
-        self.assertAlmostEqual(modes[1, 0, 1], 1.45393842)
-        self.assertAlmostEqual(modes[1, 1, 1], 1.40915120)
+        if MC_VER < 3:
+            self.assertAlmostEqual(modes[0, 0, 0], 0.58808155)
+            self.assertAlmostEqual(modes[1, 0, 0], 0.91479114)
+            self.assertAlmostEqual(modes[0, 1, 0], 0.61639899)
+            self.assertAlmostEqual(modes[0, 0, 1], 0.83769551)
+            self.assertAlmostEqual(modes[1, 1, 0], 0.81599044)
+            self.assertAlmostEqual(modes[0, 1, 1], 0.95702504)
+            self.assertAlmostEqual(modes[1, 0, 1], 0.49079625)
+            self.assertAlmostEqual(modes[1, 1, 1], 0.51527539)
+        else:
+            self.assertAlmostEqual(modes[0, 0, 0], 0.55488481)
+            self.assertAlmostEqual(modes[1, 0, 0], 1.17684277)
+            self.assertAlmostEqual(modes[0, 1, 0], 0.41858766)
+            self.assertAlmostEqual(modes[0, 0, 1], 0.69300397)
+            self.assertAlmostEqual(modes[1, 1, 0], 0.95133855)
+            self.assertAlmostEqual(modes[0, 1, 1], 0.65475042)
+            self.assertAlmostEqual(modes[1, 0, 1], 1.45393842)
+            self.assertAlmostEqual(modes[1, 1, 1], 1.40915120)
 
     def test_reset(self):
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
@@ -93,8 +111,12 @@ class TestRandMeth(unittest.TestCase):
 
         self.rm_1d.model = self.cov_model_3d
         modes = self.rm_1d(self.x_tuple, self.y_tuple, self.z_tuple)
-        self.assertAlmostEqual(modes[0], 0.55488481)
-        self.assertAlmostEqual(modes[1], 1.18506639)
+        if MC_VER < 3:
+            self.assertAlmostEqual(modes[0], 0.58808155)
+            self.assertAlmostEqual(modes[1], 0.54844907)
+        else:
+            self.assertAlmostEqual(modes[0], 0.55488481)
+            self.assertAlmostEqual(modes[1], 1.18506639)
 
         self.rm_2d.mode_no = 800
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
