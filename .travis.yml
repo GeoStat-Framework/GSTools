@@ -10,8 +10,10 @@ install:
   - pip install .
 
 script:
-  - cd tests/
-  - python -m unittest discover .
+  - python -m unittest discover tests/
+
+after_success:
+  - coveralls
 
 notifications:
   email:
