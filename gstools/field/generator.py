@@ -323,7 +323,7 @@ class RandMeth(object):
     @property
     def verbose(self):
         """:class:`bool`: verbosity of the generator"""
-        return self._chunk_tmp_size
+        return self._verbose
 
     @verbose.setter
     def verbose(self, verbose):
