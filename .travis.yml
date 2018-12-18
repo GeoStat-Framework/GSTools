@@ -8,10 +8,11 @@ python:
 install:
   - pip install -r docs/requirements.txt
   - pip install .
+  - pip install pytest-cov
+  - pip install coveralls
 
 script:
-  - cd tests/
-  - python -m unittest discover .
+  - py.test --cov gstools --cov-report term-missing -v tests/
 
 after_success:
   - coveralls
