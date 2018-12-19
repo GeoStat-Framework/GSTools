@@ -13,12 +13,14 @@ matrix:
 env:
   global:
     - TWINE_USERNAME=geostatframework
+    - CIBW_BUILD_VERBOSITY=1
+    - CIBW_BEFORE_BUILD="pip install cython"
 #    - CIBW_TEST_REQUIRES=pytest-cov coveralls
 #    - CIBW_TEST_COMMAND="py.test --cov gstools --cov-report term-missing -v {project}/tests"
 # tests take for ever.. maybe separate?
 
 script:
-  - $PIP install cython
+#  - $PIP install cython numpy
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
   - cibuildwheel --output-dir wheelhouse
   - python -m pip install twine
