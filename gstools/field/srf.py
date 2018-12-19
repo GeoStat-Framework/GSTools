@@ -216,7 +216,7 @@ class SRF(object):
         return self._generator
 
     @property
-    def upscaling(self):
+    def upscaling(self): #pragma: no cover
         """:class:`str`: Name of the upscaling method for the variance at each
         point depending on the related element volume.
 
@@ -266,7 +266,7 @@ class SRF(object):
         )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     import doctest
 
     doctest.testmod()

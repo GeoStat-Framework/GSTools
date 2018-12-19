@@ -118,6 +118,68 @@ class TestVariogramstructured(unittest.TestCase):
         except NotImplementedError as e:
             pass
 
+    def test_masked_2d(self):
+        rng = np.random.RandomState(1479373475)
+        field = rng.rand(80, 60)
+        mask = np.zeros_like(field)
+        field_ma = np.ma.masked_array(field, mask=mask)
+
+        try:
+            gamma_x = variogram.estimate_structured(field_ma, direction="x")
+            gamma_y = variogram.estimate_structured(field_ma, direction="y")
+
+            var = 1.0 / 12.0
+            self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=2)
+            self.assertAlmostEqual(gamma_x[-1], var, places=2)
+            self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=2)
+            self.assertAlmostEqual(gamma_y[-1], var, places=2)
+
+            mask = np.zeros_like(field)
+            mask[0,0] = 1
+            field = np.ma.masked_array(field, mask=mask)
+            gamma_x = variogram.estimate_structured(field_ma, direction="x")
+            gamma_y = variogram.estimate_structured(field_ma, direction="y")
+            self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+        except NotImplementedError as e:
+            pass
+
+    def test_masked_3d(self):
+        rng = np.random.RandomState(1479373475)
+        field = rng.rand(30, 30, 30)
+        mask = np.zeros_like(field)
+        field_ma = np.ma.masked_array(field, mask=mask)
+
+        try:
+            gamma_x = variogram.estimate_structured(field_ma, direction="x")
+            gamma_y = variogram.estimate_structured(field_ma, direction="y")
+            gamma_z = variogram.estimate_structured(field_ma, direction="z")
+
+            var = 1.0 / 12.0
+            self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=2)
+            self.assertAlmostEqual(gamma_x[-1], var, places=2)
+            self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=2)
+            self.assertAlmostEqual(gamma_y[-1], var, places=2)
+            self.assertAlmostEqual(gamma_z[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_z[len(gamma_y) // 2], var, places=2)
+            self.assertAlmostEqual(gamma_z[-1], var, places=2)
+
+            mask = np.zeros_like(field)
+            mask[0,0,0] = 1
+            field = np.ma.masked_array(field, mask=mask)
+            gamma_x = variogram.estimate_structured(field_ma, direction="x")
+            gamma_y = variogram.estimate_structured(field_ma, direction="y")
+            gamma_z = variogram.estimate_structured(field_ma, direction="z")
+            self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+            self.assertAlmostEqual(gamma_z[0], 0.0, places=2)
+        except NotImplementedError as e:
+            pass
+
     def test_uncorrelated_2d(self):
         x = np.linspace(0.0, 100.0, 80)
         y = np.linspace(0.0, 100.0, 60)
@@ -231,6 +293,13 @@ class TestVariogramstructured(unittest.TestCase):
             self.assertAlmostEqual(gamma_z_y[-1], 0.0)
         except NotImplementedError as e:
             pass
+
+    def test_exceptions(self):
+        x = np.linspace(0.0, 10.0, 20)
+        rng = np.random.RandomState(1479373475)
+        x_rand = rng.rand(len(x))
+        self.assertRaises(ValueError,
+                variogram.estimate_structured, x, 'a')
 
 
 if __name__ == "__main__":
