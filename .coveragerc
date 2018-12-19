@@ -1,3 +1,10 @@
 [run]
-include = */gstools/*
-omit = *docs*, *examples*, *tests*
+source = gstools
+omit = *docs*, *examples*, *tests*, */gstools/covmodel/plot.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == '__main__':
+    def __repr__
+    def __str__
