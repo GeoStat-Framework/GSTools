@@ -18,7 +18,7 @@ env:
 # tests take for ever.. maybe separate?
 
 script:
-  - $PIP install -r {project}/docs/requirements.txt
+  - $PIP install cython
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
   - cibuildwheel --output-dir wheelhouse
   - python -m pip install twine
