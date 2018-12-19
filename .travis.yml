@@ -12,7 +12,8 @@ install:
   - pip install coveralls
 
 script:
-  - py.test --cov gstools --cov-report term-missing -v tests/
+  - cd tests/
+  - py.test --cov gstools --cov-report term-missing -v .
 
 after_success:
   - coveralls
