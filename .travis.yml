@@ -13,7 +13,7 @@ matrix:
 env:
   global:
     - TWINE_USERNAME=geostatframework
-    - CIBW_TEST_REQUIRES=pytest-cov coveralls
+    - CIBW_TEST_REQUIRES=pytest-cov coveralls cython numpy
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v tests && coveralls"
 
 script:
