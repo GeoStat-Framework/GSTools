@@ -13,8 +13,7 @@ install:
   - python setup.py build_ext --inplace
 
 script:
-  - cd tests/
-  - py.test --cov gstools --cov-report term-missing -v .
+  - py.test --cov gstools --cov-report term-missing -v tests/
 
 after_success:
   - coveralls
