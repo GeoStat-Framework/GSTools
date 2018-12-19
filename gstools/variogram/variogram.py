@@ -42,7 +42,9 @@ except ImportError: # pragma: no cover
 __all__ = ["estimate_unstructured", "estimate_structured"]
 
 
-def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
+def estimate_unstructured(
+    pos, field, bin_edges, sampling_size=None, sampling_seed=None,
+):
     r"""
     Estimates the variogram on a unstructured grid.
 
@@ -67,10 +69,14 @@ def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
         the spatially distributed data
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
-    sampling_size : :class:`int`
+    sampling_size : :class:`int` or :class:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
         the number of data points to sample randomly
+        Default: :class:`None`
+    sampling_seed : :class:`int` or :class:`None`, optional
+        seed for samples if sampling_size is given.
+        Default: :class:`None`
 
     Returns
     -------
@@ -84,7 +90,7 @@ def estimate_unstructured(pos, field, bin_edges, sampling_size=None):
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):
-        sampled_idx = np.random.choice(
+        sampled_idx = np.random.RandomState(sampling_seed).choice(
             np.arange(len(field)), sampling_size, replace=False
         )
         field = field[sampled_idx]

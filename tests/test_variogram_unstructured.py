@@ -148,7 +148,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         bins = np.arange(0, 100, 10)
 
         bin_centres, gamma = variogram.estimate_unstructured(
-            [x], field, bins, sampling_size=5000
+            [x], field, bins, sampling_size=5000, sampling_seed=1479373475
         )
 
         var = 1.0 / 12.0
@@ -169,7 +169,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         bins = np.arange(0, 100, 10)
 
         bin_centres, gamma = variogram.estimate_unstructured(
-            (x, y), field, bins, sampling_size=2000
+            (x, y), field, bins, sampling_size=2000, sampling_seed=1479373475
         )
 
         var = 1.0 / 12.0
@@ -192,7 +192,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         bins = np.arange(0, 100, 10)
 
         bin_centres, gamma = variogram.estimate_unstructured(
-            (x, y, z), field, bins, sampling_size=2000
+            (x, y, z), field, bins, sampling_size=2000, sampling_seed=1479373475
         )
         var = 1.0 / 12.0
         self.assertAlmostEqual(gamma[0], var, places=2)
