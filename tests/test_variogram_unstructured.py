@@ -175,7 +175,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         var = 1.0 / 12.0
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
-        self.assertAlmostEqual(gamma[-1], var, places=1)
+        self.assertAlmostEqual(gamma[-1], var, places=2)
 
     def test_sampling_3d(self):
         x_c = np.linspace(0.0, 100.0, 100)
