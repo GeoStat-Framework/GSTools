@@ -14,16 +14,23 @@ env:
   global:
     - TWINE_USERNAME=geostatframework
     - CIBW_BEFORE_BUILD="pip install cython"
-#    - CIBW_TEST_REQUIRES=pytest-cov coveralls
-#    - CIBW_TEST_COMMAND="py.test --cov gstools --cov-report term-missing -v {project}/tests"
-# tests take for ever.. maybe separate?
+    - CIBW_TEST_REQUIRES=pytest-cov
+    - CIBW_TEST_COMMAND="cd {project}/tests && py.test --cov gstools --cov-report term-missing -v ."
 
 script:
-#  - $PIP install cython numpy
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
   - cibuildwheel --output-dir wheelhouse
+
+after_success:
+  - python -m pip install coveralls
+  - coveralls
+  - rm -rf dist
+  - python setup.py sdist
   - python -m pip install twine
-  - python -m twine upload --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+#  - python -m twine upload --skip-existing wheelhouse/*.whl
+#  - python -m twine upload --skip-existing dist/*.tar.gz
+  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
 #  - |
 #    if [[ $TRAVIS_TAG ]]; then
 #      python -m pip install twine

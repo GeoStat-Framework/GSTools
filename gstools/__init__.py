@@ -93,6 +93,7 @@ Estimate the variogram of a given field
 """
 from __future__ import absolute_import
 
+from gstools._version import __version__
 from gstools import field, variogram, random, covmodel, tools
 from gstools.field import SRF
 from gstools.tools.export import (
@@ -116,8 +117,8 @@ from gstools.covmodel import (
     TPLExponential,
     TPLStable,
 )
-
-__all__ = ["covmodel", "field", "variogram", "random", "tools"]
+__all__ = ["__version__"]
+__all__ += ["covmodel", "field", "variogram", "random", "tools"]
 
 __all__ += [
     "CovModel",
@@ -143,5 +144,3 @@ __all__ += [
     "vtk_export_unstructured",
     "vtk_export",
 ]
-
-__version__ = "1.0rc8"

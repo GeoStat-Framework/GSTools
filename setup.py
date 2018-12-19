@@ -131,7 +131,7 @@ for ext_m in EXT_MODULES:
     ext_m.cython_directives = {"embedsignature": True}
 # version import not possible due to cython
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
-VERSION = find_version("gstools", "__init__.py")
+VERSION = find_version("gstools", "_version.py")
 
 setup_kw = {
     "name": "gstools",
