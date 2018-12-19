@@ -2,13 +2,37 @@ language: python
 
 matrix:
   include:
+    # Linux Python 2
     - sudo: required
-      services:
-        - docker
-      env: PIP=pip
+      language: python
+      python: 2.7
+      services: docker
+      env: PYTHON=python
+
+    # Linux Python 3
+    - sudo: required
+      language: python
+      python: 3.5
+      services: docker
+      env: PYTHON=python
+
+    # Linux Python 3
+    - sudo: required
+      language: python
+      python: 3.6
+      services: docker
+      env: PYTHON=python
+
+    # macOS Python 2
     - os: osx
-      language: generic
-      env: PIP=pip2
+      env: PYTHON=python2
+
+    # macOS Python 3
+    - os: osx
+      env: PYTHON=python3
+      before_install:
+        - brew update
+        - brew outdated python || brew upgrade python
 
 env:
   global:
@@ -23,15 +47,14 @@ script:
   - rm -rf dist
   - python -m pip install cython numpy
   - python setup.py sdist
-  - python setup.py build_ext --inplace
-  # final pytest for coveralls with inplace build cython
-  - pip install pytest-cov
-  - pip install -r docs/requirements.txt
-  - py.test --cov gstools --cov-report term-missing -v tests/
+#  - python -m pip install pytest-cov
+  # final coveralls for linux only
+  - python -m pip install matplotlib coveralls
+#  - python -m coverage run --source=gstools setup.py test
+  - python -m pytest --cov gstools --cov-report term-missing -v tests/
+  - python -m coveralls
 
 after_success:
-  - python -m pip install coveralls
-  - coveralls
   - python -m pip install twine
 #  - python -m twine upload --skip-existing wheelhouse/*.whl
 #  - python -m twine upload --skip-existing dist/*.tar.gz
