@@ -23,6 +23,10 @@ script:
   - rm -rf dist
   - python -m pip install cython numpy
   - python setup.py sdist
+  - python setup.py build_ext --inplace
+  # final pytest for coveralls with inplace build cython
+  - pip install pytest-cov
+  - py.test --cov gstools --cov-report term-missing -v tests/
 
 after_success:
   - python -m pip install coveralls

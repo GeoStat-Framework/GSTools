@@ -1,2 +1,2 @@
 """Provide a central version"""
-__version__ = "1.0rc9"
+__version__ = "1.0rc10"
