@@ -18,6 +18,9 @@ script:
 
 after_success:
   - coveralls
+  - rm -r build/
+  - rm gstools/variogram/*.so
+  - rm gstools/variogram/estimator.c
 
 notifications:
   email:
