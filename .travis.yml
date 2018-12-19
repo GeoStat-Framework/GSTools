@@ -2,37 +2,13 @@ language: python
 
 matrix:
   include:
-    # Linux Python 2
     - sudo: required
-      language: python
-      python: 2.7
-      services: docker
-      env: PYTHON=python
-
-    # Linux Python 3
-    - sudo: required
-      language: python
-      python: 3.5
-      services: docker
-      env: PYTHON=python
-
-    # Linux Python 3
-    - sudo: required
-      language: python
-      python: 3.6
-      services: docker
-      env: PYTHON=python
-
-    # macOS Python 2
+      services:
+        - docker
+      env: PIP=pip
     - os: osx
-      env: PYTHON=python2
-
-    # macOS Python 3
-    - os: osx
-      env: PYTHON=python3
-      before_install:
-        - brew update
-        - brew outdated python || brew upgrade python
+      language: generic
+      env: PIP=pip2
 
 env:
   global:
@@ -42,8 +18,8 @@ env:
     - CIBW_TEST_COMMAND="cd {project}/tests && py.test --cov gstools --cov-report term-missing -v ."
 
 script:
-  - python -m pip install https://github.com/joerick/cibuildwheel/archive/master.zip
-  - python -m cibuildwheel --output-dir wheelhouse
+  - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
+  - cibuildwheel --output-dir wheelhouse
   - rm -rf dist
   - python -m pip install cython numpy
   - python setup.py sdist
