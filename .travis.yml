@@ -7,9 +7,10 @@ python:
 
 install:
   - pip install -r docs/requirements.txt
-  - pip install .
+  - pip install -v .
   - pip install pytest-cov
   - pip install coveralls
+  - python setup.py build_ext --inplace
 
 script:
   - cd tests/
