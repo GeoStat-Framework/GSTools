@@ -42,8 +42,8 @@ env:
     - CIBW_TEST_COMMAND="cd {project}/tests && py.test --cov gstools --cov-report term-missing -v ."
 
 script:
-  - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
-  - cibuildwheel --output-dir wheelhouse
+  - python -m pip install https://github.com/joerick/cibuildwheel/archive/master.zip
+  - python -m cibuildwheel --output-dir wheelhouse
   - rm -rf dist
   - python -m pip install cython numpy
   - python setup.py sdist
