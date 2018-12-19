@@ -27,7 +27,7 @@ try:
         ma_structured_2d,
         ma_structured_1d,
     )
-except ImportError:
+except ImportError: # pragma: no cover
     print("Warning: No Cython functions imported")
     from gstools.variogram.py_estimator import (
         unstructured,
