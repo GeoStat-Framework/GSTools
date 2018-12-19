@@ -133,20 +133,25 @@ def estimate_structured(field, direction="x"):
     try:
         mask = np.array(field.mask, dtype=np.int32)
         field = np.ma.array(field, ndmin=1, dtype=np.double)
+        masked = True
     except AttributeError:
         mask = None
         field = np.array(field, ndmin=1, dtype=np.double)
+        masked = False
     shape = field.shape
 
-    # TODO should this be renamed?
     if direction == "x":
-        pass
+        axis_to_swap = 0
     elif direction == "y":
-        field = field.swapaxes(0, 1)
+        axis_to_swap = 1
     elif direction == "z":
-        field = field.swapaxes(0, 2)
+        axis_to_swap = 2
     else:
         raise ValueError("Unknown direction {0}".format(direction))
+
+    field = field.swapaxes(0, axis_to_swap)
+    if masked:
+        mask = mask.swapaxes(0, axis_to_swap)
 
     if len(shape) == 3:
         if mask is None:
