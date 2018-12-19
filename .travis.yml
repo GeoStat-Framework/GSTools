@@ -1,25 +1,34 @@
 language: python
 
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
+matrix:
+  include:
+    - sudo: required
+      services:
+        - docker
+      env: PIP=pip
+    - os: osx
+      language: generic
+      env: PIP=pip2
 
-install:
-  - pip install -r docs/requirements.txt
-  - pip install -v .
-  - pip install pytest-cov
-  - pip install coveralls
-  - python setup.py build_ext --inplace
+env:
+  global:
+    - TWINE_USERNAME=geostatframework
+#    - CIBW_TEST_REQUIRES=pytest-cov coveralls
+#    - CIBW_TEST_COMMAND="py.test --cov gstools --cov-report term-missing -v {project}/tests"
+# tests take for ever.. maybe separate?
 
 script:
-  - py.test --cov gstools --cov-report term-missing -v tests/
-
-after_success:
-  - coveralls
-  - rm -r build/
-  - rm gstools/variogram/*.so
-  - rm gstools/variogram/estimator.c
+  - $PIP install cython>=0.25 numpy>=1.8.2
+  - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
+  - cibuildwheel --output-dir wheelhouse
+  - python -m pip install twine
+  - python -m twine upload --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+#  - |
+#    if [[ $TRAVIS_TAG ]]; then
+#      python -m pip install twine
+#      python -m twine upload --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+#    fi
+# ignore tag for a moment
 
 notifications:
   email:
