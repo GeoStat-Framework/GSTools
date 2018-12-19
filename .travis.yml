@@ -47,7 +47,7 @@ script:
   - rm -rf dist
   - python -m pip install cython numpy
   - python setup.py sdist
-#  - python -m pip install pytest-cov
+  - python -m pip install pytest-cov
   # final coveralls for linux only
   - python -m pip install matplotlib coveralls
 #  - python -m coverage run --source=gstools setup.py test
