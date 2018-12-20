@@ -2,48 +2,82 @@ language: python
 
 matrix:
   include:
+    # Linux Python 2.7
     - sudo: required
-      services:
-        - docker
-      env: PIP=pip
+      language: python
+      python: 2.7
+      services: docker
+      env:
+        - PIP=pip
+        - CIBW_BUILD="cp27-*"
+        - COVER="off"
+
+    # Linux Python 3.5
+    - sudo: required
+      language: python
+      python: 3.5
+      services: docker
+      env:
+        - PIP=pip
+        - CIBW_BUILD="cp35-*"
+        - COVER="off"
+
+    # Linux Python 3.6
+    - sudo: required
+      language: python
+      python: 3.6
+      services: docker
+      env:
+        - PIP=pip
+        - CIBW_BUILD="cp36-*"
+        - COVER="on"
+
+    # mac os py2+py3
     - os: osx
       language: generic
-      env: PIP=pip2
+      env:
+        - PIP=pip2
+        - CIBW_SKIP="cp34-* cp37-*"
+        - COVER="off"
 
 env:
   global:
     - TWINE_USERNAME=geostatframework
-    - CIBW_SKIP="cp34-* cp37-*"
+    #    - CIBW_SKIP="cp34-* cp37-*"
     - CIBW_BEFORE_BUILD="pip install cython numpy"
     - CIBW_TEST_REQUIRES=pytest-cov
+    # inplace cython build and test run
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
 
 script:
+  # create wheels
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
   - cibuildwheel --output-dir wheelhouse
-  - rm -rf dist
-  - python -m pip install cython numpy
-  - python setup.py sdist
-  - python -m pip install pytest-cov
-  # final coveralls for linux only
-  - python -m pip install -r docs/requirements.txt
-  - python -m pip install matplotlib coveralls
-  - python setup.py build_ext --inplace
-#  - python -m coverage run --source=gstools setup.py test
-  - python -m pytest --cov gstools --cov-report term-missing -v tests/
-  - python -m coveralls
 
 after_success:
   - |
+    if [[ $COVER == "on" ]]; then
+      # create source dist for pypi (only once for linux py3.6)
+      - rm -rf dist
+      - python -m pip install cython numpy
+      - python setup.py sdist
+      # final coveralls for linux only
+      - python -m pip install pytest-cov coveralls
+      - python -m pip install -r docs/requirements.txt
+      - python setup.py build_ext --inplace
+      #  - python -m coverage run --source=gstools setup.py test
+      - python -m pytest --cov gstools --cov-report term-missing -v tests/
+      - python -m coveralls
+    fi
+  # pypi upload (test allways and official on TAG)
+  - python -m pip install twine
+  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
+  - |
     if [[ $TRAVIS_TAG ]]; then
-      - python -m pip install twine
       - python -m twine upload --skip-existing wheelhouse/*.whl
       - python -m twine upload --skip-existing dist/*.tar.gz
     fi
-#  - python -m pip install twine
-#  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
-#  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
-# ignore tag for a moment
 
 notifications:
   email:
