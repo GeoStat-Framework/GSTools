@@ -13,6 +13,7 @@ matrix:
 env:
   global:
     - TWINE_USERNAME=geostatframework
+    - CIBW_SKIP="cp34-* cp37-*"
     - CIBW_BEFORE_BUILD="pip install cython numpy"
     - CIBW_TEST_REQUIRES=pytest-cov
     - CIBW_TEST_COMMAND="cd {project}/tests && py.test --cov gstools --cov-report term-missing -v ."
@@ -25,6 +26,7 @@ script:
   - python setup.py sdist
   - python -m pip install pytest-cov
   # final coveralls for linux only
+  - python -m pip install -r docs/requirements.txt
   - python -m pip install matplotlib coveralls
 #  - python -m coverage run --source=gstools setup.py test
   - python -m pytest --cov gstools --cov-report term-missing -v tests/

@@ -25,14 +25,14 @@ ext_errors = (
     IOError,
 )
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+
 
 # version finder ##############################################################
 
-
 def read(*parts):
     """read file data"""
-    here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, *parts), "r") as fp:
+    with codecs.open(os.path.join(HERE, *parts), "r") as fp:
         return fp.read()
 
 
@@ -48,7 +48,6 @@ def find_version(*file_paths):
 
 
 # cython handler ##############################################################
-
 
 class BuildFailed(Exception):
     """Exeption for Cython build failed"""
@@ -81,7 +80,6 @@ def construct_build_ext(build_ext_base):
 
 # setup #######################################################################
 
-
 try:
     from Cython.Build import cythonize
 except ImportError:
@@ -92,7 +90,7 @@ else:
     USE_CYTHON = True
 
 DOCLINES = __doc__.split("\n")
-README = open("README.md").read()
+README = open(os.path.join(HERE, "README.md")).read()
 
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
