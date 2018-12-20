@@ -18,4 +18,4 @@ build_script:
     )
 artifacts:
   - path: "wheelhouse\\*.whl"
-name: Wheels
+    name: Wheels
