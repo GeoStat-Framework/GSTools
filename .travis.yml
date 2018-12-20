@@ -2,8 +2,8 @@ language: python
 
 matrix:
   include:
-    # Linux Python 2.7
-    - sudo: required
+    - name: "Linux py27"
+      sudo: required
       language: python
       python: 2.7
       services: docker
@@ -12,8 +12,8 @@ matrix:
         - CIBW_BUILD="cp27-*"
         - COVER="off"
 
-    # Linux Python 3.5
-    - sudo: required
+    - name: "Linux py35"
+      sudo: required
       language: python
       python: 3.5
       services: docker
@@ -22,8 +22,8 @@ matrix:
         - CIBW_BUILD="cp35-*"
         - COVER="off"
 
-    # Linux Python 3.6
-    - sudo: required
+    - name: "Linux py36"
+      sudo: required
       language: python
       python: 3.6
       services: docker
@@ -32,18 +32,33 @@ matrix:
         - CIBW_BUILD="cp36-*"
         - COVER="on"
 
-    # mac os py2+py3
-    - os: osx
+    - name: "MacOS py27"
+      os: osx
       language: generic
       env:
         - PIP=pip2
-        - CIBW_SKIP="cp34-* cp37-*"
+        - CIBW_BUILD="cp27-*"
+        - COVER="off"
+
+    - name: "MacOS py35"
+      os: osx
+      language: generic
+      env:
+        - PIP=pip2
+        - CIBW_BUILD="cp35-*"
+        - COVER="off"
+
+    - name: "MacOS py36"
+      os: osx
+      language: generic
+      env:
+        - PIP=pip2
+        - CIBW_BUILD="cp36-*"
         - COVER="off"
 
 env:
   global:
     - TWINE_USERNAME=geostatframework
-    #    - CIBW_SKIP="cp34-* cp37-*"
     - CIBW_BEFORE_BUILD="pip install cython numpy"
     - CIBW_TEST_REQUIRES=pytest-cov
     # inplace cython build and test run

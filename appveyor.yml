@@ -2,7 +2,6 @@ environment:
   TWINE_USERNAME: geostatframework
   CIBW_SKIP: "cp34-* cp37-*"
   CIBW_BEFORE_BUILD: pip install cython numpy
-  # Note: TWINE_PASSWORD is set in Appveyor settings
 
 build_script:
   - pip install https://github.com/joerick/cibuildwheel/archive/master.zip
