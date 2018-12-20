@@ -16,7 +16,7 @@ env:
     - CIBW_SKIP="cp34-* cp37-*"
     - CIBW_BEFORE_BUILD="pip install cython numpy"
     - CIBW_TEST_REQUIRES=pytest-cov
-    - CIBW_TEST_COMMAND="cd {project}/tests && py.test --cov gstools --cov-report term-missing -v ."
+    - CIBW_TEST_COMMAND="py.test --cov gstools --cov-report term-missing -v {project}/tests"
 
 script:
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
@@ -28,16 +28,17 @@ script:
   # final coveralls for linux only
   - python -m pip install -r docs/requirements.txt
   - python -m pip install matplotlib coveralls
+  - python setup.py build_ext --inplace
 #  - python -m coverage run --source=gstools setup.py test
   - python -m pytest --cov gstools --cov-report term-missing -v tests/
   - python -m coveralls
 
 after_success:
   - python -m pip install twine
-#  - python -m twine upload --skip-existing wheelhouse/*.whl
-#  - python -m twine upload --skip-existing dist/*.tar.gz
-  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
-  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
+  - python -m twine upload --skip-existing wheelhouse/*.whl
+  - python -m twine upload --skip-existing dist/*.tar.gz
+#  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+#  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
 #  - |
 #    if [[ $TRAVIS_TAG ]]; then
 #      python -m pip install twine
