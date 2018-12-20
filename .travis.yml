@@ -53,19 +53,17 @@ script:
   # create wheels
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
   - cibuildwheel --output-dir wheelhouse
+  # create source dist for pypi and create coverage (only once for linux py3.6)
   - |
     if [[ $COVER == "on" ]]; then
-      # create source dist for pypi (only once for linux py3.6)
-      - rm -rf dist
-      - python -m pip install cython numpy
-      - python setup.py sdist
-      # final coveralls for linux only
-      - python -m pip install pytest-cov coveralls
-      - python -m pip install -r docs/requirements.txt
-      - python setup.py build_ext --inplace
-      #  - python -m coverage run --source=gstools setup.py test
-      - python -m pytest --cov gstools --cov-report term-missing -v tests/
-      - python -m coveralls
+      rm -rf dist
+      python -m pip install cython numpy
+      python setup.py sdist
+      python -m pip install pytest-cov coveralls
+      python -m pip install -r docs/requirements.txt
+      python setup.py build_ext --inplace
+      python -m pytest --cov gstools --cov-report term-missing -v tests/
+      python -m coveralls
     fi
 
 after_success:
@@ -75,8 +73,8 @@ after_success:
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
   - |
     if [[ $TRAVIS_TAG ]]; then
-      - python -m twine upload --skip-existing wheelhouse/*.whl
-      - python -m twine upload --skip-existing dist/*.tar.gz
+      python -m twine upload --skip-existing wheelhouse/*.whl
+      python -m twine upload --skip-existing dist/*.tar.gz
     fi
 
 notifications:
