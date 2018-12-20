@@ -53,8 +53,6 @@ script:
   # create wheels
   - $PIP install https://github.com/joerick/cibuildwheel/archive/master.zip
   - cibuildwheel --output-dir wheelhouse
-
-after_success:
   - |
     if [[ $COVER == "on" ]]; then
       # create source dist for pypi (only once for linux py3.6)
@@ -69,6 +67,8 @@ after_success:
       - python -m pytest --cov gstools --cov-report term-missing -v tests/
       - python -m coveralls
     fi
+
+after_success:
   # pypi upload (test allways and official on TAG)
   - python -m pip install twine
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
