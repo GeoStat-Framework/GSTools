@@ -5,6 +5,10 @@ gstools.field
    :members:
    :undoc-members:
 
+.. raw:: latex
+
+    \clearpage
+
 .. toctree::
    :hidden:
 

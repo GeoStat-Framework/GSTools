@@ -6,3 +6,7 @@ of a given structured or unstructured spatial field.
 
 Theoretical basics
 ------------------
+
+.. raw:: latex
+
+    \clearpage

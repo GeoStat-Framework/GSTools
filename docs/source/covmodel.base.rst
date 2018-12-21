@@ -6,3 +6,7 @@ gstools.covmodel.base
    :undoc-members:
    :show-inheritance:
    :inherited-members:
+
+.. raw:: latex
+
+    \clearpage

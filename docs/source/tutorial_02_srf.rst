@@ -8,3 +8,7 @@ the following
 
 Theoretical basics
 ------------------
+
+.. raw:: latex
+
+    \clearpage
