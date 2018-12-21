@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/117534635.svg)](https://zenodo.org/badge/latestdoi/117534635)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
 [![Build Status](https://travis-ci.org/GeoStat-Framework/GSTools.svg?branch=master)](https://travis-ci.org/GeoStat-Framework/GSTools)
-[![Build status](https://ci.appveyor.com/api/projects/status/0m0604byk0ee16dq/branch/master?svg=true)](https://ci.appveyor.com/project/MuellerSeb/gstools/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/oik6h65n0xdy4h4j/branch/master?svg=true)](https://ci.appveyor.com/project/GeoStat-Framework/gstools/branch/master)
 [![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=master)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://geostat-framework.readthedocs.io/projects/gstools/en/latest/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
