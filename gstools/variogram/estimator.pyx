@@ -1,3 +1,4 @@
+# cython: language_level=2
 # -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
