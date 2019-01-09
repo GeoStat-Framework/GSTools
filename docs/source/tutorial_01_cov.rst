@@ -1,12 +1,12 @@
 Tutorial 1: The Covariance Model
 ================================
 
-One of the core-features of GSTools is the powerfull :any:`CovModel`
-class, which allows to easy define covariance models by yourself.
-The resulting models provide a bunch of nice features to explore the
-covariance model.
+One of the core-features of GSTools is the powerful :any:`CovModel`
+class, which allows you to easily define arbitrary covariance models by
+yourself. The resulting models provide a bunch of nice features to explore the
+covariance models.
 
-Theoretical basics
+Theoretical Basics
 ------------------
 
 A covariance model is used to characterize the
@@ -39,7 +39,7 @@ Where:
 Example
 -------
 
-Let us start with a short example on a self defined model (Of course, we
+Let us start with a short example of a self defined model (Of course, we
 provide a lot of predefined models [See: :any:`gstools.covmodel`],
 but they all work the same way).
 Therefore we reimplement the Gaussian covariance model by defining just the
@@ -76,7 +76,7 @@ Which gives:
 Parameters
 ----------
 
-We already used some parameters, every covariance models has. The basic ones
+We already used some parameters, which every covariance models has. The basic ones
 are:
 
     - **dim** : dimension of the model
@@ -113,7 +113,7 @@ Which gives:
 Anisotropy
 ----------
 
-The internal used (semi-)variogram represents the isotropic case for the model.
+The internally used (semi-) variogram represents the isotropic case for the model.
 Nevertheless, you can provide anisotropy ratios by:
 
 .. code-block:: python
@@ -151,7 +151,7 @@ Which gives:
     10
     [10.  5.  4.]
 
-Rotation angels
+Rotation Angles
 ---------------
 
 The main directions of the field don't have to coincide with the spatial
@@ -170,7 +170,7 @@ Which gives:
     [2.5 0.  0. ]
 
 Again, the angles were filled up with ``0.`` to match the dimension and you
-could also provide a list of angles. The number of angles is depending on the
+could also provide a list of angles. The number of angles depends on the
 given dimension:
 
 - in 1D: no rotation performable
@@ -188,7 +188,7 @@ methods.
 Basics
 ^^^^^^
 
-One of the following functions is defining the main characterization of the
+One of the following functions defines the main characterization of the
 variogram:
 
 - ``variogram`` : The variogram of the model given by
@@ -214,7 +214,7 @@ variogram:
   .. math::
      \mathrm{cor}\left(r\right)
 
-As you see, it is the easiest way to define a covariance model by giving a
+As you can see, it is the easiest way to define a covariance model by giving a
 correlation function as demonstrated by the above model ``Gau``.
 If one of the above functions is given, the others will be determined:
 
@@ -243,7 +243,7 @@ The spectrum of a covariance model is given by:
 .. math:: S(\mathbf{k}) = \left(\frac{1}{2\pi}\right)^n
    \int C(\Vert\mathbf{r}\Vert) e^{i b\mathbf{k}\cdot\mathbf{r}} d^n\mathbf{r}
 
-Since the covariance function :math:`C(r)` is radial symmetric, we can
+Since the covariance function :math:`C(r)` is radially symmetric, we can
 calculate this by the
 `hankel-transformation <https://en.wikipedia.org/wiki/Hankel_transform>`_:
 
@@ -278,7 +278,7 @@ Which gives:
    To obtain the pdf for the phase-radius, you can use the methods
    :any:`spectral_rad_pdf` or :any:`ln_spectral_rad_pdf` for the logarithm.
 
-   The user also can provide a cdf (cumulative distribution function) by
+   The user can also provide a cdf (cumulative distribution function) by
    defining a method called ``spectral_rad_cdf`` and/or a ppf (percent-point function)
    by ``spectral_rad_ppf``.
 
@@ -287,7 +287,7 @@ Which gives:
 Different scales
 ----------------
 
-Beside the length-scale, there are many other ways of characterizing a certain
+Besides the length-scale, there are many other ways of characterizing a certain
 scale of a covariance model. We provide two common scales with the covariance
 model.
 
@@ -314,7 +314,7 @@ Which gives:
     8.862269254527579
     [8.86226925 8.86226925 8.86226925]
 
-You can also specify a integral length scales like the ordinary length scale,
+You can also specify integral length scales like the ordinary length scale,
 and len_scale/anis will be recalculated:
 
 .. code-block:: python
@@ -376,7 +376,7 @@ This leads to the so called **stable** covariance model and we can define it by
         def correlation(self, r):
             return np.exp(-(r/self.len_scale)**self.alpha)
 
-As you can see, we overrid the method :any:`CovModel.default_opt_arg` to provide
+As you can see, we override the method :any:`CovModel.default_opt_arg` to provide
 a standard value for the optional argument ``alpha`` and we can access it
 in the correlation function by ``self.alpha``
 
@@ -440,7 +440,7 @@ Which gives:
    :align: center
 
 As you can see, we have to provide boundaries for the parameters.
-Standardly the following bounds are set:
+As a default, the following bounds are set:
 
 - additional parameters: ``[0.0, 1000.0]``
 - variance: ``[0.0, 100.0]``
@@ -463,7 +463,7 @@ You can use the following methods to manipulate the used bounds:
    CovModel.set_arg_bounds
    CovModel.check_arg_bounds
 
-You can overrid the :any:`CovModel.default_opt_arg_bounds` to provide standard
+You can override the :any:`CovModel.default_opt_arg_bounds` to provide standard
 bounds for your additional parameters.
 
 To access the bounds you can use:
