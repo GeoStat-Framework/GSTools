@@ -15,7 +15,7 @@ from __future__ import division, absolute_import, print_function
 import numpy as np
 import numpy.random as rand
 import emcee as mc
-from gstools.random.tools import dist_gen
+from gstools.random.tools import MasterRNG, dist_gen
 
 __all__ = ["RNG"]
 
@@ -36,8 +36,6 @@ class RNG(object):
     def __init__(self, seed=None):
         """Initialize a random number generator"""
         # set seed
-        self._seed = None
-        self._master_rng_fct = None
         self._master_rng = None
         self.seed = seed
 
@@ -214,13 +212,11 @@ class RNG(object):
         The setter property not only saves the new seed, but also creates
         a new master RNG function with the new seed.
         """
-        return self._seed
+        return self._master_rng.seed
 
     @seed.setter
     def seed(self, new_seed=None):
-        self._seed = new_seed
-        self._master_rng_fct = rand.RandomState(new_seed)
-        self._master_rng = lambda: self._master_rng_fct.randint(1, 2 ** 16)
+        self._master_rng = MasterRNG(new_seed)
 
     def __str__(self):
         return self.__repr__()

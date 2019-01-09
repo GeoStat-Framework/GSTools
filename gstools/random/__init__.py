@@ -10,6 +10,12 @@ Random Number Generator
 .. autosummary::
    RNG
 
+Seed Generator
+^^^^^^^^^^^^^^
+
+.. autosummary::
+    MasterRNG
+
 Distribution factory
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -21,6 +27,6 @@ Distribution factory
 from __future__ import absolute_import
 
 from gstools.random.rng import RNG
-from gstools.random.tools import dist_gen
+from gstools.random.tools import MasterRNG, dist_gen
 
-__all__ = ["RNG", "dist_gen"]
+__all__ = ["RNG", "MasterRNG", "dist_gen"]

@@ -12,8 +12,44 @@ The following classes are provided
 from __future__ import division, absolute_import, print_function
 
 from scipy.stats import rv_continuous
+import numpy.random as rand
 
-__all__ = ["dist_gen"]
+__all__ = ["MasterRNG", "dist_gen"]
+
+
+class MasterRNG(object):
+    """Master random number generator for generating seeds.
+
+    Parameters
+    ----------
+    seed : :class:`int` or :any:`None`, optional
+        The seed of the master RNG, if ``None``,
+        a random seed is used. Default: ``None``
+
+    """
+    def __init__(self, seed):
+        self._seed = seed
+        self._master_rng_fct = rand.RandomState(seed)
+        self._master_rng = lambda: self._master_rng_fct.randint(1, 2 ** 16)
+
+    def __call__(self):
+        """Returns a random seed."""
+        return self._master_rng()
+
+    @property # pragma: no cover
+    def seed(self):
+        """:class:`int`: the seed of the master RNG
+
+        The setter property not only saves the new seed, but also creates
+        a new master RNG function with the new seed.
+        """
+        return self._seed
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return "RNG(seed={})".format(self.seed)
 
 
 def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
