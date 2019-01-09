@@ -6,8 +6,8 @@ which can generate random fields following a given covariance model.
 The generator provides a lot of nice features, which will be explained in
 the following
 
-Theoretical Basics
-------------------
+Theoretical Background
+----------------------
 
 GSTools generates spatial random fields with a given covariance model or
 semi-variogram. This is done by using the so-called randomization method.
@@ -16,11 +16,8 @@ and its discretised modes are evaluated at random frequencies.
 
 GSTools supports arbitrary and non-isotropic covariance models.
 
-Examples
---------
-
 A very Simple Example
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 
 We are going to start with a very simple example of a spatial random field
 with an isotropic Gaussian covariance model and following parameters:
@@ -67,7 +64,7 @@ Yielding
 Wow, that was pretty easy!
 
 Creating an Ensemble of Fields
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 
 Creating an ensemble of random fields would also be
 a great idea. Let's reuse most of the previous code.
@@ -112,7 +109,7 @@ Yielding
    :align: center
 
 Using better Seeds
-""""""""""""""""""
+^^^^^^^^^^^^^^^^^^
 
 It is not always a good idea to use incrementing seeds. Therefore GSTools
 provides a seed generator :any:`MasterRNG`. The loop, in which the fields are generated would
@@ -126,7 +123,7 @@ then look like
         field.append(srf((x, y), seed=seed(), mesh_type='structured'))
 
 Creating Fancier Fields
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 Only using Gaussian covariance fields gets boring. Now we are going to create much rougher random fields by using an exponential covariance model and we are going to make them anisotropic.
 
@@ -166,7 +163,7 @@ The anisotropy ratio could also have been set with
     model = Exponential(dim=2, var=1, len_scale=12., anis=3./12., angles=np.pi/8.)
 
 Using an Unstructured Grid
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------
 
 For many applications, the random fields are needed on an unstructured grid.
 Normally, such a grid would be read in, but we can simply generate one and
@@ -204,7 +201,7 @@ Comparing this image to the previous one, you can see that be using the same
 seed, the same field can be computed on different grids.
 
 Exporting a Field
-^^^^^^^^^^^^^^^^^
+-----------------
 
 Using the field from `previous example <Using an Unstructured Grid_>`__, it can simply be exported to the file
 ``field.vtu`` and viewed by e.g. paraview with following lines of code
@@ -215,7 +212,7 @@ Using the field from `previous example <Using an Unstructured Grid_>`__, it can 
     vtk_export('field', (x, y), field)
 
 Merging two Fields
-^^^^^^^^^^^^^^^^^^
+------------------
 
 We can even generate the same field realisation on different grids. Let's try
 to merge two unstructured rectangular fields. The first field will be generated
