@@ -24,14 +24,14 @@ __all__ = ["vtk_export_structured", "vtk_export_unstructured", "vtk_export"]
 # export routines #############################################################
 
 
-def vtk_export_structured(path, pos, field, fieldname="field"):
+def vtk_export_structured(filename, pos, field, fieldname="field"):
     """Export a field to vtk structured rectilinear grid file
 
     Parameters
     ----------
-    path : :class:`str`
-        Path to the file to be saved. Note that a ".vtr" will be added to the
-        name.
+    filename : :class:`str`
+        Filename of the file to be saved, including the path. Note that an
+        ending (*.vtr or *.vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
@@ -52,17 +52,17 @@ def vtk_export_structured(path, pos, field, fieldname="field"):
             "gstools.vtk_export_structured: "
             + "field shape doesn't match the given mesh"
         )
-    gridToVTK(path, x, y, z, pointData={fieldname: field})
+    gridToVTK(filename, x, y, z, pointData={fieldname: field})
 
 
-def vtk_export_unstructured(path, pos, field, fieldname="field"):
+def vtk_export_unstructured(filename, pos, field, fieldname="field"):
     """Export a field to vtk structured rectilinear grid file
 
     Parameters
     ----------
-    path : :class:`str`
-        Path to the file to be saved. Note that a ".vtr" will be added to the
-        name.
+    filename : :class:`str`
+        Filename of the file to be saved, including the path. Note that an
+        ending (*.vtr or *.vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
@@ -82,17 +82,17 @@ def vtk_export_unstructured(path, pos, field, fieldname="field"):
             "gstools.vtk_export_unstructured: "
             + "field shape doesn't match the given mesh"
         )
-    pointsToVTK(path, x, y, z, data={fieldname: field})
+    pointsToVTK(filename, x, y, z, data={fieldname: field})
 
 
-def vtk_export(path, pos, field, fieldname="field", mesh_type="unstructured"):
+def vtk_export(filename, pos, field, fieldname="field", mesh_type="unstructured"):
     """Export a field to vtk
 
     Parameters
     ----------
-    path : :class:`str`
-        Path to the file to be saved. Note that a ".vtr" will be added to the
-        name.
+    filename : :class:`str`
+        Filename of the file to be saved, including the path. Note that an
+        ending (*.vtr or *.vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
@@ -105,9 +105,9 @@ def vtk_export(path, pos, field, fieldname="field", mesh_type="unstructured"):
     """
     if mesh_type == "structured":
         vtk_export_structured(
-            path=path, pos=pos, field=field, fieldname=fieldname
+            filename=filename, pos=pos, field=field, fieldname=fieldname
         )
     else:
         vtk_export_unstructured(
-            path=path, pos=pos, field=field, fieldname=fieldname
+            filename=filename, pos=pos, field=field, fieldname=fieldname
         )
