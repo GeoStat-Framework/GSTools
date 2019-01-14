@@ -16,6 +16,8 @@ An Example with Actual Data
 This example is going to be a bit more extensive and we are going to do some
 basic data preprocessing for the actual variogram estimation. But this example will be self-contained and all data gathering and processing will be done in this example script.
 
+The complete script can be found in :download:`gstools/examples/08_variogram_estimation.py<../../examples/08_variogram_estimation.py>`
+
 *This example will only work with Python 3.*
 
 The Data

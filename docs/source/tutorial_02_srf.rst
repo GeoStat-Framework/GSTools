@@ -63,6 +63,8 @@ Yielding
 
 Wow, that was pretty easy!
 
+The script can be found in :download:`gstools/examples/00_gaussian.py<../../examples/00_gaussian.py>`
+
 Creating an Ensemble of Fields
 ------------------------------
 
@@ -107,6 +109,8 @@ Yielding
 .. image:: pics/srf_tut_gau_field_ens.png
    :width: 600px
    :align: center
+
+The script can be found in :download:`gstools/examples/05_srf_ensemble.py<../../examples/05_srf_ensemble.py>`
 
 Using better Seeds
 ^^^^^^^^^^^^^^^^^^
@@ -200,6 +204,8 @@ Yielding
 Comparing this image to the previous one, you can see that be using the same
 seed, the same field can be computed on different grids.
 
+The script can be found in :download:`gstools/examples/06_unstr_srf_export.py<../../examples/06_unstr_srf_export.py>`
+
 Exporting a Field
 -----------------
 
@@ -210,6 +216,9 @@ Using the field from `previous example <Using an Unstructured Grid_>`__, it can 
 
     from gstools import vtk_export
     vtk_export('field', (x, y), field)
+
+The script can be found in :download:`gstools/examples/04_export.py<../../examples/04_export.py>` and
+in :download:`gstools/examples/06_unstr_srf_export.py<../../examples/06_unstr_srf_export.py>`
 
 Merging two Fields
 ------------------
@@ -269,6 +278,8 @@ Of course, this merging could also have been done by appending the grid
 point ``(x2, y2)`` to the original grid ``(x, y)`` before generating the field.
 But one application scenario would be to generate hugh fields, which would not
 fit into memory anymore.
+
+The script can be found in :download:`gstools/examples/07_srf_merge.py<../../examples/07_srf_merge.py>`
 
 .. raw:: latex
 
