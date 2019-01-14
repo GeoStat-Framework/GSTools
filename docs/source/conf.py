@@ -17,6 +17,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+# NOTE:
+# pip install sphinx_rtd_theme
+# is needed in order to build the documentation
 import os
 import sys
 
