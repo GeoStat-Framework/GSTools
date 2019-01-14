@@ -142,6 +142,17 @@ structured one. For this, we are going to write another small function
     # create an unstructured grid for the variogram estimation
     x_u, y_u = create_unstructured_grid(x_s, y_s)
 
+Let's have a look at the transmissivity field of the Herten aquifer
+
+.. code-block:: python
+
+    pt.pcolormesh(x_s, y_s, herten_log_trans.T)
+    pt.show()
+
+.. image:: pics/vario_tut_herten.png
+   :width: 600px
+   :align: center
+
 
 Estimating the Variogram
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -284,6 +295,35 @@ Giving
 
 The plot might be a bit cluttered, but at least it is pretty obvious that the
 Herten aquifer has no apparent anisotropies in its spatial structure.
+
+Creating a Spatial Random Field from the Herten Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With all the hard work done, it's straight forward now, to generate new
+*Herten realisations*
+
+.. code-block:: python
+
+    from gstools import SRF
+
+    srf = SRF(fit_model, seed=19770928)
+    new_herten = srf((x_s, y_s), mesh_type='structured')
+
+    pt.imshow(new_herten.T, origin='lower')
+    pt.show()
+
+Yielding
+
+.. image:: pics/vario_tut_new_herten.png
+   :width: 600px
+   :align: center
+
+
+That's pretty neat! Executing the code given on this site, will result in a
+lower resolution of the field, because we overwrote `x_s` and `y_s` for the
+directional variogram estimation. In the example script, this is not the case
+and you will get a high resolution field.
+
 
 And Now for Some Cleanup
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -69,6 +69,9 @@ herten_log_trans = np.log(np.sum(herten_cond, axis=2) * grid['dz'])
 x_s = np.arange(grid['ox'], grid['nx']*grid['dx'], grid['dx'])
 y_s = np.arange(grid['oy'], grid['ny']*grid['dy'], grid['dy'])
 
+pt.pcolormesh(x_s, y_s, herten_log_trans.T)
+pt.show()
+
 # create an unstructured grid for the variogram estimation
 x_u, y_u = create_unstructured_grid(x_s, y_s)
 
@@ -134,8 +137,23 @@ print('semivariogram model (isotropic):\n', fit_model)
 print('semivariogram model (in x-dir.):\n', fit_model_x)
 print('semivariogram model (in y-dir.):\n', fit_model_y)
 
+###############################################################################
+# creating a SRF from the Herten parameters ###################################
+###############################################################################
 
-# cleanup
+from gstools import SRF
+
+srf = SRF(fit_model, seed=19770928)
+print('Calculating SRF')
+new_herten = srf((x_s, y_s), mesh_type='structured')
+
+pt.imshow(new_herten.T, origin='lower')
+pt.show()
+
+###############################################################################
+# cleanup #####################################################################
+###############################################################################
+
 # comment all in case you want to keep the data for playing around with it
 os.remove('data.zip')
 os.remove('scripts.zip')
