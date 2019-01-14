@@ -101,10 +101,10 @@ ENV/
 .mypy_cache/
 
 tags
+/test_*
 
 # own stuff
 info/
-test_*
 
 # Cython generated C code
 *.c
