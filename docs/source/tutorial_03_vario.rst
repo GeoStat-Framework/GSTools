@@ -218,7 +218,6 @@ which gives
 With this data, we could start generating new ensembles of the Herten aquifer
 with the :any:`SRF` class.
 
-
 Estimating the Variogram in Specific Directions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -286,6 +285,7 @@ Herten aquifer has no apparent anisotropies in its spatial structure.
 
 And Now for Some Cleanup
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
 In case you want all the downloaded data and scripts to be deleted, use
 following commands
 
@@ -301,10 +301,6 @@ comment out the function calls ``download_herten()`` and
 ``download_scripts()``, after they where called at least once and also comment
 out the cleanup. This way, the data will not be downloaded with every script
 execution.
-
-    
-    
-
 
 
 .. raw:: latex
