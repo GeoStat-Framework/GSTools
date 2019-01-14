@@ -210,7 +210,7 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 
 ## License
 
-[GPL][gpl_link] © 2018
+[GPL][gpl_link] © 2018-2019
 
 [pip_link]: https://pypi.org/project/gstools
 [winpy_link]: https://winpython.github.io/
