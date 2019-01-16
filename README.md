@@ -1,4 +1,4 @@
-# Welcome to GeoStatTools
+# Welcome to GSTools
 
 [![DOI](https://zenodo.org/badge/117534635.svg)](https://zenodo.org/badge/latestdoi/117534635)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
@@ -15,7 +15,7 @@
 
 ## Purpose
 
-GeoStatTools is a library providing geostatistical tools.
+GeoStatTools provides geostatistical tools for random field generation and variogram estimation based on many readily provided and even user-defined covariance models.
 
 
 ## Installation
@@ -27,9 +27,20 @@ Python and pip running.
     pip install gstools
 
 
-## Documentation for GeoStatTools
+## Documentation for GSTools
 
-You can find the documentation [here][doc_link].
+You can find the documentation under [geostat-framework.readthedocs.io][doc_link].
+
+
+### Tutorials and Examples
+
+The documentation also includes some [tutorials][tut_link], showing the most important use cases of GSTools, which are
+
+- [Random Field Generation][tut1_link]
+- [The Covariance Model][tut2_link]
+- [Variogram Estimation][tut3_link]
+
+Some more examples are provided in the examples folder.
 
 
 ## Spatial Random Field Generation
@@ -208,6 +219,11 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 - [six](https://github.com/benjaminp/six)
 
 
+## Contact
+
+You can contact us via <info@geostat-framework.org>.
+
+
 ## License
 
 [GPL][gpl_link] © 2018-2019
@@ -218,5 +234,9 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 [cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
 [doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/
+[tut_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html
+[tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html
+[tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html
+[tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
