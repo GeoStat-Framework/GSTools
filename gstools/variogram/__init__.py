@@ -8,16 +8,16 @@ Variogram estimation
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   estimate_unstructured
-   estimate_structured
+   vario_estimate_unstructured
+   vario_estimate_structured
 
 ----
 """
 from __future__ import absolute_import
 
 from gstools.variogram.variogram import (
-    estimate_structured,
-    estimate_unstructured,
+    vario_estimate_structured,
+    vario_estimate_unstructured,
 )
 
-__all__ = ["estimate_unstructured", "estimate_structured"]
+__all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]

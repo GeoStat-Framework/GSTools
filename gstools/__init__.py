@@ -88,8 +88,8 @@ Estimate the variogram of a given field
 .. currentmodule:: gstools.variogram
 
 .. autosummary::
-   estimate_structured
-   estimate_unstructured
+   vario_estimate_structured
+   vario_estimate_unstructured
 """
 from __future__ import absolute_import
 
@@ -101,7 +101,7 @@ from gstools.tools.export import (
     vtk_export_unstructured,
     vtk_export,
 )
-from gstools.variogram import estimate_structured, estimate_unstructured
+from gstools.variogram import vario_estimate_structured, vario_estimate_unstructured
 from gstools.covmodel import (
     CovModel,
     Gaussian,
@@ -136,7 +136,7 @@ __all__ += [
     "TPLStable",
 ]
 
-__all__ += ["estimate_structured", "estimate_unstructured"]
+__all__ += ["vario_estimate_structured", "vario_estimate_unstructured"]
 
 __all__ += [
     "SRF",

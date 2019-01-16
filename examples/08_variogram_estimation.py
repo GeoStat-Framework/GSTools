@@ -4,7 +4,8 @@ import zipfile
 import urllib.request
 import numpy as np
 import matplotlib.pyplot as pt
-from gstools import estimate_unstructured, estimate_structured, Exponential
+from gstools import (vario_estimate_unstructured, vario_estimate_structured,
+        Exponential)
 from gstools.covmodel.plot import plot_variogram
 
 
@@ -81,7 +82,7 @@ x_u, y_u = create_unstructured_grid(x_s, y_s)
 
 bins = np.linspace(0, 10, 50)
 print('Estimating unstructured variogram')
-bin_center, gamma = estimate_unstructured(
+bin_center, gamma = vario_estimate_unstructured(
 	(x_u, y_u),
 	herten_log_trans.reshape(-1),
 	bins,
@@ -107,8 +108,8 @@ y_s_skip = y_s[::10]
 herten_trans_skip = herten_log_trans[::10,::10]
 
 print('Estimating structured variograms')
-gamma_x = estimate_structured(herten_trans_skip, direction='x')
-gamma_y = estimate_structured(herten_trans_skip, direction='y')
+gamma_x = vario_estimate_structured(herten_trans_skip, direction='x')
+gamma_y = vario_estimate_structured(herten_trans_skip, direction='y')
 
 x_plot = x_s_skip[:21]
 y_plot = y_s_skip[:21]

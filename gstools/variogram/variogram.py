@@ -7,14 +7,15 @@ GStools subpackage providing tools for estimating and fitting variograms.
 The following functions are provided
 
 .. autosummary::
-   estimate_unstructured
-   estimate_structured
+   vario_estimate_unstructured
+   vario_estimate_structured
 """
 # pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
+from gstools.field.tools import check_mesh
 from gstools.tools.geometric import pos2xyz
 
 try:
@@ -39,10 +40,10 @@ except ImportError: # pragma: no cover
         ma_structured_1d,
     )
 
-__all__ = ["estimate_unstructured", "estimate_structured"]
+__all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
-def estimate_unstructured(
+def vario_estimate_unstructured(
     pos, field, bin_edges, sampling_size=None, sampling_seed=None,
 ):
     r"""
@@ -83,7 +84,7 @@ def estimate_unstructured(
     :class:`tuple` of :class:`numpy.ndarray`
         the estimated variogram and the bin centers
     """
-
+    # TODO check_mesh
     field = np.array(field, ndmin=1, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
@@ -103,7 +104,7 @@ def estimate_unstructured(
     return bin_centres, unstructured(field, bin_edges, x, y, z)
 
 
-def estimate_structured(field, direction="x"):
+def vario_estimate_structured(field, direction="x"):
     r"""Estimates the variogram on a regular grid.
 
     The indices of the given direction are used for the bins.

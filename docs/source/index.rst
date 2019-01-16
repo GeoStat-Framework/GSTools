@@ -138,7 +138,7 @@ model again.
 .. code-block:: python
 
     import numpy as np
-    from gstools import SRF, Exponential, Stable, estimate_unstructured
+    from gstools import SRF, Exponential, Stable, vario_estimate_unstructured
     from gstools.covmodel.plot import plot_variogram
     import matplotlib.pyplot as plt
     # generate a synthetic field with an exponential model
@@ -149,7 +149,7 @@ model again.
     field = srf((x, y))
     # estimate the variogram of the field with 40 bins
     bins = np.arange(40)
-    bin_center, gamma = estimate_unstructured((x, y), field, bins)
+    bin_center, gamma = vario_estimate_unstructured((x, y), field, bins)
     plt.plot(bin_center, gamma)
     # fit the variogram with a stable model. (no nugget fitted)
     fit_model = Stable(dim=2)
