@@ -1,4 +1,4 @@
-Tutorial 3: Variogram estimation
+Tutorial 3: Variogram Estimation
 ================================
 
 Estimating the spatial correlations is an important part of geostatistics.
@@ -146,7 +146,7 @@ Let's have a look at the transmissivity field of the Herten aquifer
 
 .. code-block:: python
 
-    pt.pcolormesh(x_s, y_s, herten_log_trans.T)
+    pt.imshow(herten_log_trans.T, origin='lower', aspect='equal')
     pt.show()
 
 .. image:: pics/vario_tut_herten.png
@@ -167,16 +167,16 @@ simply flatten it with :any:`numpy.ndarray.flatten`, in order to bring it into
 the right shape. It might be more memory efficient to use
 ``herten_log_trans.reshape(-1)``, but for better readability, we will stick to
 :any:`numpy.ndarray.flatten`. Taking all data points into account would take a
-very long time (expert knowledge \*twinkle\*), thus we will only take 2000 datapoints into account, which are sampled randomly. In order to make the exact
+very long time (expert knowledge \*wink\*), thus we will only take 2000 datapoints into account, which are sampled randomly. In order to make the exact
 results reproducible, we can also set a seed.
 
 .. code-block:: python
 
-    from gstools import estimate_unstructured
+    from gstools import vario_estimate_unstructured
 
     bins = np.linspace(0, 10, 50)
     print('Estimating unstructured variogram')
-    bin_center, gamma = estimate_unstructured(
+    bin_center, gamma = vario_estimate_unstructured(
         (x_u, y_u),
         herten_log_trans.flatten(),
         bins,
@@ -251,10 +251,10 @@ the x- and y-axis
 
 .. code-block:: python
 
-    from gstools import estimate_structured
+    from gstools import vario_estimate_structured
     print('Estimating structured variograms')
-    gamma_x = estimate_structured(herten_trans_log, direction='x')[:21]
-    gamma_y = estimate_structured(herten_trans_log, direction='y')[:21]
+    gamma_x = vario_estimate_structured(herten_trans_log, direction='x')[:21]
+    gamma_y = vario_estimate_structured(herten_trans_log, direction='y')[:21]
 
 With these two estimated variograms, we can start fitting :any:`Exponential`
 covariance models

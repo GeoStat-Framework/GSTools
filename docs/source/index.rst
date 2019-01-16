@@ -6,8 +6,9 @@ GSTools Quickstart
    :width: 150px
    :align: center
 
-GeoStatTools is a library providing geostatistical tools for random field generation and
-variogram estimation based on a list of provided or even user-defined covariance models.
+GeoStatTools provides geostatistical tools for random field generation and
+variogram estimation based on many readily provided and even user-defined
+covariance models.
 
 
 Installation

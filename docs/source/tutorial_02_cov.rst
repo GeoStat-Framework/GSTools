@@ -1,4 +1,4 @@
-Tutorial 1: The Covariance Model
+Tutorial 2: The Covariance Model
 ================================
 
 One of the core-features of GSTools is the powerful :any:`CovModel`

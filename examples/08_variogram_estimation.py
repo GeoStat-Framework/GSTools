@@ -70,7 +70,7 @@ herten_log_trans = np.log(np.sum(herten_cond, axis=2) * grid['dz'])
 x_s = np.arange(grid['ox'], grid['nx']*grid['dx'], grid['dx'])
 y_s = np.arange(grid['oy'], grid['ny']*grid['dy'], grid['dy'])
 
-pt.pcolormesh(x_s, y_s, herten_log_trans.T)
+pt.imshow(herten_log_trans.T, origin='lower', aspect='equal')
 pt.show()
 
 # create an unstructured grid for the variogram estimation

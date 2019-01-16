@@ -1,4 +1,4 @@
-Tutorial 2: Random Field Generation
+Tutorial 1: Random Field Generation
 ===================================
 
 The main feature of GSTools is the spatial random field generator :any:`SRF`,
