@@ -1,6 +1,6 @@
 # Welcome to GSTools
 
-[![DOI](https://zenodo.org/badge/117534635.svg)](https://zenodo.org/badge/latestdoi/117534635)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1313628.svg)](https://doi.org/10.5281/zenodo.1313628)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
 [![Build Status](https://travis-ci.org/GeoStat-Framework/GSTools.svg?branch=master)](https://travis-ci.org/GeoStat-Framework/GSTools)
 [![Build status](https://ci.appveyor.com/api/projects/status/oik6h65n0xdy4h4j/branch/master?svg=true)](https://ci.appveyor.com/project/GeoStat-Framework/gstools/branch/master)
