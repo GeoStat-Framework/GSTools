@@ -146,9 +146,9 @@ setup_kw = {
     "classifiers": CLASSIFIERS,
     "platforms": ["Linux"],
     "include_package_data": True,
-    "setup_requires": ["numpy>=1.8.2"],  # numpy imported in setup.py
+    "setup_requires": ["numpy>=1.13.0"],  # numpy imported in setup.py
     "install_requires": [
-        "numpy>=1.8.2",
+        "numpy>=numpy>=1.13.0",
         "scipy>=0.19.1",
         "hankel>=0.3.6",
         "emcee",  # 2 and 3 should be compatible
