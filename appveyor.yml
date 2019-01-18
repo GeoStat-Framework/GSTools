@@ -4,7 +4,7 @@ environment:
   CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
 
 build_script:
-  - pip install https://github.com/joerick/cibuildwheel/archive/master.zip
+  - pip install https://github.com/joerick/cibuildwheel/archive/b9a296324d35600f049479cafd91209a84dbccb4.zip
   - cibuildwheel --output-dir wheelhouse
   - python -m pip install twine
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
