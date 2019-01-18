@@ -66,7 +66,7 @@ env:
 
 script:
   # create wheels
-  - $PIP install https://github.com/joerick/cibuildwheel/archive/b9a296324d35600f049479cafd91209a84dbccb4.zip
+  - $PIP install https://github.com/joerick/cibuildwheel/archive/c6f4f017320cc1ad6163dde9d35c496fa5cc16ae.zip
   - cibuildwheel --output-dir wheelhouse
   # create source dist for pypi and create coverage (only once for linux py3.6)
   - |
