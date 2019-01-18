@@ -71,6 +71,23 @@ plt.show()
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
+A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualised with [ParaView](https://www.paraview.org/).
+
+```python
+from gstools import SRF, Gaussian, vtk_export
+import matplotlib.pyplot as pt
+# structured field with a size 100x100x100 and a grid-size of 1x1x1
+x = y = z = range(100)
+model = Gaussian(dim=3, var=0.6, len_scale=20)
+srf = SRF(model)
+field = srf((x, y, z), mesh_type='structured')
+vtk_export('3d_field', (x, y, z), field, mesh_type='structured')
+```
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png" alt="3d Random field" width="600px"/>
+</p>
+
 #### Truncated Power Law Model
 
 GSTools also implements truncated power law variograms, which can be represented as a
