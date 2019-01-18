@@ -93,7 +93,7 @@ DOCLINES = __doc__.split("\n")
 README = open(os.path.join(HERE, "README.md")).read()
 
 CLASSIFIERS = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Science/Research",
@@ -135,13 +135,13 @@ setup_kw = {
     "name": "gstools",
     "version": VERSION,
     "maintainer": "Lennart Schueler, Sebastian Mueller",
-    "maintainer_email": "lennart.schueler@ufz.de, sebastian.mueller@ufz.de",
+    "maintainer_email": "info@geostat-framework.org",
     "description": DOCLINES[0],
     "long_description": README,
     "long_description_content_type": "text/markdown",
     "author": "Lennart Schueler, Sebastian Mueller",
-    "author_email": "lennart.schueler@ufz.de, sebastian.mueller@ufz.de",
-    "url": "https://github.com/LSchueler/GSTools",
+    "author_email": "info@geostat-framework.org",
+    "url": "https://github.com/GeoStat-Framework/GSTools",
     "license": "GPL - see LICENSE",
     "classifiers": CLASSIFIERS,
     "platforms": ["Linux"],
