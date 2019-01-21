@@ -228,7 +228,7 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 
 ## Requirements:
 
-- [NumPy >= 1.8.2](https://www.numpy.org)
+- [NumPy >= 1.13.0](https://www.numpy.org)
 - [SciPy >= 0.19.1](https://www.scipy.org/scipylib)
 - [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
 - [emcee](https://github.com/dfm/emcee)

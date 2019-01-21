@@ -219,7 +219,7 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 Requirements
 ============
 
-- `Numpy >= 1.8.2 <http://www.numpy.org>`_
+- `Numpy >= 1.13.0 <http://www.numpy.org>`_
 - `SciPy >= 0.19.1 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
@@ -230,4 +230,4 @@ Requirements
 License
 =======
 
-`GPL <https://github.com/LSchueler/GSTools/blob/master/LICENSE>`_ © 2018
+`GPL <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018
