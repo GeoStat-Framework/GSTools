@@ -333,6 +333,7 @@ following commands
 
 .. code-block:: python
 
+    from shutil import rmtree
     os.remove('data.zip')
     os.remove('scripts.zip')
     rmtree('Herten-analog')
