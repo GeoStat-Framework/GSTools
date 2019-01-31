@@ -16,8 +16,9 @@ from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
+from gstools.tools.geometric import pos2xyz
 
-__all__ = ["RandMeth"]
+__all__ = ["RandMeth", "IncomprRandMeth"]
 
 
 class RandMeth(object):
@@ -148,6 +149,8 @@ class RandMeth(object):
                             self._cov_sample[0, ch_start:ch_stop] * x
                             + self._cov_sample[1, ch_start:ch_stop] * y
                         )
+                        print('cov_sample.shape = ', self._cov_sample.shape)
+                        print('phase.shape = ', phase.shape)
                     else:
                         phase = (
                             self._cov_sample[0, ch_start:ch_stop] * x
@@ -341,6 +344,121 @@ class RandMeth(object):
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
             repr(self.model), self._mode_no, self.seed
         )
+
+class IncomprRandMeth(RandMeth):
+    def __init__(
+        self,
+        model,
+        mode_no=1000,
+        seed=None,
+        chunk_tmp_size=1e7,
+        verbose=False,
+        **kwargs
+    ):
+        super(IncomprRandMeth, self).__init__(model, mode_no, seed,
+                                              chunk_tmp_size, verbose,
+                                              **kwargs)
+
+        self.p = [
+            lambda k: 1. - k[0]**2 / np.sum(k**2, axis=0),
+            lambda k: -k[0] * k[1] / np.sum(k**2, axis=0),
+            lambda k: -k[0] * k[2] / np.sum(k**2, axis=0),
+                ]
+
+    def __call__(self, x, y=None, z=None):
+        """Calculates the random modes for the randomization method.
+
+        Parameters
+        ----------
+        x : :class:`float`, :class:`numpy.ndarray`
+            the x components of the position tuple, the shape has to be
+            (len(x), 1, 1) for 3d and accordingly shorter for lower
+            dimensions
+        y : :class:`float`, :class:`numpy.ndarray`, optional
+            the y components of the pos. tupls
+        z : :class:`float`, :class:`numpy.ndarray`, optional
+            the z components of the pos. tuple
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            the random modes
+        """
+
+        summed_modes = np.broadcast(x, y, z)
+        print('summed_modes.shape = ', summed_modes.shape)
+        summed_modes = np.squeeze(np.zeros((self.model.dim,)+summed_modes.shape))
+        print('summed_modes.shape = ', summed_modes.shape)
+        # make a guess fo the chunk_no according to the input
+        tmp_pnt = np.prod(summed_modes.shape) * self._mode_no
+        chunk_no_exp = int(
+            max(0, np.ceil(np.log2(tmp_pnt / self.chunk_tmp_size)))
+        )
+        # Test to see if enough memory is available.
+        # In case there isn't, divide Fourier modes into 2 smaller chunks
+        while True:
+            try:
+                chunk_no = 2 ** chunk_no_exp
+                chunk_len = int(np.ceil(self._mode_no / chunk_no))
+                if self.verbose:
+                    print(
+                        "RandMeth: Generating field with "
+                        + str(chunk_no)
+                        + " chunks"
+                    )
+                for chunk in range(chunk_no):
+                    if self.verbose:
+                        print(
+                            "chunk " + str(chunk + 1) + " of " + str(chunk_no)
+                        )
+                    ch_start = chunk * chunk_len
+                    # In case k[d,ch_start:ch_stop] with
+                    # ch_stop >= len(k[d,:]) causes errors in
+                    # numpy, use the commented min-function below
+                    # ch_stop = min((chunk + 1) * chunk_len, self._mode_no-1)
+                    ch_stop = (chunk + 1) * chunk_len
+
+                    if self.model.dim == 1:
+                        phase = self._cov_sample[0, ch_start:ch_stop] * x
+                    elif self.model.dim == 2:
+                        phase = (
+                            self._cov_sample[0, ch_start:ch_stop] * x
+                            + self._cov_sample[1, ch_start:ch_stop] * y
+                        )
+                    else:
+                        phase = (
+                            self._cov_sample[0, ch_start:ch_stop] * x
+                            + self._cov_sample[1, ch_start:ch_stop] * y
+                            + self._cov_sample[2, ch_start:ch_stop] * z
+                        )
+                    for d in range(self.model.dim):
+                        summed_modes[d, ...] += np.squeeze(
+                                np.sum(
+                                self.p[d](self._cov_sample[d, ch_start:ch_stop]) *
+                                self._z_1[ch_start:ch_stop] * np.cos(phase)
+                                + self._z_2[ch_start:ch_stop] * np.sin(phase),
+                                axis=-1,
+                            )
+                    )
+            except MemoryError:
+                chunk_no_exp += 1
+                print(
+                    "Not enough memory. Dividing Fourier modes into {} "
+                    "chunks.".format(2 ** chunk_no_exp)
+                )
+            else:
+                # we break out of the endless loop if we don't get MemoryError
+                break
+
+        # generate normal distributed values for the nugget simulation
+        if self.model.nugget > 0:
+            nugget = np.sqrt(self.model.nugget) * self._rng.random.normal(
+                size=summed_modes.shape
+            )
+        else:
+            nugget = 0.0
+
+        return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
 
 if __name__ == "__main__": # pragma: no cover
