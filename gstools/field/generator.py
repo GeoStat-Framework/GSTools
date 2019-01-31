@@ -149,8 +149,6 @@ class RandMeth(object):
                             self._cov_sample[0, ch_start:ch_stop] * x
                             + self._cov_sample[1, ch_start:ch_stop] * y
                         )
-                        print('cov_sample.shape = ', self._cov_sample.shape)
-                        print('phase.shape = ', phase.shape)
                     else:
                         phase = (
                             self._cov_sample[0, ch_start:ch_stop] * x
