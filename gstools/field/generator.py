@@ -111,7 +111,9 @@ class RandMeth(object):
             the random modes
         """
         summed_modes = np.broadcast(x, y, z)
+        phase = np.zeros((summed_modes.shape[:-1] + (self.mode_no,)))
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
+        pos = [x, y, z]
         # make a guess fo the chunk_no according to the input
         tmp_pnt = np.prod(summed_modes.shape) * self._mode_no
         chunk_no_exp = int(
@@ -142,19 +144,10 @@ class RandMeth(object):
                     # ch_stop = min((chunk + 1) * chunk_len, self._mode_no-1)
                     ch_stop = (chunk + 1) * chunk_len
 
-                    if self.model.dim == 1:
-                        phase = self._cov_sample[0, ch_start:ch_stop] * x
-                    elif self.model.dim == 2:
-                        phase = (
-                            self._cov_sample[0, ch_start:ch_stop] * x
-                            + self._cov_sample[1, ch_start:ch_stop] * y
-                        )
-                    else:
-                        phase = (
-                            self._cov_sample[0, ch_start:ch_stop] * x
-                            + self._cov_sample[1, ch_start:ch_stop] * y
-                            + self._cov_sample[2, ch_start:ch_stop] * z
-                        )
+                    phase += self._cov_sample[0, ch_start:ch_stop] * x
+                    for d in range(1, self.model.dim):
+                        phase += self._cov_sample[d, ch_start:ch_stop] * pos[d]
+
                     summed_modes += np.squeeze(
                         np.sum(
                             self._z_1[ch_start:ch_stop] * np.cos(phase)
