@@ -343,6 +343,7 @@ class RandMeth(object):
             repr(self.model), self._mode_no, self.seed
         )
 
+
 class IncomprRandMeth(RandMeth):
     def __init__(
         self,
@@ -353,15 +354,15 @@ class IncomprRandMeth(RandMeth):
         verbose=False,
         **kwargs
     ):
-        super(IncomprRandMeth, self).__init__(model, mode_no, seed,
-                                              chunk_tmp_size, verbose,
-                                              **kwargs)
+        super(IncomprRandMeth, self).__init__(
+            model, mode_no, seed, chunk_tmp_size, verbose, **kwargs
+        )
 
         self.p = [
-            lambda k: 1. - k[0]**2 / np.sum(k**2, axis=0),
-            lambda k: -k[0] * k[1] / np.sum(k**2, axis=0),
-            lambda k: -k[0] * k[2] / np.sum(k**2, axis=0),
-                ]
+            lambda k: 1.0 - k[0] ** 2 / np.sum(k ** 2, axis=0),
+            lambda k: -k[0] * k[1] / np.sum(k ** 2, axis=0),
+            lambda k: -k[0] * k[2] / np.sum(k ** 2, axis=0),
+        ]
 
     def __call__(self, x, y=None, z=None):
         """Calculates the random modes for the randomization method.
@@ -384,9 +385,9 @@ class IncomprRandMeth(RandMeth):
         """
 
         summed_modes = np.broadcast(x, y, z)
-        print('summed_modes.shape = ', summed_modes.shape)
-        summed_modes = np.squeeze(np.zeros((self.model.dim,)+summed_modes.shape))
-        print('summed_modes.shape = ', summed_modes.shape)
+        summed_modes = np.squeeze(
+            np.zeros((self.model.dim,) + summed_modes.shape)
+        )
         # make a guess fo the chunk_no according to the input
         tmp_pnt = np.prod(summed_modes.shape) * self._mode_no
         chunk_no_exp = int(
@@ -431,13 +432,16 @@ class IncomprRandMeth(RandMeth):
                         )
                     for d in range(self.model.dim):
                         summed_modes[d, ...] += np.squeeze(
-                                np.sum(
-                                self.p[d](self._cov_sample[d, ch_start:ch_stop]) *
-                                self._z_1[ch_start:ch_stop] * np.cos(phase)
+                            np.sum(
+                                self.p[d](
+                                    self._cov_sample[d, ch_start:ch_stop]
+                                )
+                                * self._z_1[ch_start:ch_stop]
+                                * np.cos(phase)
                                 + self._z_2[ch_start:ch_stop] * np.sin(phase),
                                 axis=-1,
                             )
-                    )
+                        )
             except MemoryError:
                 chunk_no_exp += 1
                 print(
