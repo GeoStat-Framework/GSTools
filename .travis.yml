@@ -59,7 +59,7 @@ matrix:
 env:
   global:
     - TWINE_USERNAME=geostatframework
-    - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26 psutil==5.1.3"
+    - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
     - CIBW_TEST_REQUIRES=pytest-cov
     # inplace cython build and test run
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
