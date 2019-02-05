@@ -8,6 +8,7 @@ The following classes are provided
 
 .. autosummary::
    RandMeth
+   IncomprRandMeth
 """
 # pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
@@ -71,7 +72,7 @@ class RandMeth(object):
         model,
         mode_no=1000,
         seed=None,
-        chunk_tmp_size=1e7,
+        chunk_tmp_size=int(1e7),
         verbose=False,
         **kwargs
     ):
@@ -315,7 +316,7 @@ class RandMeth(object):
 
         Notes
         -----
-        Even if the given seed is the present one, modes will be racalculated.
+        Even if the given seed is the present one, modes will be recalculated.
         """
         if seed is None or not np.isnan(seed):
             self._seed = seed
@@ -410,6 +411,53 @@ class RandMeth(object):
 
 
 class IncomprRandMeth(RandMeth):
+    r"""Overrides RandMeth for calculating isotropic spatial incompressible random vector fields.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        covariance model
+    mode_no : :class:`int`, optional
+        number of Fourier modes. Default: ``1000``
+    seed : :class:`int` or :any:`None`, optional
+        the seed of the random number generator.
+        If "None", a random seed is used. Default: :any:`None`
+    chunk_tmp_size : :class:`int`, optional
+        Number of points (number of coordinates * mode_no)
+        to be handled by one chunk while creating the fild.
+        This is used to prevent memory overflows while
+        generating the field. Default: ``1e7``
+    verbose : :class:`bool`, optional
+        State if there should be output during the generation.
+        Default: :any:`False`
+    **kwargs
+        Placeholder for keyword-args
+
+    Notes
+    -----
+    The Randomization method is used to generate isotropic
+    spatial incompressible random vector fields characterized
+    by a given covariance model. The calculation looks like:
+
+    .. math::
+       u_i\left(x\right)= \bar{u_i} \delta_{i1} +
+       \bar{u_i}\sqrt{\frac{\sigma^{2}}{N}}\cdot
+       \sum_{j=1}^{N}\left(p_i(k_{j})
+       Z_{1,j}\cdot\cos\left(\left\langle k_{j},x\right\rangle \right)+
+       Z_{2,j}\cdot\sin\left(\left\langle k_{j},x\right\rangle \right)
+       \right)
+
+    where:
+
+        * :math:`\bar u` : mean velocity in :math:`e_1` direction
+        * :math:`N` : fourier mode number
+        * :math:`Z_{k,j}` : random samples from a normal distribution
+        * :math:`k_j` : samples from the spectral density distribution of
+          the covariance model
+        * :math:`p_i(k_j) = e_1 - \frac{k_i k_1}{k^2}` : the projector ensuring the
+          incompressibility
+    """
+
     def __init__(
         self,
         model,
