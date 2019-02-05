@@ -94,6 +94,11 @@ class RandMeth(object):
     def __call__(self, x, y=None, z=None):
         """Calculates the random modes for the randomization method.
 
+        This method first computes the necessary shapes of some arrays,
+        then calls the `_chunk_it` method in order to not run out of memory.
+        The `_chunk_it` method calls the `_mode_summand` method, which is the
+        heart of the randomization method.
+
         Parameters
         ----------
         x : :class:`float`, :class:`numpy.ndarray`
@@ -110,17 +115,76 @@ class RandMeth(object):
         :class:`numpy.ndarray`
             the random modes
         """
+        # the shapes have to be known before _chunk_it is called
         summed_modes = np.broadcast(x, y, z)
         phase = np.zeros((summed_modes.shape[:-1] + (self.mode_no,)))
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
-        pos = [x, y, z]
+
+        self._chunk_it([x, y, z], summed_modes, phase)
+
+        nugget = self._set_nugget(summed_modes.shape)
+
+        return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
+
+    def _mode_summand(self, summed_modes, phase, ch_start, ch_stop):
+        """Sums up the chunk summands and adds them to `summed_modes`.
+
+        This method is called by `_chunk_it` and is the heart of the
+        randomization method.
+
+        Parameters
+        ----------
+        summed_modes : :class:`numpy.ndarray`
+            the result of this method is added to this array,
+            a bit fortran style. This is because this method may work on
+            completely different slices of the array
+        phase : :class:`numpy.ndarray`
+            the phase chunk
+        ch_start : :class:`int`
+            the first index of the chunk
+        ch_stop : :class:`int`
+            the last index of the chunk
+        """
+        summed_modes += np.squeeze(
+            np.sum(
+                self._z_1[ch_start:ch_stop]
+                * np.cos(phase[..., ch_start:ch_stop])
+                + self._z_2[ch_start:ch_stop]
+                * np.sin(phase[..., ch_start:ch_stop]),
+                axis=-1,
+            )
+        )
+
+    def _chunk_it(self, pos, summed_modes, phase):
+        """Calls the actual randomization method, but divides the mode axes
+           into smaller chunks in case the memory runs full.
+
+        Parameters
+        ----------
+        pos : :class:`list`
+            a list containing the position arrays `x`, `y`, and `z` (in weird shapes)
+        summed_modes : :class:`numpy.ndarray`
+            the zero-initialised result array, the shape needs to be known
+        phase : :class:`numpy.ndarray`
+            the zero-initialised phase array, the shape needs to be known
+
+        Returns
+        -------
+        summed_modes : :class:`numpy.ndarray`
+            the summed_modes array chunk for a given memory amount
+        """
+        if not np.all(np.isclose(summed_modes, 0.0)):
+            raise ValueError("summed_modes is not initialized with zeros.")
+        if not np.all(np.isclose(phase, 0.0)):
+            raise ValueError("phase is not initialized with zeros.")
+
         # make a guess fo the chunk_no according to the input
         tmp_pnt = np.prod(summed_modes.shape) * self._mode_no
         chunk_no_exp = int(
             max(0, np.ceil(np.log2(tmp_pnt / self.chunk_tmp_size)))
         )
         # Test to see if enough memory is available.
-        # In case there isn't, divide Fourier modes into 2 smaller chunks
+        # In case there isn't, divide Fourier modes into 2**n smaller chunks
         while True:
             try:
                 chunk_no = 2 ** chunk_no_exp
@@ -144,17 +208,13 @@ class RandMeth(object):
                     # ch_stop = min((chunk + 1) * chunk_len, self._mode_no-1)
                     ch_stop = (chunk + 1) * chunk_len
 
-                    phase += self._cov_sample[0, ch_start:ch_stop] * x
-                    for d in range(1, self.model.dim):
-                        phase += self._cov_sample[d, ch_start:ch_stop] * pos[d]
-
-                    summed_modes += np.squeeze(
-                        np.sum(
-                            self._z_1[ch_start:ch_stop] * np.cos(phase)
-                            + self._z_2[ch_start:ch_stop] * np.sin(phase),
-                            axis=-1,
+                    for d in range(self.model.dim):
+                        phase[..., ch_start:ch_stop] += (
+                            self._cov_sample[d, ch_start:ch_stop] * pos[d]
                         )
-                    )
+
+                    self._mode_summand(summed_modes, phase, ch_start, ch_stop)
+
             except MemoryError:
                 chunk_no_exp += 1
                 print(
@@ -164,16 +224,28 @@ class RandMeth(object):
             else:
                 # we break out of the endless loop if we don't get MemoryError
                 break
+            return summed_modes
 
-        # generate normal distributed values for the nugget simulation
+    def _set_nugget(self, shape):
+        """
+        Generate normal distributed values for the nugget simulation.
+
+        Parameters
+        ----------
+        shape : :class:`tuple`
+            the shape of the summed modes
+        Returns
+        -------
+        nugget : :class:`numpy.ndarray`
+            the nugget in the same shape as the summed modes
+        """
         if self.model.nugget > 0:
             nugget = np.sqrt(self.model.nugget) * self._rng.random.normal(
-                size=summed_modes.shape
+                size=shape
             )
         else:
             nugget = 0.0
-
-        return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
+        return nugget
 
     def update(self, model=None, seed=np.nan):
         """Update the model and the seed.
@@ -358,7 +430,13 @@ class IncomprRandMeth(RandMeth):
         ]
 
     def __call__(self, x, y=None, z=None):
-        """Calculates the random modes for the randomization method.
+        """Overrides the Calculation of the random modes for the randomization method.
+
+        This method first computes the necessary shapes of some arrays,
+        then calls the `_chunk_it` method in order to not run out of memory.
+        The `_chunk_it` method calls the overwritten `_mode_summand` method, which is the
+        heart of the randomization method. In this class the method contains a projector to
+        ensure the incompressibility of the vector field.
 
         Parameters
         ----------
@@ -376,87 +454,50 @@ class IncomprRandMeth(RandMeth):
         :class:`numpy.ndarray`
             the random modes
         """
-
         summed_modes = np.broadcast(x, y, z)
+        phase = np.zeros((summed_modes.shape[:-1] + (self.mode_no,)))
         summed_modes = np.squeeze(
             np.zeros((self.model.dim,) + summed_modes.shape)
         )
-        # make a guess fo the chunk_no according to the input
-        tmp_pnt = np.prod(summed_modes.shape) * self._mode_no
-        chunk_no_exp = int(
-            max(0, np.ceil(np.log2(tmp_pnt / self.chunk_tmp_size)))
-        )
-        # Test to see if enough memory is available.
-        # In case there isn't, divide Fourier modes into 2 smaller chunks
-        while True:
-            try:
-                chunk_no = 2 ** chunk_no_exp
-                chunk_len = int(np.ceil(self._mode_no / chunk_no))
-                if self.verbose:
-                    print(
-                        "RandMeth: Generating field with "
-                        + str(chunk_no)
-                        + " chunks"
-                    )
-                for chunk in range(chunk_no):
-                    if self.verbose:
-                        print(
-                            "chunk " + str(chunk + 1) + " of " + str(chunk_no)
-                        )
-                    ch_start = chunk * chunk_len
-                    # In case k[d,ch_start:ch_stop] with
-                    # ch_stop >= len(k[d,:]) causes errors in
-                    # numpy, use the commented min-function below
-                    # ch_stop = min((chunk + 1) * chunk_len, self._mode_no-1)
-                    ch_stop = (chunk + 1) * chunk_len
 
-                    if self.model.dim == 1:
-                        phase = self._cov_sample[0, ch_start:ch_stop] * x
-                    elif self.model.dim == 2:
-                        phase = (
-                            self._cov_sample[0, ch_start:ch_stop] * x
-                            + self._cov_sample[1, ch_start:ch_stop] * y
-                        )
-                    else:
-                        phase = (
-                            self._cov_sample[0, ch_start:ch_stop] * x
-                            + self._cov_sample[1, ch_start:ch_stop] * y
-                            + self._cov_sample[2, ch_start:ch_stop] * z
-                        )
-                    for d in range(self.model.dim):
-                        summed_modes[d, ...] += np.squeeze(
-                            np.sum(
-                                self.p[d](
-                                    self._cov_sample[d, ch_start:ch_stop]
-                                )
-                                * self._z_1[ch_start:ch_stop]
-                                * np.cos(phase)
-                                + self._z_2[ch_start:ch_stop] * np.sin(phase),
-                                axis=-1,
-                            )
-                        )
-            except MemoryError:
-                chunk_no_exp += 1
-                print(
-                    "Not enough memory. Dividing Fourier modes into {} "
-                    "chunks.".format(2 ** chunk_no_exp)
-                )
-            else:
-                # we break out of the endless loop if we don't get MemoryError
-                break
+        self._chunk_it([x, y, z], summed_modes, phase)
 
-        # generate normal distributed values for the nugget simulation
-        if self.model.nugget > 0:
-            nugget = np.sqrt(self.model.nugget) * self._rng.random.normal(
-                size=summed_modes.shape
-            )
-        else:
-            nugget = 0.0
+        nugget = self._set_nugget(summed_modes.shape)
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
+    def _mode_summand(self, summed_modes, phase, ch_start, ch_stop):
+        """Overrides the summation of the projected chunk summands.
 
-if __name__ == "__main__": # pragma: no cover
+        This method is called by `_chunk_it` and is the heart of the randomization method.
+
+        Parameters
+        ----------
+        summed_modes : :class:`numpy.ndarray`
+            the result of this method is added to this array,
+            a bit fortran style. This is because this method may compute on
+            completely different slices of the array
+        phase : :class:`numpy.ndarray`
+            the phase chunk
+        ch_start : :class:`int`
+            the first index of the chunk
+        ch_stop : :class:`int`
+            the last index of the chunk
+        """
+        for d in range(self.model.dim):
+            summed_modes[d, ...] += np.squeeze(
+                np.sum(
+                    self.p[d](self._cov_sample[d, ch_start:ch_stop])
+                    * self._z_1[ch_start:ch_stop]
+                    * np.cos(phase[..., ch_start:ch_stop])
+                    + self._z_2[ch_start:ch_stop]
+                    * np.sin(phase[..., ch_start:ch_stop]),
+                    axis=-1,
+                )
+            )
+
+
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()
