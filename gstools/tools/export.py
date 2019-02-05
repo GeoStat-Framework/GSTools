@@ -31,7 +31,7 @@ def vtk_export_structured(filename, pos, field, fieldname="field"):
     ----------
     filename : :class:`str`
         Filename of the file to be saved, including the path. Note that an
-        ending (\*.vtr or \*.vtu) will be added to the name.
+        ending (.vtr or .vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
@@ -62,7 +62,7 @@ def vtk_export_unstructured(filename, pos, field, fieldname="field"):
     ----------
     filename : :class:`str`
         Filename of the file to be saved, including the path. Note that an
-        ending (\*.vtr or \*.vtu) will be added to the name.
+        ending (.vtr or .vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
@@ -92,7 +92,7 @@ def vtk_export(filename, pos, field, fieldname="field", mesh_type="unstructured"
     ----------
     filename : :class:`str`
         Filename of the file to be saved, including the path. Note that an
-        ending (\*.vtr or \*.vtu) will be added to the name.
+        ending (.vtr or .vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
