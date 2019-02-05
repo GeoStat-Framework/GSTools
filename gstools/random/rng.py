@@ -78,7 +78,7 @@ class RNG(object):
             So at least, as much as the burn-in runs.
             Default: 10
         """
-        if size is None:
+        if size is None: # pragma: no cover
             sample_size = burn_in
         else:
             sample_size = max(burn_in, (size / nwalkers) * oversampling_factor)
@@ -177,7 +177,7 @@ class RNG(object):
         coord : :class:`numpy.ndarray`
             x[, y[, z]] coordinates on the sphere with shape (dim, size)
         """
-        if size is None:
+        if size is None: # pragma: no cover
             coord = np.empty(dim, dtype=float)
         else:
             coord = np.empty((dim, size), dtype=float)

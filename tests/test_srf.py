@@ -110,7 +110,7 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field_iso[0, 0, 1], field_aniso[0, 0, 4])
         self.assertAlmostEqual(field_iso[0, 0, 3], field_aniso[0, 0, 12])
 
-    def test_rotation_2d(self):
+    def test_rotation_unstruct_2d(self):
         self.cov_model.dim = 2
         x_len = len(self.x_grid_c)
         y_len = len(self.y_grid_c)
@@ -132,7 +132,22 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field_str[0, 0], field_rot_str[-1, 0])
         self.assertAlmostEqual(field_str[1, 2], field_rot_str[-3, 1])
 
-    def test_rotation_3d(self):
+    def test_rotation_struct_2d(self):
+        self.cov_model.dim = 2
+        self.cov_model.anis = 0.25
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        field = srf((self.x_grid_c, self.y_grid_c), seed=self.seed,
+                    mesh_type='structured')
+
+        self.cov_model.angles = np.pi / 2.0
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        field_rot = srf((self.x_grid_c, self.y_grid_c), seed=self.seed,
+                        mesh_type='structured')
+
+        self.assertAlmostEqual(field[0, 0], field_rot[0, -1])
+        self.assertAlmostEqual(field[1, 2], field_rot[2, 6])
+
+    def test_rotation_unstruct_3d(self):
         self.cov_model = Gaussian(
             dim=3, var=1.5, len_scale=4.0, anis=(0.25, 0.5), mode_no=100
         )
@@ -160,6 +175,30 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field_str[0, 0, 0], field_rot_str[-1, -1, 0])
         self.assertAlmostEqual(field_str[1, 2, 0], field_rot_str[-3, -1, 1])
         self.assertAlmostEqual(field_str[0, 0, 1], field_rot_str[-1, -2, 0])
+
+    def test_rotation_struct_3d(self):
+        self.cov_model.dim = 3
+        self.cov_model.anis = 0.25
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        field = srf((self.x_grid_c, self.y_grid_c, self.z_grid_c),
+                    seed=self.seed, mesh_type='structured')
+
+        self.cov_model.angles = np.pi / 2.0
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        field_rot = srf((self.x_grid_c, self.y_grid_c, self.z_grid_c),
+                        seed=self.seed, mesh_type='structured')
+
+        self.assertAlmostEqual(field[0, 0, 0], field_rot[0, 7, 0])
+        self.assertAlmostEqual(field[0, 0, 1], field_rot[0, 7, 1])
+
+        self.cov_model.angles = (0, np.pi / 2.0)
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        field_rot = srf((self.x_grid_c, self.y_grid_c, self.z_grid_c),
+                        seed=self.seed, mesh_type='structured')
+
+        self.assertAlmostEqual(field[0, 0, 0], field_rot[7, 0, 0])
+        self.assertAlmostEqual(field[0, 1, 0], field_rot[7, 1, 0])
+        self.assertAlmostEqual(field[1, 1, 0], field_rot[7, 1, 1])
 
     def test_calls(self):
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
