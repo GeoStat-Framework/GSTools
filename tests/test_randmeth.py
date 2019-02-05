@@ -4,8 +4,8 @@ This is the unittest of the RandMeth class.
 """
 from __future__ import division, absolute_import, print_function
 
-import os
 import copy
+import psutil
 import unittest
 import numpy as np
 from gstools import Gaussian
@@ -125,7 +125,7 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[1], -2.62032778)
 
     def test_chunking(self):
-        mem_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+        mem_bytes = psutil.virtual_memory().total
         tuple_size = mem_bytes // 1000 // 300
         grid_size = mem_bytes // 100**4 // 4
         rm_3d = RandMeth(self.cov_model_3d, 1000, self.seed)
