@@ -5,6 +5,7 @@ This is the unittest of the RandMeth class.
 from __future__ import division, absolute_import, print_function
 
 import copy
+import psutil
 import unittest
 import numpy as np
 from gstools import Gaussian
@@ -122,6 +123,26 @@ class TestRandMeth(unittest.TestCase):
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
         self.assertAlmostEqual(modes[0], -3.20809251)
         self.assertAlmostEqual(modes[1], -2.62032778)
+
+    def test_chunking(self):
+        mem_bytes = psutil.virtual_memory().total
+        tuple_size = mem_bytes // 1000 // 300
+        grid_size = mem_bytes // 100**4 // 4
+        rm_3d = RandMeth(self.cov_model_3d, 1000, self.seed)
+        x_grid = np.arange(grid_size)
+        y_grid = np.arange(grid_size)
+        z_grid = np.arange(grid_size)
+        x_grid = np.reshape(x_grid, (len(x_grid), 1, 1, 1))
+        y_grid = np.reshape(y_grid, (1, len(y_grid), 1, 1))
+        z_grid = np.reshape(z_grid, (1, 1, len(z_grid), 1))
+        x_tuple = np.arange(tuple_size)
+        y_tuple = np.arange(tuple_size)
+        z_tuple = np.arange(tuple_size)
+        x_tuple = np.reshape(x_tuple, (len(x_tuple), 1))
+        y_tuple = np.reshape(y_tuple, (len(y_tuple), 1))
+        z_tuple = np.reshape(z_tuple, (len(z_tuple), 1))
+        modes = rm_3d(x_tuple, y_tuple, z_tuple)
+        modes = rm_3d(x_grid, y_grid, z_grid)
 
 
 if __name__ == "__main__":
