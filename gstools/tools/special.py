@@ -38,7 +38,7 @@ def inc_gamma(s, x):
     """
     if np.isclose(s, 0):
         return sps.exp1(x)
-    if np.isclose(s, np.around(s)) and s < 0:
+    if np.isclose(s, np.around(s)) and s < -0.5:
         return x ** (s - 1) * sps.expn(int(1 - np.around(s)), x)
     if s < 0:
         return (inc_gamma(s + 1, x) - x ** s * np.exp(-x)) / s
@@ -59,7 +59,7 @@ def exp_int(s, x):
     """
     if np.isclose(s, 1):
         return sps.exp1(x)
-    if np.isclose(s, np.around(s)) and s > -1:
+    if np.isclose(s, np.around(s)) and s > -0.5:
         return sps.expn(int(np.around(s)), x)
     return inc_gamma(1 - s, x) * x ** (s - 1)
 
