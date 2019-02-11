@@ -2,19 +2,24 @@ Tutorial 3: Variogram Estimation
 ================================
 
 Estimating the spatial correlations is an important part of geostatistics.
-These spatial correlations can be expressed by the variogram, which can be estimated with the subpackage :any:`gstools.variogram`. The variograms can be estimated on structured and unstructured grids.
+These spatial correlations can be expressed by the variogram, which can be
+estimated with the subpackage :any:`gstools.variogram`. The variograms can be
+estimated on structured and unstructured grids.
 
 Theoretical Background
 ----------------------
 
-The same `(semi-)variogram <https://en.wikipedia.org/wiki/Variogram#Semivariogram>`_ as :doc:`the Covariance Model</tutorial_01_cov>` is being used
+The same `(semi-)variogram <https://en.wikipedia.org/wiki/Variogram#Semivariogram>`_ as
+:doc:`the Covariance Model</tutorial_02_cov>` is being used
 by this subpackage.
 
 An Example with Actual Data
 ---------------------------
 
 This example is going to be a bit more extensive and we are going to do some
-basic data preprocessing for the actual variogram estimation. But this example will be self-contained and all data gathering and processing will be done in this example script.
+basic data preprocessing for the actual variogram estimation. But this example
+will be self-contained and all data gathering and processing will be done in
+this example script.
 
 The complete script can be found in :download:`gstools/examples/08_variogram_estimation.py<../../examples/08_variogram_estimation.py>`
 
@@ -333,6 +338,7 @@ following commands
 
 .. code-block:: python
 
+    from shutil import rmtree
     os.remove('data.zip')
     os.remove('scripts.zip')
     rmtree('Herten-analog')

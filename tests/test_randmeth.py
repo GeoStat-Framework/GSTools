@@ -123,6 +123,11 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[0], -3.20809251)
         self.assertAlmostEqual(modes[1], -2.62032778)
 
+    def test_chunking(self):
+        rm_3d = RandMeth(self.cov_model_3d, 1000, self.seed, chunk_tmp_size=8000)
+        modes = rm_3d(self.x_tuple, self.y_tuple, self.z_tuple)
+        modes = rm_3d(self.x_grid, self.y_grid, self.z_grid)
+
 
 if __name__ == "__main__":
     unittest.main()
