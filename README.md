@@ -136,7 +136,7 @@ plt.show()
 </p>
 
 
-## Estimating and fitting variograms
+## Estimating and Fitting Variograms
 
 The spatial structure of a field can be analyzed with the variogram, which contains the same information as the covariance function.
 
@@ -182,7 +182,7 @@ Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alph
 </p>
 
 
-## User defined covariance models
+## User Defined Covariance Models
 
 One of the core-features of GSTools is the powerfull
 [CovModel][cov_link]
@@ -207,6 +207,40 @@ which you could use for field generation or variogram fitting as shown above.
 
 Have a look at the [documentation ][doc_link] for further information on incorporating
 optional parameters and optimizations.
+
+
+## Incompressible Vector Field Generation
+
+Using the original [Kraichnan method][kraichnan_link], Incompressible random
+spatial vector fields can be generated.
+
+
+### Example
+
+```python
+
+import numpy as np
+import matplotlib.pyplot as plt
+from gstools import SRF, Gaussian
+x = np.arange(100)
+y = np.arange(100)
+model = Gaussian(dim=2, var=1, len_scale=10)
+srf = SRF(model, generator='VectorField')
+field = srf((x, y), mesh_type='structured', seed=19841203)
+
+norm = np.sqrt(field[0,:].T**2 + field[1,:].T**2)
+plt.streamplot(x, y, field[0,:].T, field[1,:].T, color=norm, linewidth=norm/2)
+plt.show()
+```
+
+yielding
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/srf_vector_field.png" alt="vector field" width="600px"/>
+</p>
+
+
+[kraichnan_link]: https://doi.org/10.1063/1.1692799
 
 
 ## VTK Export
