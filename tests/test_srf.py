@@ -215,6 +215,17 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
 
+    def test_incomprrandmeth(self):
+        self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0, mode_no=100)
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no,
+                  generator='IncomprRandMeth', mean_velocity=0.5)
+        field = srf((self.x_tuple, self.y_tuple), seed=476356)
+        self.assertAlmostEqual(field[0,0], 1.23462811)
+        self.assertAlmostEqual(field[0,1], 0.57528822)
+        field = srf((self.x_grid, self.y_grid), seed=4734654, mesh_type='structured')
+        self.assertAlmostEqual(field[0,0,0], 1.02392008)
+        self.assertAlmostEqual(field[0,1,0], 0.96812285)
+
     # TODO put these checks into test_cov_model
     def test_assertions(self):
         # self.cov_model.dim = 0

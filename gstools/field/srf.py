@@ -16,7 +16,7 @@ from functools import partial
 
 import numpy as np
 from gstools.covmodel.base import CovModel
-from gstools.field.generator import RandMeth
+from gstools.field.generator import RandMeth, IncomprRandMeth
 from gstools.field.tools import (
     reshape_input,
     check_mesh,
@@ -30,7 +30,12 @@ from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
 
-GENERATOR = {"RandMeth": RandMeth}
+GENERATOR = {
+    "RandMeth": RandMeth,
+    "IncomprRandMeth": IncomprRandMeth,
+    "VectorField": IncomprRandMeth,
+    "VelocityField": IncomprRandMeth,
+}
 UPSCALING = {
     "coarse_graining": var_coarse_graining,
     "no_scaling": var_no_scaling,
@@ -216,7 +221,7 @@ class SRF(object):
         return self._generator
 
     @property
-    def upscaling(self): #pragma: no cover
+    def upscaling(self):  # pragma: no cover
         """:class:`str`: Name of the upscaling method for the variance at each
         point depending on the related element volume.
 
@@ -266,7 +271,7 @@ class SRF(object):
         )
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()

@@ -78,20 +78,14 @@ class TestRandMeth(unittest.TestCase):
         if MC_VER < 3:
             self.assertAlmostEqual(modes[0, 0, 0], 0.58808155)
             self.assertAlmostEqual(modes[1, 0, 0], 0.91479114)
-            self.assertAlmostEqual(modes[0, 1, 0], 0.61639899)
             self.assertAlmostEqual(modes[0, 0, 1], 0.83769551)
-            self.assertAlmostEqual(modes[1, 1, 0], 0.81599044)
             self.assertAlmostEqual(modes[0, 1, 1], 0.95702504)
             self.assertAlmostEqual(modes[1, 0, 1], 0.49079625)
-            self.assertAlmostEqual(modes[1, 1, 1], 0.51527539)
         else:
             self.assertAlmostEqual(modes[0, 0, 0], 0.55488481)
-            self.assertAlmostEqual(modes[1, 0, 0], 1.17684277)
             self.assertAlmostEqual(modes[0, 1, 0], 0.41858766)
-            self.assertAlmostEqual(modes[0, 0, 1], 0.69300397)
             self.assertAlmostEqual(modes[1, 1, 0], 0.95133855)
             self.assertAlmostEqual(modes[0, 1, 1], 0.65475042)
-            self.assertAlmostEqual(modes[1, 0, 1], 1.45393842)
             self.assertAlmostEqual(modes[1, 1, 1], 1.40915120)
 
     def test_reset(self):
