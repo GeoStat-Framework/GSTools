@@ -417,6 +417,8 @@ class IncomprRandMeth(RandMeth):
     ----------
     model : :any:`CovModel`
         covariance model
+    mean_velocity : :class:`float`, optional
+        the mean velocity in x-direction
     mode_no : :class:`int`, optional
         number of Fourier modes. Default: ``1000``
     seed : :class:`int` or :any:`None`, optional
@@ -426,7 +428,7 @@ class IncomprRandMeth(RandMeth):
         Number of points (number of coordinates * mode_no)
         to be handled by one chunk while creating the fild.
         This is used to prevent memory overflows while
-        generating the field. Default: ``1e7``
+        generating the field. Default: ``int(1e7)``
     verbose : :class:`bool`, optional
         State if there should be output during the generation.
         Default: :any:`False`
@@ -437,12 +439,12 @@ class IncomprRandMeth(RandMeth):
     -----
     The Randomization method is used to generate isotropic
     spatial incompressible random vector fields characterized
-    by a given covariance model. The calculation looks like:
+    by a given covariance model. The equation is:
 
     .. math::
        u_i\left(x\right)= \bar{u_i} \delta_{i1} +
        \bar{u_i}\sqrt{\frac{\sigma^{2}}{N}}\cdot
-       \sum_{j=1}^{N}\left(p_i(k_{j})
+       \sum_{j=1}^{N}p_i(k_{j})\left(
        Z_{1,j}\cdot\cos\left(\left\langle k_{j},x\right\rangle \right)+
        Z_{2,j}\cdot\sin\left(\left\langle k_{j},x\right\rangle \right)
        \right)
@@ -461,16 +463,24 @@ class IncomprRandMeth(RandMeth):
     def __init__(
         self,
         model,
+        mean_velocity=1.0,
         mode_no=1000,
         seed=None,
-        chunk_tmp_size=1e7,
+        chunk_tmp_size=int(1e7),
         verbose=False,
         **kwargs
     ):
+        if model.dim < 2:
+            raise ValueError(
+                "Only 2- and 3-dimensional incompressible fields can be generated."
+            )
         super(IncomprRandMeth, self).__init__(
             model, mode_no, seed, chunk_tmp_size, verbose, **kwargs
         )
 
+        self.mean_u = mean_velocity
+
+        # the projector
         self.p = [
             lambda k: 1.0 - k[0] ** 2 / np.sum(k ** 2, axis=0),
             lambda k: -k[0] * k[1] / np.sum(k ** 2, axis=0),
@@ -493,9 +503,9 @@ class IncomprRandMeth(RandMeth):
             (len(x), 1, 1) for 3d and accordingly shorter for lower
             dimensions
         y : :class:`float`, :class:`numpy.ndarray`, optional
-            the y components of the pos. tupls
+            the y components of the pos. tuples. Default: ``None``
         z : :class:`float`, :class:`numpy.ndarray`, optional
-            the z components of the pos. tuple
+            the z components of the pos. tuple. Default: ``None``
 
         Returns
         -------
@@ -512,7 +522,38 @@ class IncomprRandMeth(RandMeth):
 
         nugget = self._set_nugget(summed_modes.shape)
 
-        return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
+        e1 = self._create_unit_vector(summed_modes.shape)
+
+        return (
+            self.mean_u * e1
+            + self.mean_u
+            * np.sqrt(self.model.var / self._mode_no)
+            * summed_modes
+            + nugget
+        )
+
+    def _create_unit_vector(self, broadcast_shape, axis=0):
+        """Creates a unit vector which can be multiplied with a vector of shape broadcast_shape
+
+        Parameters
+        ----------
+        broadcast_shape : :class:`tuple`
+            the shape of the array with which the unit vector is to be multiplied
+
+        axis : :class:`int`, optional
+            the direction of the unit vector. Default: ``0``
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            the unit vector
+        """
+        shape = np.ones(len(broadcast_shape), dtype=int)
+        shape[0] = self.model.dim
+
+        e1 = np.zeros(shape)
+        e1[0] = 1.0
+        return e1
 
     def _mode_summand(self, summed_modes, phase, ch_start, ch_stop):
         """Overrides the summation of the projected chunk summands.
