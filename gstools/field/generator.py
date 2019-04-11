@@ -19,6 +19,11 @@ from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
 from gstools.tools.geometric import pos2xyz
 
+try:
+    from gstools.field.summator import summate
+except ImportError: # pragma: no cover
+    print("Warning: No Cython functions imported")
+
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
 
@@ -122,6 +127,7 @@ class RandMeth(object):
         summed_modes = np.squeeze(np.zeros(summed_modes.shape))
 
         self._chunk_it([x, y, z], summed_modes, phase)
+        #summate()
 
         nugget = self._set_nugget(summed_modes.shape)
 

@@ -112,11 +112,19 @@ if USE_CYTHON:
     EXT_MODULES += cythonize(
         os.path.join("gstools", "variogram", "estimator.pyx")
     )
+    EXT_MODULES += cythonize(
+        os.path.join("gstools", "field", "summator.pyx")
+    )
 else:
     EXT_MODULES += [
         Extension(
             "gstools.variogram.estimator",
             [os.path.join("gstools", "variogram", "estimator.c")],
+            include_dirs=[numpy.get_include()],
+        ),
+        Extension(
+            "gstools.field.summator",
+            [os.path.join("gstools", "field", "summator.c")],
             include_dirs=[numpy.get_include()],
         )
     ]
