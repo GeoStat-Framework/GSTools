@@ -151,7 +151,7 @@ class SRF(object):
         x, y, z = reshape_input(x, y, z, mesh_type)
 
         # generate the field
-        field = self.generator.__call__(x, y, z)
+        field = self.generator.__call__(self.model.dim, x, y, z, mesh_type)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:

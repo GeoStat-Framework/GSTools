@@ -20,7 +20,10 @@ from gstools.random.rng import RNG
 from gstools.tools.geometric import pos2xyz
 
 try:
-    from gstools.field.summator import summate
+    from gstools.field.summator import (
+        summate_unstruct,
+        summate_struct,
+    )
 except ImportError: # pragma: no cover
     print("Warning: No Cython functions imported")
 
@@ -97,7 +100,7 @@ class RandMeth(object):
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, x, y=None, z=None):
+    def __call__(self, dim, x, y=None, z=None, mesh_type='unstructured'):
         """Calculates the random modes for the randomization method.
 
         This method first computes the necessary shapes of some arrays,
@@ -107,6 +110,8 @@ class RandMeth(object):
 
         Parameters
         ----------
+        dim : :class:`int`
+            the spatial dimension
         x : :class:`float`, :class:`numpy.ndarray`
             the x components of the position tuple, the shape has to be
             (len(x), 1, 1) for 3d and accordingly shorter for lower
@@ -115,19 +120,54 @@ class RandMeth(object):
             the y components of the pos. tupls
         z : :class:`float`, :class:`numpy.ndarray`, optional
             the z components of the pos. tuple
+        mesh_type : :class:`str`, optional
+            'structured' / 'unstructured'
 
         Returns
         -------
         :class:`numpy.ndarray`
             the random modes
         """
-        # the shapes have to be known before _chunk_it is called
-        summed_modes = np.broadcast(x, y, z)
-        phase = np.zeros((summed_modes.shape[:-1] + (self.mode_no,)))
-        summed_modes = np.squeeze(np.zeros(summed_modes.shape))
+        if mesh_type == 'unstructured':
+            if dim == 1:
+                pos = x[...,0].reshape(1,len(x[...,0]))
+            elif dim == 2:
+                pos = np.vstack((x[...,0], y[...,0]))
+            else:
+                pos = np.vstack((x[...,0], y[...,0], z[...,0]))
 
-        self._chunk_it([x, y, z], summed_modes, phase)
-        #summate()
+            summed_modes = summate_unstruct(
+                self._cov_sample,
+                self._z_1,
+                self._z_2,
+                pos
+            )
+
+        else:
+            if dim == 1:
+                summed_modes = summate_struct(
+                    self._cov_sample,
+                    self._z_1,
+                    self._z_2,
+                    x[:,0,0,0]
+                )
+            elif dim == 2:
+                summed_modes = summate_struct(
+                    self._cov_sample,
+                     self._z_1,
+                     self._z_2,
+                     x[:,0,0,0],
+                     y[0,:,0,0]
+                 )
+            else:
+                summed_modes = summate_struct(
+                    self._cov_sample,
+                    self._z_1,
+                    self._z_2,
+                    x[:,0,0,0],
+                    y[0,:,0,0],
+                    z[0,0,:,0]
+                )
 
         nugget = self._set_nugget(summed_modes.shape)
 
@@ -493,7 +533,7 @@ class IncomprRandMeth(RandMeth):
             lambda k: -k[0] * k[2] / np.sum(k ** 2, axis=0),
         ]
 
-    def __call__(self, x, y=None, z=None):
+    def __call__(self, dim, x, y=None, z=None, mesh_type='unstructured'):
         """Overrides the Calculation of the random modes for the randomization method.
 
         This method first computes the necessary shapes of some arrays,
@@ -504,6 +544,8 @@ class IncomprRandMeth(RandMeth):
 
         Parameters
         ----------
+        dim : :class:`int`
+            the spatial dimension
         x : :class:`float`, :class:`numpy.ndarray`
             the x components of the position tuple, the shape has to be
             (len(x), 1, 1) for 3d and accordingly shorter for lower
@@ -512,6 +554,8 @@ class IncomprRandMeth(RandMeth):
             the y components of the pos. tuples. Default: ``None``
         z : :class:`float`, :class:`numpy.ndarray`, optional
             the z components of the pos. tuple. Default: ``None``
+        mesh_type : :class:`str`, optional
+            'structured' / 'unstructured'
 
         Returns
         -------
