@@ -130,11 +130,11 @@ class RandMeth(object):
         """
         if mesh_type == 'unstructured':
             if dim == 1:
-                pos = x[...,0].reshape(1,len(x[...,0]))
+                pos = x[...,0].reshape(1,len(x[...,0]), dtype=np.double)
             elif dim == 2:
-                pos = np.vstack((x[...,0], y[...,0]))
+                pos = np.array(np.vstack((x[...,0], y[...,0])), dtype=np.double)
             else:
-                pos = np.vstack((x[...,0], y[...,0], z[...,0]))
+                pos = np.array(np.vstack((x[...,0], y[...,0], z[...,0])), dtype=np.double)
 
             summed_modes = summate_unstruct(
                 self._cov_sample,
@@ -145,28 +145,34 @@ class RandMeth(object):
 
         else:
             if dim == 1:
+                x_reshape = np.array(x[:,0,0,0], dtype=np.double)
                 summed_modes = summate_struct(
                     self._cov_sample,
                     self._z_1,
                     self._z_2,
-                    x[:,0,0,0]
+                    x_reshape
                 )
             elif dim == 2:
+                x_reshape = np.array(x[:,0,0,0], dtype=np.double)
+                y_reshape = np.array(y[0,:,0,0], dtype=np.double)
                 summed_modes = summate_struct(
                     self._cov_sample,
                      self._z_1,
                      self._z_2,
-                     x[:,0,0,0],
-                     y[0,:,0,0]
+                     x_reshape,
+                     y_reshape
                  )
             else:
+                x_reshape = np.array(x[:,0,0,0], dtype=np.double)
+                y_reshape = np.array(y[0,:,0,0], dtype=np.double)
+                z_reshape = np.array(z[0,0,:,0], dtype=np.double)
                 summed_modes = summate_struct(
                     self._cov_sample,
                     self._z_1,
                     self._z_2,
-                    x[:,0,0,0],
-                    y[0,:,0,0],
-                    z[0,0,:,0]
+                    x_reshape,
+                    y_reshape,
+                    z_reshape
                 )
 
         nugget = self._set_nugget(summed_modes.shape)
