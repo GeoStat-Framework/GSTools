@@ -144,40 +144,33 @@ class RandMeth(object):
             )
 
         else:
-            if dim == 1:
-                x_reshape = np.array(x[:,0,0,0], dtype=np.double)
-                summed_modes = summate_struct(
-                    self._cov_sample,
-                    self._z_1,
-                    self._z_2,
-                    x_reshape
-                )
-            elif dim == 2:
-                x_reshape = np.array(x[:,0,0,0], dtype=np.double)
-                y_reshape = np.array(y[0,:,0,0], dtype=np.double)
-                summed_modes = summate_struct(
-                    self._cov_sample,
-                     self._z_1,
-                     self._z_2,
-                     x_reshape,
-                     y_reshape
-                 )
-            else:
-                x_reshape = np.array(x[:,0,0,0], dtype=np.double)
-                y_reshape = np.array(y[0,:,0,0], dtype=np.double)
-                z_reshape = np.array(z[0,0,:,0], dtype=np.double)
-                summed_modes = summate_struct(
-                    self._cov_sample,
-                    self._z_1,
-                    self._z_2,
-                    x_reshape,
-                    y_reshape,
-                    z_reshape
-                )
+            x_reshape, y_reshape, z_reshape = self._reshape_pos(dim, x, y, z)
+            summed_modes = summate_struct(
+                self._cov_sample,
+                self._z_1,
+                self._z_2,
+                x_reshape,
+                y_reshape,
+                z_reshape
+            )
 
         nugget = self._set_nugget(summed_modes.shape)
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
+
+    def _reshape_pos(self, dim, x, y, z):
+        x_reshape = y_reshape = z_reshape = None
+        if dim == 1:
+            x_reshape = np.array(x[:,0,0,0], dtype=np.double)
+        elif dim == 2:
+            x_reshape = np.array(x[:,0,0,0], dtype=np.double)
+            y_reshape = np.array(y[0,:,0,0], dtype=np.double)
+        else:
+            x_reshape = np.array(x[:,0,0,0], dtype=np.double)
+            y_reshape = np.array(y[0,:,0,0], dtype=np.double)
+            z_reshape = np.array(z[0,0,:,0], dtype=np.double)
+        return x_reshape, y_reshape, z_reshape
+
 
     def _mode_summand(self, summed_modes, phase, ch_start, ch_stop):
         """Sums up the chunk summands and adds them to `summed_modes`.
