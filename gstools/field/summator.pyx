@@ -57,7 +57,6 @@ def summate_struct(
     else:
         return summate_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
-# TODO REMOVE ANNOTATE_TRUE IN setup.py
 @cython.boundscheck(False)
 def summate_struct_1d(
     double[:,:] cov_samples,

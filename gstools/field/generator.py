@@ -130,7 +130,7 @@ class RandMeth(object):
         """
         if mesh_type == 'unstructured':
             if dim == 1:
-                pos = x[...,0].reshape(1,len(x[...,0]), dtype=np.double)
+                pos = np.array(x[...,0].reshape(1,len(x[...,0])), dtype=np.double)
             elif dim == 2:
                 pos = np.array(np.vstack((x[...,0], y[...,0])), dtype=np.double)
             else:
