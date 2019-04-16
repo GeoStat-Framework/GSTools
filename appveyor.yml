@@ -1,10 +1,10 @@
 environment:
   TWINE_USERNAME: geostatframework
-  CIBW_SKIP: "cp34-* cp37-*"
+  CIBW_SKIP: "cp37-*"
   CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
 
 build_script:
-  - pip install https://github.com/joerick/cibuildwheel/archive/c6f4f017320cc1ad6163dde9d35c496fa5cc16ae.zip
+  - pip install cibuildwheel==0.10.1
   - cibuildwheel --output-dir wheelhouse
   - python -m pip install twine
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
