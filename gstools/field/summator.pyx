@@ -8,6 +8,7 @@ from __future__ import division, absolute_import, print_function
 import numpy as np
 
 cimport cython
+from cython.parallel import prange
 from libc.math cimport sin, cos
 cimport numpy as np
 
@@ -33,7 +34,7 @@ def summate_unstruct(
 
     cdef double[:] summed_modes = np.zeros(X_len)
 
-    for i in range(X_len):
+    for i in prange(X_len, nogil=True):
         for j in range(N):
             phase = 0.
             for d in range(dim):

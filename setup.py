@@ -11,7 +11,7 @@ from distutils.errors import (
     DistutilsPlatformError,
 )
 from setuptools import setup, find_packages
-from setuptools.extension import Extension
+from distutils.extension import Extension
 from setuptools.command.build_ext import build_ext
 import numpy
 
@@ -113,7 +113,15 @@ if USE_CYTHON:
         os.path.join("gstools", "variogram", "estimator.pyx")
     )
     EXT_MODULES += cythonize(
-        os.path.join("gstools", "field", "summator.pyx")
+        [
+            Extension(
+                "gstools.field.summator",
+                [os.path.join("gstools", "field", "summator.pyx")],
+                include_dirs=[numpy.get_include()],
+                extra_compile_args=['-fopenmp'],
+                extra_link_args=['-fopenmp'],
+            )
+        ]
     )
 else:
     EXT_MODULES += [
