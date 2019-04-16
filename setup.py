@@ -2,6 +2,9 @@
 """GeostatTools: A geostatistical toolbox."""
 from __future__ import division, absolute_import, print_function
 import os
+import subprocess
+import shutil
+import tempfile
 import codecs
 import re
 import logging
@@ -10,9 +13,8 @@ from distutils.errors import (
     DistutilsExecError,
     DistutilsPlatformError,
 )
-from setuptools import setup, find_packages
-from distutils.extension import Extension
-from setuptools.command.build_ext import build_ext
+from setuptools import setup, find_packages, Extension
+from Cython.Distutils import build_ext
 import numpy
 
 logging.basicConfig()
@@ -45,6 +47,36 @@ def find_version(*file_paths):
     if version_match:
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
+
+
+# openmp tester ###############################################################
+
+omp_test = \
+r"""
+#include <omp.h>
+#include <stdio.h>
+int main() {
+#pragma omp parallel
+printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(), omp_get_num_threads());
+}
+"""
+
+def check_for_openmp():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    result = 0
+    filename = 'test_openmp.c'
+    with open(filename, 'w') as f:
+        f.write(omp_test)
+    with open(os.devnull, 'w') as fnull:
+        result = subprocess.call(['cc', '-fopenmp', filename],
+                                 stdout=fnull, stderr=fnull, shell=True)
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+    return result
 
 
 # cython handler ##############################################################
@@ -80,14 +112,23 @@ def construct_build_ext(build_ext_base):
 
 # setup #######################################################################
 
+USE_OPENMP = bool(check_for_openmp())
+if USE_OPENMP:
+    print('## GSTOOLS setup: OpenMP found.')
+else:
+    print('## GSTOOLS setup: OpenMP not found.')
+
 try:
     from Cython.Build import cythonize
+    from Cython.Distutils.extension import Extension
 except ImportError:
-    print("## GSTOOLS setup: cython not used")
+    print("## GSTOOLS setup: Cython not found.")
     USE_CYTHON = False
+    file_ending = 'c'
 else:
-    print("## GSTOOLS setup: cython used")
+    print("## GSTOOLS setup: Cython found.")
     USE_CYTHON = True
+    file_ending = 'pyx'
 
 DOCLINES = __doc__.split("\n")
 README = open(os.path.join(HERE, "README.md")).read()
@@ -108,34 +149,33 @@ CLASSIFIERS = [
 ]
 
 EXT_MODULES = []
+
+if USE_OPENMP:
+    summator_extra_compile_args = ['-fopenmp']
+    summator_extra_link_args = ['-fopenmp']
+else:
+    summator_extra_compile_args = []
+    summator_extra_link_args = []
+
+summator_ext = Extension(
+    "gstools.field.summator",
+    [os.path.join('gstools', 'field', 'summator.'+file_ending)],
+    include_dirs=[numpy.get_include()],
+    extra_compile_args=summator_extra_compile_args,
+    extra_link_args=summator_extra_link_args,
+)
+variogram_ext = Extension(
+    "gstools.variogram.estimator",
+    [os.path.join("gstools", "variogram", "estimator."+file_ending)],
+    include_dirs=[numpy.get_include()],
+)
+
 if USE_CYTHON:
     EXT_MODULES += cythonize(
-        os.path.join("gstools", "variogram", "estimator.pyx")
-    )
-    EXT_MODULES += cythonize(
-        [
-            Extension(
-                "gstools.field.summator",
-                [os.path.join("gstools", "field", "summator.pyx")],
-                include_dirs=[numpy.get_include()],
-                extra_compile_args=['-fopenmp'],
-                extra_link_args=['-fopenmp'],
-            )
-        ]
+        [os.path.join("gstools", "variogram", "estimator.pyx"), summator_ext]
     )
 else:
-    EXT_MODULES += [
-        Extension(
-            "gstools.variogram.estimator",
-            [os.path.join("gstools", "variogram", "estimator.c")],
-            include_dirs=[numpy.get_include()],
-        ),
-        Extension(
-            "gstools.field.summator",
-            [os.path.join("gstools", "field", "summator.c")],
-            include_dirs=[numpy.get_include()],
-        )
-    ]
+    EXT_MODULES += [variogram_ext, summator_ext]
 
 # This is the important part. By setting this compiler directive, cython will
 # embed signature information in docstrings. Sphinx then knows how to extract
