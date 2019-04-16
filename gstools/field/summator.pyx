@@ -1,4 +1,4 @@
-# cython: language_level=2
+# cython: language_level=2, wraparound=False, nonecheck=False
 # -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
@@ -42,6 +42,7 @@ def summate_unstruct(
 
     return np.asarray(summed_modes)
 
+@cython.boundscheck(False)
 def summate_struct(
     double[:,:] cov_samples,
     double[:] z_1,
