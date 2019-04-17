@@ -61,6 +61,8 @@ matrix:
 
 before_install:
   - eval "${MATRIX_EVAL}"
+  - $CC --version
+  - $CXX --version
 
 env:
   global:
