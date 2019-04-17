@@ -34,6 +34,7 @@ matrix:
 
     - name: "MacOS py27"
       os: osx
+      osx_image: xcode8
       language: generic
       env:
         - PIP=pip2
@@ -43,6 +44,7 @@ matrix:
 
     - name: "MacOS py35"
       os: osx
+      osx_image: xcode8
       language: generic
       env:
         - PIP=pip2
@@ -52,6 +54,7 @@ matrix:
 
     - name: "MacOS py36"
       os: osx
+      osx_image: xcode8
       language: generic
       env:
         - PIP=pip2
@@ -61,8 +64,8 @@ matrix:
 
 before_install:
   - eval "${MATRIX_EVAL}"
-  - $CC --version
-  - $CXX --version
+  - if [[ $TRAVIS_OS == "osx" ]]; $CC --version; fi
+  - if [[ $TRAVIS_OS == "osx" ]]; $CXX --version; fi
 
 env:
   global:
