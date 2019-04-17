@@ -35,32 +35,29 @@ matrix:
     - name: "MacOS py27"
       os: osx
       language: generic
-      compiler: gcc
       env:
         - PIP=pip2
         - CIBW_BUILD="cp27-*"
         - COVER="off"
-        - MATRIX_EVAL="brew install gcc@7 && CC=gcc-7"
+        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
     - name: "MacOS py35"
       os: osx
       language: generic
-      compiler: gcc
       env:
         - PIP=pip2
         - CIBW_BUILD="cp35-*"
         - COVER="off"
-        - MATRIX_EVAL="brew install gcc@7 && CC=gcc-7"
+        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
     - name: "MacOS py36"
       os: osx
       language: generic
-      compiler: gcc
       env:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
         - COVER="off"
-        - MATRIX_EVAL="brew install gcc@7 && CC=gcc-7"
+        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
 before_install:
   - eval "${MATRIX_EVAL}"
@@ -76,6 +73,7 @@ env:
 
 script:
   # create wheels
+  - echo ${CC}
   - $PIP install cibuildwheel==0.10.1
   - cibuildwheel --output-dir wheelhouse
   # create source dist for pypi and create coverage (only once for linux py3.6)
