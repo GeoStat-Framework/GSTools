@@ -75,7 +75,7 @@ def summate_struct_1d(
 
     cdef double[:] summed_modes = np.zeros(X_len)
 
-    for i in range(X_len):
+    for i in prange(X_len, nogil=True):
         for j in range(N):
             phase = cov_samples[0,j] * x[i]
             summed_modes[i] += z_1[j] * cos(phase) + z_2[j] * sin(phase)
@@ -99,7 +99,7 @@ def summate_struct_2d(
 
     cdef double[:,:] summed_modes = np.zeros((X_len, Y_len))
 
-    for i in range(X_len):
+    for i in prange(X_len, nogil=True):
         for j in range(Y_len):
             for k in range(N):
                 phase = cov_samples[0,k] * x[i] + cov_samples[1,k] * y[j]
@@ -126,7 +126,7 @@ def summate_struct_3d(
 
     cdef double[:,:,:] summed_modes = np.zeros((X_len, Y_len, Z_len))
 
-    for i in range(X_len):
+    for i in prange(X_len, nogil=True):
         for j in range(Y_len):
             for k in range(Z_len):
                 for l in range(N):
