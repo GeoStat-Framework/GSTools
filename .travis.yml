@@ -64,8 +64,8 @@ matrix:
 
 before_install:
   - eval "${MATRIX_EVAL}"
-  - if [[ $TRAVIS_OS == "osx" ]]; $CC --version; fi
-  - if [[ $TRAVIS_OS == "osx" ]]; $CXX --version; fi
+  - if [[ $TRAVIS_OS_NAME == "osx" ]]; then $CC --version; fi
+  - if [[ $TRAVIS_OSNAME == "osx" ]]; then $CXX --version; fi
 
 env:
   global:
