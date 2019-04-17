@@ -39,6 +39,7 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp27-*"
         - COVER="off"
+        - MATRIX_EVAL="brew install gcc7 && CC=gcc-7"
 
     - name: "MacOS py35"
       os: osx
@@ -47,6 +48,7 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp35-*"
         - COVER="off"
+        - MATRIX_EVAL="brew install gcc7 && CC=gcc-7"
 
     - name: "MacOS py36"
       os: osx
@@ -55,6 +57,10 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
         - COVER="off"
+        - MATRIX_EVAL="brew install gcc7 && CC=gcc-7"
+
+before_install:
+  - eval "${MATRIX_EVAL}"
 
 env:
   global:
