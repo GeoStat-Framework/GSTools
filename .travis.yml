@@ -35,7 +35,7 @@ matrix:
     - name: "MacOS py27"
       os: osx
       osx_image: xcode8
-      language: generic
+      language: c
       env:
         - PIP=pip2
         - CIBW_BUILD="cp27-*"
@@ -45,7 +45,7 @@ matrix:
     - name: "MacOS py35"
       os: osx
       osx_image: xcode8
-      language: generic
+      language: c
       env:
         - PIP=pip2
         - CIBW_BUILD="cp35-*"
@@ -55,7 +55,7 @@ matrix:
     - name: "MacOS py36"
       os: osx
       osx_image: xcode8
-      language: generic
+      language: c
       env:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
