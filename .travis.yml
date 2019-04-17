@@ -69,6 +69,7 @@ env:
     - CIBW_TEST_REQUIRES=pytest-cov
     # inplace cython build and test run
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
+    - OMP_NUM_THREADS=4
 
 script:
   # create wheels
