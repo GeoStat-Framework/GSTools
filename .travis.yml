@@ -12,6 +12,7 @@ matrix:
         - CIBW_BUILD="cp27-*"
         - COVER="off"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "Linux py34"
       sudo: required
@@ -23,6 +24,7 @@ matrix:
         - CIBW_BUILD="cp34-*"
         - COVER="off"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "Linux py35"
       sudo: required
@@ -34,6 +36,7 @@ matrix:
         - CIBW_BUILD="cp35-*"
         - COVER="off"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "Linux py36"
       sudo: required
@@ -45,6 +48,7 @@ matrix:
         - CIBW_BUILD="cp36-*"
         - COVER="on"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     # https://github.com/travis-ci/travis-ci/issues/9815
     - name: "Linux py37"
@@ -59,6 +63,7 @@ matrix:
         - CIBW_BUILD="cp37-*"
         - COVER="off"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.14.5 cython==0.28.3"
 
     - name: "MacOS py27"
       os: osx
@@ -68,6 +73,7 @@ matrix:
         - CIBW_BUILD="cp27-*"
         - COVER="off"
         - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "MacOS py34"
       os: osx
@@ -77,6 +83,7 @@ matrix:
         - CIBW_BUILD="cp34-*"
         - COVER="off"
         - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "MacOS py35"
       os: osx
@@ -86,6 +93,7 @@ matrix:
         - CIBW_BUILD="cp35-*"
         - COVER="off"
         - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "MacOS py36"
       os: osx
@@ -95,6 +103,7 @@ matrix:
         - CIBW_BUILD="cp36-*"
         - COVER="off"
         - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
 
     - name: "MacOS py37"
       os: osx
@@ -104,11 +113,11 @@ matrix:
         - CIBW_BUILD="cp37-*"
         - COVER="off"
         - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
+        - CIBW_BEFORE_BUILD="pip install numpy==1.14.5 cython==0.28.3"
 
 env:
   global:
     - TWINE_USERNAME=geostatframework
-    - CIBW_BEFORE_BUILD="pip install numpy==1.13.0 cython==0.26"
     - CIBW_TEST_REQUIRES=pytest-cov
     # inplace cython build and test run
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
