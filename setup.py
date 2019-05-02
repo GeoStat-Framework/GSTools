@@ -83,10 +83,10 @@ def construct_build_ext(build_ext_base):
 try:
     from Cython.Build import cythonize
 except ImportError:
-    print("## GSTOOLS setup: cython not used")
+    print("## GSTOOLS setup: cython not used.")
     USE_CYTHON = False
 else:
-    print("## GSTOOLS setup: cython used")
+    print("## GSTOOLS setup: cython used.")
     USE_CYTHON = True
 
 DOCLINES = __doc__.split("\n")
@@ -163,14 +163,14 @@ setup_kw = {
 cmd_classes = setup_kw.setdefault("cmdclass", {})
 
 try:
-    print("## GSTOOLS setup: try build with c code")
+    print("## GSTOOLS setup: try building with c code.")
     # try building with c code :
     setup_kw["cmdclass"]["build_ext"] = construct_build_ext(build_ext)
     setup(**setup_kw)
 except BuildFailed as ex:
-    print("The C extension could not be compiled")
+    print("The C extension could not be compiled.")
     log.warn(ex)
-    log.warn("The C extension could not be compiled")
+    log.warn("The C extension could not be compiled.")
 
     ## Retry to install the module without C extensions :
     # Remove any previously defined build_ext command class.
@@ -183,4 +183,4 @@ except BuildFailed as ex:
     setup(**setup_kw)
     print("## GSTOOLS setup: Plain-Python installation successful.")
 else:
-    print("## GSTOOLS setup: cython installation successful.")
+    print("## GSTOOLS setup: Cython installation successful.")
