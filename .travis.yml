@@ -46,10 +46,13 @@ matrix:
         - COVER="on"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
+    # https://github.com/travis-ci/travis-ci/issues/9815
     - name: "Linux py37"
       sudo: required
       language: python
       python: 3.7
+      dist: xenial
+      sudo: true
       services: docker
       env:
         - PIP=pip
