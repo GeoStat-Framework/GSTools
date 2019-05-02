@@ -3,26 +3,10 @@ environment:
     TWINE_USERNAME: geostatframework
 
   matrix:
-    - PYTHON: "C:\\Python27"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python27-x64"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python34"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python34-x64"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python35"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python35-x64"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python36"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python36-x64"
-      CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
-    - PYTHON: "C:\\Python37"
-      CIBW_BEFORE_BUILD: pip install numpy==1.14.5 cython==0.28.3
-    - PYTHON: "C:\\Python37-x64"
-      CIBW_BEFORE_BUILD: pip install numpy==1.14.5 cython==0.28.3
+    - CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
+      CIBW_SKIP: "cp37-*"
+    - CIBW_BEFORE_BUILD: pip install numpy==1.14.5 cython==0.28.3
+      CIBW_BUILD: "cp37-*"
 
 build_script:
   - pip install cibuildwheel==0.10.1
