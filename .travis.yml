@@ -46,6 +46,17 @@ matrix:
         - COVER="on"
         - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
+    - name: "Linux py37"
+      sudo: required
+      language: python
+      python: 3.7
+      services: docker
+      env:
+        - PIP=pip
+        - CIBW_BUILD="cp37-*"
+        - COVER="off"
+        - INS_CIBW="$PIP install cibuildwheel==0.10.1"
+
     - name: "MacOS py27"
       os: osx
       language: generic
@@ -79,6 +90,15 @@ matrix:
       env:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
+        - COVER="off"
+        - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
+
+    - name: "MacOS py37"
+      os: osx
+      language: generic
+      env:
+        - PIP=pip2
+        - CIBW_BUILD="cp37-*"
         - COVER="off"
         - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
 

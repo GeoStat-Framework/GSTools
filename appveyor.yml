@@ -1,6 +1,5 @@
 environment:
   TWINE_USERNAME: geostatframework
-  CIBW_SKIP: "cp37-*"
   CIBW_BEFORE_BUILD: pip install numpy==1.13.0 cython==0.26
 
 build_script:
