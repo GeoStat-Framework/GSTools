@@ -298,6 +298,95 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 attr_cls.__doc__ = attr_doc
 
     ###########################################################################
+    # pykrige functions #######################################################
+    ###########################################################################
+
+    def pykrige_vario(self, args=None, r=0):
+        r"""Isotropic variogram of the model for pykrige
+
+        Given by: :math:`\gamma\left(r\right)=
+        \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+
+        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        """
+        return self.variogram(r)
+
+    @property
+    def pykrige_anis(self):
+        """2D anisotropy ratio for pykrige"""
+        if self.dim == 2:
+            return 1/self.anis[0]
+        return 1.0
+
+    @property
+    def pykrige_anis_y(self):
+        """3D anisotropy ratio in y direction for pykrige"""
+        if self.dim >= 2:
+            return 1/self.anis[0]
+        return 1.0
+
+    @property
+    def pykrige_anis_z(self):
+        """3D anisotropy ratio in z direction for pykrige"""
+        if self.dim == 3:
+            return 1/self.anis[1]
+        return 1.0
+
+    @property
+    def pykrige_angle(self):
+        """2D rotation angle for pykrige"""
+        if self.dim == 2:
+            return -self.angles[0] / np.pi * 180
+        return 0.0
+
+    @property
+    def pykrige_angle_z(self):
+        """3D rotation angle around z for pykrige"""
+        if self.dim >= 2:
+            return -self.angles[0] / np.pi * 180
+        return 0.0
+
+    @property
+    def pykrige_angle_y(self):
+        """3D rotation angle around y for pykrige"""
+        if self.dim == 3:
+            return -self.angles[1] / np.pi * 180
+        return 0.0
+
+    @property
+    def pykrige_angle_x(self):
+        """3D rotation angle around x for pykrige"""
+        if self.dim == 3:
+            return -self.angles[2] / np.pi * 180
+        return 0.0
+
+    @property
+    def pykrige_kwargs(self):
+        """keyword arguments for pykrige routines"""
+        kwargs = {
+            "variogram_model": "custom",
+            "variogram_parameters": [],
+            "variogram_function": self.pykrige_vario,
+        }
+        if self.dim == 1:
+            add_kwargs = {}
+        elif self.dim == 2:
+            add_kwargs = {
+                "anisotropy_scaling": self.pykrige_anis,
+                "anisotropy_angle": self.pykrige_angle,
+            }
+        else:
+            add_kwargs = {
+                "anisotropy_scaling_y": self.pykrige_anis_y,
+                "anisotropy_scaling_z": self.pykrige_anis_z,
+                "anisotropy_angle_x": self.pykrige_angle_x,
+                "anisotropy_angle_y": self.pykrige_angle_y,
+                "anisotropy_angle_z": self.pykrige_angle_z,
+            }
+        kwargs.update(add_kwargs)
+        return kwargs
+
+    ###########################################################################
     # methods for optional arguments (can be overridden) ######################
     ###########################################################################
 
