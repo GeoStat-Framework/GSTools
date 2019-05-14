@@ -150,18 +150,18 @@ def unrotate_mesh(dim, angles, x, y, z):
     return None
 
 
-def reshape_axis_from_struct_to_unstruct(dim, x, y=None, z=None):
+def reshape_axis_from_struct_to_unstruct(dim, x, y=None, z=None, indexing="ij"):
     """Reshape given axes from struct to unstruct for rotation."""
     if dim == 1:
         return x, y, z, (len(x),)
     if dim == 2:
-        x_u, y_u = np.meshgrid(x, y, indexing="ij")
+        x_u, y_u = np.meshgrid(x, y, indexing=indexing)
         len_unstruct = len(x) * len(y)
         x_u = np.reshape(x_u, len_unstruct)
         y_u = np.reshape(y_u, len_unstruct)
         return x_u, y_u, z, (len(x), len(y))
     if dim == 3:
-        x_u, y_u, z_u = np.meshgrid(x, y, z, indexing="ij")
+        x_u, y_u, z_u = np.meshgrid(x, y, z, indexing=indexing)
         len_unstruct = len(x) * len(y) * len(z)
         x_u = np.reshape(x_u, len_unstruct)
         y_u = np.reshape(y_u, len_unstruct)
