@@ -34,7 +34,8 @@ matrix:
 
     - name: "MacOS py27"
       os: osx
-      language: generic
+      osx_image: xcode8
+      language: c
       env:
         - PIP=pip2
         - CIBW_BUILD="cp27-*"
@@ -43,7 +44,8 @@ matrix:
 
     - name: "MacOS py35"
       os: osx
-      language: generic
+      osx_image: xcode8
+      language: c
       env:
         - PIP=pip2
         - CIBW_BUILD="cp35-*"
@@ -52,7 +54,8 @@ matrix:
 
     - name: "MacOS py36"
       os: osx
-      language: generic
+      osx_image: xcode8
+      language: c
       env:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
@@ -61,6 +64,8 @@ matrix:
 
 before_install:
   - eval "${MATRIX_EVAL}"
+  - if [[ $TRAVIS_OS_NAME == "osx" ]]; then $CC --version; fi
+  - if [[ $TRAVIS_OSNAME == "osx" ]]; then $CXX --version; fi
 
 env:
   global:
