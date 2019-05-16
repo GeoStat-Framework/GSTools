@@ -107,9 +107,7 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        bin_centres, gamma = vario_estimate_unstructured(
-            (x, y), field, bins
-        )
+        bin_centres, gamma = vario_estimate_unstructured((x, y), field, bins)
 
         var = 1.0 / 12.0
         self.assertAlmostEqual(gamma[0], var, places=2)
@@ -192,7 +190,11 @@ class TestVariogramUnstructured(unittest.TestCase):
         bins = np.arange(0, 100, 10)
 
         bin_centres, gamma = vario_estimate_unstructured(
-            (x, y, z), field, bins, sampling_size=2000, sampling_seed=1479373475
+            (x, y, z),
+            field,
+            bins,
+            sampling_size=2000,
+            sampling_seed=1479373475,
         )
         var = 1.0 / 12.0
         self.assertAlmostEqual(gamma[0], var, places=2)
@@ -218,32 +220,16 @@ class TestVariogramUnstructured(unittest.TestCase):
             ValueError, vario_estimate_unstructured, (x, y_e), field, bins
         )
         self.assertRaises(
-            ValueError,
-            vario_estimate_unstructured,
-            (x, y_e, z),
-            field,
-            bins,
+            ValueError, vario_estimate_unstructured, (x, y_e, z), field, bins
         )
         self.assertRaises(
-            ValueError,
-            vario_estimate_unstructured,
-            (x, y, z_e),
-            field,
-            bins,
+            ValueError, vario_estimate_unstructured, (x, y, z_e), field, bins
         )
         self.assertRaises(
-            ValueError,
-            vario_estimate_unstructured,
-            (x_e, y, z),
-            field,
-            bins,
+            ValueError, vario_estimate_unstructured, (x_e, y, z), field, bins
         )
         self.assertRaises(
-            ValueError,
-            vario_estimate_unstructured,
-            (x, y, z),
-            field_e,
-            bins,
+            ValueError, vario_estimate_unstructured, (x, y, z), field_e, bins
         )
         self.assertRaises(
             ValueError, vario_estimate_unstructured, [x], field_e, bins

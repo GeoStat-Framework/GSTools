@@ -214,7 +214,7 @@ latex_documents = [
         "manual",
     )
 ]
-#latex_use_parts = True
+# latex_use_parts = True
 
 # -- Options for manual page output ---------------------------------------
 

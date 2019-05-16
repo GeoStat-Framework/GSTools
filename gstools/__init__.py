@@ -101,7 +101,10 @@ from gstools.tools.export import (
     vtk_export_unstructured,
     vtk_export,
 )
-from gstools.variogram import vario_estimate_structured, vario_estimate_unstructured
+from gstools.variogram import (
+    vario_estimate_structured,
+    vario_estimate_unstructured,
+)
 from gstools.covmodel import (
     CovModel,
     Gaussian,
@@ -117,6 +120,7 @@ from gstools.covmodel import (
     TPLExponential,
     TPLStable,
 )
+
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "random", "tools"]
 

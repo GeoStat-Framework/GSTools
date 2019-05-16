@@ -85,7 +85,9 @@ def vtk_export_unstructured(filename, pos, field, fieldname="field"):
     pointsToVTK(filename, x, y, z, data={fieldname: field})
 
 
-def vtk_export(filename, pos, field, fieldname="field", mesh_type="unstructured"):
+def vtk_export(
+    filename, pos, field, fieldname="field", mesh_type="unstructured"
+):
     """Export a field to vtk
 
     Parameters

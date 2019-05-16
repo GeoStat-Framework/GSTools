@@ -150,7 +150,9 @@ def unrotate_mesh(dim, angles, x, y, z):
     return None
 
 
-def reshape_axis_from_struct_to_unstruct(dim, x, y=None, z=None, indexing="ij"):
+def reshape_axis_from_struct_to_unstruct(
+    dim, x, y=None, z=None, indexing="ij"
+):
     """Reshape given axes from struct to unstruct for rotation."""
     if dim == 1:
         return x, y, z, (len(x),)

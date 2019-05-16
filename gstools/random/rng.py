@@ -78,7 +78,7 @@ class RNG(object):
             So at least, as much as the burn-in runs.
             Default: 10
         """
-        if size is None: # pragma: no cover
+        if size is None:  # pragma: no cover
             sample_size = burn_in
         else:
             sample_size = max(burn_in, (size / nwalkers) * oversampling_factor)
@@ -90,11 +90,11 @@ class RNG(object):
         sampler = mc.EnsembleSampler(nwalkers, 1, ln_pdf)
         # burn in phase with saving of last position
         ##################### mc 2 and 3 compatibility
-        if MC_VER < 3: # pragma: no cover
+        if MC_VER < 3:  # pragma: no cover
             burn_in_state, __, __ = sampler.run_mcmc(
                 pos0=init_guess, N=burn_in, rstate0=self.random.get_state()
             )
-        else: # pragma: no cover
+        else:  # pragma: no cover
             from emcee.state import State
 
             initial_state = State(init_guess, copy=True)
@@ -107,14 +107,14 @@ class RNG(object):
         sampler.reset()
         # actual sampling
         ##################### mc 2 and 3 compatibility
-        if MC_VER < 3: # pragma: no cover
+        if MC_VER < 3:  # pragma: no cover
             sampler.run_mcmc(
                 pos0=burn_in_state,
                 N=sample_size,
                 rstate0=self.random.get_state(),
             )
             samples = sampler.flatchain[:, 0]
-        else: # pragma: no cover
+        else:  # pragma: no cover
             from emcee.state import State
 
             initial_state = State(burn_in_state, copy=True)
@@ -177,7 +177,7 @@ class RNG(object):
         coord : :class:`numpy.ndarray`
             x[, y[, z]] coordinates on the sphere with shape (dim, size)
         """
-        if size is None: # pragma: no cover
+        if size is None:  # pragma: no cover
             coord = np.empty(dim, dtype=float)
         else:
             coord = np.empty((dim, size), dtype=float)
@@ -205,7 +205,7 @@ class RNG(object):
         """
         return rand.RandomState(self._master_rng())
 
-    @property # pragma: no cover
+    @property  # pragma: no cover
     def seed(self):
         """:class:`int`: the seed of the master RNG
 
@@ -225,7 +225,7 @@ class RNG(object):
         return "RNG(seed={})".format(self.seed)
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()

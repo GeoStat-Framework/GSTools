@@ -27,6 +27,7 @@ class MasterRNG(object):
         a random seed is used. Default: ``None``
 
     """
+
     def __init__(self, seed):
         self._seed = seed
         self._master_rng_fct = rand.RandomState(seed)
@@ -36,7 +37,7 @@ class MasterRNG(object):
         """Returns a random seed."""
         return self._master_rng()
 
-    @property # pragma: no cover
+    @property  # pragma: no cover
     def seed(self):
         """:class:`int`: the seed of the master RNG
 
@@ -185,7 +186,7 @@ class DistPdfCdfPpf(rv_continuous):
         return self.ppf_in(q)
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()

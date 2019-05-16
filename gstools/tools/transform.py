@@ -32,7 +32,7 @@ __all__ = [
 
 
 def zinnharvey(field, conn="high", mean=None, var=None):
-    '''
+    """
     Zinn and Harvey transformation to connect low or high values
 
     Parameters
@@ -55,21 +55,21 @@ def zinnharvey(field, conn="high", mean=None, var=None):
     -------
         :class:`numpy.ndarray`
             Transformed field.
-    '''
+    """
     if mean is None:
         mean = np.mean(field)
     if var is None:
         var = np.var(field)
-    field = np.abs((field - mean)/var)
+    field = np.abs((field - mean) / var)
     field = 2 * erf(field / np.sqrt(2)) - 1
     field = np.sqrt(2) * erfinv(field)
     if conn == "high":
         field = -field
-    return field*var + mean
+    return field * var + mean
 
 
 def normal_force_moments(field, mean=0, var=1):
-    '''
+    """
     Force moments of a normal distributed field.
 
     Parameters
@@ -88,7 +88,7 @@ def normal_force_moments(field, mean=0, var=1):
     -------
         :class:`numpy.ndarray`
             Transformed field.
-    '''
+    """
     var_in = np.var(field)
     mean_in = np.mean(field)
     rescale = np.sqrt(var / var_in)
@@ -96,7 +96,7 @@ def normal_force_moments(field, mean=0, var=1):
 
 
 def normal_to_lognormal(field):
-    '''
+    """
     Transform normal distribution to log-normal distribution
 
     Parameters
@@ -109,12 +109,12 @@ def normal_to_lognormal(field):
     -------
         :class:`numpy.ndarray`
             Transformed field.
-    '''
+    """
     return np.exp(field)
 
 
 def normal_to_uniform(field, mean=None, var=None):
-    '''
+    """
     Transform normal distribution to uniform distribution on [0, 1]
 
     Parameters
@@ -134,16 +134,16 @@ def normal_to_uniform(field, mean=None, var=None):
     -------
         :class:`numpy.ndarray`
             Transformed field.
-    '''
+    """
     if mean is None:
         mean = np.mean(field)
     if var is None:
         var = np.var(field)
-    return 0.5*(1+erf((field-mean)/np.sqrt(2*var)))
+    return 0.5 * (1 + erf((field - mean) / np.sqrt(2 * var)))
 
 
 def normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
-    '''
+    """
     Transform normal distribution to arcsin distribution
 
     See: https://en.wikipedia.org/wiki/Arcsine_distribution
@@ -169,12 +169,12 @@ def normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
     -------
         :class:`numpy.ndarray`
             Transformed field.
-    '''
+    """
     return _uniform_to_arcsin(normal_to_uniform(field, mean, var), a, b)
 
 
 def normal_to_uquad(field, mean=None, var=None, a=0, b=1):
-    '''
+    """
     Transform normal distribution to U-quadratic distribution
 
     See: https://en.wikipedia.org/wiki/U-quadratic_distribution
@@ -200,12 +200,12 @@ def normal_to_uquad(field, mean=None, var=None, a=0, b=1):
     -------
         :class:`numpy.ndarray`
             Transformed field.
-    '''
+    """
     return _uniform_to_uquad(normal_to_uniform(field, mean, var), a, b)
 
 
 def _uniform_to_arcsin(field, a=0, b=1):
-    '''
+    """
     PPF of your desired distribution
 
     The PPF is the inverse of the CDF and is used to sample a distribution
@@ -213,12 +213,12 @@ def _uniform_to_arcsin(field, a=0, b=1):
 
     in this case: the arcsin distribution
     See: https://en.wikipedia.org/wiki/Arcsine_distribution
-    '''
-    return (b-a)*np.sin(np.pi*0.5*field)**2+a
+    """
+    return (b - a) * np.sin(np.pi * 0.5 * field) ** 2 + a
 
 
 def _uniform_to_uquad(field, a=0, b=1):
-    '''
+    """
     PPF of your desired distribution
 
     The PPF is the inverse of the CDF and is used to sample a distribution
@@ -226,12 +226,12 @@ def _uniform_to_uquad(field, a=0, b=1):
 
     in this case: the U-quadratic distribution
     See: https://en.wikipedia.org/wiki/U-quadratic_distribution
-    '''
-    al = 12/(b-a)**3
-    be = (a+b)/2
-    ga = (a-b)**3/8
-    y_raw = 3*field/al + ga
+    """
+    al = 12 / (b - a) ** 3
+    be = (a + b) / 2
+    ga = (a - b) ** 3 / 8
+    y_raw = 3 * field / al + ga
     out = np.zeros_like(y_raw)
-    out[y_raw>0] = y_raw[y_raw>0]**(1/3)
-    out[y_raw<0] = -(-y_raw[y_raw<0])**(1/3)
+    out[y_raw > 0] = y_raw[y_raw > 0] ** (1 / 3)
+    out[y_raw < 0] = -(-y_raw[y_raw < 0]) ** (1 / 3)
     return out + be

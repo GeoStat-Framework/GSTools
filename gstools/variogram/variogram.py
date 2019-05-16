@@ -28,7 +28,7 @@ try:
         ma_structured_2d,
         ma_structured_1d,
     )
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     print("Warning: No Cython functions imported")
     from gstools.variogram.py_estimator import (
         unstructured,
@@ -44,7 +44,7 @@ __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
 def vario_estimate_unstructured(
-    pos, field, bin_edges, sampling_size=None, sampling_seed=None,
+    pos, field, bin_edges, sampling_size=None, sampling_seed=None
 ):
     r"""
     Estimates the variogram on a unstructured grid.

@@ -125,8 +125,12 @@ class TestVariogramstructured(unittest.TestCase):
         field_ma = np.ma.masked_array(field, mask=mask)
 
         try:
-            gamma_x = variogram.vario_estimate_structured(field_ma, direction="x")
-            gamma_y = variogram.vario_estimate_structured(field_ma, direction="y")
+            gamma_x = variogram.vario_estimate_structured(
+                field_ma, direction="x"
+            )
+            gamma_y = variogram.vario_estimate_structured(
+                field_ma, direction="y"
+            )
 
             var = 1.0 / 12.0
             self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
@@ -137,10 +141,14 @@ class TestVariogramstructured(unittest.TestCase):
             self.assertAlmostEqual(gamma_y[-1], var, places=2)
 
             mask = np.zeros_like(field)
-            mask[0,0] = 1
+            mask[0, 0] = 1
             field = np.ma.masked_array(field, mask=mask)
-            gamma_x = variogram.vario_estimate_structured(field_ma, direction="x")
-            gamma_y = variogram.vario_estimate_structured(field_ma, direction="y")
+            gamma_x = variogram.vario_estimate_structured(
+                field_ma, direction="x"
+            )
+            gamma_y = variogram.vario_estimate_structured(
+                field_ma, direction="y"
+            )
             self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
             self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
         except NotImplementedError as e:
@@ -153,9 +161,15 @@ class TestVariogramstructured(unittest.TestCase):
         field_ma = np.ma.masked_array(field, mask=mask)
 
         try:
-            gamma_x = variogram.vario_estimate_structured(field_ma, direction="x")
-            gamma_y = variogram.vario_estimate_structured(field_ma, direction="y")
-            gamma_z = variogram.vario_estimate_structured(field_ma, direction="z")
+            gamma_x = variogram.vario_estimate_structured(
+                field_ma, direction="x"
+            )
+            gamma_y = variogram.vario_estimate_structured(
+                field_ma, direction="y"
+            )
+            gamma_z = variogram.vario_estimate_structured(
+                field_ma, direction="z"
+            )
 
             var = 1.0 / 12.0
             self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
@@ -169,11 +183,17 @@ class TestVariogramstructured(unittest.TestCase):
             self.assertAlmostEqual(gamma_z[-1], var, places=2)
 
             mask = np.zeros_like(field)
-            mask[0,0,0] = 1
+            mask[0, 0, 0] = 1
             field = np.ma.masked_array(field, mask=mask)
-            gamma_x = variogram.vario_estimate_structured(field_ma, direction="x")
-            gamma_y = variogram.vario_estimate_structured(field_ma, direction="y")
-            gamma_z = variogram.vario_estimate_structured(field_ma, direction="z")
+            gamma_x = variogram.vario_estimate_structured(
+                field_ma, direction="x"
+            )
+            gamma_y = variogram.vario_estimate_structured(
+                field_ma, direction="y"
+            )
+            gamma_z = variogram.vario_estimate_structured(
+                field_ma, direction="z"
+            )
             self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
             self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
             self.assertAlmostEqual(gamma_z[0], 0.0, places=2)
@@ -233,11 +253,19 @@ class TestVariogramstructured(unittest.TestCase):
         field_y = np.tile(y_rand, (len(x), 1))
 
         try:
-            gamma_x_x = variogram.vario_estimate_structured(field_x, direction="x")
-            gamma_x_y = variogram.vario_estimate_structured(field_x, direction="y")
+            gamma_x_x = variogram.vario_estimate_structured(
+                field_x, direction="x"
+            )
+            gamma_x_y = variogram.vario_estimate_structured(
+                field_x, direction="y"
+            )
 
-            gamma_y_x = variogram.vario_estimate_structured(field_y, direction="x")
-            gamma_y_y = variogram.vario_estimate_structured(field_y, direction="y")
+            gamma_y_x = variogram.vario_estimate_structured(
+                field_y, direction="x"
+            )
+            gamma_y_y = variogram.vario_estimate_structured(
+                field_y, direction="y"
+            )
 
             self.assertAlmostEqual(gamma_x_y[1], 0.0)
             self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0.0)
@@ -262,17 +290,35 @@ class TestVariogramstructured(unittest.TestCase):
         field_z = np.tile(z_rand.reshape((1, 1, len(z))), (len(x), len(y), 1))
 
         try:
-            gamma_x_x = variogram.vario_estimate_structured(field_x, direction="x")
-            gamma_x_y = variogram.vario_estimate_structured(field_x, direction="y")
-            gamma_x_z = variogram.vario_estimate_structured(field_x, direction="z")
+            gamma_x_x = variogram.vario_estimate_structured(
+                field_x, direction="x"
+            )
+            gamma_x_y = variogram.vario_estimate_structured(
+                field_x, direction="y"
+            )
+            gamma_x_z = variogram.vario_estimate_structured(
+                field_x, direction="z"
+            )
 
-            gamma_y_x = variogram.vario_estimate_structured(field_y, direction="x")
-            gamma_y_y = variogram.vario_estimate_structured(field_y, direction="y")
-            gamma_y_z = variogram.vario_estimate_structured(field_y, direction="z")
+            gamma_y_x = variogram.vario_estimate_structured(
+                field_y, direction="x"
+            )
+            gamma_y_y = variogram.vario_estimate_structured(
+                field_y, direction="y"
+            )
+            gamma_y_z = variogram.vario_estimate_structured(
+                field_y, direction="z"
+            )
 
-            gamma_z_x = variogram.vario_estimate_structured(field_z, direction="x")
-            gamma_z_y = variogram.vario_estimate_structured(field_z, direction="y")
-            gamma_z_z = variogram.vario_estimate_structured(field_z, direction="z")
+            gamma_z_x = variogram.vario_estimate_structured(
+                field_z, direction="x"
+            )
+            gamma_z_y = variogram.vario_estimate_structured(
+                field_z, direction="y"
+            )
+            gamma_z_z = variogram.vario_estimate_structured(
+                field_z, direction="z"
+            )
             self.assertAlmostEqual(gamma_x_y[1], 0.0)
             self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0.0)
             self.assertAlmostEqual(gamma_x_y[-1], 0.0)
@@ -298,8 +344,9 @@ class TestVariogramstructured(unittest.TestCase):
         x = np.linspace(0.0, 10.0, 20)
         rng = np.random.RandomState(1479373475)
         x_rand = rng.rand(len(x))
-        self.assertRaises(ValueError,
-                variogram.vario_estimate_structured, x, 'a')
+        self.assertRaises(
+            ValueError, variogram.vario_estimate_structured, x, "a"
+        )
 
 
 if __name__ == "__main__":

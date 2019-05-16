@@ -12,7 +12,7 @@ from gstools.field.generator import RandMeth
 import emcee as mc
 
 
-MC_VER = int(mc.__version__.split('.')[0])
+MC_VER = int(mc.__version__.split(".")[0])
 
 
 class TestRandMeth(unittest.TestCase):
@@ -118,7 +118,9 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[1], -2.62032778)
 
     def test_chunking(self):
-        rm_3d = RandMeth(self.cov_model_3d, 1000, self.seed, chunk_tmp_size=8000)
+        rm_3d = RandMeth(
+            self.cov_model_3d, 1000, self.seed, chunk_tmp_size=8000
+        )
         modes = rm_3d(self.x_tuple, self.y_tuple, self.z_tuple)
         modes = rm_3d(self.x_grid, self.y_grid, self.z_grid)
 

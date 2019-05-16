@@ -12,7 +12,7 @@ from gstools.field.generator import IncomprRandMeth
 import emcee as mc
 
 
-MC_VER = int(mc.__version__.split('.')[0])
+MC_VER = int(mc.__version__.split(".")[0])
 
 
 class TestIncomprRandMeth(unittest.TestCase):
@@ -36,8 +36,12 @@ class TestIncomprRandMeth(unittest.TestCase):
         self.y_tuple = np.reshape(self.y_tuple, (len(self.y_tuple), 1))
         self.z_tuple = np.reshape(self.z_tuple, (len(self.z_tuple), 1))
 
-        self.rm_2d = IncomprRandMeth(self.cov_model_2d, mode_no=100, seed=self.seed)
-        self.rm_3d = IncomprRandMeth(self.cov_model_3d, mode_no=100, seed=self.seed)
+        self.rm_2d = IncomprRandMeth(
+            self.cov_model_2d, mode_no=100, seed=self.seed
+        )
+        self.rm_3d = IncomprRandMeth(
+            self.cov_model_3d, mode_no=100, seed=self.seed
+        )
 
     def test_unstruct_2d(self):
         modes = self.rm_2d(self.x_tuple, self.y_tuple)
@@ -76,9 +80,7 @@ class TestIncomprRandMeth(unittest.TestCase):
             self.assertAlmostEqual(modes[1, 1, 1, 1], 0.33077794)
 
     def test_assertions(self):
-        cov_model_1d = Gaussian(
-            dim=1, var=1.5, len_scale=2.5, mode_no=100
-        )
+        cov_model_1d = Gaussian(dim=1, var=1.5, len_scale=2.5, mode_no=100)
         self.assertRaises(ValueError, IncomprRandMeth, cov_model_1d)
 
 
