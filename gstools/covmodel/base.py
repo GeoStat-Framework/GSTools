@@ -315,21 +315,21 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def pykrige_anis(self):
         """2D anisotropy ratio for pykrige"""
         if self.dim == 2:
-            return 1/self.anis[0]
+            return 1 / self.anis[0]
         return 1.0
 
     @property
     def pykrige_anis_y(self):
         """3D anisotropy ratio in y direction for pykrige"""
         if self.dim >= 2:
-            return 1/self.anis[0]
+            return 1 / self.anis[0]
         return 1.0
 
     @property
     def pykrige_anis_z(self):
         """3D anisotropy ratio in z direction for pykrige"""
         if self.dim == 3:
-            return 1/self.anis[1]
+            return 1 / self.anis[1]
         return 1.0
 
     @property
@@ -474,7 +474,24 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
         k = np.array(np.abs(k), dtype=float)
-        return self._sft.transform(self.covariance, k, ret_err=False)
+        if self.dim > 1:
+            res = self._sft.transform(self.covariance, k, ret_err=False)
+        else:
+            k_gz = k > 0.0
+            res = np.empty_like(k, dtype=float)
+            res[k_gz] = self._sft.transform(
+                self.covariance, k[k_gz], ret_err=False
+            )
+            # this is a hack for k=0, we calculate by hand
+            fac = (
+                np.sqrt(
+                    np.abs(self.hankel_kw["b"])
+                    / (2 * np.pi) ** (1 - self.hankel_kw["a"])
+                )
+                * 2
+            )
+            res[np.logical_not(k_gz)] = self.integral_scale * self.var * fac
+        return res
 
     def spectral_density(self, k):
         r"""
@@ -505,17 +522,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             res[r > 0.0] = rad_fac(self.dim, r_gz) * self.spectral_density(
                 r_gz
             )
-            # prevent numerical errors in hankel for small r values (set 0)
-            res[np.logical_not(np.isfinite(res))] = 0.0
-            # prevent numerical errors in hankel for big r (set non-negative)
-            res = np.maximum(res, 0.0)
-            return res
-        # TODO: this is totally hacky (but working :D)
-        # prevent num error in hankel at r=0 in 1D
-        if self.dim == 1:
-            r[r == 0.0] = 0.03 / self.len_scale
-        res = rad_fac(self.dim, r) * self.spectral_density(r)
-        # prevent numerical errors in hankel for big r (set non-negativ)
+        else:
+            res = rad_fac(self.dim, r) * self.spectral_density(r)
+        # prevent numerical errors in hankel for small r values (set 0)
+        res[np.logical_not(np.isfinite(res))] = 0.0
+        # prevent numerical errors in hankel for big r (set non-negative)
         res = np.maximum(res, 0.0)
         return res
 
@@ -1127,7 +1138,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         )
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()
