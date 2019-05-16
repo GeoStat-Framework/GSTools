@@ -18,6 +18,7 @@ ctypedef np.double_t DTYPE_t
 
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -44,6 +45,7 @@ def summate_unstruct(
     return np.asarray(summed_modes)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -60,6 +62,7 @@ def summate_struct(
         return summate_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_struct_1d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -83,6 +86,7 @@ def summate_struct_1d(
     return np.asarray(summed_modes)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -108,6 +112,7 @@ def summate_struct_2d(
     return np.asarray(summed_modes)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -152,6 +157,7 @@ cdef (double) abs_square(double[:] vec):
     return r
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_incompr_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -186,6 +192,7 @@ def summate_incompr_unstruct(
     return np.asarray(summed_modes)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_incompr_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -200,6 +207,7 @@ def summate_incompr_struct(
         return summate_incompr_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_incompr_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -235,6 +243,7 @@ def summate_incompr_struct_2d(
     return np.asarray(summed_modes)
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def summate_incompr_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
