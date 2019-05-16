@@ -18,7 +18,6 @@ import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.field.generator import RandMeth, IncomprRandMeth
 from gstools.field.tools import (
-    reshape_input,
     check_mesh,
     make_isotropic,
     unrotate_mesh,
@@ -148,7 +147,6 @@ class SRF(object):
                 )
             x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
         y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-        x, y, z = reshape_input(x, y, z, mesh_type)
 
         # generate the field
         field = self.generator.__call__(self.model.dim, x, y, z, mesh_type)
