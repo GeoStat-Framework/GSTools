@@ -42,9 +42,9 @@ class TestIncomprRandMeth(unittest.TestCase):
     def test_unstruct_3d(self):
         modes = self.rm_3d(3, self.x_tuple, self.y_tuple, self.z_tuple)
         if MC_VER < 3:
-            self.assertAlmostEqual(modes[0, 1], 2.09358400)
-            self.assertAlmostEqual(modes[1, 0], -0.33468344)
-            self.assertAlmostEqual(modes[1, 1], -0.56828020)
+            self.assertAlmostEqual(modes[0, 1], 0.99476583)
+            self.assertAlmostEqual(modes[1, 0], 0.17039711)
+            self.assertAlmostEqual(modes[1, 1], -0.25210944)
         else:
             self.assertAlmostEqual(modes[0, 0], 2.41526352)
             self.assertAlmostEqual(modes[0, 1], 3.29398652)
@@ -59,10 +59,10 @@ class TestIncomprRandMeth(unittest.TestCase):
     def test_struct_3d(self):
         modes = self.rm_3d(3, self.x_grid, self.y_grid, self.z_grid, mesh_type='structured')
         if MC_VER < 3:
-            self.assertAlmostEqual(modes[0, 1, 0, 0], 2.31453214)
-            self.assertAlmostEqual(modes[0, 0, 1, 0], 1.88215044)
-            self.assertAlmostEqual(modes[0, 0, 0, 1], 1.58948541)
-            self.assertAlmostEqual(modes[1, 1, 1, 0], -0.58578527)
+            self.assertAlmostEqual(modes[0, 1, 0, 0], 1.69569140)
+            self.assertAlmostEqual(modes[0, 0, 1, 0], 1.04667503)
+            self.assertAlmostEqual(modes[0, 0, 0, 1], 1.19464729)
+            self.assertAlmostEqual(modes[1, 1, 1, 0], -0.36103764)
         else:
             self.assertAlmostEqual(modes[0, 0, 0, 0], 1.49469700)
             self.assertAlmostEqual(modes[1, 0, 1, 1], 0.12813365)
