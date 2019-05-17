@@ -34,38 +34,27 @@ matrix:
 
     - name: "MacOS py27"
       os: osx
-      osx_image: xcode8
-      language: c
+      language: generic
       env:
         - PIP=pip2
         - CIBW_BUILD="cp27-*"
         - COVER="off"
-        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
     - name: "MacOS py35"
       os: osx
-      osx_image: xcode8
-      language: c
+      language: generic
       env:
         - PIP=pip2
         - CIBW_BUILD="cp35-*"
         - COVER="off"
-        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
     - name: "MacOS py36"
       os: osx
-      osx_image: xcode8
-      language: c
+      language: generic
       env:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
         - COVER="off"
-        - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-
-before_install:
-  - eval "${MATRIX_EVAL}"
-  - if [[ $TRAVIS_OS_NAME == "osx" ]]; then $CC --version; fi
-  - if [[ $TRAVIS_OSNAME == "osx" ]]; then $CXX --version; fi
 
 env:
   global:
@@ -74,11 +63,9 @@ env:
     - CIBW_TEST_REQUIRES=pytest-cov
     # inplace cython build and test run
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
-    - OMP_NUM_THREADS=4
 
 script:
   # create wheels
-  - echo ${CC}
   - $PIP install cibuildwheel==0.10.1
   - cibuildwheel --output-dir wheelhouse
   # create source dist for pypi and create coverage (only once for linux py3.6)
@@ -109,3 +96,4 @@ notifications:
   email:
     recipients:
     - info@geostat-framework.org
+
