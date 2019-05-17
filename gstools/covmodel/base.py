@@ -540,11 +540,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return res
 
     def _has_cdf(self):
-        """State if a cdf is defined"""
+        """State if a cdf is defined with 'spectral_rad_cdf'"""
         return hasattr(self, "spectral_rad_cdf")
 
     def _has_ppf(self):
-        """State if a ppf is defined"""
+        """State if a ppf is defined with 'spectral_rad_ppf'"""
         return hasattr(self, "spectral_rad_ppf")
 
     # fitting routine #########################################################
