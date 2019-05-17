@@ -61,7 +61,7 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[1], 2.34788923)
 
     def test_struct_2d(self):
-        modes = self.rm_2d(self.x_grid, self.y_grid)
+        modes = self.rm_2d(2, self.x_grid, self.y_grid, mesh_type='structured')
         self.assertAlmostEqual(modes[0, 0], 1.67318010)
         self.assertAlmostEqual(modes[1, 0], 1.54740003)
         self.assertAlmostEqual(modes[0, 1], 2.02106551)
