@@ -81,7 +81,7 @@ def _cond_ok_1d(
         cond_pos[0],
         np.zeros_like(cond_pos[0]),
         z=cond_val,
-        **model.pykrige_kwargs,
+        **model.pykrige_kwargs
     )
     krige_field, krige_var = krige_ok.execute("grid", pos[0], np.array([0.0]))
     krige_field = np.reshape(krige_field, -1)
@@ -93,7 +93,7 @@ def _cond_ok_1d(
         cond_pos[0],
         np.zeros_like(cond_pos[0]),
         z=err_data,
-        **model.pykrige_kwargs,
+        **model.pykrige_kwargs
     )
     err_field, err_var = err_ok.execute("grid", pos[0], np.array([0.0]))
     err_field = np.reshape(err_field, -1)
