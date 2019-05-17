@@ -30,6 +30,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 # version finder ##############################################################
 
+
 def read(*parts):
     """read file data"""
     with codecs.open(os.path.join(HERE, *parts), "r") as fp:
@@ -48,6 +49,7 @@ def find_version(*file_paths):
 
 
 # cython handler ##############################################################
+
 
 class BuildFailed(Exception):
     """Exeption for Cython build failed"""
@@ -155,6 +157,9 @@ setup_kw = {
         "pyevtk",
         "six",
     ],
+    "extras_require": {
+        "krige": ["pykrige"],
+    },
     "packages": find_packages(exclude=["tests*", "docs*"]),
     "ext_modules": EXT_MODULES,
     "include_dirs": [numpy.get_include()],
