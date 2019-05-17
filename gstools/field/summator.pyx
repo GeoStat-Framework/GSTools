@@ -8,7 +8,6 @@ from __future__ import division, absolute_import, print_function
 import numpy as np
 
 cimport cython
-from cython.parallel import prange
 from libc.math cimport sin, cos
 cimport numpy as np
 
@@ -35,9 +34,9 @@ def summate_unstruct(
     X_len = pos.shape[1]
     N = cov_samples.shape[1]
 
-    cdef double[:] summed_modes = np.zeros(X_len)
+    cdef double[:] summed_modes = np.zeros(X_len, dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(N):
             phase = 0.
             for d in range(dim):
@@ -84,7 +83,7 @@ def summate_struct_1d(
 
     cdef double[:] summed_modes = np.zeros(X_len, dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(N):
             phase = cov_samples[0,j] * x[i]
             summed_modes[i] += z_1[j] * cos(phase) + z_2[j] * sin(phase)
@@ -111,7 +110,7 @@ def summate_struct_2d(
 
     cdef double[:,:] summed_modes = np.zeros((X_len, Y_len), dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(Y_len):
             for k in range(N):
                 phase = cov_samples[0,k] * x[i] + cov_samples[1,k] * y[j]
@@ -141,7 +140,7 @@ def summate_struct_3d(
 
     cdef double[:,:,:] summed_modes = np.zeros((X_len, Y_len, Z_len), dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(Y_len):
             for k in range(Z_len):
                 for l in range(N):
@@ -192,7 +191,6 @@ def summate_incompr_unstruct(
 
     cdef double[:,:] summed_modes = np.zeros((dim, X_len), dtype=DTYPE)
 
-    #for i in prange(X_len, nogil=True):
     for i in range(X_len):
         for j in range(N):
             phase = 0.
@@ -247,7 +245,6 @@ def summate_incompr_struct_2d(
 
     cdef double[:,:,:] summed_modes = np.zeros((dim, X_len, Y_len), dtype=DTYPE)
 
-    #for i in prange(X_len, nogil=True):
     for i in range(X_len):
         for j in range(Y_len):
             for k in range(N):
@@ -287,7 +284,6 @@ def summate_incompr_struct_3d(
 
     cdef double[:,:,:,:] summed_modes = np.zeros((dim, X_len, Y_len, Z_len), dtype=DTYPE)
 
-    #for i in prange(X_len, nogil=True):
     for i in range(X_len):
         for j in range(Y_len):
             for k in range(Z_len):

@@ -49,36 +49,6 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-# openmp tester ###############################################################
-
-omp_test = \
-r"""
-#include <omp.h>
-#include <stdio.h>
-int main() {
-#pragma omp parallel
-printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(), omp_get_num_threads());
-}
-"""
-
-def check_for_openmp():
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    result = 0
-    filename = 'test_openmp.c'
-    with open(filename, 'w') as f:
-        f.write(omp_test)
-    with open(os.devnull, 'w') as fnull:
-        result = subprocess.call(['cc', '-fopenmp', filename],
-                                 stdout=fnull, stderr=fnull, shell=True)
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
-
-    return result
-
-
 # cython handler ##############################################################
 
 class BuildFailed(Exception):
@@ -112,12 +82,6 @@ def construct_build_ext(build_ext_base):
 
 # setup #######################################################################
 
-USE_OPENMP = bool(check_for_openmp())
-if USE_OPENMP:
-    print('## GSTOOLS setup: OpenMP found.')
-else:
-    print('## GSTOOLS setup: OpenMP not found.')
-
 try:
     from Cython.Build import cythonize
     from Cython.Distutils.extension import Extension
@@ -150,12 +114,8 @@ CLASSIFIERS = [
 
 EXT_MODULES = []
 
-if USE_OPENMP:
-    summator_extra_compile_args = ['-fopenmp']
-    summator_extra_link_args = ['-fopenmp']
-else:
-    summator_extra_compile_args = []
-    summator_extra_link_args = []
+summator_extra_compile_args = []
+summator_extra_link_args = []
 
 summator_ext = Extension(
     "gstools.field.summator",
@@ -172,7 +132,8 @@ variogram_ext = Extension(
 
 if USE_CYTHON:
     EXT_MODULES += cythonize(
-        [os.path.join("gstools", "variogram", "estimator.pyx"), summator_ext]
+        [os.path.join("gstools", "variogram", "estimator.pyx"), summator_ext],
+        #annotate=True
     )
 else:
     EXT_MODULES += [variogram_ext, summator_ext]
