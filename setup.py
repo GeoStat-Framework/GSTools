@@ -10,9 +10,8 @@ from distutils.errors import (
     DistutilsExecError,
     DistutilsPlatformError,
 )
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
-from setuptools.command.build_ext import build_ext
+from setuptools import setup, find_packages, Extension
+from Cython.Distutils import build_ext
 import numpy
 
 logging.basicConfig()
@@ -29,7 +28,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 # version finder ##############################################################
-
 
 def read(*parts):
     """read file data"""
@@ -49,7 +47,6 @@ def find_version(*file_paths):
 
 
 # cython handler ##############################################################
-
 
 class BuildFailed(Exception):
     """Exeption for Cython build failed"""
@@ -84,12 +81,16 @@ def construct_build_ext(build_ext_base):
 
 try:
     from Cython.Build import cythonize
+    from Cython.Distutils import build_ext
+    from Cython.Distutils.extension import Extension
 except ImportError:
-    print("## GSTOOLS setup: cython not used.")
+    print("## GSTOOLS setup: Cython not found.")
     USE_CYTHON = False
+    file_ending = 'c'
 else:
-    print("## GSTOOLS setup: cython used.")
+    print("## GSTOOLS setup: Cython found.")
     USE_CYTHON = True
+    file_ending = 'pyx'
 
 DOCLINES = __doc__.split("\n")
 README = open(os.path.join(HERE, "README.md")).read()
@@ -110,18 +111,30 @@ CLASSIFIERS = [
 ]
 
 EXT_MODULES = []
+
+summator_extra_compile_args = []
+summator_extra_link_args = []
+
+summator_ext = Extension(
+    "gstools.field.summator",
+    [os.path.join('gstools', 'field', 'summator.'+file_ending)],
+    include_dirs=[numpy.get_include()],
+    extra_compile_args=summator_extra_compile_args,
+    extra_link_args=summator_extra_link_args,
+)
+variogram_ext = Extension(
+    "gstools.variogram.estimator",
+    [os.path.join("gstools", "variogram", "estimator."+file_ending)],
+    include_dirs=[numpy.get_include()],
+)
+
 if USE_CYTHON:
     EXT_MODULES += cythonize(
-        os.path.join("gstools", "variogram", "estimator.pyx")
+        [os.path.join("gstools", "variogram", "estimator.pyx"), summator_ext],
+        #annotate=True
     )
 else:
-    EXT_MODULES += [
-        Extension(
-            "gstools.variogram.estimator",
-            [os.path.join("gstools", "variogram", "estimator.c")],
-            include_dirs=[numpy.get_include()],
-        )
-    ]
+    EXT_MODULES += [variogram_ext, summator_ext]
 
 # This is the important part. By setting this compiler directive, cython will
 # embed signature information in docstrings. Sphinx then knows how to extract

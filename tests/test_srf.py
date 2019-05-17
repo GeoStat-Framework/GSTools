@@ -240,13 +240,13 @@ class TestSRF(unittest.TestCase):
             mean_velocity=0.5,
         )
         field = srf((self.x_tuple, self.y_tuple), seed=476356)
-        self.assertAlmostEqual(field[0, 0], 1.23462811)
-        self.assertAlmostEqual(field[0, 1], 0.57528822)
+        self.assertAlmostEqual(field[0, 0], 0.99406131)
+        self.assertAlmostEqual(field[0, 1], 1.24764012)
         field = srf(
             (self.x_grid, self.y_grid), seed=4734654, mesh_type="structured"
         )
-        self.assertAlmostEqual(field[0, 0, 0], 1.02392008)
-        self.assertAlmostEqual(field[0, 1, 0], 0.96812285)
+        self.assertAlmostEqual(field[0, 0, 0], 1.07812013)
+        self.assertAlmostEqual(field[0, 1, 0], 1.06180674)
 
     # TODO put these checks into test_cov_model
     def test_assertions(self):
