@@ -19,6 +19,8 @@ ctypedef np.double_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -46,6 +48,8 @@ def summate_unstruct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -63,6 +67,8 @@ def summate_struct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_struct_1d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -76,7 +82,7 @@ def summate_struct_1d(
     X_len = x.shape[0]
     N = cov_samples.shape[1]
 
-    cdef double[:] summed_modes = np.zeros(X_len)
+    cdef double[:] summed_modes = np.zeros(X_len, dtype=DTYPE)
 
     for i in prange(X_len, nogil=True):
         for j in range(N):
@@ -87,6 +93,8 @@ def summate_struct_1d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -101,7 +109,7 @@ def summate_struct_2d(
     Y_len = y.shape[0]
     N = cov_samples.shape[1]
 
-    cdef double[:,:] summed_modes = np.zeros((X_len, Y_len))
+    cdef double[:,:] summed_modes = np.zeros((X_len, Y_len), dtype=DTYPE)
 
     for i in prange(X_len, nogil=True):
         for j in range(Y_len):
@@ -113,6 +121,8 @@ def summate_struct_2d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -129,7 +139,7 @@ def summate_struct_3d(
     Z_len = z.shape[0]
     N = cov_samples.shape[1]
 
-    cdef double[:,:,:] summed_modes = np.zeros((X_len, Y_len, Z_len))
+    cdef double[:,:,:] summed_modes = np.zeros((X_len, Y_len, Z_len), dtype=DTYPE)
 
     for i in prange(X_len, nogil=True):
         for j in range(Y_len):
@@ -146,18 +156,21 @@ def summate_struct_3d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef (double) abs_square(double[:] vec):
+@cython.nonecheck(False)
+@cython.cdivision(False)
+cdef (double) abs_square(double[:] vec) nogil:
     cdef int i
-    cdef int dim = vec.shape[0]
     cdef double r = 0.
 
-    for i in range(dim):
+    for i in range(vec.shape[0]):
         r += vec[i]**2
 
     return r
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_incompr_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -170,14 +183,14 @@ def summate_incompr_unstruct(
     cdef double k_2
     dim = pos.shape[0]
 
-    cdef double[:] e1 = np.zeros(dim)
+    cdef double[:] e1 = np.zeros(dim, dtype=DTYPE)
     e1[0] = 1.
-    cdef double[:] proj = np.empty(dim)
+    cdef double[:] proj = np.empty(dim, dtype=DTYPE)
 
     X_len = pos.shape[1]
     N = cov_samples.shape[1]
 
-    cdef double[:,:] summed_modes = np.zeros((dim, X_len))
+    cdef double[:,:] summed_modes = np.zeros((dim, X_len), dtype=DTYPE)
 
     #for i in prange(X_len, nogil=True):
     for i in range(X_len):
@@ -193,6 +206,8 @@ def summate_incompr_unstruct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_incompr_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -208,6 +223,8 @@ def summate_incompr_struct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_incompr_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -220,15 +237,15 @@ def summate_incompr_struct_2d(
     cdef int dim = 2
     cdef double k_2
 
-    cdef double[:] e1 = np.zeros(dim)
+    cdef double[:] e1 = np.zeros(dim, dtype=DTYPE)
     e1[0] = 1.
-    cdef double[:] proj = np.empty(dim)
+    cdef double[:] proj = np.empty(dim, dtype=DTYPE)
 
     X_len = x.shape[0]
     Y_len = y.shape[0]
     N = cov_samples.shape[1]
 
-    cdef double[:,:,:] summed_modes = np.zeros((dim, X_len, Y_len))
+    cdef double[:,:,:] summed_modes = np.zeros((dim, X_len, Y_len), dtype=DTYPE)
 
     #for i in prange(X_len, nogil=True):
     for i in range(X_len):
@@ -244,6 +261,8 @@ def summate_incompr_struct_2d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(False)
 def summate_incompr_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -257,16 +276,16 @@ def summate_incompr_struct_3d(
     cdef int dim = 3
     cdef double k_2
 
-    cdef double[:] e1 = np.zeros(dim)
+    cdef double[:] e1 = np.zeros(dim, dtype=DTYPE)
     e1[0] = 1.
-    cdef double[:] proj = np.empty(dim)
+    cdef double[:] proj = np.empty(dim, dtype=DTYPE)
 
     X_len = x.shape[0]
     Y_len = y.shape[0]
     Z_len = z.shape[0]
     N = cov_samples.shape[1]
 
-    cdef double[:,:,:,:] summed_modes = np.zeros((dim, X_len, Y_len, Z_len))
+    cdef double[:,:,:,:] summed_modes = np.zeros((dim, X_len, Y_len, Z_len), dtype=DTYPE)
 
     #for i in prange(X_len, nogil=True):
     for i in range(X_len):
