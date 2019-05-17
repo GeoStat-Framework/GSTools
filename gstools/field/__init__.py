@@ -10,6 +10,7 @@ Subpackages
 .. autosummary::
     generator
     upscaling
+    condition
 
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^

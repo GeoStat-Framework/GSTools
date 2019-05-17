@@ -27,6 +27,7 @@ from gstools.field.tools import (
 )
 from gstools.tools.geometric import pos2xyz
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
+from gstools.field.condition import condition_ok
 
 __all__ = ["SRF"]
 
@@ -40,6 +41,7 @@ UPSCALING = {
     "coarse_graining": var_coarse_graining,
     "no_scaling": var_no_scaling,
 }
+CONDITION = {"ordinary": condition_ok}
 
 
 class SRF(object):
@@ -90,8 +92,16 @@ class SRF(object):
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
+        # condition related
+        self._cond_pos = None
+        self._cond_val = None
+        self._krige_type = None
         # initialize attributes
         self.field = None
+        self.raw_field = None
+        self.krige_field = None
+        self.err_field = None
+        self.krige_var = None
         self.mean = mean
         self.model = model
         self.set_generator(generator, **generator_kwargs)
@@ -171,9 +181,67 @@ class SRF(object):
         scaled_var = self.upscaling_func(self.model, point_volumes)
 
         # rescale and shift the field to the mean
-        self.field = np.sqrt(scaled_var / self.model.sill) * field + self.mean
+        self.raw_field = np.sqrt(scaled_var / self.model.sill) * field
+
+        # apply given conditions to the field
+        if self.condition:
+            cond_field, krige_field, err_field, krige_var = self.cond_func(
+                pos,
+                self.raw_field,
+                self._cond_pos,
+                self._cond_val,
+                self.model,
+                mesh_type=mesh_type,
+            )
+            # store everything in the class
+            self.field = cond_field
+            self.krige_field = krige_field
+            self.err_field = err_field
+            self.krige_var = krige_var
+        else:
+            self.field = self.raw_field + self.mean
 
         return self.field
+
+    def set_condition(
+        self, cond_pos=None, cond_val=None, krige_type="ordinary"
+    ):
+        """Condition a given spatial random field with measurements.
+
+        Parameters
+        ----------
+        cond_pos : :class:`list`
+            the position tuple of the conditions
+        cond_pos : :class:`numpy.ndarray`
+            the values of the conditions
+        krige_type : :class:`str`, optional
+            Used kriging type for conditioning.
+            Only "ordinary" provided at the moment.
+            Default: 'ordinary'
+        """
+        self._cond_pos = cond_pos
+        self._cond_val = cond_val
+        self._krige_type = krige_type
+        if krige_type not in CONDITION:
+            raise ValueError(
+                "gstools.SRF: Unknown kriging method: " + krige_type
+            )
+
+    def del_condition(self):
+        """Delete Conditions."""
+        self._cond_pos = None
+        self._cond_val = None
+        self._krige_type = None
+
+    @property
+    def condition(self):
+        """:any:`bool`: State if conditions ar given"""
+        return self._cond_pos is not None
+
+    def cond_func(self, *args, **kwargs):
+        """The conditioning method applied to the field"""
+        if self.condition:
+            return CONDITION[self._krige_type](*args, **kwargs)
 
     def structured(self, *args, **kwargs):
         """Generate an SRF on a structured mesh
