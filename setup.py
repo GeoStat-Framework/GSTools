@@ -20,12 +20,12 @@ from distutils.errors import (
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 
-from setuptools import setup, find_packages
-import numpy
+from setuptools import setup, find_packages, Distribution
 
 from Cython.Build import cythonize
-from Cython.Distutils import build_ext
 from Cython.Distutils.extension import Extension
+
+import numpy
 
 logging.basicConfig()
 log = logging.getLogger(__file__)
@@ -36,6 +36,7 @@ ext_errors = (
     DistutilsPlatformError,
     IOError,
 )
+
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -109,7 +110,6 @@ def check_openmp_support():
     """Check whether OpenMP test code can be compiled and run"""
     ccompiler = new_compiler()
     customize_compiler(ccompiler)
-
     start_dir = os.path.abspath('.')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -123,24 +123,20 @@ def check_openmp_support():
             openmp_flags = get_openmp_flag(ccompiler)
             ccompiler.compile(['test_openmp.c'], output_dir='objects',
                               extra_postargs=openmp_flags)
-
             # Link test program
             extra_preargs = os.getenv('LDFLAGS', None)
             if extra_preargs is not None:
                 extra_preargs = extra_preargs.split(" ")
             else:
                 extra_preargs = []
-
             objects = glob.glob(
                 os.path.join('objects', '*' + ccompiler.obj_extension))
             ccompiler.link_executable(objects, 'test_openmp',
                                       extra_preargs=extra_preargs,
                                       extra_postargs=openmp_flags)
-
             # Run test program
             output = subprocess.check_output('./test_openmp')
             output = output.decode(sys.stdout.encoding or 'utf-8').splitlines()
-
             # Check test program output
             if 'nthreads=' in output[0]:
                 nthreads = int(output[0].strip().split('=')[1])
@@ -149,20 +145,19 @@ def check_openmp_support():
             else:
                 openmp_supported = False
                 flags = []
-
         except (CompileError, LinkError, subprocess.CalledProcessError):
             openmp_supported = False
             flags = []
-
         finally:
             os.chdir(start_dir)
-
     return openmp_supported, flags
+
+
+# openmp ######################################################################
 
 
 if "--openmp" in sys.argv:
     USE_OPENMP = True
-    del sys.argv[sys.argv.index("--openmp")]
 else:
     USE_OPENMP = False
 
@@ -171,7 +166,7 @@ if USE_OPENMP:
     CAN_USE_OPENMP, flags = check_openmp_support()
     if CAN_USE_OPENMP:
         print('## GSTOOLS setup: OpenMP found.')
-        print("flags", flags)
+        print("## OpenMP flags:", flags)
     else:
         print('## GSTOOLS setup: OpenMP not found.')
 else:
@@ -180,6 +175,16 @@ else:
     flags = []
 
 USE_OPENMP = USE_OPENMP and CAN_USE_OPENMP
+
+
+# add the "--openmp" to the global options
+# enables calles like:
+# python3 setup.py --openmp build_ext --inplace
+# pip install --global-option="--openmp" gstools
+class MPDistribution(Distribution):
+    global_options = Distribution.global_options + [
+        ('openmp', None, "Flag to use openmp in the build"),
+        ]
 
 
 # cython extensions ###########################################################
@@ -270,6 +275,7 @@ setup_kw = {
     "packages": find_packages(exclude=["tests*", "docs*"]),
     "ext_modules": EXT_MODULES,
     "include_dirs": [numpy.get_include()],
+    "distclass": MPDistribution,
 }
 
 setup(**setup_kw)
