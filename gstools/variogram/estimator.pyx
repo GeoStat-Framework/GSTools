@@ -1,13 +1,17 @@
+#!python
 # cython: language_level=2
 # -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
 """
+#!python
+#cython: language_level=2
 from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
 cimport cython
+from cython.parallel import prange
 from libc.math cimport sqrt
 cimport numpy as np
 
@@ -17,25 +21,34 @@ ctypedef np.double_t DTYPE_t
 
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef inline double _distance_1d(double[:] x, double[:] y, double[:] z,
-                               int i, int j):
+                               int i, int j) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]))
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef inline double _distance_2d(double[:] x, double[:] y, double[:] z,
-                               int i, int j):
+                               int i, int j) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]))
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef inline double _distance_3d(double[:] x, double[:] y, double[:] z,
-                               int i, int j):
+                               int i, int j) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) +
                 (y[i] - y[j]) * (y[i] - y[j]) +
                 (z[i] - z[j]) * (z[i] - z[j]))
 
-ctypedef double (*_dist_func)(double[:], double[:], double[:], int, int)
+ctypedef double (*_dist_func)(double[:], double[:], double[:], int, int) nogil
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def unstructured(double[:] f, double[:] bin_edges, double[:] x,
                  double[:] y=None, double[:] z=None):
     if x.shape[0] != f.shape[0]:
@@ -69,7 +82,7 @@ def unstructured(double[:] f, double[:] bin_edges, double[:] x,
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k, d
     cdef DTYPE_t dist
-    for i in range(i_max):
+    for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(x, y, z, k, j)
@@ -84,6 +97,9 @@ def unstructured(double[:] f, double[:] bin_edges, double[:] x,
     return np.asarray(variogram)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def structured_3d(double[:,:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -94,7 +110,7 @@ def structured_3d(double[:,:,:] f):
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k, l
 
-    for i in range(i_max):
+    for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(k_max):
                 for l in range(1, l_max-i):
@@ -107,6 +123,9 @@ def structured_3d(double[:,:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def structured_2d(double[:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -116,7 +135,7 @@ def structured_2d(double[:,:] f):
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k
 
-    for i in range(i_max):
+    for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(1, k_max-i):
                 counts[k] += 1
@@ -128,6 +147,9 @@ def structured_2d(double[:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def structured_1d(double[:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
@@ -147,6 +169,9 @@ def structured_1d(double[:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def ma_structured_3d(double[:,:,:] f, bint[:,:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -157,7 +182,7 @@ def ma_structured_3d(double[:,:,:] f, bint[:,:,:] mask):
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k, l
 
-    for i in range(i_max):
+    for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(k_max):
                 for l in range(1, l_max-i):
@@ -171,6 +196,9 @@ def ma_structured_3d(double[:,:,:] f, bint[:,:,:] mask):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def ma_structured_2d(double[:,:] f, bint[:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -180,7 +208,7 @@ def ma_structured_2d(double[:,:] f, bint[:,:] mask):
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k
 
-    for i in range(i_max):
+    for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(1, k_max-i):
                 if not mask[i,j] and not mask[i+k,j]:
@@ -193,6 +221,9 @@ def ma_structured_2d(double[:,:] f, bint[:,:] mask):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def ma_structured_1d(double[:] f, bint[:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1

@@ -206,6 +206,8 @@ variogram_ext = Extension(
     "gstools.variogram.estimator",
     [os.path.join("gstools", "variogram", "estimator.pyx")],
     include_dirs=[numpy.get_include()],
+    extra_compile_args=extra_compile_args,
+    extra_link_args=extra_link_args,
 )
 
 EXT_MODULES += cythonize(

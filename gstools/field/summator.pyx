@@ -1,4 +1,5 @@
-# cython: language_level=2, wraparound=False, nonecheck=False
+#!python
+#cython: language_level=2
 # -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
@@ -19,8 +20,7 @@ ctypedef np.double_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -48,8 +48,7 @@ def summate_unstruct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -67,8 +66,7 @@ def summate_struct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_struct_1d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -93,8 +91,7 @@ def summate_struct_1d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -121,8 +118,7 @@ def summate_struct_2d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -156,8 +152,7 @@ def summate_struct_3d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 cdef (double) abs_square(double[:] vec) nogil:
     cdef int i
     cdef double r = 0.
@@ -169,8 +164,7 @@ cdef (double) abs_square(double[:] vec) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_incompr_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -205,8 +199,7 @@ def summate_incompr_unstruct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_incompr_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -222,8 +215,7 @@ def summate_incompr_struct(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_incompr_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -259,8 +251,7 @@ def summate_incompr_struct_2d(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.nonecheck(False)
-@cython.cdivision(False)
+@cython.cdivision(True)
 def summate_incompr_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
