@@ -1,18 +1,31 @@
 # -*- coding: utf-8 -*-
 """GeostatTools: A geostatistical toolbox."""
 from __future__ import division, absolute_import, print_function
+import sys
 import os
 import codecs
 import re
 import logging
+import tempfile
+import glob
+import subprocess
+
 from distutils.errors import (
+    CompileError,
+    LinkError,
     CCompilerError,
     DistutilsExecError,
     DistutilsPlatformError,
 )
-from setuptools import setup, find_packages, Extension
-from Cython.Distutils import build_ext
+from distutils.ccompiler import new_compiler
+from distutils.sysconfig import customize_compiler
+
+from setuptools import setup, find_packages
 import numpy
+
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+from Cython.Distutils.extension import Extension
 
 logging.basicConfig()
 log = logging.getLogger(__file__)
@@ -46,52 +59,169 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-# cython handler ##############################################################
-
-class BuildFailed(Exception):
-    """Exeption for Cython build failed"""
-
-    pass
+# openmp finder ###############################################################
+# This code is adapted for a large part from the scikit-learn openmp helpers, which
+# can be found at:
+# https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
 
 
-def construct_build_ext(build_ext_base):
-    """Construct a wrapper class for build_ext"""
+CCODE = """
+#include <omp.h>
+#include <stdio.h>
+int main(void) {
+#pragma omp parallel
+printf("nthreads=%d\\n", omp_get_num_threads());
+return 0;
+}
+"""
 
-    class WrappedBuildExt(build_ext_base):
-        """This class allows C extension building to fail."""
 
-        def run(self):
-            """overridden run with try-except"""
-            try:
-                build_ext_base.run(self)
-            except DistutilsPlatformError as x:
-                raise BuildFailed(x)
+def get_openmp_flag(compiler):
+    if hasattr(compiler, 'compiler'):
+        compiler = compiler.compiler[0]
+    else:
+        compiler = compiler.__class__.__name__
 
-        def build_extension(self, ext):
-            """overridden build_extension with try-except"""
-            try:
-                build_ext_base.build_extension(self, ext)
-            except ext_errors as x:
-                raise BuildFailed(x)
+    if sys.platform == "win32" and ('icc' in compiler or 'icl' in compiler):
+        return ['/Qopenmp']
+    elif sys.platform == "win32":
+        return ['/openmp']
+    elif sys.platform == "darwin" and ('icc' in compiler or 'icl' in compiler):
+        return ['-openmp']
+    elif sys.platform == "darwin" and 'openmp' in os.getenv('CPPFLAGS', ''):
+        # -fopenmp can't be passed as compile flag when using Apple-clang.
+        # OpenMP support has to be enabled during preprocessing.
+        #
+        # For example, our macOS wheel build jobs use the following environment
+        # variables to build with Apple-clang and the brew installed "libomp":
+        #
+        # export CPPFLAGS="$CPPFLAGS -Xpreprocessor -fopenmp"
+        # export CFLAGS="$CFLAGS -I/usr/local/opt/libomp/include"
+        # export CXXFLAGS="$CXXFLAGS -I/usr/local/opt/libomp/include"
+        # export LDFLAGS="$LDFLAGS -L/usr/local/opt/libomp/lib -lomp"
+        # export DYLD_LIBRARY_PATH=/usr/local/opt/libomp/lib
+        return []
+    # Default flag for GCC and clang:
+    return ['-fopenmp']
 
-    return WrappedBuildExt
+
+def check_openmp_support():
+    """Check whether OpenMP test code can be compiled and run"""
+    ccompiler = new_compiler()
+    customize_compiler(ccompiler)
+
+    start_dir = os.path.abspath('.')
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        try:
+            os.chdir(tmp_dir)
+            # Write test program
+            with open('test_openmp.c', 'w') as f:
+                f.write(CCODE)
+            os.mkdir('objects')
+            # Compile, test program
+            openmp_flags = get_openmp_flag(ccompiler)
+            ccompiler.compile(['test_openmp.c'], output_dir='objects',
+                              extra_postargs=openmp_flags)
+
+            # Link test program
+            extra_preargs = os.getenv('LDFLAGS', None)
+            if extra_preargs is not None:
+                extra_preargs = extra_preargs.split(" ")
+            else:
+                extra_preargs = []
+
+            objects = glob.glob(
+                os.path.join('objects', '*' + ccompiler.obj_extension))
+            ccompiler.link_executable(objects, 'test_openmp',
+                                      extra_preargs=extra_preargs,
+                                      extra_postargs=openmp_flags)
+
+            # Run test program
+            output = subprocess.check_output('./test_openmp')
+            output = output.decode(sys.stdout.encoding or 'utf-8').splitlines()
+
+            # Check test program output
+            if 'nthreads=' in output[0]:
+                nthreads = int(output[0].strip().split('=')[1])
+                openmp_supported = (len(output) == nthreads)
+                flags = openmp_flags
+            else:
+                openmp_supported = False
+                flags = []
+
+        except (CompileError, LinkError, subprocess.CalledProcessError):
+            openmp_supported = False
+            flags = []
+
+        finally:
+            os.chdir(start_dir)
+
+    return openmp_supported, flags
+
+
+if "--openmp" in sys.argv:
+    USE_OPENMP = True
+    del sys.argv[sys.argv.index("--openmp")]
+else:
+    USE_OPENMP = False
+
+if USE_OPENMP:
+    # just check if wanted
+    CAN_USE_OPENMP, flags = check_openmp_support()
+    if CAN_USE_OPENMP:
+        print('## GSTOOLS setup: OpenMP found.')
+        print("flags", flags)
+    else:
+        print('## GSTOOLS setup: OpenMP not found.')
+else:
+    CAN_USE_OPENMP = False
+    print('## GSTOOLS setup: OpenMP not wanted by the user.')
+    flags = []
+
+USE_OPENMP = USE_OPENMP and CAN_USE_OPENMP
+
+
+# cython extensions ###########################################################
+
+
+EXT_MODULES = []
+
+extra_compile_args = flags
+extra_link_args = flags
+
+summator_ext = Extension(
+    "gstools.field.summator",
+    [os.path.join('gstools', 'field', 'summator.pyx')],
+    include_dirs=[numpy.get_include()],
+    extra_compile_args=extra_compile_args,
+    extra_link_args=extra_link_args,
+)
+variogram_ext = Extension(
+    "gstools.variogram.estimator",
+    [os.path.join("gstools", "variogram", "estimator.pyx")],
+    include_dirs=[numpy.get_include()],
+)
+
+EXT_MODULES += cythonize(
+    [variogram_ext, summator_ext],
+    #annotate=True
+)
+
+# This is the important part. By setting this compiler directive, cython will
+# embed signature information in docstrings. Sphinx then knows how to extract
+# and use those signatures.
+# python setup.py build_ext --inplace --> then sphinx build
+for ext_m in EXT_MODULES:
+    ext_m.cython_directives = {"embedsignature": True}
 
 
 # setup #######################################################################
 
-try:
-    from Cython.Build import cythonize
-    from Cython.Distutils import build_ext
-    from Cython.Distutils.extension import Extension
-except ImportError:
-    print("## GSTOOLS setup: Cython not found.")
-    USE_CYTHON = False
-    file_ending = 'c'
-else:
-    print("## GSTOOLS setup: Cython found.")
-    USE_CYTHON = True
-    file_ending = 'pyx'
 
+# version import not possible due to cython
+# see: https://packaging.python.org/guides/single-sourcing-package-version/
+VERSION = find_version("gstools", "_version.py")
 DOCLINES = __doc__.split("\n")
 README = open(os.path.join(HERE, "README.md")).read()
 
@@ -109,42 +239,6 @@ CLASSIFIERS = [
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
 ]
-
-EXT_MODULES = []
-
-summator_extra_compile_args = []
-summator_extra_link_args = []
-
-summator_ext = Extension(
-    "gstools.field.summator",
-    [os.path.join('gstools', 'field', 'summator.'+file_ending)],
-    include_dirs=[numpy.get_include()],
-    extra_compile_args=summator_extra_compile_args,
-    extra_link_args=summator_extra_link_args,
-)
-variogram_ext = Extension(
-    "gstools.variogram.estimator",
-    [os.path.join("gstools", "variogram", "estimator."+file_ending)],
-    include_dirs=[numpy.get_include()],
-)
-
-if USE_CYTHON:
-    EXT_MODULES += cythonize(
-        [os.path.join("gstools", "variogram", "estimator.pyx"), summator_ext],
-        #annotate=True
-    )
-else:
-    EXT_MODULES += [variogram_ext, summator_ext]
-
-# This is the important part. By setting this compiler directive, cython will
-# embed signature information in docstrings. Sphinx then knows how to extract
-# and use those signatures.
-# python setup.py build_ext --inplace --> then sphinx build
-for ext_m in EXT_MODULES:
-    ext_m.cython_directives = {"embedsignature": True}
-# version import not possible due to cython
-# see: https://packaging.python.org/guides/single-sourcing-package-version/
-VERSION = find_version("gstools", "_version.py")
 
 setup_kw = {
     "name": "gstools",
@@ -178,27 +272,4 @@ setup_kw = {
     "include_dirs": [numpy.get_include()],
 }
 
-cmd_classes = setup_kw.setdefault("cmdclass", {})
-
-try:
-    print("## GSTOOLS setup: try building with c code.")
-    # try building with c code :
-    setup_kw["cmdclass"]["build_ext"] = construct_build_ext(build_ext)
-    setup(**setup_kw)
-except BuildFailed as ex:
-    print("The C extension could not be compiled.")
-    log.warn(ex)
-    log.warn("The C extension could not be compiled.")
-
-    ## Retry to install the module without C extensions :
-    # Remove any previously defined build_ext command class.
-    setup_kw["cmdclass"].pop("build_ext", None)
-    cmd_classes.pop("build_ext", None)
-    setup_kw.pop("ext_modules", None)
-
-    # If this new 'setup' call doesn't fail, the module
-    # will be successfully installed, without the C extensions
-    setup(**setup_kw)
-    print("## GSTOOLS setup: Plain-Python installation successful.")
-else:
-    print("## GSTOOLS setup: Cython installation successful.")
+setup(**setup_kw)
