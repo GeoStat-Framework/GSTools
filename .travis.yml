@@ -140,7 +140,8 @@ script:
 
 after_success:
   # pypi upload (test allways and official on TAG)
-  - python -m pip install twine
+  # cmarkgfm needed for README.md: https://github.com/pypa/readme_renderer/blob/7bf7529296acfa7db0edf7914cb4571d691b63ee/setup.py#L77
+  - python -m pip install twine cmarkgfm>=0.2.0
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
   - |
