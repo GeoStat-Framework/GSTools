@@ -114,7 +114,8 @@ script:
       python -m pip install numpy==1.14.5 cython==0.28.3 setuptools wheel twine cmarkgfm
       python -m pip install pytest-cov coveralls
       python -m pip install -r docs/requirements.txt
-      python setup.py sdist
+      python setup.py sdist -k
+      cat gstools-*/PKG-INFO
       python setup.py build_ext --inplace
       python -m pytest --cov gstools --cov-report term-missing -v tests/
       python -m coveralls

@@ -251,8 +251,9 @@ setup(
     author="Lennart Schueler, Sebastian Mueller",
     author_email="info@geostat-framework.org",
     url="https://github.com/GeoStat-Framework/GSTools",
+    license="GPL -  see LICENSE",
     classifiers=CLASSIFIERS,
-    platforms=["Linux"],
+    platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
     setup_requires=[
         "numpy>=1.14.5",  # numpy imported in setup.py
