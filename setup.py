@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
-"""GeostatTools: A geostatistical toolbox."""
+"""GSTools: A geostatistical toolbox."""
 from __future__ import division, absolute_import, print_function
-import sys
-import os
-import codecs
-import re
-import tempfile
-import glob
-import subprocess
-import shutil
-from io import open  # enable encoding in python2
+import sys, os, codecs, re, tempfile, glob, subprocess, shutil
 
 from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
@@ -26,9 +18,9 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 # version finder ##############################################################
 
 
-def read(*parts):
+def read(*file_paths):
     """read file data"""
-    with codecs.open(os.path.join(HERE, *parts), "r") as file_in:
+    with codecs.open(os.path.join(HERE, *file_paths), "r") as file_in:
         return file_in.read()
 
 
@@ -231,11 +223,7 @@ for ext_m in EXT_MODULES:
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
 VERSION = find_version("gstools", "_version.py")
 DOCLINES = __doc__.split("\n")
-with open(
-    os.path.join(HERE, "docs", "source", 'index.rst'), 
-    encoding='utf-8',
-) as rmfile:
-    README = rmfile.read()
+README = read('README.md')
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",
@@ -259,7 +247,7 @@ setup(
     maintainer_email="info@geostat-framework.org",
     description=DOCLINES[0],
     long_description=README,
-    # long_description_content_type="text/markdown",
+    long_description_content_type="text/markdown",
     author="Lennart Schueler, Sebastian Mueller",
     author_email="info@geostat-framework.org",
     url="https://github.com/GeoStat-Framework/GSTools",
