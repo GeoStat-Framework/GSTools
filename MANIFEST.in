@@ -1,6 +1,7 @@
 include README.md
 include MANIFEST.in
 include setup.py
+include setup.cfg
 recursive-include gstools *.py *.pyx *.c
 recursive-include tests *.py
 recursive-include docs/source *
