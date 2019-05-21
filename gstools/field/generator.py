@@ -38,14 +38,14 @@ class RandMeth(object):
     Parameters
     ----------
     model : :any:`CovModel`
-        covariance model
+        Covariance model
     mode_no : :class:`int`, optional
-        number of Fourier modes. Default: ``1000``
+        Number of Fourier modes. Default: ``1000``
     seed : :class:`int` or :any:`None`, optional
-        the seed of the random number generator.
+        The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
     verbose : :class:`bool`, optional
-        State if there should be output during the generation.
+        Be chatty during the generation.
         Default: :any:`False`
     **kwargs
         Placeholder for keyword-args
@@ -95,7 +95,7 @@ class RandMeth(object):
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, dim, x, y=None, z=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, mesh_type='unstructured'):
         """Calculates the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -103,16 +103,12 @@ class RandMeth(object):
 
         Parameters
         ----------
-        dim : :class:`int`
-            the spatial dimension
         x : :class:`float`, :class:`numpy.ndarray`
-            the x components of the position tuple, the shape has to be
-            (len(x), 1, 1) for 3d and accordingly shorter for lower
-            dimensions
+            The x components of the pos. tuple.
         y : :class:`float`, :class:`numpy.ndarray`, optional
-            the y components of the pos. tupls
+            The y components of the pos. tuple.
         z : :class:`float`, :class:`numpy.ndarray`, optional
-            the z components of the pos. tuple
+            The z components of the pos. tuple.
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
 
@@ -122,7 +118,7 @@ class RandMeth(object):
             the random modes
         """
         if mesh_type == 'unstructured':
-            pos = self._reshape_pos(dim, x, y, z)
+            pos = self._reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_unstruct(
                 self._cov_sample,
@@ -145,16 +141,56 @@ class RandMeth(object):
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
-    def _reshape_pos(self, dim, x, y, z):
-        if dim == 1:
-            pos = np.array(x.reshape(1, len(x)), dtype=np.double)
-        elif dim == 2:
-            pos = np.array(np.vstack((x, y)), dtype=np.double)
+    def _reshape_pos(self, x, y=None, z=None, dtype=np.double):
+        """
+        Reshape the 1d x, y, z positions to a 2d position array.
+
+        Parameters
+        ----------
+        x : :class:`float`, :class:`numpy.ndarray`
+            the x components of the position tuple, the shape has to be
+            (len(x), 1, 1) for 3d and accordingly shorter for lower
+            dimensions
+        y : :class:`float`, :class:`numpy.ndarray`, optional
+            the y components of the pos. tuple
+        z : :class:`float`, :class:`numpy.ndarray`, optional
+            the z components of the pos. tuple
+        dtype : :class:`numpy.dtype`, optional
+            the numpy dtype to which the elements should be converted
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            the positions in one convinient data structure
+        """
+        if y is None and z is None:
+            pos = np.array(x.reshape(1, len(x)), dtype=dtype)
+        elif z is None:
+            pos = np.array(np.vstack((x, y)), dtype=dtype)
         else:
-            pos = np.array(np.vstack((x, y, z)), dtype=np.double)
+            pos = np.array(np.vstack((x, y, z)), dtype=dtype)
         return pos
 
     def _set_dtype(self, x, y=None, z=None, dtype=np.double):
+        """
+        Convert the dtypes of the input arrays to given dtype.
+
+        Parameters
+        ----------
+        x : :class:`float`, :class:`numpy.ndarray`
+            The array to be converted.
+        y : :class:`float`, :class:`numpy.ndarray`, optional
+            The array to be converted.
+        z : :class:`float`, :class:`numpy.ndarray`, optional
+            The array to be converted.
+        dtype : :class:`numpy.dtype`, optional
+            The numpy dtype to which the elements should be converted.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            The input lists/ arrays as numpy arrays with given dtype.
+        """
         x = x.astype(dtype, copy=False)
         if y is not None:
             y = y.astype(dtype, copy=False)
@@ -400,7 +436,7 @@ class IncomprRandMeth(RandMeth):
 
         self.mean_u = mean_velocity
 
-    def __call__(self, dim, x, y=None, z=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, mesh_type='unstructured'):
         """Overrides the Calculation of the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods, which are the
@@ -409,8 +445,6 @@ class IncomprRandMeth(RandMeth):
 
         Parameters
         ----------
-        dim : :class:`int`
-            the spatial dimension
         x : :class:`float`, :class:`numpy.ndarray`
             the x components of the position tuple, the shape has to be
             (len(x), 1, 1) for 3d and accordingly shorter for lower
@@ -428,7 +462,7 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         if mesh_type == 'unstructured':
-            pos = self._reshape_pos(dim, x, y, z)
+            pos = self._reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_incompr_unstruct(
                 self._cov_sample,
@@ -437,7 +471,7 @@ class IncomprRandMeth(RandMeth):
                 pos
             )
         else:
-            x, y, z = self._set_dtype(x, y, z, np.double)
+            x, y, z = self._set_dtype(x, y, z, dtype=np.double)
             summed_modes = summate_incompr_struct(
                 self._cov_sample,
                 self._z_1,
