@@ -263,12 +263,13 @@ setup(
     platforms=["Linux"],
     include_package_data=True,
     setup_requires=[
-        "numpy>=1.13.0",  # numpy imported in setup.py
+        "numpy>=1.14.5",  # numpy imported in setup.py
+        "cython>=0.28.3",
         "setuptools>=41.0.1",
     ],
     install_requires=[
-        "numpy>=1.13.0",
-        "scipy>=0.19.1",
+        "numpy>=1.14.5",
+        "scipy>=1.1.0",
         "hankel>=0.3.6",
         "emcee",  # 2 and 3 should be compatible
         "pyevtk",
