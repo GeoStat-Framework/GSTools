@@ -122,7 +122,7 @@ class RandMeth(object):
             the random modes
         """
         if mesh_type == 'unstructured':
-            pos = self._reshape_pos(dim, x, y, z)
+            pos = self._reshape_pos(dim, x, y, z, dtype=np.double)
 
             summed_modes = summate_unstruct(
                 self._cov_sample,
@@ -145,13 +145,13 @@ class RandMeth(object):
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
-    def _reshape_pos(self, dim, x, y, z):
+    def _reshape_pos(self, dim, x, y, z, dtype=np.double):
         if dim == 1:
-            pos = np.array(x.reshape(1, len(x)), dtype=np.double)
+            pos = np.array(x.reshape(1, len(x)), dtype=dtype)
         elif dim == 2:
-            pos = np.array(np.vstack((x, y)), dtype=np.double)
+            pos = np.array(np.vstack((x, y)), dtype=dtype)
         else:
-            pos = np.array(np.vstack((x, y, z)), dtype=np.double)
+            pos = np.array(np.vstack((x, y, z)), dtype=dtype)
         return pos
 
     def _set_dtype(self, x, y=None, z=None, dtype=np.double):
