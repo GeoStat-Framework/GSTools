@@ -1,3 +1,4 @@
+include README.md
 include MANIFEST.in
 include setup.py
 recursive-include gstools *.py *.pyx *.c

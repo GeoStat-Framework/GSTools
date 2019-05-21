@@ -14,11 +14,8 @@ from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 
-from setuptools import setup, find_packages, Distribution
-
+from setuptools import setup, find_packages, Distribution, Extension
 from Cython.Build import cythonize
-from Cython.Distutils.extension import Extension
-
 import numpy
 
 
@@ -265,7 +262,10 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Linux"],
     include_package_data=True,
-    setup_requires=["numpy>=1.13.0"],  # numpy imported in setup.py
+    setup_requires=[
+        "numpy>=1.13.0",  # numpy imported in setup.py
+        "setuptools>=41.0.1",
+    ],
     install_requires=[
         "numpy>=1.13.0",
         "scipy>=0.19.1",
