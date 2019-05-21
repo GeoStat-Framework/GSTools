@@ -124,12 +124,12 @@ after_success:
   # pypi upload ("test" allways and "official" on TAG)
   # cmarkgfm needed for README.md: https://github.com/pypa/readme_renderer/blob/7bf7529296acfa7db0edf7914cb4571d691b63ee/setup.py#L77
   - python -m pip install twine cmarkgfm
-  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
-  - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
+  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
   - |
     if [[ $TRAVIS_TAG ]]; then
-      python -m twine upload --skip-existing wheelhouse/*.whl
-      python -m twine upload --skip-existing dist/*.tar.gz
+      python -m twine upload --verbose --skip-existing wheelhouse/*.whl
+      python -m twine upload --verbose --skip-existing dist/*.tar.gz
     fi
 
 notifications:
