@@ -111,29 +111,24 @@ script:
   - |
     if [[ $COVER == "on" ]]; then
       rm -rf dist
-      python -m pip install -U numpy==1.14.5 cython==0.28.3 setuptools wheel twine cmarkgfm
+      python -m pip install -U numpy==1.14.5 cython==0.28.3 setuptools
       python -m pip install pytest-cov coveralls
       python -m pip install -r docs/requirements.txt
-      python setup.py sdist -k
-      cat gstools-*/PKG-INFO
+      python setup.py sdist
       python setup.py build_ext --inplace
       python -m pytest --cov gstools --cov-report term-missing -v tests/
       python -m coveralls
-      python -m twine check dist/*
-      python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
-      if [[ $TRAVIS_TAG ]]; then
-        python -m twine upload --verbose --skip-existing dist/*.tar.gz
-      fi
     fi
 
 after_success:
   # pypi upload ("test" allways and "official" on TAG)
-  # cmarkgfm needed for README.md: https://github.com/pypa/readme_renderer/blob/7bf7529296acfa7db0edf7914cb4571d691b63ee/setup.py#L77
-  - python -m pip install twine cmarkgfm
+  - python -m pip install twine
   - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
+  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
   - |
     if [[ $TRAVIS_TAG ]]; then
       python -m twine upload --verbose --skip-existing wheelhouse/*.whl
+      python -m twine upload --verbose --skip-existing dist/*.tar.gz
     fi
 
 notifications:
