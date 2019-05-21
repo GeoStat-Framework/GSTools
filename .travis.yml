@@ -111,7 +111,7 @@ script:
   - |
     if [[ $COVER == "on" ]]; then
       rm -rf dist
-      python -m pip install numpy==1.14.5 cython==0.28.3 setuptools wheel twine cmarkgfm
+      python -m pip install -U numpy==1.14.5 cython==0.28.3 setuptools wheel twine cmarkgfm
       python -m pip install pytest-cov coveralls
       python -m pip install -r docs/requirements.txt
       python setup.py sdist -k
