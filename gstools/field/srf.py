@@ -166,7 +166,7 @@ class SRF(object):
         y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
 
         # generate the field
-        field = self.generator.__call__(self.model.dim, x, y, z, mesh_type)
+        field = self.generator.__call__(x, y, z, mesh_type)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:

@@ -95,7 +95,7 @@ class RandMeth(object):
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, dim, x, y=None, z=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, mesh_type='unstructured'):
         """Calculates the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -103,16 +103,12 @@ class RandMeth(object):
 
         Parameters
         ----------
-        dim : :class:`int`
-            the spatial dimension
         x : :class:`float`, :class:`numpy.ndarray`
-            the x components of the position tuple, the shape has to be
-            (len(x), 1, 1) for 3d and accordingly shorter for lower
-            dimensions
+            The x components of the pos. tuple.
         y : :class:`float`, :class:`numpy.ndarray`, optional
-            the y components of the pos. tupls
+            The y components of the pos. tuple.
         z : :class:`float`, :class:`numpy.ndarray`, optional
-            the z components of the pos. tuple
+            The z components of the pos. tuple.
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
 
@@ -122,7 +118,7 @@ class RandMeth(object):
             the random modes
         """
         if mesh_type == 'unstructured':
-            pos = self._reshape_pos(dim, x, y, z, dtype=np.double)
+            pos = self._reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_unstruct(
                 self._cov_sample,
@@ -440,7 +436,7 @@ class IncomprRandMeth(RandMeth):
 
         self.mean_u = mean_velocity
 
-    def __call__(self, dim, x, y=None, z=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, mesh_type='unstructured'):
         """Overrides the Calculation of the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods, which are the
@@ -449,8 +445,6 @@ class IncomprRandMeth(RandMeth):
 
         Parameters
         ----------
-        dim : :class:`int`
-            the spatial dimension
         x : :class:`float`, :class:`numpy.ndarray`
             the x components of the position tuple, the shape has to be
             (len(x), 1, 1) for 3d and accordingly shorter for lower
@@ -468,7 +462,7 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         if mesh_type == 'unstructured':
-            pos = self._reshape_pos(dim, x, y, z)
+            pos = self._reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_incompr_unstruct(
                 self._cov_sample,
@@ -477,7 +471,7 @@ class IncomprRandMeth(RandMeth):
                 pos
             )
         else:
-            x, y, z = self._set_dtype(x, y, z, np.double)
+            x, y, z = self._set_dtype(x, y, z, dtype=np.double)
             summed_modes = summate_incompr_struct(
                 self._cov_sample,
                 self._z_1,
