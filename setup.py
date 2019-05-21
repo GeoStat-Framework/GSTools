@@ -231,7 +231,10 @@ for ext_m in EXT_MODULES:
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
 VERSION = find_version("gstools", "_version.py")
 DOCLINES = __doc__.split("\n")
-with open(os.path.join(HERE, 'README.md'), encoding='utf-8') as rmfile:
+with open(
+    os.path.join(HERE, "docs", "source", 'index.rst'), 
+    encoding='utf-8',
+) as rmfile:
     README = rmfile.read()
 
 CLASSIFIERS = [
@@ -256,7 +259,7 @@ setup(
     maintainer_email="info@geostat-framework.org",
     description=DOCLINES[0],
     long_description=README,
-    long_description_content_type="text/markdown",
+    # long_description_content_type="text/markdown",
     author="Lennart Schueler, Sebastian Mueller",
     author_email="info@geostat-framework.org",
     url="https://github.com/GeoStat-Framework/GSTools",

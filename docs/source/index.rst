@@ -2,7 +2,7 @@
 GSTools Quickstart
 ==================
 
-.. image:: pics/gstools.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gstools.png
    :width: 150px
    :align: center
 
@@ -51,7 +51,7 @@ with a :any:`Gaussian` covariance model.
     plt.imshow(field)
     plt.show()
 
-.. image:: pics/gau_field.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png
    :width: 400px
    :align: center
 
@@ -117,7 +117,7 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
     plt.imshow(field.T, origin="lower")
     plt.show()
 
-.. image:: pics/tplstable_field.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/tplstable_field.png
    :width: 400px
    :align: center
 
@@ -166,7 +166,7 @@ Which gives:
 
     Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)
 
-.. image:: pics/exp_vario_fit.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/exp_vario_fit.png
    :width: 400px
    :align: center
 
@@ -219,8 +219,8 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 Requirements
 ============
 
-- `Numpy >= 1.13.0 <http://www.numpy.org>`_
-- `SciPy >= 0.19.1 <http://www.scipy.org>`_
+- `Numpy >= 1.14.5 <http://www.numpy.org>`_
+- `SciPy >= 1.1.0 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
