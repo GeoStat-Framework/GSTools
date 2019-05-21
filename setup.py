@@ -9,6 +9,7 @@ import tempfile
 import glob
 import subprocess
 import shutil
+from io import open  # enable encoding in python2
 
 from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
@@ -230,7 +231,8 @@ for ext_m in EXT_MODULES:
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
 VERSION = find_version("gstools", "_version.py")
 DOCLINES = __doc__.split("\n")
-README = open(os.path.join(HERE, "README.md")).read()
+with open(os.path.join(HERE, 'README.md'), encoding='utf-8') as rmfile:
+    README = rmfile.read()
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",

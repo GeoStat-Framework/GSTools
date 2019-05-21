@@ -111,7 +111,7 @@ script:
   - |
     if [[ $COVER == "on" ]]; then
       rm -rf dist
-      python -m pip install numpy==1.14.5 cython==0.28.3 setuptools>=41.0.1
+      python -m pip install numpy==1.14.5 cython==0.28.3 setuptools wheel
       python setup.py sdist
       python -m pip install pytest-cov coveralls
       python -m pip install -r docs/requirements.txt
