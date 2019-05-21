@@ -15,30 +15,16 @@ from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
-from gstools.field.tools import check_mesh
 from gstools.tools.geometric import pos2xyz
-
-try:
-    from gstools.variogram.estimator import (
-        unstructured,
-        structured_3d,
-        structured_2d,
-        structured_1d,
-        ma_structured_3d,
-        ma_structured_2d,
-        ma_structured_1d,
-    )
-except ImportError:  # pragma: no cover
-    print("Warning: No Cython functions imported")
-    from gstools.variogram.py_estimator import (
-        unstructured,
-        structured_3d,
-        structured_2d,
-        structured_1d,
-        ma_structured_3d,
-        ma_structured_2d,
-        ma_structured_1d,
-    )
+from gstools.variogram.estimator import (
+    unstructured,
+    structured_3d,
+    structured_2d,
+    structured_1d,
+    ma_structured_3d,
+    ma_structured_2d,
+    ma_structured_1d,
+)
 
 __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 

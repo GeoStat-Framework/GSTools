@@ -17,17 +17,12 @@ from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
-from gstools.tools.geometric import pos2xyz
-
-try:
-    from gstools.field.summator import (
-        summate_unstruct,
-        summate_struct,
-        summate_incompr_unstruct,
-        summate_incompr_struct,
-    )
-except ImportError:  # pragma: no cover
-    print("Warning: No Cython functions imported")
+from gstools.field.summator import (
+    summate_unstruct,
+    summate_struct,
+    summate_incompr_unstruct,
+    summate_incompr_struct,
+)
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
