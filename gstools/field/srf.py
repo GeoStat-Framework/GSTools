@@ -49,10 +49,10 @@ class SRF(object):
     Parameters
     ----------
     model : :any:`CovModel`
-        Covariance Model to use for the field.
+        Covariance Model of the spatial random field.
     mean : :class:`float`, optional
         mean value of the SRF
-    var_upscaling : :class:`str`, optional
+    upscaling : :class:`str`, optional
         Method to be used for upscaling the variance at each point
         depending on the related element volume.
         See the ``point_volumes`` keyword in the :any:`SRF.__call__` routine.
@@ -66,15 +66,20 @@ class SRF(object):
 
         Default: "no_scaling"
     generator : :class:`str`, optional
-        Name of the generator to use for field generation.
+        Name of the field generator to be used.
         At the moment, the following generators are provided:
 
-            * "RandMeth" : The Randomization Methode.
+            * "RandMeth" : The Randomization Method.
               See: :any:`RandMeth`
+            * "IncomprRandMeth" : The incompressible Randomization Method.
+              This is the original algorithm proposed by Kraichnan 1970
+              See: :any:`IncomprRandMeth`
+            * "VectorField" : an alias for "IncomprRandMeth"
+            * "VelocityField" : an alias for "IncomprRandMeth"
 
         Default: "RandMeth"
     **generator_kwargs
-        keyword arguments that are forwarded to the generator in use.
+        Keyword arguments that are forwarded to the generator in use.
         Have a look at the provided generators for further information.
     """
 
@@ -116,6 +121,8 @@ class SRF(object):
     ):
         """Generate the spatial random field.
 
+        The field is saved as `self.field` and is also returned.
+
         Parameters
         ----------
         pos : :class:`list`
@@ -124,12 +131,12 @@ class SRF(object):
         seed : :class:`int`, optional
             seed for RNG for reseting. Default: keep seed from generator
         force_moments : :class:`bool`
-            Force the generator to exactly match mean and variance.
+            Force the generator to exactly match the given mean and variance.
             Default: ``False``
         point_volumes : :class:`float` or :class:`numpy.ndarray`
             If your evaluation points for the field are coming from a mesh,
             they are probably representing a certain element volume.
-            This volumes can be passed by `point_volumes` to apply the
+            This volume can be passed by `point_volumes` to apply the
             given variance upscaling. If `point_volumes` is ``0`` nothing
             is changed. Default: ``0``
         mesh_type : :class:`str`
