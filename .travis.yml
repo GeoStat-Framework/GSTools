@@ -11,7 +11,6 @@ matrix:
         - PIP=pip
         - CIBW_BUILD="cp27-*"
         - COVER="off"
-        - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
     - name: "Linux py34"
       sudo: required
@@ -22,7 +21,6 @@ matrix:
         - PIP=pip
         - CIBW_BUILD="cp34-*"
         - COVER="off"
-        - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
     - name: "Linux py35"
       sudo: required
@@ -33,8 +31,8 @@ matrix:
         - PIP=pip
         - CIBW_BUILD="cp35-*"
         - COVER="off"
-        - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
+    # py36 for coverage and sdist
     - name: "Linux py36"
       sudo: required
       language: python
@@ -44,7 +42,6 @@ matrix:
         - PIP=pip
         - CIBW_BUILD="cp36-*"
         - COVER="on"
-        - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
     # https://github.com/travis-ci/travis-ci/issues/9815
     - name: "Linux py37"
@@ -57,7 +54,6 @@ matrix:
         - PIP=pip
         - CIBW_BUILD="cp37-*"
         - COVER="off"
-        - INS_CIBW="$PIP install cibuildwheel==0.10.1"
 
     - name: "MacOS py27"
       os: osx
@@ -66,7 +62,6 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp27-*"
         - COVER="off"
-        - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
 
     - name: "MacOS py34"
       os: osx
@@ -75,7 +70,6 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp34-*"
         - COVER="off"
-        - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
 
     - name: "MacOS py35"
       os: osx
@@ -84,7 +78,6 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp35-*"
         - COVER="off"
-        - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
 
     - name: "MacOS py36"
       os: osx
@@ -93,7 +86,6 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp36-*"
         - COVER="off"
-        - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
 
     - name: "MacOS py37"
       os: osx
@@ -102,7 +94,6 @@ matrix:
         - PIP=pip2
         - CIBW_BUILD="cp37-*"
         - COVER="off"
-        - INS_CIBW="sudo $PIP install cibuildwheel==0.10.1"
 
 env:
   global:
@@ -114,13 +105,13 @@ env:
 
 script:
   # create wheels
-  - eval ${INS_CIBW}
+  - $PIP install cibuildwheel==0.10.2
   - cibuildwheel --output-dir wheelhouse
   # create source dist for pypi and create coverage (only once for linux py3.6)
   - |
     if [[ $COVER == "on" ]]; then
       rm -rf dist
-      python -m pip install numpy==1.14.5 cython==0.28.3
+      python -m pip install numpy==1.14.5 cython==0.28.3 setuptools>=41.0.1
       python setup.py sdist
       python -m pip install pytest-cov coveralls
       python -m pip install -r docs/requirements.txt
