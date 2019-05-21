@@ -223,7 +223,7 @@ for ext_m in EXT_MODULES:
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
 VERSION = find_version("gstools", "_version.py")
 DOCLINES = __doc__.split("\n")
-README = read('README.md')
+README = read("README.md")
 
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",

@@ -26,7 +26,7 @@ try:
         summate_incompr_unstruct,
         summate_incompr_struct,
     )
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     print("Warning: No Cython functions imported")
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
@@ -73,12 +73,7 @@ class RandMeth(object):
     """
 
     def __init__(
-        self,
-        model,
-        mode_no=1000,
-        seed=None,
-        verbose=False,
-        **kwargs
+        self, model, mode_no=1000, seed=None, verbose=False, **kwargs
     ):
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
@@ -95,7 +90,7 @@ class RandMeth(object):
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, x, y=None, z=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
         """Calculates the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -117,24 +112,16 @@ class RandMeth(object):
         :class:`numpy.ndarray`
             the random modes
         """
-        if mesh_type == 'unstructured':
+        if mesh_type == "unstructured":
             pos = self._reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_unstruct(
-                self._cov_sample,
-                self._z_1,
-                self._z_2,
-                pos
+                self._cov_sample, self._z_1, self._z_2, pos
             )
         else:
             x, y, z = self._set_dtype(x, y, z, dtype=np.double)
             summed_modes = summate_struct(
-                self._cov_sample,
-                self._z_1,
-                self._z_2,
-                x,
-                y,
-                z
+                self._cov_sample, self._z_1, self._z_2, x, y, z
             )
 
         nugget = self._set_nugget(summed_modes.shape)
@@ -436,7 +423,7 @@ class IncomprRandMeth(RandMeth):
 
         self.mean_u = mean_velocity
 
-    def __call__(self, x, y=None, z=None, mesh_type='unstructured'):
+    def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
         """Overrides the Calculation of the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods, which are the
@@ -461,24 +448,16 @@ class IncomprRandMeth(RandMeth):
         :class:`numpy.ndarray`
             the random modes
         """
-        if mesh_type == 'unstructured':
+        if mesh_type == "unstructured":
             pos = self._reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_incompr_unstruct(
-                self._cov_sample,
-                self._z_1,
-                self._z_2,
-                pos
+                self._cov_sample, self._z_1, self._z_2, pos
             )
         else:
             x, y, z = self._set_dtype(x, y, z, dtype=np.double)
             summed_modes = summate_incompr_struct(
-                self._cov_sample,
-                self._z_1,
-                self._z_2,
-                x,
-                y,
-                z
+                self._cov_sample, self._z_1, self._z_2, x, y, z
             )
 
         nugget = self._set_nugget(summed_modes.shape)
