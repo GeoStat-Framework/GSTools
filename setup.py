@@ -203,8 +203,16 @@ VARIOGRAM_EXT = Extension(
     extra_link_args=EXTRA_LINK_ARGS,
 )
 
+KRIGESUM_EXT = Extension(
+    "gstools.krige.krigesum",
+    [os.path.join("gstools", "krige", "krigesum.pyx")],
+    include_dirs=[numpy.get_include()],
+    extra_compile_args=EXTRA_COMPILE_ARGS,
+    extra_link_args=EXTRA_LINK_ARGS,
+)
+
 EXT_MODULES += cythonize(
-    [VARIOGRAM_EXT, SUMMATOR_EXT],
+    [VARIOGRAM_EXT, SUMMATOR_EXT, KRIGESUM_EXT],
     # annotate=True
 )
 
