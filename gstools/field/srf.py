@@ -26,7 +26,7 @@ from gstools.field.tools import (
 )
 from gstools.tools.geometric import pos2xyz
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
-from gstools.field.condition import condition_ok
+from gstools.field.condition import ordinary, simple
 
 __all__ = ["SRF"]
 
@@ -40,7 +40,7 @@ UPSCALING = {
     "coarse_graining": var_coarse_graining,
     "no_scaling": var_no_scaling,
 }
-CONDITION = {"ordinary": condition_ok}
+CONDITION = {"ordinary": ordinary, "simple": simple}
 
 
 class SRF(object):
@@ -191,12 +191,7 @@ class SRF(object):
         # apply given conditions to the field
         if self.condition:
             cond_field, krige_field, err_field, krige_var = self.cond_func(
-                pos,
-                self.raw_field,
-                self._cond_pos,
-                self._cond_val,
-                self.model,
-                mesh_type=mesh_type,
+                pos, self, mesh_type=mesh_type
             )
             # store everything in the class
             self.field = cond_field
@@ -217,7 +212,7 @@ class SRF(object):
         ----------
         cond_pos : :class:`list`
             the position tuple of the conditions
-        cond_pos : :class:`numpy.ndarray`
+        cond_val : :class:`numpy.ndarray`
             the values of the conditions
         krige_type : :class:`str`, optional
             Used kriging type for conditioning.
@@ -237,6 +232,18 @@ class SRF(object):
         self._cond_pos = None
         self._cond_val = None
         self._krige_type = None
+
+    @property
+    def cond_pos(self):
+        """:class:`list`: The position tuple of the conditions.
+        """
+        return self._cond_pos
+
+    @property
+    def cond_val(self):
+        """:class:`list`: The values of the conditions.
+        """
+        return self._cond_val
 
     @property
     def condition(self):
