@@ -1,0 +1,7 @@
+package:
+  version: {{ environ['VERSION'] }}
+
+build:
+  script_env:
+   - VERSION
+   - CONDA_BLD_PATH
