@@ -180,7 +180,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         self.check_opt_arg()
 
     ###########################################################################
-    # one of these functions needs to be overridden ###########################
+    ### one of these functions needs to be overridden #########################
     ###########################################################################
 
     def __init_subclass__(cls):
@@ -297,8 +297,40 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             if attr_cls.__doc__ is None:
                 attr_cls.__doc__ = attr_doc
 
+    ### special variogram functions ###########################################
+
+    def cov_nugget(self, r):
+        r"""Covariance of the model respecting the nugget at r=0
+
+        Given by: :math:`C\left(r\right)=
+        \sigma^2\cdot\mathrm{cor}\left(r\right)`
+
+        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        """
+        r = np.array(np.abs(r), dtype=float)
+        r_gz = np.logical_not(np.isclose(r, 0))
+        res = np.empty_like(r, dtype=float)
+        res[r_gz] = self.covariance(r[r_gz])
+        res[np.logical_not(r_gz)] = self.sill
+        return res
+
+    def vario_nugget(self, r):
+        r"""Isotropic variogram of the model respecting the nugget at r=0
+
+        Given by: :math:`\gamma\left(r\right)=
+        \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+
+        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        """
+        r = np.array(np.abs(r), dtype=float)
+        r_gz = np.logical_not(np.isclose(r, 0))
+        res = np.empty_like(r, dtype=float)
+        res[r_gz] = self.variogram(r[r_gz])
+        res[np.logical_not(r_gz)] = 0.0
+        return res
+
     ###########################################################################
-    # pykrige functions #######################################################
+    ### pykrige functions #####################################################
     ###########################################################################
 
     def pykrige_vario(self, args=None, r=0):
@@ -387,7 +419,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return kwargs
 
     ###########################################################################
-    # methods for optional arguments (can be overridden) ######################
+    ### methods for optional arguments (can be overridden) ####################
     ###########################################################################
 
     def default_opt_arg(self):
@@ -424,7 +456,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """Optional factor for the variance"""
         return 1.0
 
-    # calculation of different scales #########################################
+    ### calculation of different scales #######################################
 
     def _calc_integral_scale(self):
         """calculate the integral scale of the isotrope model"""
@@ -448,7 +480,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return root(curve, per * self.len_scale)["x"][0]
 
     ###########################################################################
-    # spectrum methods (can be overridden for speedup) ########################
+    ### spectrum methods (can be overridden for speedup) ######################
     ###########################################################################
 
     def spectrum(self, k):
@@ -477,7 +509,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if self.dim > 1:
             res = self._sft.transform(self.covariance, k, ret_err=False)
         else:
-            k_gz = k > 0.0
+            k_gz = np.logical_not(np.isclose(k, 0))
             res = np.empty_like(k, dtype=float)
             res[k_gz] = self._sft.transform(
                 self.covariance, k[k_gz], ret_err=False
@@ -516,11 +548,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """
         r = np.array(np.abs(r), dtype=float)
         if self.dim > 1:
-            r_gz = r[r > 0.0]
+            r_gz = np.logical_not(np.isclose(r, 0))
             # to prevent numerical errors, we just calculate where r>0
             res = np.zeros_like(r, dtype=float)
-            res[r > 0.0] = rad_fac(self.dim, r_gz) * self.spectral_density(
-                r_gz
+            res[r_gz] = rad_fac(self.dim, r[r_gz]) * self.spectral_density(
+                r[r_gz]
             )
         else:
             res = rad_fac(self.dim, r) * self.spectral_density(r)
@@ -535,8 +567,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         The log radial spectral density of the model depending on the dimension
         """
         spec = np.array(self.spectral_rad_pdf(r))
+        spec_gz = np.logical_not(np.isclose(spec, 0))
         res = np.full_like(spec, -np.inf, dtype=float)
-        res[spec > 0.0] = np.log(spec[spec > 0.0])
+        res[spec_gz] = np.log(spec[spec_gz])
         return res
 
     def _has_cdf(self):
@@ -547,7 +580,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """State if a ppf is defined with 'spectral_rad_ppf'"""
         return hasattr(self, "spectral_rad_ppf")
 
-    # fitting routine #########################################################
+    ### fitting routine #######################################################
 
     def fit_variogram(self, x_data, y_data, **para_deselect):
         """
@@ -663,7 +696,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             self.var = var_tmp
         return fit_para, pcov
 
-    # bounds setting and checks ###############################################
+    ### bounds setting and checks #############################################
 
     def default_arg_bounds(self):
         """Here you can provide a dictionary with default boundaries for
@@ -752,7 +785,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                         + str(val)
                     )
 
-    # bounds  properties ######################################################
+    ### bounds  properties ####################################################
 
     @property
     def var_bounds(self):
@@ -870,7 +903,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         res.update(self.opt_arg_bounds)
         return res
 
-    # standard parameters #####################################################
+    ### standard parameters ###################################################
 
     @property
     def dim(self):
@@ -1004,7 +1037,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if self.dim is not None:
             self._sft = SFT(ndim=self.dim, **self.hankel_kw)
 
-    # properties ##############################################################
+    ### properties ############################################################
 
     @property
     def dist_func(self):
@@ -1089,7 +1122,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """:class:`str`: The name of the CovModel class"""
         return self.__class__.__name__
 
-    # magic methods ###########################################################
+    ### magic methods #########################################################
 
     def __eq__(self, other):
         if not isinstance(other, CovModel):
