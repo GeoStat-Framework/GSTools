@@ -60,7 +60,7 @@ def ordinary(pos, srf, mesh_type="unstructured"):
     err_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=err_data
     )
-    err_field, err_var = err_ok(pos, mesh_type)
+    err_field, __ = err_ok(pos, mesh_type)
     cond_field = srf.raw_field + krige_field - err_field
     return cond_field, krige_field, err_field, krige_var
 
@@ -119,6 +119,6 @@ def simple(pos, srf, mesh_type="unstructured"):
         cond_pos=srf.cond_pos,
         cond_val=err_data,
     )
-    err_field, err_var = err_ok(pos, mesh_type)
+    err_field, __ = err_ok(pos, mesh_type)
     cond_field = srf.raw_field + krige_field - err_field + srf.mean
     return cond_field, krige_field, err_field, krige_var

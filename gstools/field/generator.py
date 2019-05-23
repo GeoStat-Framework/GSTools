@@ -108,13 +108,13 @@ class RandMeth(object):
             the random modes
         """
         if mesh_type == "unstructured":
-            pos = self._reshape_pos(x, y, z, dtype=np.double)
+            pos = _reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_unstruct(
                 self._cov_sample, self._z_1, self._z_2, pos
             )
         else:
-            x, y, z = self._set_dtype(x, y, z, dtype=np.double)
+            x, y, z = _set_dtype(x, y, z, dtype=np.double)
             summed_modes = summate_struct(
                 self._cov_sample, self._z_1, self._z_2, x, y, z
             )
@@ -122,63 +122,6 @@ class RandMeth(object):
         nugget = self._set_nugget(summed_modes.shape)
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
-
-    def _reshape_pos(self, x, y=None, z=None, dtype=np.double):
-        """
-        Reshape the 1d x, y, z positions to a 2d position array.
-
-        Parameters
-        ----------
-        x : :class:`float`, :class:`numpy.ndarray`
-            the x components of the position tuple, the shape has to be
-            (len(x), 1, 1) for 3d and accordingly shorter for lower
-            dimensions
-        y : :class:`float`, :class:`numpy.ndarray`, optional
-            the y components of the pos. tuple
-        z : :class:`float`, :class:`numpy.ndarray`, optional
-            the z components of the pos. tuple
-        dtype : :class:`numpy.dtype`, optional
-            the numpy dtype to which the elements should be converted
-
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            the positions in one convinient data structure
-        """
-        if y is None and z is None:
-            pos = np.array(x.reshape(1, len(x)), dtype=dtype)
-        elif z is None:
-            pos = np.array(np.vstack((x, y)), dtype=dtype)
-        else:
-            pos = np.array(np.vstack((x, y, z)), dtype=dtype)
-        return pos
-
-    def _set_dtype(self, x, y=None, z=None, dtype=np.double):
-        """
-        Convert the dtypes of the input arrays to given dtype.
-
-        Parameters
-        ----------
-        x : :class:`float`, :class:`numpy.ndarray`
-            The array to be converted.
-        y : :class:`float`, :class:`numpy.ndarray`, optional
-            The array to be converted.
-        z : :class:`float`, :class:`numpy.ndarray`, optional
-            The array to be converted.
-        dtype : :class:`numpy.dtype`, optional
-            The numpy dtype to which the elements should be converted.
-
-        Returns
-        -------
-        :class:`numpy.ndarray`
-            The input lists/ arrays as numpy arrays with given dtype.
-        """
-        x = x.astype(dtype, copy=False)
-        if y is not None:
-            y = y.astype(dtype, copy=False)
-        if z is not None:
-            z = z.astype(dtype, copy=False)
-        return x, y, z
 
     def _set_nugget(self, shape):
         """
@@ -444,13 +387,13 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         if mesh_type == "unstructured":
-            pos = self._reshape_pos(x, y, z, dtype=np.double)
+            pos = _reshape_pos(x, y, z, dtype=np.double)
 
             summed_modes = summate_incompr_unstruct(
                 self._cov_sample, self._z_1, self._z_2, pos
             )
         else:
-            x, y, z = self._set_dtype(x, y, z, dtype=np.double)
+            x, y, z = _set_dtype(x, y, z, dtype=np.double)
             summed_modes = summate_incompr_struct(
                 self._cov_sample, self._z_1, self._z_2, x, y, z
             )
@@ -487,8 +430,67 @@ class IncomprRandMeth(RandMeth):
         shape[0] = self.model.dim
 
         e1 = np.zeros(shape)
-        e1[0] = 1.0
+        e1[axis] = 1.0
         return e1
+
+
+def _reshape_pos(x, y=None, z=None, dtype=np.double):
+    """
+    Reshape the 1d x, y, z positions to a 2d position array.
+
+    Parameters
+    ----------
+    x : :class:`float`, :class:`numpy.ndarray`
+        the x components of the position tuple, the shape has to be
+        (len(x), 1, 1) for 3d and accordingly shorter for lower
+        dimensions
+    y : :class:`float`, :class:`numpy.ndarray`, optional
+        the y components of the pos. tuple
+    z : :class:`float`, :class:`numpy.ndarray`, optional
+        the z components of the pos. tuple
+    dtype : :class:`numpy.dtype`, optional
+        the numpy dtype to which the elements should be converted
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        the positions in one convinient data structure
+    """
+    if y is None and z is None:
+        pos = np.array(x.reshape(1, len(x)), dtype=dtype)
+    elif z is None:
+        pos = np.array(np.vstack((x, y)), dtype=dtype)
+    else:
+        pos = np.array(np.vstack((x, y, z)), dtype=dtype)
+    return pos
+
+
+def _set_dtype(x, y=None, z=None, dtype=np.double):
+    """
+    Convert the dtypes of the input arrays to given dtype.
+
+    Parameters
+    ----------
+    x : :class:`float`, :class:`numpy.ndarray`
+        The array to be converted.
+    y : :class:`float`, :class:`numpy.ndarray`, optional
+        The array to be converted.
+    z : :class:`float`, :class:`numpy.ndarray`, optional
+        The array to be converted.
+    dtype : :class:`numpy.dtype`, optional
+        The numpy dtype to which the elements should be converted.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        The input lists/ arrays as numpy arrays with given dtype.
+    """
+    x = x.astype(dtype, copy=False)
+    if y is not None:
+        y = y.astype(dtype, copy=False)
+    if z is not None:
+        z = z.astype(dtype, copy=False)
+    return x, y, z
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -11,6 +11,7 @@ Subpackages
     generator
     upscaling
     condition
+    tools
 
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^

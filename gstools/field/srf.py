@@ -216,7 +216,7 @@ class SRF(object):
             the values of the conditions
         krige_type : :class:`str`, optional
             Used kriging type for conditioning.
-            Only "ordinary" provided at the moment.
+            Either 'ordinary' or 'simple'.
             Default: 'ordinary'
         """
         self._cond_pos = cond_pos
