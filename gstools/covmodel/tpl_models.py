@@ -26,7 +26,7 @@ __all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
 
 
 class TPLGaussian(CovModel):
-    r"""Truncated-Power-Law with Gaussian modes
+    r"""Truncated-Power-Law with Gaussian modes.
 
     Notes
     -----
@@ -108,14 +108,14 @@ class TPLGaussian(CovModel):
 
     @property
     def len_up(self):
-        """:class:`float`: The upper length scale truncation of the model.
+        """:class:`float`: Upper length scale truncation of the model.
 
             * ``len_up = len_low + len_scale``
         """
         return self.len_low + self.len_scale
 
     def var_factor(self):
-        r"""Factor for C (Power-Law factor) to result in variance
+        r"""Factor for C (Power-Law factor) to result in variance.
 
         This is used to result in the right variance, which is depending
         on the hurst coefficient and the length-scale extents
@@ -133,7 +133,7 @@ class TPLGaussian(CovModel):
         ) / (2 * self.hurst)
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"hurst": 0.5, "len_low": 0.0}``
 
@@ -145,7 +145,7 @@ class TPLGaussian(CovModel):
         return {"hurst": 0.5, "len_low": 0.0}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}``
 
@@ -157,7 +157,7 @@ class TPLGaussian(CovModel):
         return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
     def correlation(self, r):
-        r"""Truncated-Power-Law with Gaussian modes - correlation function
+        r"""Truncated-Power-Law with Gaussian modes - correlation function.
 
         If ``len_low=0`` we have a simple representation:
 
@@ -196,7 +196,7 @@ class TPLGaussian(CovModel):
 
 
 class TPLExponential(CovModel):
-    r"""Truncated-Power-Law with Exponential modes
+    r"""Truncated-Power-Law with Exponential modes.
 
     Notes
     -----
@@ -276,14 +276,14 @@ class TPLExponential(CovModel):
 
     @property
     def len_up(self):
-        """:class:`float`: The upper length scale truncation of the model.
+        """:class:`float`: Upper length scale truncation of the model.
 
             * ``len_up = len_low + len_scale``
         """
         return self.len_low + self.len_scale
 
     def var_factor(self):
-        r"""Factor for C (Power-Law factor) to result in variance
+        r"""Factor for C (Power-Law factor) to result in variance.
 
         This is used to result in the right variance, which is depending
         on the hurst coefficient and the length-scale extents
@@ -301,7 +301,7 @@ class TPLExponential(CovModel):
         ) / (2 * self.hurst)
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"hurst": 0.5, "len_low": 0.0}``
 
@@ -313,7 +313,7 @@ class TPLExponential(CovModel):
         return {"hurst": 0.5, "len_low": 0.0}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}``
 
@@ -325,7 +325,7 @@ class TPLExponential(CovModel):
         return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
     def correlation(self, r):
-        r"""Truncated-Power-Law with Exponential modes - correlation function
+        r"""Truncated-Power-Law with Exponential modes - correlation function.
 
         If ``len_low=0`` we have a simple representation:
 
@@ -362,7 +362,7 @@ class TPLExponential(CovModel):
 
 
 class TPLStable(CovModel):
-    r"""Truncated-Power-Law with Stable modes
+    r"""Truncated-Power-Law with Stable modes.
 
     Notes
     -----
@@ -453,14 +453,14 @@ class TPLStable(CovModel):
 
     @property
     def len_up(self):
-        """:class:`float`: The upper length scale truncation of the model.
+        """:class:`float`: Upper length scale truncation of the model.
 
             * ``len_up = len_low + len_scale``
         """
         return self.len_low + self.len_scale
 
     def var_factor(self):
-        r"""Factor for C (Power-Law factor) to result in variance
+        r"""Factor for C (Power-Law factor) to result in variance.
 
         This is used to result in the right variance, which is depending
         on the hurst coefficient and the length-scale extents
@@ -478,7 +478,7 @@ class TPLStable(CovModel):
         ) / (2 * self.hurst)
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"hurst": 0.5, "alpha": 1.5, "len_low": 0.0}``
 
@@ -490,7 +490,7 @@ class TPLStable(CovModel):
         return {"hurst": 0.5, "alpha": 1.5, "len_low": 0.0}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"hurst": [0, 1, "oo"], "alpha": [0, 2, "oc"], "len_low": [0, 1000, "cc"]}``
 
@@ -506,7 +506,7 @@ class TPLStable(CovModel):
         }
 
     def check_opt_arg(self):
-        """Checks for the optional arguments
+        """Check the optional arguments.
 
         Warns
         -----
@@ -521,7 +521,7 @@ class TPLStable(CovModel):
             )
 
     def correlation(self, r):
-        r"""Truncated-Power-Law with Stable modes - correlation function
+        r"""Truncated-Power-Law with Stable modes - correlation function.
 
         If ``len_low=0`` we have a simple representation:
 

@@ -86,7 +86,7 @@ class RandMeth(object):
         self.update(model, seed)
 
     def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
-        """Calculates the random modes for the randomization method.
+        """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
         heart of the randomization method.
@@ -239,7 +239,7 @@ class RandMeth(object):
 
     @property
     def seed(self):
-        """:class:`int`: the seed of the master RNG
+        """:class:`int`: Seed of the master RNG.
 
         Notes
         -----
@@ -255,8 +255,7 @@ class RandMeth(object):
 
     @property
     def model(self):
-        """:any:`CovModel`: The covariance model of the spatial random field.
-        """
+        """:any:`CovModel`: Covariance model of the spatial random field."""
         return self._model
 
     @model.setter
@@ -265,7 +264,7 @@ class RandMeth(object):
 
     @property
     def mode_no(self):
-        """:class:`int`: The number of modes in the randomization method."""
+        """:class:`int`: Number of modes in the randomization method."""
         return self._mode_no
 
     @mode_no.setter
@@ -276,7 +275,7 @@ class RandMeth(object):
 
     @property
     def verbose(self):
-        """:class:`bool`: verbosity of the generator"""
+        """:class:`bool`: Verbosity of the generator."""
         return self._verbose
 
     @verbose.setter
@@ -285,20 +284,22 @@ class RandMeth(object):
 
     @property
     def name(self):
-        """:class:`str`: The name of the generator"""
+        """:class:`str`: Name of the generator."""
         return self.__class__.__name__
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
             repr(self.model), self._mode_no, self.seed
         )
 
 
 class IncomprRandMeth(RandMeth):
-    r"""Overrides RandMeth for calculating isotropic spatial incompressible random vector fields.
+    r"""RandMeth for incompressible random vector fields.
 
     Parameters
     ----------
@@ -338,8 +339,8 @@ class IncomprRandMeth(RandMeth):
         * :math:`Z_{k,j}` : random samples from a normal distribution
         * :math:`k_j` : samples from the spectral density distribution of
           the covariance model
-        * :math:`p_i(k_j) = e_1 - \frac{k_i k_1}{k^2}` : the projector ensuring the
-          incompressibility
+        * :math:`p_i(k_j) = e_1 - \frac{k_i k_1}{k^2}` : the projector
+          ensuring the incompressibility
     """
 
     def __init__(
@@ -353,7 +354,8 @@ class IncomprRandMeth(RandMeth):
     ):
         if model.dim < 2:
             raise ValueError(
-                "Only 2- and 3-dimensional incompressible fields can be generated."
+                "Only 2- and 3-dimensional incompressible fields "
+                + "can be generated."
             )
         super(IncomprRandMeth, self).__init__(
             model, mode_no, seed, verbose, **kwargs
@@ -362,10 +364,11 @@ class IncomprRandMeth(RandMeth):
         self.mean_u = mean_velocity
 
     def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
-        """Overrides the Calculation of the random modes for the randomization method.
+        """Calculation of the random modes for the randomization method.
 
-        This method  calls the `summate_incompr_*` Cython methods, which are the
-        heart of the randomization method. In this class the method contains a projector to
+        This method  calls the `summate_incompr_*` Cython methods,
+        which are the heart of the randomization method.
+        In this class the method contains a projector to
         ensure the incompressibility of the vector field.
 
         Parameters
@@ -411,13 +414,15 @@ class IncomprRandMeth(RandMeth):
         )
 
     def _create_unit_vector(self, broadcast_shape, axis=0):
-        """Creates a unit vector which can be multiplied with a vector of shape broadcast_shape
+        """Create a unit vector.
+
+        Can be multiplied with a vector of shape broadcast_shape
 
         Parameters
         ----------
         broadcast_shape : :class:`tuple`
-            the shape of the array with which the unit vector is to be multiplied
-
+            the shape of the array with which
+            the unit vector is to be multiplied
         axis : :class:`int`, optional
             the direction of the unit vector. Default: ``0``
 

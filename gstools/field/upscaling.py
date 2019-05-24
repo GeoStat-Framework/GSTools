@@ -22,7 +22,7 @@ __all__ = ["var_coarse_graining", "var_no_scaling"]
 
 
 def var_coarse_graining(model, point_volumes=0.0):
-    r"""Coarse Graning procedure to upscale the variance for uniform flow
+    r"""Coarse Graning procedure to upscale the variance for uniform flow.
 
     Parameters
     ----------
@@ -81,7 +81,7 @@ def var_coarse_graining(model, point_volumes=0.0):
 
 
 def var_no_scaling(model, *args, **kwargs):
-    r"""Dummy function to bypass scaling
+    r"""Dummy function to bypass scaling.
 
     Parameters
     ----------

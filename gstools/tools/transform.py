@@ -33,7 +33,7 @@ __all__ = [
 
 def zinnharvey(field, conn="high", mean=None, var=None):
     """
-    Zinn and Harvey transformation to connect low or high values
+    Zinn and Harvey transformation to connect low or high values.
 
     Parameters
     ----------
@@ -97,7 +97,7 @@ def normal_force_moments(field, mean=0, var=1):
 
 def normal_to_lognormal(field):
     """
-    Transform normal distribution to log-normal distribution
+    Transform normal distribution to log-normal distribution.
 
     Parameters
     ----------
@@ -115,7 +115,7 @@ def normal_to_lognormal(field):
 
 def normal_to_uniform(field, mean=None, var=None):
     """
-    Transform normal distribution to uniform distribution on [0, 1]
+    Transform normal distribution to uniform distribution on [0, 1].
 
     Parameters
     ----------
@@ -144,7 +144,7 @@ def normal_to_uniform(field, mean=None, var=None):
 
 def normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
     """
-    Transform normal distribution to arcsin distribution
+    Transform normal distribution to arcsin distribution.
 
     See: https://en.wikipedia.org/wiki/Arcsine_distribution
 
@@ -175,7 +175,7 @@ def normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
 
 def normal_to_uquad(field, mean=None, var=None, a=0, b=1):
     """
-    Transform normal distribution to U-quadratic distribution
+    Transform normal distribution to U-quadratic distribution.
 
     See: https://en.wikipedia.org/wiki/U-quadratic_distribution
 
@@ -206,7 +206,7 @@ def normal_to_uquad(field, mean=None, var=None, a=0, b=1):
 
 def _uniform_to_arcsin(field, a=0, b=1):
     """
-    PPF of your desired distribution
+    PPF of your desired distribution.
 
     The PPF is the inverse of the CDF and is used to sample a distribution
     from uniform distributed values on [0, 1]
@@ -219,7 +219,7 @@ def _uniform_to_arcsin(field, a=0, b=1):
 
 def _uniform_to_uquad(field, a=0, b=1):
     """
-    PPF of your desired distribution
+    PPF of your desired distribution.
 
     The PPF is the inverse of the CDF and is used to sample a distribution
     from uniform distributed values on [0, 1]

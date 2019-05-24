@@ -39,7 +39,7 @@ class MasterRNG(object):
 
     @property  # pragma: no cover
     def seed(self):
-        """:class:`int`: the seed of the master RNG
+        """:class:`int`: Seed of the master RNG.
 
         The setter property not only saves the new seed, but also creates
         a new master RNG function with the new seed.
@@ -47,14 +47,16 @@ class MasterRNG(object):
         return self._seed
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         return "RNG(seed={})".format(self.seed)
 
 
 def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
-    """Distribution Factory
+    """Distribution Factory.
 
     Parameters
     ----------
@@ -101,7 +103,7 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
 
 
 class DistPdf(rv_continuous):
-    "Generate distribution from pdf"
+    """Generate distribution from pdf."""
 
     def __init__(self, pdf_in, **kwargs):
         self.pdf_in = pdf_in
@@ -112,7 +114,7 @@ class DistPdf(rv_continuous):
 
 
 class DistCdf(rv_continuous):
-    "Generate distribution from cdf"
+    """Generate distribution from cdf."""
 
     def __init__(self, cdf_in, **kwargs):
         self.cdf_in = cdf_in
@@ -123,7 +125,7 @@ class DistCdf(rv_continuous):
 
 
 class DistPdfCdf(rv_continuous):
-    "Generate distribution from pdf and cdf"
+    """Generate distribution from pdf and cdf."""
 
     def __init__(self, pdf_in, cdf_in, **kwargs):
         self.pdf_in = pdf_in
@@ -138,7 +140,7 @@ class DistPdfCdf(rv_continuous):
 
 
 class DistPdfPpf(rv_continuous):
-    "Generate distribution from pdf and ppf"
+    """Generate distribution from pdf and ppf."""
 
     def __init__(self, pdf_in, ppf_in, **kwargs):
         self.pdf_in = pdf_in
@@ -153,7 +155,7 @@ class DistPdfPpf(rv_continuous):
 
 
 class DistCdfPpf(rv_continuous):
-    "Generate distribution from cdf and ppf"
+    """Generate distribution from cdf and ppf."""
 
     def __init__(self, cdf_in, ppf_in, **kwargs):
         self.cdf_in = cdf_in
@@ -168,7 +170,7 @@ class DistCdfPpf(rv_continuous):
 
 
 class DistPdfCdfPpf(rv_continuous):
-    "Generate distribution from pdf, cdf and ppf"
+    """Generate distribution from pdf, cdf and ppf."""
 
     def __init__(self, pdf_in, cdf_in, ppf_in, **kwargs):
         self.pdf_in = pdf_in

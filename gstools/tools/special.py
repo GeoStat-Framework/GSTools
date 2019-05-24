@@ -25,7 +25,7 @@ __all__ = ["inc_gamma", "exp_int", "inc_beta", "stable_cov_norm"]
 
 
 def inc_gamma(s, x):
-    r"""The (upper) incomplete gamma function
+    r"""The (upper) incomplete gamma function.
 
     Given by: :math:`\Gamma(s,x) = \int_x^{\infty} t^{s-1}\,e^{-t}\,{\rm d}t`
 
@@ -46,7 +46,7 @@ def inc_gamma(s, x):
 
 
 def exp_int(s, x):
-    r"""The exponential integral :math:`E_s(x)`
+    r"""The exponential integral :math:`E_s(x)`.
 
     Given by: :math:`E_s(x) = \int_1^\infty \frac{e^{-xt}}{t^s}\,\mathrm dt`
 
@@ -65,7 +65,7 @@ def exp_int(s, x):
 
 
 def stable_cov_norm(r, len_scale, hurst, alpha):
-    r"""The normalized covariance function of the stable model
+    r"""The normalized covariance function of the stable model.
 
     Given by
 
@@ -87,7 +87,7 @@ def stable_cov_norm(r, len_scale, hurst, alpha):
     alpha : :class:`float`, optional
         Shape parameter of the stable model.
     """
-    r = np.array(np.abs(r / len_scale), dtype=float)
+    r = np.array(np.abs(r / len_scale), dtype=np.double)
     r[r < 1e-8] = 0  # hack to prevent numerical errors
     res = np.ones_like(r)
     res[r > 0] = (2 * hurst / alpha) * exp_int(
@@ -97,7 +97,7 @@ def stable_cov_norm(r, len_scale, hurst, alpha):
 
 
 def inc_beta(a, b, x):
-    r"""The incomplete Beta function
+    r"""The incomplete Beta function.
 
     Given by: :math:`B(a,b;\,x) = \int_0^x t^{a-1}\,(1-t)^{b-1}\,dt`
 

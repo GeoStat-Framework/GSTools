@@ -42,7 +42,7 @@ __all__ = [
 
 
 class Gaussian(CovModel):
-    r"""The Gaussian covariance model
+    r"""The Gaussian covariance model.
 
     Notes
     -----
@@ -54,13 +54,13 @@ class Gaussian(CovModel):
     """
 
     def correlation(self, r):
-        r"""Gaussian correlation function
+        r"""Gaussian correlation function.
 
         .. math::
            \mathrm{cor}(r) =
-           \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+           \exp\left(- \frac{\pi}{4}\cdot \left(\frac{r}{\ell}\right)^2\right)
        """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
     def spectrum(self, k):
@@ -71,7 +71,7 @@ class Gaussian(CovModel):
         )
 
     def spectral_rad_cdf(self, r):
-        """The cdf of the radial spectral density"""
+        """Radial spectral cdf."""
         if self.dim == 1:
             return sps.erf(self.len_scale * r / np.sqrt(np.pi))
         if self.dim == 2:
@@ -85,7 +85,7 @@ class Gaussian(CovModel):
         return None
 
     def spectral_rad_ppf(self, u):
-        """The ppf of the radial spectral density"""
+        """Radial spectral ppf."""
         if self.dim == 1:
             return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
         if self.dim == 2:
@@ -93,14 +93,17 @@ class Gaussian(CovModel):
         return None
 
     def _has_ppf(self):
-        """ppf for 3 dimensions is not analytical given"""
+        """State if ppf is given.
+
+        ppf for 3 dimensions is not analytical
+        """
         # since the ppf is not analytical for dim=3, we have to state that
         if self.dim == 3:
             return False
         return True
 
     def calc_integral_scale(self):
-        """The integral scale of the gaussian model is the length scale"""
+        """Integral scale of the gaussian model is the length scale."""
         return self.len_scale
 
 
@@ -108,7 +111,7 @@ class Gaussian(CovModel):
 
 
 class Exponential(CovModel):
-    r"""The Exponential covariance model
+    r"""The Exponential covariance model.
 
     Notes
     -----
@@ -120,13 +123,13 @@ class Exponential(CovModel):
     """
 
     def correlation(self, r):
-        r"""Exponential correlation function
+        r"""Exponential correlation function.
 
         .. math::
            \mathrm{cor}(r) =
            \exp\left(- \frac{r}{\ell} \right)
        """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-1 * r / self.len_scale)
 
     def spectrum(self, k):
@@ -139,7 +142,7 @@ class Exponential(CovModel):
         )
 
     def spectral_rad_cdf(self, r):
-        """The cdf of the radial spectral density"""
+        """Radial spectral cdf."""
         if self.dim == 1:
             return np.arctan(r * self.len_scale) * 2 / np.pi
         if self.dim == 2:
@@ -156,7 +159,7 @@ class Exponential(CovModel):
         return None
 
     def spectral_rad_ppf(self, u):
-        """The ppf of the radial spectral density"""
+        """Radial spectral ppf."""
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_scale
         if self.dim == 2:
@@ -164,14 +167,17 @@ class Exponential(CovModel):
         return None
 
     def _has_ppf(self):
-        """ppf for 3 dimensions is not analytical"""
+        """State if ppf is given.
+
+        ppf for 3 dimensions is not analytical
+        """
         # since the ppf is not analytical for dim=3, we have to state that
         if self.dim == 3:
             return False
         return True
 
     def calc_integral_scale(self):
-        """The integral scale of the exponential model is the length scale"""
+        """Integral scale of the exponential model is the length scale."""
         return self.len_scale
 
 
@@ -179,7 +185,7 @@ class Exponential(CovModel):
 
 
 class Spherical(CovModel):
-    r"""The Spherical covariance model
+    r"""The Spherical covariance model.
 
     Notes
     -----
@@ -196,7 +202,7 @@ class Spherical(CovModel):
     """
 
     def correlation(self, r):
-        r"""Spherical correlation function
+        r"""Spherical correlation function.
 
         .. math::
            \mathrm{cor}(r) =
@@ -207,7 +213,7 @@ class Spherical(CovModel):
            0 & r\geq\ell
            \end{cases}
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         res[r < self.len_scale] = (
             1.0
@@ -218,7 +224,7 @@ class Spherical(CovModel):
 
 
 class SphericalRescal(CovModel):
-    r"""The rescaled Spherical covariance model
+    r"""The rescaled Spherical covariance model.
 
     Notes
     -----
@@ -235,7 +241,7 @@ class SphericalRescal(CovModel):
     """
 
     def correlation(self, r):
-        r"""Rescaled Spherical correlation function
+        r"""Rescaled Spherical correlation function.
 
         .. math::
            \mathrm{cor}(r) =
@@ -246,7 +252,7 @@ class SphericalRescal(CovModel):
            0 & r\geq\frac{8}{3}\ell
            \end{cases}
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         res[r < 8 / 3 * self.len_scale] = (
             1.0
@@ -258,7 +264,7 @@ class SphericalRescal(CovModel):
         return res
 
     def calc_integral_scale(self):
-        """The integral scale of this spherical model is the length scale"""
+        """Integral scale of this spherical model is the length scale."""
         return self.len_scale
 
 
@@ -266,7 +272,7 @@ class SphericalRescal(CovModel):
 
 
 class Rational(CovModel):
-    r"""The rational quadratic covariance model
+    r"""The rational quadratic covariance model.
 
     Notes
     -----
@@ -289,7 +295,7 @@ class Rational(CovModel):
     """
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"alpha": 1.0}``
 
@@ -301,7 +307,7 @@ class Rational(CovModel):
         return {"alpha": 1.0}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"alpha": [0.5, inf]}``
 
@@ -313,14 +319,14 @@ class Rational(CovModel):
         return {"alpha": [0.5, np.inf]}
 
     def correlation(self, r):
-        r"""Rational correlation function
+        r"""Rational correlation function.
 
         .. math::
            \mathrm{cor}(r) =
            \left(1 + \frac{1}{2\alpha} \cdot
            \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         return np.power(
             1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
         )
@@ -330,7 +336,7 @@ class Rational(CovModel):
 
 
 class Stable(CovModel):
-    r"""The stable covariance model
+    r"""The stable covariance model.
 
     Notes
     -----
@@ -352,7 +358,7 @@ class Stable(CovModel):
     """
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"alpha": 1.5}``
 
@@ -364,7 +370,7 @@ class Stable(CovModel):
         return {"alpha": 1.5}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"alpha": [0, 2, "oc"]}``
 
@@ -376,7 +382,7 @@ class Stable(CovModel):
         return {"alpha": [0, 2, "oc"]}
 
     def check_opt_arg(self):
-        """Checks for the optional arguments
+        """Check the optional arguments.
 
         Warns
         -----
@@ -386,18 +392,18 @@ class Stable(CovModel):
         """
         if self.alpha < 0.3:
             warnings.warn(
-                "TPLStable: parameter 'alpha' is < 0.3, "
+                "Stable: parameter 'alpha' is < 0.3, "
                 + "count with unstable results"
             )
 
     def correlation(self, r):
-        r"""Stable correlation function
+        r"""Stable correlation function.
 
         .. math::
            \mathrm{cor}(r) =
            \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-np.power(r / self.len_scale, self.alpha))
 
 
@@ -405,7 +411,7 @@ class Stable(CovModel):
 
 
 class Matern(CovModel):
-    r"""The Matérn covariance model
+    r"""The Matérn covariance model.
 
     Notes
     -----
@@ -432,7 +438,7 @@ class Matern(CovModel):
     """
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"nu": 1.0}``
 
@@ -444,7 +450,7 @@ class Matern(CovModel):
         return {"nu": 1.0}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"nu": [0.5, 60.0, "cc"]}``
 
@@ -456,7 +462,7 @@ class Matern(CovModel):
         return {"nu": [0.5, 60.0, "cc"]}
 
     def check_opt_arg(self):
-        """Checks for the optional arguments
+        """Check for the optional arguments.
 
         Warns
         -----
@@ -465,12 +471,12 @@ class Matern(CovModel):
         """
         if self.nu > 50.0:
             warnings.warn(
-                "Mat: parameter 'nu' is > 50, "
+                "Matern: parameter 'nu' is > 50, "
                 + "calculations most likely get unstable here"
             )
 
     def correlation(self, r):
-        r"""Matérn correlation function
+        r"""Matérn correlation function.
 
         .. math::
            \mathrm{cor}(r) =
@@ -478,7 +484,7 @@ class Matern(CovModel):
            \left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
            \mathrm{K}_{\nu}\left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
         with np.errstate(over="ignore", invalid="ignore"):
@@ -500,7 +506,7 @@ class Matern(CovModel):
 
 
 class MaternRescal(CovModel):
-    r"""The rescaled Matérn covariance model
+    r"""The rescaled Matérn covariance model.
 
     Notes
     -----
@@ -530,7 +536,7 @@ class MaternRescal(CovModel):
     """
 
     def default_opt_arg(self):
-        """The defaults for the optional arguments:
+        """Defaults for the optional arguments.
 
             * ``{"nu": 1.0}``
 
@@ -542,7 +548,7 @@ class MaternRescal(CovModel):
         return {"nu": 1.0}
 
     def default_opt_arg_bounds(self):
-        """The defaults boundaries for the optional arguments:
+        """Defaults for boundaries of the optional arguments.
 
             * ``{"nu": [0.5, 60.0, "cc"]}``
 
@@ -554,7 +560,7 @@ class MaternRescal(CovModel):
         return {"nu": [0.5, 60.0, "cc"]}
 
     def check_opt_arg(self):
-        """Checks for the optional arguments
+        """Check for the optional arguments.
 
         Warns
         -----
@@ -563,12 +569,12 @@ class MaternRescal(CovModel):
         """
         if self.nu > 50.0:
             warnings.warn(
-                "Mat: parameter 'nu' is > 50, "
+                "MaternRescale: parameter 'nu' is > 50, "
                 + "calculations most likely get unstable here"
             )
 
     def correlation(self, r):
-        r"""Rescaled Matérn correlation function
+        r"""Rescaled Matérn correlation function.
 
         .. math::
            \mathrm{cor}(r) =
@@ -578,7 +584,7 @@ class MaternRescal(CovModel):
            \mathrm{K}_{\nu}\left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)}
            \cdot\frac{r}{\ell}\right)
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
         with np.errstate(over="ignore", invalid="ignore"):
@@ -605,7 +611,7 @@ class MaternRescal(CovModel):
 
 
 class Linear(CovModel):
-    r"""The bounded linear covariance model
+    r"""The bounded linear covariance model.
 
     Notes
     -----
@@ -621,7 +627,7 @@ class Linear(CovModel):
     """
 
     def correlation(self, r):
-        r"""Linear correlation function
+        r"""Linear correlation function.
 
         .. math::
            \mathrm{cor}(r) =
@@ -631,7 +637,7 @@ class Linear(CovModel):
            0 & r\geq\ell
            \end{cases}
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         res[r < self.len_scale] = 1.0 - r[r < self.len_scale] / self.len_scale
         return res

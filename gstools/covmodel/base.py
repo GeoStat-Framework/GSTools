@@ -39,7 +39,7 @@ HANKEL_DEFAULT = {
 
 
 class CovModel(six.with_metaclass(InitSubclassMeta)):
-    """Base class for the GSTools covariance models
+    """Base class for the GSTools covariance models.
 
     Parameters
     ----------
@@ -184,7 +184,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ###########################################################################
 
     def __init_subclass__(cls):
-        r"""Initialize gstools covariance model
+        r"""Initialize gstools covariance model.
 
         Warnings
         --------
@@ -206,8 +206,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         Best practice is to use the ``correlation`` function!
         """
         # overrid one of these ################################################
+
         def variogram(self, r):
-            r"""Isotropic variogram of the model
+            r"""Isotropic variogram of the model.
 
             Given by: :math:`\gamma\left(r\right)=
             \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
@@ -217,7 +218,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return self.var - self.covariance(r) + self.nugget
 
         def covariance(self, r):
-            r"""Covariance of the model
+            r"""Covariance of the model.
 
             Given by: :math:`C\left(r\right)=
             \sigma^2\cdot\mathrm{cor}\left(r\right)`
@@ -227,7 +228,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return self.var * self.correlation(r)
 
         def correlation(self, r):
-            r"""correlation function (or normalized covariance) of the model
+            r"""Correlation function (or normalized covariance) of the model.
 
             Given by: :math:`\mathrm{cor}\left(r\right)`
 
@@ -237,7 +238,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             return 1.0 - self.variogram_normed(r)
 
         def variogram_normed(self, r):
-            r"""Normalized variogram of the model
+            r"""Normalized-variogram of the model.
 
             Given by: :math:`\tilde{\gamma}\left(r\right)=
             1-\mathrm{cor}\left(r\right)`
@@ -300,31 +301,31 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ### special variogram functions ###########################################
 
     def cov_nugget(self, r):
-        r"""Covariance of the model respecting the nugget at r=0
+        r"""Covariance of the model respecting the nugget at r=0.
 
         Given by: :math:`C\left(r\right)=
         \sigma^2\cdot\mathrm{cor}\left(r\right)`
 
         Where :math:`\mathrm{cor}(r)` is the correlation function.
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
-        res = np.empty_like(r, dtype=float)
+        res = np.empty_like(r, dtype=np.double)
         res[r_gz] = self.covariance(r[r_gz])
         res[np.logical_not(r_gz)] = self.sill
         return res
 
     def vario_nugget(self, r):
-        r"""Isotropic variogram of the model respecting the nugget at r=0
+        r"""Isotropic variogram of the model respecting the nugget at r=0.
 
         Given by: :math:`\gamma\left(r\right)=
         \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
 
         Where :math:`\mathrm{cor}(r)` is the correlation function.
         """
-        r = np.array(np.abs(r), dtype=float)
+        r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
-        res = np.empty_like(r, dtype=float)
+        res = np.empty_like(r, dtype=np.double)
         res[r_gz] = self.variogram(r[r_gz])
         res[np.logical_not(r_gz)] = 0.0
         return res
@@ -334,7 +335,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ###########################################################################
 
     def pykrige_vario(self, args=None, r=0):
-        r"""Isotropic variogram of the model for pykrige
+        r"""Isotropic variogram of the model for pykrige.
 
         Given by: :math:`\gamma\left(r\right)=
         \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
@@ -345,56 +346,56 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def pykrige_anis(self):
-        """2D anisotropy ratio for pykrige"""
+        """2D anisotropy ratio for pykrige."""
         if self.dim == 2:
             return 1 / self.anis[0]
         return 1.0
 
     @property
     def pykrige_anis_y(self):
-        """3D anisotropy ratio in y direction for pykrige"""
+        """3D anisotropy ratio in y direction for pykrige."""
         if self.dim >= 2:
             return 1 / self.anis[0]
         return 1.0
 
     @property
     def pykrige_anis_z(self):
-        """3D anisotropy ratio in z direction for pykrige"""
+        """3D anisotropy ratio in z direction for pykrige."""
         if self.dim == 3:
             return 1 / self.anis[1]
         return 1.0
 
     @property
     def pykrige_angle(self):
-        """2D rotation angle for pykrige"""
+        """2D rotation angle for pykrige."""
         if self.dim == 2:
             return -self.angles[0] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_angle_z(self):
-        """3D rotation angle around z for pykrige"""
+        """3D rotation angle around z for pykrige."""
         if self.dim >= 2:
             return -self.angles[0] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_angle_y(self):
-        """3D rotation angle around y for pykrige"""
+        """3D rotation angle around y for pykrige."""
         if self.dim == 3:
             return -self.angles[1] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_angle_x(self):
-        """3D rotation angle around x for pykrige"""
+        """3D rotation angle around x for pykrige."""
         if self.dim == 3:
             return -self.angles[2] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_kwargs(self):
-        """keyword arguments for pykrige routines"""
+        """Keyword arguments for pykrige routines."""
         kwargs = {
             "variogram_model": "custom",
             "variogram_parameters": [],
@@ -423,20 +424,21 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ###########################################################################
 
     def default_opt_arg(self):
-        """Here you can provide a dictionary with default values for
-        the optional arguments."""
+        """Provide default optional arguments by the user.
+
+        Should be given as a dictionary.
+        """
         return {}
 
     def default_opt_arg_bounds(self):
-        """Here you can provide a dictionary with default boundaries for
-        the optional arguments."""
+        """Provide default boundaries for optional arguments."""
         res = {}
         for opt in self.opt_arg:
             res[opt] = [0.0, 1000.0]
         return res
 
     def check_opt_arg(self):
-        """Here you can run checks for the optional arguments
+        """Run checks for the optional arguments.
 
         This is in addition to the bound-checks
 
@@ -449,23 +451,26 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         pass
 
     def fix_dim(self):
-        """Set a fix dimension for the model"""
+        """Set a fix dimension for the model."""
         return None
 
     def var_factor(self):
-        """Optional factor for the variance"""
+        """Factor for the variance."""
         return 1.0
 
     ### calculation of different scales #######################################
 
     def _calc_integral_scale(self):
-        """calculate the integral scale of the isotrope model"""
+        """Calculate the integral scale of the isotrope model."""
         self._integral_scale = integral(self.correlation, 0, np.inf)[0]
         return self._integral_scale
 
     def percentile_scale(self, per=0.9):
-        """calculate the distance, where the given percentile of the variance
-        is reached by the variogram"""
+        """Calculate the percentile scale of the isotrope model.
+
+        This is the distance, where the given percentile of the variance
+        is reached by the variogram
+        """
         # check the given percentile
         if not 0.0 < per < 1.0:
             raise ValueError(
@@ -485,7 +490,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     def spectrum(self, k):
         r"""
-        The spectrum of the covariance model.
+        Spectrum of the covariance model.
 
         This is given by:
 
@@ -505,12 +510,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         k : :class:`float`
             Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
-        k = np.array(np.abs(k), dtype=float)
+        k = np.array(np.abs(k), dtype=np.double)
         if self.dim > 1:
             res = self._sft.transform(self.covariance, k, ret_err=False)
         else:
             k_gz = np.logical_not(np.isclose(k, 0))
-            res = np.empty_like(k, dtype=float)
+            res = np.empty_like(k, dtype=np.double)
             res[k_gz] = self._sft.transform(
                 self.covariance, k[k_gz], ret_err=False
             )
@@ -527,7 +532,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     def spectral_density(self, k):
         r"""
-        The spectral density of the covariance model.
+        Spectral density of the covariance model.
 
         This is given by:
 
@@ -543,14 +548,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return self.spectrum(k) / self.var
 
     def spectral_rad_pdf(self, r):
-        """
-        The radial spectral density of the model depending on the dimension
-        """
-        r = np.array(np.abs(r), dtype=float)
+        """Radial spectral density of the model."""
+        r = np.array(np.abs(r), dtype=np.double)
         if self.dim > 1:
             r_gz = np.logical_not(np.isclose(r, 0))
             # to prevent numerical errors, we just calculate where r>0
-            res = np.zeros_like(r, dtype=float)
+            res = np.zeros_like(r, dtype=np.double)
             res[r_gz] = rad_fac(self.dim, r[r_gz]) * self.spectral_density(
                 r[r_gz]
             )
@@ -563,28 +566,26 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return res
 
     def ln_spectral_rad_pdf(self, r):
-        """
-        The log radial spectral density of the model depending on the dimension
-        """
+        """Log radial spectral density of the model."""
         spec = np.array(self.spectral_rad_pdf(r))
         spec_gz = np.logical_not(np.isclose(spec, 0))
-        res = np.full_like(spec, -np.inf, dtype=float)
+        res = np.full_like(spec, -np.inf, dtype=np.double)
         res[spec_gz] = np.log(spec[spec_gz])
         return res
 
     def _has_cdf(self):
-        """State if a cdf is defined with 'spectral_rad_cdf'"""
+        """State if a cdf is defined with 'spectral_rad_cdf'."""
         return hasattr(self, "spectral_rad_cdf")
 
     def _has_ppf(self):
-        """State if a ppf is defined with 'spectral_rad_ppf'"""
+        """State if a ppf is defined with 'spectral_rad_ppf'."""
         return hasattr(self, "spectral_rad_ppf")
 
     ### fitting routine #######################################################
 
     def fit_variogram(self, x_data, y_data, **para_deselect):
         """
-        fit the isotropic variogram-model to given data
+        Fiting the isotropic variogram-model to given data.
 
         Parameters
         ----------
@@ -621,7 +622,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # we need arg1, otherwise curve_fit throws an error (bug?!)
         def curve(x, arg1, *args):
-            """dummy function for the variogram"""
+            """Adapted Variogram function."""
             args = (arg1,) + args
             para_skip = 0
             opt_skip = 0
@@ -699,8 +700,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ### bounds setting and checks #############################################
 
     def default_arg_bounds(self):
-        """Here you can provide a dictionary with default boundaries for
-        the standard arguments."""
+        """Provide default boundaries for arguments.
+
+        Given as a dictionary.
+        """
         res = {
             "var": (0.0, 100.0, "oc"),
             "len_scale": (0.0, 1000.0, "oo"),
@@ -709,7 +712,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return res
 
     def set_arg_bounds(self, **kwargs):
-        r"""Set bounds for the parameters of the model
+        r"""Set bounds for the parameters of the model.
 
         Parameters
         ----------
@@ -741,7 +744,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 self.nugget_bounds = kwargs[opt]
 
     def check_arg_bounds(self):
-        """Here the arguments are checked to be within the given bounds"""
+        """Check arguments to be within the given bounds."""
         # check var, len_scale, nugget and optional-arguments
         for arg in self.arg_bounds:
             bnd = list(self.arg_bounds[arg])
@@ -789,7 +792,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def var_bounds(self):
-        """:class:`list`: Bounds for the variance
+        """:class:`list`: Bounds for the variance.
 
         Notes
         -----
@@ -815,7 +818,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def len_scale_bounds(self):
-        """:class:`list`: Bounds for the lenght scale
+        """:class:`list`: Bounds for the lenght scale.
 
         Notes
         -----
@@ -841,7 +844,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def nugget_bounds(self):
-        """:class:`list`: Bounds for the nugget
+        """:class:`list`: Bounds for the nugget.
 
         Notes
         -----
@@ -867,7 +870,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def opt_arg_bounds(self):
-        """:class:`dict`: Bounds for the optional arguments
+        """:class:`dict`: Bounds for the optional arguments.
 
         Notes
         -----
@@ -883,7 +886,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def arg_bounds(self):
-        """:class:`dict`: Bounds for all parameters
+        """:class:`dict`: Bounds for all parameters.
 
         Notes
         -----
@@ -942,9 +945,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def var_raw(self):
-        """:class:`float`: The raw variance of the model without factor
+        """:class:`float`: The raw variance of the model without factor.
 
-        (See. CovModel.var_factor)"""
+        (See. CovModel.var_factor)
+        """
         return self._var
 
     @var_raw.setter
@@ -988,7 +992,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def angles(self):
-        """:class:`numpy.ndarray`: The rotation angles (in rad) of the model."""
+        """:class:`numpy.ndarray`: Rotation angles (in rad) of the model."""
         return self._angles
 
     @angles.setter
@@ -1027,8 +1031,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def hankel_kw(self):
-        """:class:`dict`: Keywords for :any:`hankel.SymmetricFourierTransform`
-        """
+        """:class:`dict`: :any:`hankel.SymmetricFourierTransform` kwargs."""
         return self._hankel_kw
 
     @hankel_kw.setter
@@ -1041,8 +1044,10 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def dist_func(self):
-        """:class:`tuple` of :any:`callable`:
-        pdf, cdf and ppf from the radial spectral density"""
+        """:class:`tuple` of :any:`callable`: pdf, cdf and ppf.
+
+        Spectral distribution info from the model.
+        """
         pdf = self.spectral_rad_pdf
         cdf = None
         ppf = None
@@ -1054,12 +1059,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def has_cdf(self):
-        """:class:`bool`: State if a cdf is defined by the user"""
+        """:class:`bool`: State if a cdf is defined by the user."""
         return self._has_cdf()
 
     @property
     def has_ppf(self):
-        """:class:`bool`: State if a ppf is defined by the user"""
+        """:class:`bool`: State if a ppf is defined by the user."""
         return self._has_ppf()
 
     @property
@@ -1075,12 +1080,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def arg(self):
-        """:class:`list` of :class:`str`: Names of all arguments"""
+        """:class:`list` of :class:`str`: Names of all arguments."""
         return ["var", "len_scale", "nugget", "anis", "angles"] + self._opt_arg
 
     @property
     def opt_arg(self):
-        """:class:`list` of :class:`str`: Names of the optional arguments"""
+        """:class:`list` of :class:`str`: Names of the optional arguments."""
         return self._opt_arg
 
     @property
@@ -1094,7 +1099,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             * ``len_scale_vec[1] = len_scale*anis[0]``
             * ``len_scale_vec[2] = len_scale*anis[1]``
         """
-        res = np.zeros(self.dim, dtype=float)
+        res = np.zeros(self.dim, dtype=np.double)
         res[0] = self.len_scale
         for i in range(1, self._dim):
             res[i] = self.len_scale * self.anis[i - 1]
@@ -1111,7 +1116,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             * ``integral_scale_vec[1] = integral_scale*anis[0]``
             * ``integral_scale_vec[2] = integral_scale*anis[1]``
         """
-        res = np.zeros(self.dim, dtype=float)
+        res = np.zeros(self.dim, dtype=np.double)
         res[0] = self.integral_scale
         for i in range(1, self.dim):
             res[i] = self.integral_scale * self.anis[i - 1]
@@ -1119,12 +1124,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @property
     def name(self):
-        """:class:`str`: The name of the CovModel class"""
+        """:class:`str`: The name of the CovModel class."""
         return self.__class__.__name__
 
     ### magic methods #########################################################
 
     def __eq__(self, other):
+        """Compare CovModels."""
         if not isinstance(other, CovModel):
             return False
         # prevent attribute error in opt_arg if the are not equal
@@ -1146,12 +1152,15 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         return equal
 
     def __ne__(self, other):
+        """Compare CovModels."""
         return not self.__eq__(other)
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         opt_str = ""
         for opt in self.opt_arg:
             opt_str += ", " + opt + "={}".format(getattr(self, opt))

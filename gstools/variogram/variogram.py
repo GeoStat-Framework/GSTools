@@ -122,7 +122,6 @@ def vario_estimate_structured(field, direction="x"):
     :class:`numpy.ndarray`
         the estimated variogram along the given direction.
     """
-
     try:
         mask = np.array(field.mask, dtype=np.int32)
         field = np.ma.array(field, ndmin=1, dtype=np.double)

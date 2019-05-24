@@ -82,7 +82,7 @@ def r3d_z(theta):
 
 
 def pos2xyz(pos, dtype=None, calc_dim=False):
-    """Convert postional arguments to x, y, z
+    """Convert postional arguments to x, y, z.
 
     Parameters
     ----------
@@ -126,7 +126,7 @@ def pos2xyz(pos, dtype=None, calc_dim=False):
 
 
 def xyz2pos(x, y=None, z=None, dtype=None):
-    """Convert postional arguments to x, y, z
+    """Convert postional arguments to x, y, z.
 
     Parameters
     ----------

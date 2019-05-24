@@ -235,28 +235,26 @@ class SRF(object):
 
     @property
     def cond_pos(self):
-        """:class:`list`: The position tuple of the conditions.
-        """
+        """:class:`list`: The position tuple of the conditions."""
         return self._cond_pos
 
     @property
     def cond_val(self):
-        """:class:`list`: The values of the conditions.
-        """
+        """:class:`list`: The values of the conditions."""
         return self._cond_val
 
     @property
     def condition(self):
-        """:any:`bool`: State if conditions ar given"""
+        """:any:`bool`: State if conditions ar given."""
         return self._cond_pos is not None
 
     def cond_func(self, *args, **kwargs):
-        """The conditioning method applied to the field"""
+        """Conditioning method applied to the field."""
         if self.condition:
             return CONDITION[self._krige_type](*args, **kwargs)
 
     def structured(self, *args, **kwargs):
-        """Generate an SRF on a structured mesh
+        """Generate an SRF on a structured mesh.
 
         See :any:`SRF.__call__`
         """
@@ -264,7 +262,7 @@ class SRF(object):
         return call(*args, **kwargs)
 
     def unstructured(self, *args, **kwargs):
-        """Generate an SRF on an unstructured mesh
+        """Generate an SRF on an unstructured mesh.
 
         See :any:`SRF.__call__`
         """
@@ -272,11 +270,11 @@ class SRF(object):
         return call(*args, **kwargs)
 
     def upscaling_func(self, *args, **kwargs):
-        """The upscaling method applied to the field variance"""
+        """Upscaling method applied to the field variance."""
         return self._upscaling_func(*args, **kwargs)
 
     def set_generator(self, generator, **generator_kwargs):
-        """Set the generator for the field
+        """Set the generator for the field.
 
         Parameters
         ----------
@@ -302,8 +300,7 @@ class SRF(object):
 
     @property
     def upscaling(self):  # pragma: no cover
-        """:class:`str`: Name of the upscaling method for the variance at each
-        point depending on the related element volume.
+        """:class:`str`: Name of the upscaling method.
 
         See the ``point_volumes`` keyword in the :any:`SRF.__call__` routine.
         Default: "no_scaling"
@@ -322,8 +319,7 @@ class SRF(object):
 
     @property
     def model(self):
-        """:any:`CovModel`: The covariance model of the spatial random field.
-        """
+        """:any:`CovModel`: The covariance model of the random field."""
         return self._model
 
     @model.setter
@@ -337,15 +333,15 @@ class SRF(object):
 
     @property
     def do_rotation(self):
-        """:any:`bool`: State if a rotation should be performed
-        depending on the model.
-        """
+        """:any:`bool`: State if a rotation is performed."""
         return not np.all(np.isclose(self.model.angles, 0.0))
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         return "SRF(model={0}, mean={1}, generator={2}".format(
             self.model, self.mean, self.generator
         )

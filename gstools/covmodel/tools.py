@@ -31,7 +31,7 @@ if hasattr(object, "__init_subclass__"):
 else:
 
     class InitSubclassMeta(type):
-        """Metaclass that implements PEP 487 protocol
+        """Metaclass that implements PEP 487 protocol.
 
         Notes
         -----
@@ -43,6 +43,7 @@ else:
         """
 
         def __new__(cls, name, bases, ns, **kwargs):
+            """Create a new subclass."""
             __init_subclass__ = ns.pop("__init_subclass__", None)
             if __init_subclass__:
                 __init_subclass__ = classmethod(__init_subclass__)
@@ -62,7 +63,7 @@ else:
 
 
 def rad_fac(dim, r):
-    """The volume element of the n-dimensional spherical coordinates.
+    """Volume element of the n-dimensional spherical coordinates.
 
     Given as a factor for integration of a radial-symmetric function.
 
@@ -90,7 +91,7 @@ def rad_fac(dim, r):
 
 
 def set_len_anis(dim, len_scale, anis):
-    """Setting the length scale and anisotropy factors for the given dimension.
+    """Set the length scale and anisotropy factors for the given dimension.
 
     Parameters
     ----------
@@ -139,7 +140,7 @@ def set_len_anis(dim, len_scale, anis):
                 constant_values=out_len_scale,
             )
         # if multiple length-scales are given, calculate the anisotropies
-        out_anis = np.zeros(dim - 1, dtype=float)
+        out_anis = np.zeros(dim - 1, dtype=np.double)
         for i in range(1, dim):
             out_anis[i - 1] = ls_tmp[i] / ls_tmp[0]
 
@@ -152,7 +153,7 @@ def set_len_anis(dim, len_scale, anis):
 
 
 def set_angles(dim, angles):
-    """Setting the angles for the given dimension.
+    """Set the angles for the given dimension.
 
     Parameters
     ----------

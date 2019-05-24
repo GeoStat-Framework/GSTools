@@ -34,7 +34,6 @@ class RNG(object):
     """
 
     def __init__(self, seed=None):
-        """Initialize a random number generator"""
         # set seed
         self._master_rng = None
         self.seed = seed
@@ -48,7 +47,7 @@ class RNG(object):
         burn_in=20,
         oversampling_factor=10,
     ):
-        """Sample from a distribution given by ln(pdf)
+        """Sample from a distribution given by ln(pdf).
 
         This algorithm uses the :any:`emcee.EnsembleSampler`
 
@@ -127,7 +126,7 @@ class RNG(object):
         return self.random.choice(samples, size)
 
     def sample_dist(self, pdf=None, cdf=None, ppf=None, size=None, **kwargs):
-        """Sample from a distribution given by pdf, cdf and/or ppf
+        """Sample from a distribution given by pdf, cdf and/or ppf.
 
         Parameters
         ----------
@@ -163,7 +162,7 @@ class RNG(object):
         return dist.rvs(size=size)
 
     def sample_sphere(self, dim, size=None):
-        """Uniform sampling on a d-dimensional sphere
+        """Uniform sampling on a d-dimensional sphere.
 
         Parameters
         ----------
@@ -178,9 +177,9 @@ class RNG(object):
             x[, y[, z]] coordinates on the sphere with shape (dim, size)
         """
         if size is None:  # pragma: no cover
-            coord = np.empty(dim, dtype=float)
+            coord = np.empty(dim, dtype=np.double)
         else:
-            coord = np.empty((dim, size), dtype=float)
+            coord = np.empty((dim, size), dtype=np.double)
         if dim == 1:
             coord[0] = self.random.choice([-1, 1], size=size)
         elif dim == 2:
@@ -197,9 +196,9 @@ class RNG(object):
 
     @property
     def random(self):
-        """:any:`numpy.random.RandomState`:
-        Get a stream to the numpy Random number generator
+        """:any:`numpy.random.RandomState`: Randomstate.
 
+        Get a stream to the numpy Random number generator.
         You can use this, to call any provided distribution
         from :any:`numpy.random.RandomState`.
         """
@@ -207,7 +206,7 @@ class RNG(object):
 
     @property  # pragma: no cover
     def seed(self):
-        """:class:`int`: the seed of the master RNG
+        """:class:`int`: Seed of the master RNG.
 
         The setter property not only saves the new seed, but also creates
         a new master RNG function with the new seed.
@@ -219,9 +218,11 @@ class RNG(object):
         self._master_rng = MasterRNG(new_seed)
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         return "RNG(seed={})".format(self.seed)
 
 

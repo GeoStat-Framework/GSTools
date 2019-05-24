@@ -34,7 +34,7 @@ __all__ = [
 
 
 def plot_variogram(model, x_min=0.0, x_max=None):
-    """plot variogram of a given CovModel"""
+    """Plot variogram of a given CovModel."""
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
@@ -44,7 +44,7 @@ def plot_variogram(model, x_min=0.0, x_max=None):
 
 
 def plot_covariance(model, x_min=0.0, x_max=None):
-    """plot covariance of a given CovModel"""
+    """Plot covariance of a given CovModel."""
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
@@ -54,7 +54,7 @@ def plot_covariance(model, x_min=0.0, x_max=None):
 
 
 def plot_correlation(model, x_min=0.0, x_max=None):
-    """plot correlation function of a given CovModel"""
+    """Plot correlation function of a given CovModel."""
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
@@ -64,7 +64,7 @@ def plot_correlation(model, x_min=0.0, x_max=None):
 
 
 def plot_variogram_normed(model, x_min=0.0, x_max=None):
-    """plot normalized variogram of a given CovModel"""
+    """Plot normalized variogram of a given CovModel."""
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
@@ -76,7 +76,7 @@ def plot_variogram_normed(model, x_min=0.0, x_max=None):
 
 
 def plot_spectrum(model, x_min=0.0, x_max=None):
-    """plot specturm of a given CovModel"""
+    """Plot specturm of a given CovModel."""
     if x_max is None:
         x_max = 3 / model.integral_scale
     x_s = np.linspace(x_min, x_max)
@@ -90,7 +90,7 @@ def plot_spectrum(model, x_min=0.0, x_max=None):
 
 
 def plot_spectral_density(model, x_min=0.0, x_max=None):
-    """plot spectral density of a given CovModel"""
+    """Plot spectral density of a given CovModel."""
     if x_max is None:
         x_max = 3 / model.integral_scale
     x_s = np.linspace(x_min, x_max)
@@ -104,7 +104,7 @@ def plot_spectral_density(model, x_min=0.0, x_max=None):
 
 
 def plot_spectral_rad_pdf(model, x_min=0.0, x_max=None):
-    """plot radial spectral propability density function of a given CovModel"""
+    """Plot radial spectral pdf of a given CovModel."""
     if x_max is None:
         x_max = 3 / model.integral_scale
     x_s = np.linspace(x_min, x_max)
