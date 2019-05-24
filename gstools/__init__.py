@@ -3,8 +3,10 @@
 Purpose
 =======
 
-GeoStatTools is a library providing geostatistical tools for random field generation and
-variogram estimation based on a list of provided or even user-defined covariance models.
+GeoStatTools is a library providing geostatistical tools
+for random field generation, conditioned field generation,
+kriging and variogram estimation
+based on a list of provided or even user-defined covariance models.
 
 The following functionalities are directly provided on module-level.
 
@@ -15,6 +17,7 @@ Subpackages
     covmodel
     field
     variogram
+    krige
     random
     tools
 
@@ -94,7 +97,7 @@ Estimate the variogram of a given field
 from __future__ import absolute_import
 
 from gstools._version import __version__
-from gstools import field, variogram, random, covmodel, tools
+from gstools import field, variogram, random, covmodel, tools, krige
 from gstools.field import SRF
 from gstools.tools.export import (
     vtk_export_structured,
@@ -122,7 +125,7 @@ from gstools.covmodel import (
 )
 
 __all__ = ["__version__"]
-__all__ += ["covmodel", "field", "variogram", "random", "tools"]
+__all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
 
 __all__ += [
     "CovModel",
