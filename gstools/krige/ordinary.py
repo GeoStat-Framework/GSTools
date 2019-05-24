@@ -26,7 +26,8 @@ from gstools.field.tools import (
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
 )
-from gstools.tools.geometric import pos2xyz
+from gstools.tools.geometric import pos2xyz, xyz2pos
+from gstools.tools.export import vtk_export as vtk_ex
 from gstools.krige.krigesum import krigesum
 
 __all__ = ["Ordinary"]
@@ -84,6 +85,8 @@ class Ordinary(object):
         # internal conversation
         x, y, z = pos2xyz(pos, dtype=np.double)
         c_x, c_y, c_z = pos2xyz(self.cond_pos, dtype=np.double)
+        self.pos = xyz2pos(x, y, z)
+        self.mesh_type = mesh_type
         # format the positional arguments of the mesh
         check_mesh(self.model.dim, x, y, z, mesh_type)
         mesh_type_changed = False
@@ -142,6 +145,24 @@ class Ordinary(object):
         if add:
             return np.vstack((res, np.ones((1, res.shape[1]))))
         return res
+
+    def vtk_export(self, filename, fieldname="field"):
+        """Export the stored field to vtk.
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtr or .vtu) will be added to the name.
+        fieldname : :class:`str`, optional
+            Name of the field in the VTK file. Default: "field"
+        """
+        if not (
+            self.pos is None or self.field is None or self.mesh_type is None
+        ):
+            vtk_ex(filename, self.pos, self.field, fieldname, self.mesh_type)
+        else:
+            print("gstools.SRF.vtk_export: No field stored in the srf class.")
 
     def set_condition(self, cond_pos, cond_val):
         """Set the conditions for kriging.

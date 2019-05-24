@@ -24,7 +24,8 @@ from gstools.field.tools import (
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
 )
-from gstools.tools.geometric import pos2xyz
+from gstools.tools.geometric import pos2xyz, xyz2pos
+from gstools.tools.export import vtk_export as vtk_ex
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 from gstools.field.condition import ordinary, simple
 
@@ -101,6 +102,8 @@ class SRF(object):
         self._cond_val = None
         self._krige_type = None
         # initialize attributes
+        self.pos = None
+        self.mesh_type = None
         self.field = None
         self.raw_field = None
         self.krige_field = None
@@ -149,6 +152,8 @@ class SRF(object):
         """
         # internal conversation
         x, y, z = pos2xyz(pos)
+        self.pos = xyz2pos(x, y, z)
+        self.mesh_type = mesh_type
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # format the positional arguments of the mesh
@@ -203,6 +208,24 @@ class SRF(object):
 
         return self.field
 
+    def vtk_export(self, filename, fieldname="field"):
+        """Export the stored field to vtk.
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtr or .vtu) will be added to the name.
+        fieldname : :class:`str`, optional
+            Name of the field in the VTK file. Default: "field"
+        """
+        if not (
+            self.pos is None or self.field is None or self.mesh_type is None
+        ):
+            vtk_ex(filename, self.pos, self.field, fieldname, self.mesh_type)
+        else:
+            print("gstools.SRF.vtk_export: No field stored in the srf class.")
+
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"
     ):
@@ -252,6 +275,7 @@ class SRF(object):
         """Conditioning method applied to the field."""
         if self.condition:
             return CONDITION[self._krige_type](*args, **kwargs)
+        return None
 
     def structured(self, *args, **kwargs):
         """Generate an SRF on a structured mesh.
