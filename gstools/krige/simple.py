@@ -33,7 +33,8 @@ __all__ = ["Simple"]
 
 
 class Simple(object):
-    """A class for simple kriging.
+    """
+    A class for simple kriging.
 
     Parameters
     ----------
@@ -63,7 +64,8 @@ class Simple(object):
         # initialize attributes
 
     def __call__(self, pos, mesh_type="unstructured"):
-        """Generate the simple kriging field.
+        """
+        Generate the simple kriging field.
 
         The field is saved as `self.field` and is also returned.
 
@@ -83,8 +85,8 @@ class Simple(object):
             the kriging error
         """
         # internal conversation
-        x, y, z = pos2xyz(pos)
-        c_x, c_y, c_z = pos2xyz(self.cond_pos)
+        x, y, z = pos2xyz(pos, dtype=np.double)
+        c_x, c_y, c_z = pos2xyz(self.cond_pos, dtype=np.double)
         # format the positional arguments of the mesh
         check_mesh(self.model.dim, x, y, z, mesh_type)
         mesh_type_changed = False
@@ -104,14 +106,9 @@ class Simple(object):
         c_y, c_z = make_isotropic(self.model.dim, self.model.anis, c_y, c_z)
 
         # set condtions to zero mean
-        cond = np.array(self.cond_val - self.mean, dtype=np.double)
-        krig_mat = np.array(
-            inv(self._get_cov_mat((c_x, c_y, c_z), (c_x, c_y, c_z))),
-            dtype=np.double,
-        )
-        krig_vecs = np.array(
-            self._get_cov_mat((c_x, c_y, c_z), (x, y, z)), dtype=np.double
-        )
+        cond = self.cond_val - self.mean
+        krig_mat = inv(self._get_cov_mat((c_x, c_y, c_z), (c_x, c_y, c_z)))
+        krig_vecs = self._get_cov_mat((c_x, c_y, c_z), (x, y, z))
         # generate the kriged field
         field, error = krigesum(krig_mat, krig_vecs, cond)
 
@@ -152,7 +149,7 @@ class Simple(object):
         self._cond_val = np.array(cond_val, dtype=np.double)
 
     def structured(self, *args, **kwargs):
-        """Simple kriging on a structured mesh
+        """Simple kriging on a structured mesh.
 
         See :any:`Simple.__call__`
         """
@@ -160,7 +157,7 @@ class Simple(object):
         return call(*args, **kwargs)
 
     def unstructured(self, *args, **kwargs):
-        """Simple kriging on an unstructured mesh
+        """Simple kriging on an unstructured mesh.
 
         See :any:`Simple.__call__`
         """
@@ -169,20 +166,17 @@ class Simple(object):
 
     @property
     def cond_pos(self):
-        """:class:`list`: The position tuple of the conditions.
-        """
+        """:class:`list`: The position tuple of the conditions."""
         return self._cond_pos
 
     @property
     def cond_val(self):
-        """:class:`list`: The values of the conditions.
-        """
+        """:class:`list`: The values of the conditions."""
         return self._cond_val
 
     @property
     def model(self):
-        """:any:`CovModel`: The covariance model used for kriging.
-        """
+        """:any:`CovModel`: The covariance model used for kriging."""
         return self._model
 
     @model.setter
@@ -198,15 +192,15 @@ class Simple(object):
 
     @property
     def do_rotation(self):
-        """:any:`bool`: State if a rotation should be performed
-        depending on the model.
-        """
+        """:any:`bool`: State if a rotation should be performed."""
         return not np.all(np.isclose(self.model.angles, 0.0))
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         return "Simple(model={0}, mean={1}, cond_pos={2}, cond_val={3}".format(
             self.model, self.mean, self.cond_pos, self.cond_val
         )
@@ -216,3 +210,11 @@ if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()
+    # from gstools import Gaussian
+    # gridx = gridy = np.linspace(0, 10, 1000)
+    # data = np.random.random((100, 3))
+    # model = Gaussian(dim=2, len_scale=1.5, anis=0.2, angles=0.1, var=0.5)
+    # krige = Simple(
+    #     model, mean=1, cond_pos=(data[:, 0], data[:, 1]), cond_val=data[:, 2]
+    # )
+    # krige((gridx, gridy), mesh_type="structured")

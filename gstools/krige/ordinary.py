@@ -33,7 +33,8 @@ __all__ = ["Ordinary"]
 
 
 class Ordinary(object):
-    """A class for ordinary kriging.
+    """
+    A class for ordinary kriging.
 
     Parameters
     ----------
@@ -47,18 +48,21 @@ class Ordinary(object):
 
     def __init__(self, model, cond_pos, cond_val):
         # initialize private attributes
+        self.field = None
+        self.error = None
+
         self._model = None
         self._cond_pos = None
         self._cond_val = None
 
-        self.field = None
         self.model = model
         self.set_condition(cond_pos, cond_val)
 
         # initialize attributes
 
     def __call__(self, pos, mesh_type="unstructured"):
-        """Generate the ordinary kriging field.
+        """
+        Generate the ordinary kriging field.
 
         The field is saved as `self.field` and is also returned.
 
@@ -78,8 +82,8 @@ class Ordinary(object):
             the kriging error
         """
         # internal conversation
-        x, y, z = pos2xyz(pos)
-        c_x, c_y, c_z = pos2xyz(self.cond_pos)
+        x, y, z = pos2xyz(pos, dtype=np.double)
+        c_x, c_y, c_z = pos2xyz(self.cond_pos, dtype=np.double)
         # format the positional arguments of the mesh
         check_mesh(self.model.dim, x, y, z, mesh_type)
         mesh_type_changed = False
@@ -99,17 +103,9 @@ class Ordinary(object):
         c_y, c_z = make_isotropic(self.model.dim, self.model.anis, c_y, c_z)
 
         # set condtions
-        cond = np.array(np.concatenate((self.cond_val, [0])), dtype=np.double)
-        krig_mat = np.array(
-            inv(
-                self._get_krig_mat((c_x, c_y, c_z), (c_x, c_y, c_z), c_x.size)
-            ),
-            dtype=np.double,
-        )
-        krig_vecs = np.array(
-            self._get_vario_mat((c_x, c_y, c_z), (x, y, z), add=True),
-            dtype=np.double,
-        )
+        cond = np.concatenate((self.cond_val, [0]))
+        krig_mat = inv(self._get_krig_mat((c_x, c_y, c_z), (c_x, c_y, c_z)))
+        krig_vecs = self._get_vario_mat((c_x, c_y, c_z), (x, y, z), add=True)
         # generate the kriged field
         field, error = krigesum(krig_mat, krig_vecs, cond)
 
@@ -127,8 +123,9 @@ class Ordinary(object):
         self.field = field
         return self.field, self.error
 
-    def _get_krig_mat(self, pos1, pos2, size):
-        res = np.empty((size + 1, size + 1), dtype=float)
+    def _get_krig_mat(self, pos1, pos2):
+        size = pos1[0].size
+        res = np.empty((size + 1, size + 1), dtype=np.double)
         res[:size, :size] = self._get_vario_mat(pos1, pos2)
         res[size, :] = 1
         res[:, size] = 1
@@ -157,10 +154,10 @@ class Ordinary(object):
             the values of the conditions
         """
         self._cond_pos = cond_pos
-        self._cond_val = cond_val
+        self._cond_val = np.array(cond_val, dtype=np.double)
 
     def structured(self, *args, **kwargs):
-        """Ordinary kriging on a structured mesh
+        """Ordinary kriging on a structured mesh.
 
         See :any:`Ordinary.__call__`
         """
@@ -168,7 +165,7 @@ class Ordinary(object):
         return call(*args, **kwargs)
 
     def unstructured(self, *args, **kwargs):
-        """Ordinary kriging on an unstructured mesh
+        """Ordinary kriging on an unstructured mesh.
 
         See :any:`Ordinary.__call__`
         """
@@ -177,20 +174,17 @@ class Ordinary(object):
 
     @property
     def cond_pos(self):
-        """:class:`list`: The position tuple of the conditions.
-        """
+        """:class:`list`: The position tuple of the conditions."""
         return self._cond_pos
 
     @property
     def cond_val(self):
-        """:class:`list`: The values of the conditions.
-        """
+        """:class:`list`: The values of the conditions."""
         return self._cond_val
 
     @property
     def model(self):
-        """:any:`CovModel`: The covariance model used for kriging.
-        """
+        """:any:`CovModel`: The covariance model used for kriging."""
         return self._model
 
     @model.setter
@@ -205,15 +199,15 @@ class Ordinary(object):
 
     @property
     def do_rotation(self):
-        """:any:`bool`: State if a rotation should be performed
-        depending on the model.
-        """
+        """:any:`bool`: State if a rotation should be performed."""
         return not np.all(np.isclose(self.model.angles, 0.0))
 
     def __str__(self):
+        """Return String representation."""
         return self.__repr__()
 
     def __repr__(self):
+        """Return String representation."""
         return "Ordinary(model={0}, cond_pos={1}, cond_val={2}".format(
             self.model, self.cond_pos, self.cond_val
         )
