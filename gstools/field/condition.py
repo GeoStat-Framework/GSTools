@@ -54,8 +54,12 @@ def ordinary(pos, srf, mesh_type="unstructured"):
         )
     else:
         err_data = inter.griddata(
-            pos, np.reshape(srf.raw_field, -1), srf.cond_pos, fill_value=0.0
+            np.squeeze(pos),
+            srf.raw_field.reshape(-1),
+            srf.cond_pos,
+            fill_value=0.0,
         )
+        err_data = err_data.reshape(-1)
 
     err_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=err_data
@@ -107,11 +111,12 @@ def simple(pos, srf, mesh_type="unstructured"):
         )
     else:
         err_data = inter.griddata(
-            pos,
+            np.squeeze(pos),
             np.reshape(srf.raw_field + srf.mean, -1),
             srf.cond_pos,
             fill_value=srf.mean,
         )
+        err_data = err_data.reshape(-1)
 
     err_ok = Simple(
         model=srf.model,
