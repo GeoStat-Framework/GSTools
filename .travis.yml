@@ -103,22 +103,6 @@ env:
     # inplace cython build and test run
     - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
 
-install:
-  # install anaconda
-  sudo apt-get install
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
-
 script:
   # create wheels
   - $PIP install cibuildwheel==0.10.2
@@ -146,9 +130,6 @@ after_success:
       python -m twine upload --verbose --skip-existing wheelhouse/*.whl
       python -m twine upload --verbose --skip-existing dist/*.tar.gz
     fi
-
-  # deploy conda
-  - test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash deploy_conda.sh
 
 notifications:
   email:
