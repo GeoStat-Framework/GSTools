@@ -1,0 +1,213 @@
+# -*- coding: utf-8 -*-
+"""
+GStools subpackage providing plotting routines for spatial random fields.
+
+.. currentmodule:: gstools.field.plot
+
+The following classes and functions are provided
+
+.. autosummary::
+   plot_srf
+"""
+# pylint: disable=C0103
+from __future__ import print_function, division, absolute_import
+import numpy as np
+from scipy import interpolate as inter
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, RadioButtons
+from mpl_toolkits.mplot3d import Axes3D
+from gstools.tools import pos2xyz
+from gstools.covmodel.plot import _get_fig_ax
+
+__all__ = ["plot_srf"]
+
+
+# plotting routines #######################################################
+
+
+def plot_srf(srf, fig=None, ax=None):
+    """
+    Plot a spatial random field.
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        The given srf class instance.
+    fig : :any:`Figure` or :any:`None`
+        Figure to plot the axes on. If `None`, a new one will be created.
+        Default: `None`
+    ax : :any:`Axes` or :any:`None`
+        Axes to plot on. If `None`, a new one will be added to the figure.
+        Default: `None`
+    """
+    assert not (srf.pos is None or srf.field is None)
+    if srf.model.dim == 1:
+        _plot_1d(srf.pos, srf.field, fig, ax)
+    elif srf.model.dim == 2:
+        _plot_2d(srf.pos, srf.field, srf.mesh_type, fig, ax)
+    else:
+        _plot_3d(srf.pos, srf.field, srf.mesh_type, fig, ax)
+
+
+def _plot_1d(pos, field, fig=None, ax=None):
+    """Plot a 1d field."""
+    fig, ax = _get_fig_ax(fig, ax)
+    title = "Field 1D: " + str(field.shape)
+    x, __, __ = pos2xyz(pos)
+    x = x.flatten()
+    arg = np.argsort(x)
+    ax.plot(x[arg], field.ravel()[arg])
+    ax.set_xlabel('X')
+    ax.set_ylabel('field')
+    ax.set_title(title)
+    fig.show()
+    return ax
+
+
+def _plot_2d(pos, field, mesh_type, fig=None, ax=None):
+    """Plot a 2d field."""
+    fig, ax = _get_fig_ax(fig, ax)
+    title = "Field 2D " + mesh_type + ": " + str(field.shape)
+    x, y, __ = pos2xyz(pos)
+    if mesh_type == "unstructured":
+        cont = ax.tricontourf(x, y, field.ravel(), levels=256)
+    else:
+        cont = ax.contourf(x, y, field.T, levels=256)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_title(title)
+    fig.colorbar(cont)
+    fig.show()
+    return ax
+
+
+def _plot_3d(pos, field, mesh_type, fig=None, ax=None):
+    """Plot 3D field."""
+    dir1, dir2 = np.mgrid[0:1:51j, 0:1:51j]
+    levels = np.linspace(field.min(), field.max(), 256, endpoint=True)
+
+    x_min = pos[0].min()
+    x_max = pos[0].max()
+    y_min = pos[1].min()
+    y_max = pos[1].max()
+    z_min = pos[2].min()
+    z_max = pos[2].max()
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    z_range = z_max - z_min
+    x_step = x_range / 50.0
+    y_step = y_range / 50.0
+    z_step = z_range / 50.0
+    ax_info = {
+        "x": [x_min, x_max, x_range, x_step],
+        "y": [y_min, y_max, y_range, y_step],
+        "z": [z_min, z_max, z_range, z_step],
+    }
+    fig, ax = _get_fig_ax(fig, ax, Axes3D.name)
+    title = "Field 3D " + mesh_type + ": " + str(field.shape)
+    fig.subplots_adjust(left=0.2, right=0.8, bottom=0.25)
+    sax = plt.axes([0.15, 0.1, 0.65, 0.03])
+    z_height = Slider(
+        sax,
+        'z value',
+        z_min,
+        z_max,
+        valinit=z_min + z_range / 2.0,
+        valstep=z_step
+    )
+    rax = plt.axes([0.05, 0.5, 0.1, 0.15])
+    radio = RadioButtons(rax, ('x slice', 'y slice', 'z slice'), active=2)
+    z_dir_tmp = "z"
+    # create container
+    container_class = type(
+        'info',
+        (object,),
+        {"z_height": z_height, "z_dir_tmp": z_dir_tmp},
+    )
+    container = container_class()
+
+    def get_plane(z_val_in, z_dir):
+        """Get the plane."""
+        if z_dir == "z":
+            x_io = dir1 * x_range + x_min
+            y_io = dir2 * y_range + y_min
+            z_io = np.full_like(x_io, z_val_in)
+        elif z_dir == "y":
+            x_io = dir1 * x_range + x_min
+            z_io = dir2 * z_range + z_min
+            y_io = np.full_like(x_io, z_val_in)
+        else:
+            y_io = dir1 * y_range + y_min
+            z_io = dir2 * z_range + z_min
+            x_io = np.full_like(y_io, z_val_in)
+
+        if mesh_type == "structured":
+            # contourf plots image like for griddata, therefore transpose
+            plane = inter.interpn(
+                pos,
+                field,
+                np.array((x_io, y_io, z_io)).T,
+                bounds_error=False,
+            ).T
+        else:
+            plane = inter.griddata(
+                pos,
+                field,
+                (x_io, y_io, z_io),
+                method='linear',
+            )
+        if z_dir == "z":
+            z_io = plane
+        elif z_dir == "y":
+            y_io = plane
+        else:
+            x_io = plane
+        return x_io, y_io, z_io
+
+    def update(__):
+        """Widget update."""
+        z_dir_in = radio.value_selected[0]
+        if z_dir_in != container.z_dir_tmp:
+            sax.clear()
+            container.z_height = Slider(
+                sax,
+                z_dir_in + ' value',
+                ax_info[z_dir_in][0],
+                ax_info[z_dir_in][1],
+                valinit=ax_info[z_dir_in][0] + ax_info[z_dir_in][2] / 2.0,
+                valstep=ax_info[z_dir_in][3]
+            )
+            container.z_height.on_changed(update)
+            container.z_dir_tmp = z_dir_in
+        z_val = container.z_height.val
+        ax.clear()
+        xx, yy, zz = get_plane(z_val, z_dir_in)
+        cont = ax.contourf(
+            xx,
+            yy,
+            zz,
+            vmin=field.min(),
+            vmax=field.max(),
+            levels=levels,
+            zdir=z_dir_in,
+            offset=z_val
+        )
+        cont.cmap.set_under("k", alpha=0.0)
+        cont.cmap.set_bad("k", alpha=0.0)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_xlim([x_min, x_max])
+        ax.set_ylim([y_min, y_max])
+        ax.set_zlim([z_min, z_max])
+        ax.set_title(title)
+        fig.canvas.draw_idle()
+        return cont
+
+    container.z_height.on_changed(update)
+    radio.on_clicked(update)
+    cont = update(0)
+    cax = plt.axes([0.85, 0.2, 0.03, 0.6])
+    fig.colorbar(cont, cax=cax, ax=ax)
+    fig.show()
+    return ax
