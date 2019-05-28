@@ -1,6 +1,6 @@
 [run]
 source = gstools
-omit = *docs*, *examples*, *tests*, */gstools/covmodel/plot.py
+omit = *docs*, *examples*, *tests*, */gstools/covmodel/plot.py, */gstools/field/plot.py
 
 [report]
 exclude_lines =
