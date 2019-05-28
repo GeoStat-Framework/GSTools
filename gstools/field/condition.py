@@ -12,6 +12,9 @@ The following functions are provided
 """
 import numpy as np
 from scipy import interpolate as inter
+
+from gstools.field.tools import make_isotropic, unrotate_mesh
+from gstools.tools.geometric import pos2xyz
 from gstools.krige import Ordinary, Simple
 
 
@@ -44,22 +47,12 @@ def ordinary(pos, srf, mesh_type="unstructured"):
     )
     krige_field, krige_var = krige_ok(pos, mesh_type)
 
-    if mesh_type != "unstructured":
-        err_data = inter.interpn(
-            pos,
-            srf.raw_field,
-            np.array(srf.cond_pos).T,
-            bounds_error=False,
-            fill_value=0.0,
-        )
-    else:
-        err_data = inter.griddata(
-            np.squeeze(pos),
-            srf.raw_field.reshape(-1),
-            srf.cond_pos,
-            fill_value=0.0,
-        )
-        err_data = err_data.reshape(-1)
+    # evaluate the field at the conditional points
+    x, y, z = pos2xyz(srf.cond_pos)
+    if srf.do_rotation:
+        x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
+    y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
+    err_data = srf.generator.__call__(x, y, z, "unstructured")
 
     err_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=err_data
@@ -101,22 +94,12 @@ def simple(pos, srf, mesh_type="unstructured"):
     )
     krige_field, krige_var = krige_sk(pos, mesh_type)
 
-    if mesh_type != "unstructured":
-        err_data = inter.interpn(
-            pos,
-            srf.raw_field + srf.mean,
-            np.array(srf.cond_pos).T,
-            bounds_error=False,
-            fill_value=srf.mean,
-        )
-    else:
-        err_data = inter.griddata(
-            np.squeeze(pos),
-            np.reshape(srf.raw_field + srf.mean, -1),
-            srf.cond_pos,
-            fill_value=srf.mean,
-        )
-        err_data = err_data.reshape(-1)
+    # evaluate the field at the conditional points
+    x, y, z = pos2xyz(srf.cond_pos)
+    if srf.do_rotation:
+        x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
+    y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
+    err_data = srf.generator.__call__(x, y, z, "unstructured") + srf.mean
 
     err_ok = Simple(
         model=srf.model,
