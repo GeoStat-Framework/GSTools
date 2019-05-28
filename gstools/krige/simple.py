@@ -156,6 +156,22 @@ class Simple(object):
         else:
             print("gstools.SRF.vtk_export: No field stored in the srf class.")
 
+    def plot(self, fig=None, ax=None):
+        """
+        Plot the stored field.
+
+        Parameters
+        ----------
+        fig : :any:`Figure` or :any:`None`
+            Figure to plot the axes on. If `None`, a new one will be created.
+            Default: `None`
+        ax : :any:`Axes` or :any:`None`
+            Axes to plot on. If `None`, a new one will be added to the figure.
+            Default: `None`
+        """
+        from gstools.field.plot import plot_srf
+        plot_srf(self, fig, ax)
+
     def set_condition(self, cond_pos, cond_val):
         """Set the conditions for kriging.
 
@@ -231,11 +247,3 @@ if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     doctest.testmod()
-    # from gstools import Gaussian
-    # gridx = gridy = np.linspace(0, 10, 1000)
-    # data = np.random.random((100, 3))
-    # model = Gaussian(dim=2, len_scale=1.5, anis=0.2, angles=0.1, var=0.5)
-    # krige = Simple(
-    #     model, mean=1, cond_pos=(data[:, 0], data[:, 1]), cond_val=data[:, 2]
-    # )
-    # krige((gridx, gridy), mesh_type="structured")

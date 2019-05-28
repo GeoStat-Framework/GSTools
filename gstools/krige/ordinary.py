@@ -164,6 +164,22 @@ class Ordinary(object):
         else:
             print("gstools.SRF.vtk_export: No field stored in the srf class.")
 
+    def plot(self, fig=None, ax=None):
+        """
+        Plot the stored field.
+
+        Parameters
+        ----------
+        fig : :any:`Figure` or :any:`None`
+            Figure to plot the axes on. If `None`, a new one will be created.
+            Default: `None`
+        ax : :any:`Axes` or :any:`None`
+            Axes to plot on. If `None`, a new one will be added to the figure.
+            Default: `None`
+        """
+        from gstools.field.plot import plot_srf
+        plot_srf(self, fig, ax)
+
     def set_condition(self, cond_pos, cond_val):
         """Set the conditions for kriging.
 
