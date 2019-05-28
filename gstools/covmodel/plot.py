@@ -15,6 +15,7 @@ The following classes and functions are provided
    plot_spectral_density
    plot_spectral_rad_pdf
 """
+# pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
 import numpy as np
 from matplotlib import pyplot as plt
@@ -33,85 +34,114 @@ __all__ = [
 # plotting routines #######################################################
 
 
-def plot_variogram(model, x_min=0.0, x_max=None):
+def _get_fig_ax(fig, ax, ax_name="rectilinear"):
+    if fig is None and ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection=ax_name)
+    elif ax is None:
+        ax = fig.add_subplot(111, projection=ax_name)
+    elif fig is None:
+        fig = ax.get_figure()
+        assert ax.name == ax_name
+    else:
+        assert ax.name == ax_name
+        assert ax.get_figure() == fig
+    return fig, ax
+
+
+def plot_variogram(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot variogram of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(x_s, model.variogram(x_s), label=model.name + " variogram")
-    plt.legend()
-    plt.show()
+    ax.plot(x_s, model.variogram(x_s), label=model.name + " variogram")
+    fig.legend()
+    fig.show()
+    return ax
 
 
-def plot_covariance(model, x_min=0.0, x_max=None):
+def plot_covariance(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot covariance of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(x_s, model.covariance(x_s), label=model.name + " cov")
-    plt.legend()
-    plt.show()
+    ax.plot(x_s, model.covariance(x_s), label=model.name + " cov")
+    fig.legend()
+    fig.show()
+    return ax
 
 
-def plot_correlation(model, x_min=0.0, x_max=None):
+def plot_correlation(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot correlation function of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(x_s, model.correlation(x_s), label=model.name + " cov normed")
-    plt.legend()
-    plt.show()
+    ax.plot(x_s, model.correlation(x_s), label=model.name + " cov normed")
+    fig.legend()
+    fig.show()
+    return ax
 
 
-def plot_variogram_normed(model, x_min=0.0, x_max=None):
+def plot_variogram_normed(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot normalized variogram of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
+    ax.plot(
         x_s, model.variogram_normed(x_s), label=model.name + " vario normed"
     )
-    plt.legend()
-    plt.show()
+    fig.legend()
+    fig.show()
+    return ax
 
 
-def plot_spectrum(model, x_min=0.0, x_max=None):
+def plot_spectrum(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot specturm of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
+    ax.plot(
         x_s,
         model.spectrum(x_s),
         label=model.name + " " + str(model.dim) + "D spec",
     )
-    plt.legend()
-    plt.show()
+    fig.legend()
+    fig.show()
+    return ax
 
 
-def plot_spectral_density(model, x_min=0.0, x_max=None):
+def plot_spectral_density(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot spectral density of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
+    ax.plot(
         x_s,
         model.spectral_density(x_s),
         label=model.name + " " + str(model.dim) + "D spec-dens",
     )
-    plt.legend()
-    plt.show()
+    fig.legend()
+    fig.show()
+    return ax
 
 
-def plot_spectral_rad_pdf(model, x_min=0.0, x_max=None):
+def plot_spectral_rad_pdf(model, x_min=0.0, x_max=None, fig=None, ax=None):
     """Plot radial spectral pdf of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    plt.plot(
+    ax.plot(
         x_s,
         model.spectral_rad_pdf(x_s),
         label=model.name + " " + str(model.dim) + "D spec-rad-pdf",
     )
-    plt.legend()
-    plt.show()
+    fig.legend()
+    fig.show()
+    return ax
