@@ -118,7 +118,6 @@ class SRF(object):
         self,
         pos,
         seed=np.nan,
-        force_moments=False,
         point_volumes=0.0,
         mesh_type="unstructured",
     ):
@@ -133,9 +132,6 @@ class SRF(object):
             directions
         seed : :class:`int`, optional
             seed for RNG for reseting. Default: keep seed from generator
-        force_moments : :class:`bool`
-            Force the generator to exactly match the given mean and variance.
-            Default: ``False``
         point_volumes : :class:`float` or :class:`numpy.ndarray`
             If your evaluation points for the field are coming from a mesh,
             they are probably representing a certain element volume.
@@ -171,27 +167,14 @@ class SRF(object):
         y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
 
         # generate the field
-        field = self.generator.__call__(x, y, z, mesh_type)
+        self.raw_field = self.generator.__call__(x, y, z, mesh_type)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:
             mesh_type = mesh_type_old
-            field = reshape_field_from_unstruct_to_struct(
-                self.model.dim, field, axis_lens
+            self.raw_field = reshape_field_from_unstruct_to_struct(
+                self.model.dim, self.raw_field, axis_lens
             )
-
-        # force variance and mean to be exactly as given (if wanted)
-        if force_moments:
-            var_in = np.var(field)
-            mean_in = np.mean(field)
-            rescale = np.sqrt(self.model.sill / var_in)
-            field = rescale * (field - mean_in)
-
-        # upscaled variance
-        scaled_var = self.upscaling_func(self.model, point_volumes)
-
-        # rescale and shift the field to the mean
-        self.raw_field = np.sqrt(scaled_var / self.model.sill) * field
 
         # apply given conditions to the field
         if self.condition:
@@ -205,6 +188,17 @@ class SRF(object):
             self.krige_var = krige_var
         else:
             self.field = self.raw_field + self.mean
+
+        # upscaled variance
+        if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
+            scaled_var = self.upscaling_func(self.model, point_volumes)
+            if self.condition and self._krige_type != "simple":
+                mean = self.field.mean()
+            else:
+                mean = self.mean
+            self.field -= mean
+            self.field *= np.sqrt(scaled_var / self.model.sill)
+            self.field += mean
 
         return self.field
 
@@ -225,6 +219,22 @@ class SRF(object):
             vtk_ex(filename, self.pos, self.field, fieldname, self.mesh_type)
         else:
             print("gstools.SRF.vtk_export: No field stored in the srf class.")
+
+    def plot(self, fig=None, ax=None):
+        """
+        Plot the spatial random field.
+
+        Parameters
+        ----------
+        fig : :any:`Figure` or :any:`None`
+            Figure to plot the axes on. If `None`, a new one will be created.
+            Default: `None`
+        ax : :any:`Axes` or :any:`None`
+            Axes to plot on. If `None`, a new one will be added to the figure.
+            Default: `None`
+        """
+        from gstools.field.plot import plot_srf
+        plot_srf(self, fig, ax)
 
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"
