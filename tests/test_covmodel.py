@@ -38,6 +38,17 @@ class TestCovModel(unittest.TestCase):
             TPLExponential,
             TPLStable,
         ]
+        self.std_cov_models = [
+            Gaussian,
+            Exponential,
+            Spherical,
+            SphericalRescal,
+            Rational,
+            Stable,
+            Matern,
+            MaternRescal,
+            Linear,
+        ]
         self.dims = range(1, 4)
         self.lens = [10, [10, 5, 2]]
         self.anis = [1, [0.5, 0.2]]
@@ -112,7 +123,7 @@ class TestCovModel(unittest.TestCase):
                             model.pykrige_kwargs
 
     def test_fitting(self):
-        for Model in self.cov_models:
+        for Model in self.std_cov_models:
             for dim in self.dims:
                 model = Model(dim=dim)
                 model.fit_variogram(self.gamma_x, self.gamma_y, nugget=False)
