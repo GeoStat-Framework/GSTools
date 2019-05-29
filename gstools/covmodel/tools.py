@@ -30,7 +30,7 @@ if hasattr(object, "__init_subclass__"):
     InitSubclassMeta = type
 else:
 
-    class InitSubclassMeta(type):
+    class InitSubclassMeta(type):  # pragma: no cover
         """Metaclass that implements PEP 487 protocol.
 
         Notes
