@@ -23,7 +23,7 @@ from __future__ import print_function, division, absolute_import
 import warnings
 import numpy as np
 from scipy import special as sps
-from gstools.covmodel import CovModel
+from gstools.covmodel.base import CovModel
 
 __all__ = [
     "Gaussian",
@@ -64,6 +64,7 @@ class Gaussian(CovModel):
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
     def spectrum(self, k):
+        k = np.array(k, dtype=np.double)
         return (
             self.var
             * (self.len_scale / np.pi) ** self.dim
@@ -72,6 +73,7 @@ class Gaussian(CovModel):
 
     def spectral_rad_cdf(self, r):
         """Radial spectral cdf."""
+        r = np.array(r, dtype=np.double)
         if self.dim == 1:
             return sps.erf(self.len_scale * r / np.sqrt(np.pi))
         if self.dim == 2:
@@ -86,6 +88,7 @@ class Gaussian(CovModel):
 
     def spectral_rad_ppf(self, u):
         """Radial spectral ppf."""
+        u = np.array(u, dtype=np.double)
         if self.dim == 1:
             return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
         if self.dim == 2:
@@ -133,6 +136,7 @@ class Exponential(CovModel):
         return np.exp(-1 * r / self.len_scale)
 
     def spectrum(self, k):
+        k = np.array(k, dtype=np.double)
         return (
             self.var
             * self.len_scale ** self.dim
@@ -143,6 +147,7 @@ class Exponential(CovModel):
 
     def spectral_rad_cdf(self, r):
         """Radial spectral cdf."""
+        r = np.array(r, dtype=np.double)
         if self.dim == 1:
             return np.arctan(r * self.len_scale) * 2 / np.pi
         if self.dim == 2:
@@ -160,6 +165,7 @@ class Exponential(CovModel):
 
     def spectral_rad_ppf(self, u):
         """Radial spectral ppf."""
+        u = np.array(u, dtype=np.double)
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_scale
         if self.dim == 2:
