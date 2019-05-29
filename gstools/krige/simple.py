@@ -170,6 +170,7 @@ class Simple(object):
             Default: `None`
         """
         from gstools.field.plot import plot_srf
+
         plot_srf(self, fig, ax)
 
     def set_condition(self, cond_pos, cond_val):

@@ -115,11 +115,7 @@ class SRF(object):
         self.upscaling = upscaling
 
     def __call__(
-        self,
-        pos,
-        seed=np.nan,
-        point_volumes=0.0,
-        mesh_type="unstructured",
+        self, pos, seed=np.nan, point_volumes=0.0, mesh_type="unstructured"
     ):
         """Generate the spatial random field.
 
@@ -233,6 +229,7 @@ class SRF(object):
         """
         # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_srf
+
         plot_srf(self, fig, ax)
 
     def set_condition(

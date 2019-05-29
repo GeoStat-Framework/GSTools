@@ -57,8 +57,8 @@ def _plot_1d(pos, field, fig=None, ax=None):
     x = x.flatten()
     arg = np.argsort(x)
     ax.plot(x[arg], field.ravel()[arg])
-    ax.set_xlabel('X')
-    ax.set_ylabel('field')
+    ax.set_xlabel("X")
+    ax.set_ylabel("field")
     ax.set_title(title)
     fig.show()
     return ax
@@ -73,8 +73,8 @@ def _plot_2d(pos, field, mesh_type, fig=None, ax=None):
         cont = ax.tricontourf(x, y, field.ravel(), levels=256)
     else:
         cont = ax.contourf(x, y, field.T, levels=256)
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
     ax.set_title(title)
     fig.colorbar(cont)
     fig.show()
@@ -109,20 +109,18 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):
     sax = plt.axes([0.15, 0.1, 0.65, 0.03])
     z_height = Slider(
         sax,
-        'z value',
+        "z value",
         z_min,
         z_max,
         valinit=z_min + z_range / 2.0,
-        valstep=z_step
+        valstep=z_step,
     )
     rax = plt.axes([0.05, 0.5, 0.1, 0.15])
-    radio = RadioButtons(rax, ('x slice', 'y slice', 'z slice'), active=2)
+    radio = RadioButtons(rax, ("x slice", "y slice", "z slice"), active=2)
     z_dir_tmp = "z"
     # create container
     container_class = type(
-        'info',
-        (object,),
-        {"z_height": z_height, "z_dir_tmp": z_dir_tmp},
+        "info", (object,), {"z_height": z_height, "z_dir_tmp": z_dir_tmp}
     )
     container = container_class()
 
@@ -144,17 +142,11 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):
         if mesh_type == "structured":
             # contourf plots image like for griddata, therefore transpose
             plane = inter.interpn(
-                pos,
-                field,
-                np.array((x_io, y_io, z_io)).T,
-                bounds_error=False,
+                pos, field, np.array((x_io, y_io, z_io)).T, bounds_error=False
             ).T
         else:
             plane = inter.griddata(
-                pos,
-                field,
-                (x_io, y_io, z_io),
-                method='linear',
+                pos, field, (x_io, y_io, z_io), method="linear"
             )
         if z_dir == "z":
             z_io = plane
@@ -171,11 +163,11 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):
             sax.clear()
             container.z_height = Slider(
                 sax,
-                z_dir_in + ' value',
+                z_dir_in + " value",
                 ax_info[z_dir_in][0],
                 ax_info[z_dir_in][1],
                 valinit=ax_info[z_dir_in][0] + ax_info[z_dir_in][2] / 2.0,
-                valstep=ax_info[z_dir_in][3]
+                valstep=ax_info[z_dir_in][3],
             )
             container.z_height.on_changed(update)
             container.z_dir_tmp = z_dir_in
@@ -190,13 +182,13 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):
             vmax=field.max(),
             levels=levels,
             zdir=z_dir_in,
-            offset=z_val
+            offset=z_val,
         )
         cont.cmap.set_under("k", alpha=0.0)
         cont.cmap.set_bad("k", alpha=0.0)
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Z")
         ax.set_xlim([x_min, x_max])
         ax.set_ylim([y_min, y_max])
         ax.set_zlim([z_min, z_max])

@@ -307,7 +307,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         if self.do_rotation:
             x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
         y, z = make_isotropic(self.dim, self.anis, y, z)
-        return np.linalg.norm((x, y, z)[:self.dim], axis=0)
+        return np.linalg.norm((x, y, z)[: self.dim], axis=0)
 
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
