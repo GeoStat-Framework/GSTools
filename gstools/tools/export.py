@@ -24,7 +24,7 @@ __all__ = ["vtk_export_structured", "vtk_export_unstructured", "vtk_export"]
 # export routines #############################################################
 
 
-def vtk_export_structured(filename, pos, field, fieldname="field"):
+def vtk_export_structured(filename, pos, field, fieldname="field"):  # pragma: no cover
     """Export a field to vtk structured rectilinear grid file.
 
     Parameters
@@ -55,7 +55,7 @@ def vtk_export_structured(filename, pos, field, fieldname="field"):
     gridToVTK(filename, x, y, z, pointData={fieldname: field})
 
 
-def vtk_export_unstructured(filename, pos, field, fieldname="field"):
+def vtk_export_unstructured(filename, pos, field, fieldname="field"):  # pragma: no cover
     """Export a field to vtk structured rectilinear grid file.
 
     Parameters
@@ -87,7 +87,7 @@ def vtk_export_unstructured(filename, pos, field, fieldname="field"):
 
 def vtk_export(
     filename, pos, field, fieldname="field", mesh_type="unstructured"
-):
+):  # pragma: no cover
     """Export a field to vtk.
 
     Parameters

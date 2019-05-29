@@ -200,7 +200,7 @@ class SRF(object):
 
         return self.field
 
-    def vtk_export(self, filename, fieldname="field"):
+    def vtk_export(self, filename, fieldname="field"):  # pragma: no cover
         """Export the stored field to vtk.
 
         Parameters

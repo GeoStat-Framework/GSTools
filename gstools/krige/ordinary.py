@@ -146,7 +146,7 @@ class Ordinary(object):
             return np.vstack((res, np.ones((1, res.shape[1]))))
         return res
 
-    def vtk_export(self, filename, fieldname="field"):
+    def vtk_export(self, filename, fieldname="field"):  # pragma: no cover
         """Export the stored field to vtk.
 
         Parameters
