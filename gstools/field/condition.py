@@ -10,26 +10,19 @@ The following functions are provided
    ordinary
    simple
 """
-import numpy as np
-from scipy import interpolate as inter
-
+# pylint: disable=C0103
 from gstools.field.tools import make_isotropic, unrotate_mesh
 from gstools.tools.geometric import pos2xyz
 from gstools.krige import Ordinary, Simple
 
 
-def ordinary(pos, srf, mesh_type="unstructured"):
+def ordinary(srf):
     """Condition a given spatial random field with ordinary kriging.
 
     Parameters
     ----------
-    pos : :class:`list`
-        the position tuple, containing main direction and transversal
-        directions
     srf : :any:`SRF`
         The spatial random field class containing all information
-    mesh_type : :class:`str`
-        'structured' / 'unstructured'
 
     Returns
     -------
@@ -45,11 +38,11 @@ def ordinary(pos, srf, mesh_type="unstructured"):
     krige_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=srf.cond_val
     )
-    krige_field, krige_var = krige_ok(pos, mesh_type)
+    krige_field, krige_var = krige_ok(srf.pos, srf.mesh_type)
 
     # evaluate the field at the conditional points
     x, y, z = pos2xyz(srf.cond_pos)
-    if srf.do_rotation:
+    if srf.model.do_rotation:
         x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
     y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
     err_data = srf.generator.__call__(x, y, z, "unstructured")
@@ -57,23 +50,18 @@ def ordinary(pos, srf, mesh_type="unstructured"):
     err_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=err_data
     )
-    err_field, __ = err_ok(pos, mesh_type)
+    err_field, __ = err_ok(srf.pos, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field
     return cond_field, krige_field, err_field, krige_var
 
 
-def simple(pos, srf, mesh_type="unstructured"):
+def simple(srf):
     """Condition a given spatial random field with simple kriging.
 
     Parameters
     ----------
-    pos : :class:`list`
-        the position tuple, containing main direction and transversal
-        directions
     srf : :any:`SRF`
         The spatial random field class containing all information
-    mesh_type : :class:`str`
-        'structured' / 'unstructured'
 
     Returns
     -------
@@ -92,11 +80,11 @@ def simple(pos, srf, mesh_type="unstructured"):
         cond_pos=srf.cond_pos,
         cond_val=srf.cond_val,
     )
-    krige_field, krige_var = krige_sk(pos, mesh_type)
+    krige_field, krige_var = krige_sk(srf.pos, srf.mesh_type)
 
     # evaluate the field at the conditional points
     x, y, z = pos2xyz(srf.cond_pos)
-    if srf.do_rotation:
+    if srf.model.do_rotation:
         x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
     y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
     err_data = srf.generator.__call__(x, y, z, "unstructured") + srf.mean
@@ -107,6 +95,6 @@ def simple(pos, srf, mesh_type="unstructured"):
         cond_pos=srf.cond_pos,
         cond_val=err_data,
     )
-    err_field, __ = err_ok(pos, mesh_type)
+    err_field, __ = err_ok(srf.pos, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field + srf.mean
     return cond_field, krige_field, err_field, krige_var

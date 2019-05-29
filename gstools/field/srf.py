@@ -155,7 +155,7 @@ class SRF(object):
         # format the positional arguments of the mesh
         check_mesh(self.model.dim, x, y, z, mesh_type)
         mesh_type_changed = False
-        if self.do_rotation:
+        if self.model.do_rotation:
             if mesh_type == "structured":
                 mesh_type_changed = True
                 mesh_type_old = mesh_type
@@ -178,14 +178,12 @@ class SRF(object):
 
         # apply given conditions to the field
         if self.condition:
-            cond_field, krige_field, err_field, krige_var = self.cond_func(
-                pos, self, mesh_type=mesh_type
-            )
+            cond_field, krige_field, err_field, krigevar = self.cond_func(self)
             # store everything in the class
             self.field = cond_field
             self.krige_field = krige_field
             self.err_field = err_field
-            self.krige_var = krige_var
+            self.krige_var = krigevar
         else:
             self.field = self.raw_field + self.mean
 
@@ -233,6 +231,7 @@ class SRF(object):
             Axes to plot on. If `None`, a new one will be added to the figure.
             Default: `None`
         """
+        # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_srf
         plot_srf(self, fig, ax)
 
@@ -364,11 +363,6 @@ class SRF(object):
             raise ValueError(
                 "gstools.SRF: 'model' is not an instance of 'gstools.CovModel'"
             )
-
-    @property
-    def do_rotation(self):
-        """:any:`bool`: State if a rotation is performed."""
-        return not np.all(np.isclose(self.model.angles, 0.0))
 
     def __str__(self):
         """Return String representation."""
