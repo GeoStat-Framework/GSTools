@@ -16,7 +16,7 @@ from __future__ import print_function, division, absolute_import
 
 import warnings
 import numpy as np
-from gstools.covmodel import CovModel
+from gstools.covmodel.base import CovModel
 from gstools.tools.special import stable_cov_norm
 
 __all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
@@ -144,6 +144,18 @@ class TPLGaussian(CovModel):
         """
         return {"hurst": 0.5, "len_low": 0.0}
 
+    def default_arg_bounds(self):
+        """Provide default boundaries for arguments.
+
+        Given as a dictionary.
+        """
+        res = {
+            "var": (0.0, 10000.0, "oc"),
+            "len_scale": (0.0, 1000.0, "oo"),
+            "nugget": (0.0, 100.0, "cc"),
+        }
+        return res
+
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
@@ -154,7 +166,7 @@ class TPLGaussian(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
+        return {"hurst": [0.1, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
     def correlation(self, r):
         r"""Truncated-Power-Law with Gaussian modes - correlation function.
@@ -312,6 +324,18 @@ class TPLExponential(CovModel):
         """
         return {"hurst": 0.5, "len_low": 0.0}
 
+    def default_arg_bounds(self):
+        """Provide default boundaries for arguments.
+
+        Given as a dictionary.
+        """
+        res = {
+            "var": (0.0, 10000.0, "oc"),
+            "len_scale": (0.0, 1000.0, "oo"),
+            "nugget": (0.0, 100.0, "cc"),
+        }
+        return res
+
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
@@ -322,7 +346,7 @@ class TPLExponential(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}
+        return {"hurst": [0.1, 1, "oo"], "len_low": [0, 1000, "cc"]}
 
     def correlation(self, r):
         r"""Truncated-Power-Law with Exponential modes - correlation function.
@@ -489,6 +513,18 @@ class TPLStable(CovModel):
         """
         return {"hurst": 0.5, "alpha": 1.5, "len_low": 0.0}
 
+    def default_arg_bounds(self):
+        """Provide default boundaries for arguments.
+
+        Given as a dictionary.
+        """
+        res = {
+            "var": (0.0, 10000.0, "oc"),
+            "len_scale": (0.0, 1000.0, "oo"),
+            "nugget": (0.0, 100.0, "cc"),
+        }
+        return res
+
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
@@ -500,7 +536,7 @@ class TPLStable(CovModel):
             Boundaries for optional arguments
         """
         return {
-            "hurst": [0, 1, "oo"],
+            "hurst": [0.1, 1, "oo"],
             "alpha": [0, 2, "oc"],
             "len_low": [0, 1000, "cc"],
         }
