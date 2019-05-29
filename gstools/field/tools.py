@@ -130,16 +130,16 @@ def unrotate_mesh(dim, angles, x, y, z):
         return x, y, z
     if dim == 2:
         # extract 2d rotation matrix
-        rot_mat = r3d_z(angles[0])[0:2, 0:2]
+        rot_mat = r3d_z(-angles[0])[0:2, 0:2]
         pos_tuple = np.vstack((x, y))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 2)
         x = np.squeeze(pos_tuple[0])
         y = np.squeeze(pos_tuple[1])
         return x, y, z
     if dim == 3:
-        alpha = angles[0]
-        beta = angles[1]
-        gamma = angles[2]
+        alpha = -angles[0]
+        beta = -angles[1]
+        gamma = -angles[2]
         rot_mat = np.dot(np.dot(r3d_z(alpha), r3d_y(beta)), r3d_x(gamma))
         pos_tuple = np.vstack((x, y, z))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
