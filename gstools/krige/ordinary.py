@@ -97,7 +97,7 @@ class Ordinary(object):
             x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
                 self.model.dim, x, y, z
             )
-        if self.do_rotation:
+        if self.model.do_rotation:
             x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
             c_x, c_y, c_z = unrotate_mesh(
                 self.model.dim, self.model.angles, c_x, c_y, c_z
@@ -233,11 +233,6 @@ class Ordinary(object):
                 "gstools.krige.Ordinary: "
                 + "'model' is not an instance of 'gstools.CovModel'"
             )
-
-    @property
-    def do_rotation(self):
-        """:any:`bool`: State if a rotation should be performed."""
-        return not np.all(np.isclose(self.model.angles, 0.0))
 
     def __str__(self):
         """Return String representation."""
