@@ -17,6 +17,8 @@ import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
 from hankel import SymmetricFourierTransform as SFT
+from gstools.field.tools import make_isotropic, unrotate_mesh
+from gstools.tools.geometric import pos2xyz
 from gstools.covmodel.tools import (
     InitSubclassMeta,
     rad_fac,
@@ -300,6 +302,25 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     ### special variogram functions ###########################################
 
+    def _get_iso_rad(self, pos):
+        x, y, z = pos2xyz(pos)
+        if self.do_rotation:
+            x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
+        y, z = make_isotropic(self.dim, self.anis, y, z)
+        return np.linalg.norm((x, y, z)[:self.dim], axis=0)
+
+    def vario_spatial(self, pos):
+        r"""Spatial variogram respecting anisotropy and rotation."""
+        return self.variogram(self._get_iso_rad(pos))
+
+    def cov_spatial(self, pos):
+        r"""Spatial covariance respecting anisotropy and rotation."""
+        return self.covariance(self._get_iso_rad(pos))
+
+    def cor_spatial(self, pos):
+        r"""Spatial correlation respecting anisotropy and rotation."""
+        return self.correlation(self._get_iso_rad(pos))
+
     def cov_nugget(self, r):
         r"""Covariance of the model respecting the nugget at r=0.
 
@@ -369,28 +390,28 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def pykrige_angle(self):
         """2D rotation angle for pykrige."""
         if self.dim == 2:
-            return -self.angles[0] / np.pi * 180
+            return self.angles[0] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_angle_z(self):
         """3D rotation angle around z for pykrige."""
         if self.dim >= 2:
-            return -self.angles[0] / np.pi * 180
+            return self.angles[0] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_angle_y(self):
         """3D rotation angle around y for pykrige."""
         if self.dim == 3:
-            return -self.angles[1] / np.pi * 180
+            return self.angles[1] / np.pi * 180
         return 0.0
 
     @property
     def pykrige_angle_x(self):
         """3D rotation angle around x for pykrige."""
         if self.dim == 3:
-            return -self.angles[2] / np.pi * 180
+            return self.angles[2] / np.pi * 180
         return 0.0
 
     @property
@@ -1126,6 +1147,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     def name(self):
         """:class:`str`: The name of the CovModel class."""
         return self.__class__.__name__
+
+    @property
+    def do_rotation(self):
+        """:any:`bool`: State if a rotation is performed."""
+        return not np.all(np.isclose(self.angles, 0.0))
 
     ### magic methods #########################################################
 
