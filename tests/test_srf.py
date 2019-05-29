@@ -124,7 +124,7 @@ class TestSRF(unittest.TestCase):
         field = srf((x_u, y_u), seed=self.seed, mesh_type="unstructured")
         field_str = np.reshape(field, (y_len, x_len))
 
-        self.cov_model.angles = np.pi / 2.0
+        self.cov_model.angles = -np.pi / 2.0
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf((x_u, y_u), seed=self.seed, mesh_type="unstructured")
         field_rot_str = np.reshape(field_rot, (y_len, x_len))
@@ -142,7 +142,7 @@ class TestSRF(unittest.TestCase):
             mesh_type="structured",
         )
 
-        self.cov_model.angles = np.pi / 2.0
+        self.cov_model.angles = -np.pi / 2.0
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (self.x_grid_c, self.y_grid_c),
@@ -171,7 +171,7 @@ class TestSRF(unittest.TestCase):
         field = srf((x_u, y_u, z_u), seed=self.seed, mesh_type="unstructured")
         field_str = np.reshape(field, (y_len, x_len, z_len))
 
-        self.cov_model.angles = (np.pi / 2.0, np.pi / 2.0)
+        self.cov_model.angles = (-np.pi / 2.0, -np.pi / 2.0)
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (x_u, y_u, z_u), seed=self.seed, mesh_type="unstructured"
@@ -192,7 +192,7 @@ class TestSRF(unittest.TestCase):
             mesh_type="structured",
         )
 
-        self.cov_model.angles = np.pi / 2.0
+        self.cov_model.angles = -np.pi / 2.0
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (self.x_grid_c, self.y_grid_c, self.z_grid_c),
@@ -203,7 +203,7 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field[0, 0, 0], field_rot[0, 7, 0])
         self.assertAlmostEqual(field[0, 0, 1], field_rot[0, 7, 1])
 
-        self.cov_model.angles = (0, np.pi / 2.0)
+        self.cov_model.angles = (0, -np.pi / 2.0)
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (self.x_grid_c, self.y_grid_c, self.z_grid_c),
