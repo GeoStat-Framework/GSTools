@@ -6,21 +6,12 @@ from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import unittest
-from gstools import (
-    Gaussian,
-    Exponential,
-    Spherical,
-    krige,
-)
+from gstools import Gaussian, Exponential, Spherical, krige
 
 
 class TestKrige(unittest.TestCase):
     def setUp(self):
-        self.cov_models = [
-            Gaussian,
-            Exponential,
-            Spherical,
-        ]
+        self.cov_models = [Gaussian, Exponential, Spherical]
         self.dims = range(1, 4)
         self.data = np.array(
             [
@@ -50,18 +41,13 @@ class TestKrige(unittest.TestCase):
                     angles=[0.5, 0, 0],
                 )
                 simple = krige.Simple(
-                    model,
-                    self.mean,
-                    self.cond_pos[:dim],
-                    self.cond_val,
+                    model, self.mean, self.cond_pos[:dim], self.cond_val
                 )
                 field_1, __ = simple.unstructured(self.pos[:dim])
                 field_2, __ = simple.structured(self.pos[:dim])
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
-                    self.assertAlmostEqual(
-                        val, field_2[dim * (i,)], places=2
-                    )
+                    self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
                 self.assertAlmostEqual(self.mean, field_1[-1], places=2)
                 self.assertAlmostEqual(
                     self.mean, field_2[dim * (-1,)], places=2
@@ -78,17 +64,13 @@ class TestKrige(unittest.TestCase):
                     angles=[0.5, 0, 0],
                 )
                 ordinary = krige.Ordinary(
-                    model,
-                    self.cond_pos[:dim],
-                    self.cond_val,
+                    model, self.cond_pos[:dim], self.cond_val
                 )
                 field_1, __ = ordinary.unstructured(self.pos[:dim])
                 field_2, __ = ordinary.structured(self.pos[:dim])
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
-                    self.assertAlmostEqual(
-                        val, field_2[dim * (i,)], places=2
-                    )
+                    self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
 
 
 if __name__ == "__main__":

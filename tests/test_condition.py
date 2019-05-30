@@ -53,16 +53,9 @@ class TestCondition(unittest.TestCase):
                     anis=[0.1, 1],
                     angles=[0.5, 0, 0],
                 )
-                srf = SRF(
-                    model,
-                    self.mean,
-                )
+                srf = SRF(model, self.mean, seed=19970221)
                 print("    set condition")
-                srf.set_condition(
-                    self.cond_pos[:dim],
-                    self.cond_val,
-                    "simple",
-                )
+                srf.set_condition(self.cond_pos[:dim], self.cond_val, "simple")
                 print("    gen unstr")
                 field_1 = srf.unstructured(self.pos[:dim])
                 print("    gen str")
@@ -70,9 +63,7 @@ class TestCondition(unittest.TestCase):
                 print("    compare")
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
-                    self.assertAlmostEqual(
-                        val, field_2[dim * (i,)], places=2
-                    )
+                    self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
 
     def test_ordinary(self):
         print("ORDINARY")
@@ -87,12 +78,10 @@ class TestCondition(unittest.TestCase):
                     anis=[0.1, 1],
                     angles=[0.5, 0, 0],
                 )
-                srf = SRF(model)
+                srf = SRF(model, seed=19970221)
                 print("    set condition")
                 srf.set_condition(
-                    self.cond_pos[:dim],
-                    self.cond_val,
-                    "ordinary",
+                    self.cond_pos[:dim], self.cond_val, "ordinary"
                 )
                 print("    gen unstr")
                 field_1 = srf.unstructured(self.pos[:dim])
@@ -101,9 +90,7 @@ class TestCondition(unittest.TestCase):
                 print("    compare")
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
-                    self.assertAlmostEqual(
-                        val, field_2[dim * (i,)], places=2
-                    )
+                    self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
 
 
 if __name__ == "__main__":
