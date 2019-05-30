@@ -15,16 +15,44 @@
 
 ## Purpose
 
-GeoStatTools provides geostatistical tools for random field generation and variogram estimation based on many readily provided and even user-defined covariance models.
+GeoStatTools provides geostatistical tools for various purposes:
+- random field generation
+- conditioned field generation
+- incompressible random vector field generation
+- simple and ordinary kriging
+- variogram estimation and fitting
+- many readily provided and even user-defined covariance models
+- plotting and exporting routines
 
 
 ## Installation
 
-The package can be installed via [pip][pip_link].
+The package can be installed via [pip][pip_link] on Windows, Linux and Mac.
 On Windows you can install [WinPython][winpy_link] to get
-Python and pip running.
+Python and pip running. Also [conda provides pip support][conda_pip].
+Install GSTools by typing the following into the command prompt:
 
     pip install gstools
+
+To get the latest development version you can install it directly from GitHub:
+
+    pip install https://github.com/GeoStat-Framework/GSTools/archive/master.zip
+
+To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
+Then use the following command:
+
+    pip install --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/master.zip
+
+If something went wrong during installation, try the [``-I`` flag from pip][pipiflag].
+
+
+## Citation
+
+At the moment you can cite the Zenodo code publication of GSTools:
+
+> *Sebastian Müller, & Lennart Schüler. (2019, January 18). GeoStat-Framework/GSTools: Bouncy Blue (Version v1.0.1). Zenodo. http://doi.org/10.5281/zenodo.2543658*
+
+A publication for the GeoStat-Framework is in preperation.
 
 
 ## Documentation for GSTools
@@ -71,7 +99,7 @@ plt.show()
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
-A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualised with [ParaView](https://www.paraview.org/).
+A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/).
 
 ```python
 from gstools import SRF, Gaussian, vtk_export
@@ -91,8 +119,8 @@ vtk_export('3d_field', (x, y, z), field, mesh_type='structured')
 #### Truncated Power Law Model
 
 GSTools also implements truncated power law variograms, which can be represented as a
-superposition of scale dependant modes in form of standard variograms, which are truncated by
-an upper lengthscale <i>l<sub>u</sub></i>.
+superposition of scale dependent modes in form of standard variograms, which are truncated by
+an upper length-scale <i>l<sub>u</sub></i>.
 
 This example shows the truncated power law based on the [stable model][stable_link] and is given by
 
@@ -110,25 +138,23 @@ This results in:
 
 ```python
 import numpy as np
-import matplotlib.pyplot as plt
 from gstools import SRF, TPLStable
 x = y = np.linspace(0, 100, 100)
 model = TPLStable(
-    dim=2,           # spatial dimension
-    var=1,           # variance (C is calculated internally, so that the variance is actually 1)
-    len_low=0,       # lower truncation of the power law
-    len_scale=10,    # length scale (a.k.a. range), len_up = len_low + len_scale
-    nugget=0.1,      # nugget
-    anis=0.5,        # anisotropy between main direction and transversal ones
-    angles=np.pi/4,  # rotation angles
-    alpha=1.5,       # shape parameter from the stable model
-    hurst=0.7,       # hurst coefficient from the power law
+    dim=2,            # spatial dimension
+    var=1,            # variance (C is calculated internally, so that the variance is actually 1)
+    len_low=0,        # lower truncation of the power law
+    len_scale=10,     # length scale (a.k.a. range), len_up = len_low + len_scale
+    nugget=0.1,       # nugget
+    anis=0.5,         # anisotropy between main direction and transversal ones
+    angles=-np.pi/4,  # rotation angles
+    alpha=1.5,        # shape parameter from the stable model
+    hurst=0.7,        # hurst coefficient from the power law
 )
 srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
 field = srf((x, y), mesh_type='structured')
 # show the field in xy coordinates
-plt.imshow(field.T, origin="lower")
-plt.show()
+srf.plot()
 ```
 
 <p align="center">
@@ -184,13 +210,13 @@ Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alph
 
 ## User Defined Covariance Models
 
-One of the core-features of GSTools is the powerfull
+One of the core-features of GSTools is the powerful
 [CovModel][cov_link]
 class, which allows to easy define covariance models by the user.
 
 ### Example
 
-Here we reimplement the Gaussian covariance model by defining just the
+Here we re-implement the Gaussian covariance model by defining just the
 [correlation][cor_link] function:
 
 ```python
@@ -280,6 +306,8 @@ You can contact us via <info@geostat-framework.org>.
 [GPL][gpl_link] © 2018-2019
 
 [pip_link]: https://pypi.org/project/gstools
+[conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages
+[pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
 [winpy_link]: https://winpython.github.io/
 [gpl_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
 [cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
