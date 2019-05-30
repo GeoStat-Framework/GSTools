@@ -50,11 +50,11 @@ class TestCovModel(unittest.TestCase):
             Linear,
         ]
         self.dims = range(1, 4)
-        self.lens = [10, [10, 5, 2]]
-        self.anis = [1, [0.5, 0.2]]
+        self.lens = [[10, 5, 2]]
+        self.anis = [[0.5, 0.2]]
         self.nuggets = [0, 1]
         self.vars = [1, 2]
-        self.angles = [0, [1, 2, 3]]
+        self.angles = [[1, 2, 3]]
 
         self.gamma_x = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0]
         self.gamma_y = [0.2, 0.5, 0.6, 0.8, 0.8, 0.9]
