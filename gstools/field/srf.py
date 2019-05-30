@@ -214,12 +214,14 @@ class SRF(object):
         else:
             print("gstools.SRF.vtk_export: No field stored in the srf class.")
 
-    def plot(self, fig=None, ax=None):
+    def plot(self, field="field", fig=None, ax=None):
         """
         Plot the spatial random field.
 
         Parameters
         ----------
+        field : :class:`str`, optional
+            Field that should be plotted. Default: "field"
         fig : :any:`Figure` or :any:`None`
             Figure to plot the axes on. If `None`, a new one will be created.
             Default: `None`
@@ -230,7 +232,7 @@ class SRF(object):
         # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_srf
 
-        plot_srf(self, fig, ax)
+        plot_srf(self, field, fig, ax)
 
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"

@@ -25,7 +25,7 @@ __all__ = ["plot_srf"]
 # plotting routines #######################################################
 
 
-def plot_srf(srf, fig=None, ax=None):
+def plot_srf(srf, field="field", fig=None, ax=None):
     """
     Plot a spatial random field.
 
@@ -33,20 +33,23 @@ def plot_srf(srf, fig=None, ax=None):
     ----------
     srf : :any:`SRF`
         The given srf class instance.
-    fig : :any:`Figure` or :any:`None`
+    field : :class:`str`, optional
+        Field that should be plotted. Default: "field"
+    fig : :any:`Figure` or :any:`None`, optional
         Figure to plot the axes on. If `None`, a new one will be created.
         Default: `None`
-    ax : :any:`Axes` or :any:`None`
+    ax : :any:`Axes` or :any:`None`, optional
         Axes to plot on. If `None`, a new one will be added to the figure.
         Default: `None`
     """
-    assert not (srf.pos is None or srf.field is None)
+    plot_field = getattr(srf, field)
+    assert not (srf.pos is None or plot_field is None)
     if srf.model.dim == 1:
-        _plot_1d(srf.pos, srf.field, fig, ax)
+        _plot_1d(srf.pos, plot_field, fig, ax)
     elif srf.model.dim == 2:
-        _plot_2d(srf.pos, srf.field, srf.mesh_type, fig, ax)
+        _plot_2d(srf.pos, plot_field, srf.mesh_type, fig, ax)
     else:
-        _plot_3d(srf.pos, srf.field, srf.mesh_type, fig, ax)
+        _plot_3d(srf.pos, plot_field, srf.mesh_type, fig, ax)
 
 
 def _plot_1d(pos, field, fig=None, ax=None):
