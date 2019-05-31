@@ -174,12 +174,20 @@ class SRF(object):
 
         # apply given conditions to the field
         if self.condition:
-            cond_field, krige_field, err_field, krigevar = self.cond_func(self)
+            (
+                cond_field,
+                krige_field,
+                err_field,
+                krigevar,
+                info,
+            ) = self.cond_func(self)
             # store everything in the class
             self.field = cond_field
             self.krige_field = krige_field
             self.err_field = err_field
             self.krige_var = krigevar
+            if "mean" in info:
+                self.mean = info["mean"]
         else:
             self.field = self.raw_field + self.mean
 
@@ -196,7 +204,9 @@ class SRF(object):
 
         return self.field
 
-    def vtk_export(self, filename, fieldname="field"):  # pragma: no cover
+    def vtk_export(
+        self, filename, field_select="field", fieldname="field"
+    ):  # pragma: no cover
         """Export the stored field to vtk.
 
         Parameters
@@ -204,15 +214,25 @@ class SRF(object):
         filename : :class:`str`
             Filename of the file to be saved, including the path. Note that an
             ending (.vtr or .vtu) will be added to the name.
+        field_select : :class:`str`, optional
+            Field that should be stored. Can be:
+            "field", "raw_field", "krige_field", "err_field" or "krige_var".
+            Default: "field"
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        if not (
-            self.pos is None or self.field is None or self.mesh_type is None
-        ):
-            vtk_ex(filename, self.pos, self.field, fieldname, self.mesh_type)
+        if hasattr(self, field_select):
+            field = getattr(self, field_select)
         else:
-            print("gstools.SRF.vtk_export: No field stored in the srf class.")
+            field = None
+        if not (self.pos is None or field is None or self.mesh_type is None):
+            vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
+        else:
+            print(
+                "gstools.SRF.vtk_export: No "
+                + field_select
+                + " stored in the class."
+            )
 
     def plot(self, field="field", fig=None, ax=None):
         """
@@ -221,7 +241,9 @@ class SRF(object):
         Parameters
         ----------
         field : :class:`str`, optional
-            Field that should be plotted. Default: "field"
+            Field that should be plotted. Can be:
+            "field", "raw_field", "krige_field", "err_field" or "krige_var".
+            Default: "field"
         fig : :any:`Figure` or :any:`None`
             Figure to plot the axes on. If `None`, a new one will be created.
             Default: `None`
