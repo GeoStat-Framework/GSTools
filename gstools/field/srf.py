@@ -186,7 +186,7 @@ class SRF(object):
             self.krige_field = krige_field
             self.err_field = err_field
             self.krige_var = krigevar
-            if "mean" in info:
+            if "mean" in info:  # ordinary krging estimates mean
                 self.mean = info["mean"]
         else:
             self.field = self.raw_field + self.mean
@@ -194,13 +194,9 @@ class SRF(object):
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
-            if self.condition and self._krige_type != "simple":
-                mean = self.field.mean()
-            else:
-                mean = self.mean
-            self.field -= mean
+            self.field -= self.mean
             self.field *= np.sqrt(scaled_var / self.model.sill)
-            self.field += mean
+            self.field += self.mean
 
         return self.field
 
