@@ -50,7 +50,8 @@ class Ordinary(object):
     def __init__(self, model, cond_pos, cond_val):
         # initialize private attributes
         self.field = None
-        self.error = None
+        self.krige_var = None
+        self.mean = 0.0
 
         self._model = None
         self._cond_pos = None
@@ -79,8 +80,8 @@ class Ordinary(object):
         -------
         field : :class:`numpy.ndarray`
             the kriged field
-        error : :class:`numpy.ndarray`
-            the kriging error
+        krige_var : :class:`numpy.ndarray`
+            the kriging error variance
         """
         # internal conversation
         x, y, z = pos2xyz(pos, dtype=np.double)
@@ -110,7 +111,12 @@ class Ordinary(object):
         krig_mat = inv(self._get_krig_mat((c_x, c_y, c_z), (c_x, c_y, c_z)))
         krig_vecs = self._get_vario_mat((c_x, c_y, c_z), (x, y, z), add=True)
         # generate the kriged field
-        field, error = krigesum(krig_mat, krig_vecs, cond)
+        field, krige_var = krigesum(krig_mat, krig_vecs, cond)
+        # calculate the estimated mean (kriging field at infinity)
+        mean_est = np.concatenate(
+            (np.full_like(self.cond_val, self.model.sill), [1])
+        )
+        self.mean = np.einsum("i,ij,j", cond, krig_mat, mean_est)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:
@@ -118,13 +124,13 @@ class Ordinary(object):
             field = reshape_field_from_unstruct_to_struct(
                 self.model.dim, field, axis_lens
             )
-            error = reshape_field_from_unstruct_to_struct(
-                self.model.dim, error, axis_lens
+            krige_var = reshape_field_from_unstruct_to_struct(
+                self.model.dim, krige_var, axis_lens
             )
         # save the field
-        self.error = error
+        self.krige_var = krige_var
         self.field = field
-        return self.field, self.error
+        return self.field, self.krige_var
 
     def _get_krig_mat(self, pos1, pos2):
         size = pos1[0].size
@@ -146,7 +152,9 @@ class Ordinary(object):
             return np.vstack((res, np.ones((1, res.shape[1]))))
         return res
 
-    def vtk_export(self, filename, fieldname="field"):  # pragma: no cover
+    def vtk_export(
+        self, filename, field_select="field", fieldname="field"
+    ):  # pragma: no cover
         """Export the stored field to vtk.
 
         Parameters
@@ -154,15 +162,25 @@ class Ordinary(object):
         filename : :class:`str`
             Filename of the file to be saved, including the path. Note that an
             ending (.vtr or .vtu) will be added to the name.
+        field_select : :class:`str`, optional
+            Field that should be stored. Can be:
+            "field" or "krige_var".
+            Default: "field"
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        if not (
-            self.pos is None or self.field is None or self.mesh_type is None
-        ):
-            vtk_ex(filename, self.pos, self.field, fieldname, self.mesh_type)
+        if hasattr(self, field_select):
+            field = getattr(self, field_select)
         else:
-            print("gstools.SRF.vtk_export: No field stored in the srf class.")
+            field = None
+        if not (self.pos is None or field is None or self.mesh_type is None):
+            vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
+        else:
+            print(
+                "gstools.krige.Ordinary.vtk_export: No "
+                + field_select
+                + " stored in the class."
+            )
 
     def plot(self, field="field", fig=None, ax=None):
         """
