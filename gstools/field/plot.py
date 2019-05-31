@@ -25,7 +25,7 @@ __all__ = ["plot_srf"]
 # plotting routines #######################################################
 
 
-def plot_srf(srf, field="field", fig=None, ax=None):
+def plot_srf(srf, field="field", fig=None, ax=None):  # pragma: no cover
     """
     Plot a spatial random field.
 
@@ -52,7 +52,7 @@ def plot_srf(srf, field="field", fig=None, ax=None):
         _plot_3d(srf.pos, plot_field, srf.mesh_type, fig, ax)
 
 
-def _plot_1d(pos, field, fig=None, ax=None):
+def _plot_1d(pos, field, fig=None, ax=None):  # pragma: no cover
     """Plot a 1d field."""
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 1D: " + str(field.shape)
@@ -67,7 +67,7 @@ def _plot_1d(pos, field, fig=None, ax=None):
     return ax
 
 
-def _plot_2d(pos, field, mesh_type, fig=None, ax=None):
+def _plot_2d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     """Plot a 2d field."""
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 2D " + mesh_type + ": " + str(field.shape)
@@ -84,7 +84,7 @@ def _plot_2d(pos, field, mesh_type, fig=None, ax=None):
     return ax
 
 
-def _plot_3d(pos, field, mesh_type, fig=None, ax=None):
+def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     """Plot 3D field."""
     dir1, dir2 = np.mgrid[0:1:51j, 0:1:51j]
     levels = np.linspace(field.min(), field.max(), 256, endpoint=True)

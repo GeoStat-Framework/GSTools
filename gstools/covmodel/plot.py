@@ -34,7 +34,7 @@ __all__ = [
 # plotting routines #######################################################
 
 
-def _get_fig_ax(fig, ax, ax_name="rectilinear"):
+def _get_fig_ax(fig, ax, ax_name="rectilinear"):  # pragma: no cover
     if fig is None and ax is None:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection=ax_name)
@@ -49,7 +49,9 @@ def _get_fig_ax(fig, ax, ax_name="rectilinear"):
     return fig, ax
 
 
-def plot_variogram(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_variogram(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot variogram of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
@@ -61,7 +63,9 @@ def plot_variogram(model, x_min=0.0, x_max=None, fig=None, ax=None):
     return ax
 
 
-def plot_covariance(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_covariance(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot covariance of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
@@ -73,7 +77,9 @@ def plot_covariance(model, x_min=0.0, x_max=None, fig=None, ax=None):
     return ax
 
 
-def plot_correlation(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_correlation(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot correlation function of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
@@ -85,7 +91,9 @@ def plot_correlation(model, x_min=0.0, x_max=None, fig=None, ax=None):
     return ax
 
 
-def plot_variogram_normed(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_variogram_normed(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot normalized variogram of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
@@ -99,7 +107,9 @@ def plot_variogram_normed(model, x_min=0.0, x_max=None, fig=None, ax=None):
     return ax
 
 
-def plot_spectrum(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_spectrum(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot specturm of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
@@ -115,7 +125,9 @@ def plot_spectrum(model, x_min=0.0, x_max=None, fig=None, ax=None):
     return ax
 
 
-def plot_spectral_density(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_spectral_density(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot spectral density of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
@@ -131,7 +143,9 @@ def plot_spectral_density(model, x_min=0.0, x_max=None, fig=None, ax=None):
     return ax
 
 
-def plot_spectral_rad_pdf(model, x_min=0.0, x_max=None, fig=None, ax=None):
+def plot_spectral_rad_pdf(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
     """Plot radial spectral pdf of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:

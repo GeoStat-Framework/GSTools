@@ -182,7 +182,7 @@ class Ordinary(object):
                 + " stored in the class."
             )
 
-    def plot(self, field="field", fig=None, ax=None):
+    def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
         """
         Plot the stored field.
 
