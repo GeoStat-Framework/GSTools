@@ -15,6 +15,8 @@
 
 ## Purpose
 
+<img align="right" width="400" src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png">
+
 GeoStatTools provides geostatistical tools for various purposes:
 - random field generation
 - conditioned field generation
