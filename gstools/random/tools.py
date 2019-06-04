@@ -34,7 +34,7 @@ class MasterRNG(object):
         self._master_rng = lambda: self._master_rng_fct.randint(1, 2 ** 16)
 
     def __call__(self):
-        """Returns a random seed."""
+        """Return a random seed."""
         return self._master_rng()
 
     @property  # pragma: no cover

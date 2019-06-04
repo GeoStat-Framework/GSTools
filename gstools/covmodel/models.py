@@ -59,11 +59,12 @@ class Gaussian(CovModel):
         .. math::
            \mathrm{cor}(r) =
            \exp\left(- \frac{\pi}{4}\cdot \left(\frac{r}{\ell}\right)^2\right)
-       """
+        """
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
     def spectrum(self, k):
+        """Spektrum of the covariance model."""
         k = np.array(k, dtype=np.double)
         return (
             self.var
@@ -131,11 +132,12 @@ class Exponential(CovModel):
         .. math::
            \mathrm{cor}(r) =
            \exp\left(- \frac{r}{\ell} \right)
-       """
+        """
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-1 * r / self.len_scale)
 
     def spectrum(self, k):
+        """Spektrum of the covariance model."""
         k = np.array(k, dtype=np.double)
         return (
             self.var

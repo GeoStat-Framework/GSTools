@@ -110,7 +110,7 @@ class TPLGaussian(CovModel):
     def len_up(self):
         """:class:`float`: Upper length scale truncation of the model.
 
-            * ``len_up = len_low + len_scale``
+        * ``len_up = len_low + len_scale``
         """
         return self.len_low + self.len_scale
 
@@ -290,7 +290,7 @@ class TPLExponential(CovModel):
     def len_up(self):
         """:class:`float`: Upper length scale truncation of the model.
 
-            * ``len_up = len_low + len_scale``
+        * ``len_up = len_low + len_scale``
         """
         return self.len_low + self.len_scale
 
@@ -479,7 +479,7 @@ class TPLStable(CovModel):
     def len_up(self):
         """:class:`float`: Upper length scale truncation of the model.
 
-            * ``len_up = len_low + len_scale``
+        * ``len_up = len_low + len_scale``
         """
         return self.len_low + self.len_scale
 
