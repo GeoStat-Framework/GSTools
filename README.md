@@ -15,7 +15,7 @@
 
 ## Purpose
 
-<img align="right" width="400" src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/demonstrator.png">
+<img align="right" width="450" src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/demonstrator.png" alt="">
 
 GeoStatTools provides geostatistical tools for various purposes:
 - random field generation

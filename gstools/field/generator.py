@@ -364,7 +364,7 @@ class IncomprRandMeth(RandMeth):
         self.mean_u = mean_velocity
 
     def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
-        """Calculates the random modes for the randomization method.
+        """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods,
         which are the heart of the randomization method.
