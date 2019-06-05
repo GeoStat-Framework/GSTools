@@ -31,7 +31,127 @@ __all__ = [
 ]
 
 
-def zinnharvey(field, conn="high", mean=None, var=None):
+def zinnharvey(srf, conn="high"):
+    """
+    Zinn and Harvey transformation to connect low or high values.
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    conn : :class:`str`, optional
+        Desired connectivity. Either "low" or "high".
+        Default: "high"
+    """
+    if srf.field is None:
+        print("zinnharvey: no field stored in SRF class.")
+    else:
+        srf.field = _zinnharvey(srf.field, conn, srf.mean, srf.model.sill)
+
+
+def normal_force_moments(srf):
+    """
+    Force moments of a normal distributed field.
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    """
+    if srf.field is None:
+        print("normal_force_moments: no field stored in SRF class.")
+    else:
+        srf.field = _normal_force_moments(srf.field, srf.mean, srf.model.sill)
+
+
+def normal_to_lognormal(srf):
+    """
+    Transform normal distribution to log-normal distribution.
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    """
+    if srf.field is None:
+        print("normal_to_lognormal: no field stored in SRF class.")
+    else:
+        srf.field = _normal_to_lognormal(srf.field)
+
+
+def normal_to_uniform(srf):
+    """
+    Transform normal distribution to uniform distribution on [0, 1].
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    """
+    if srf.field is None:
+        print("normal_to_uniform: no field stored in SRF class.")
+    else:
+        srf.field = _normal_to_uniform(srf.field, srf.mean, srf.model.sill)
+
+
+def normal_to_arcsin(srf, a=0, b=1):
+    """
+    Transform normal distribution to the bimodal arcsin distribution.
+
+    See: https://en.wikipedia.org/wiki/Arcsine_distribution
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    a : :class:`float`, optional
+        Parameter a of the arcsin distribution (lower bound).
+        Default: 0
+    b : :class:`float`, optional
+        Parameter b of the arcsin distribution (upper bound).
+        Default: 1
+    """
+    if srf.field is None:
+        print("normal_to_arcsin: no field stored in SRF class.")
+    else:
+        srf.field = _normal_to_arcsin(
+            srf.field, srf.mean, srf.model.sill, a, b
+        )
+
+
+def normal_to_uquad(srf, a=0, b=1):
+    """
+    Transform normal distribution to U-quadratic distribution.
+
+    See: https://en.wikipedia.org/wiki/U-quadratic_distribution
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    a : :class:`float`, optional
+        Parameter a of the U-quadratic distribution (lower bound).
+        Default: 0
+    b : :class:`float`, optional
+        Parameter b of the U-quadratic distribution (upper bound).
+        Default: 1
+    """
+    if srf.field is None:
+        print("normal_to_uquad: no field stored in SRF class.")
+    else:
+        srf.field = _normal_to_uquad(srf.field, srf.mean, srf.model.sill, a, b)
+
+
+# low level functions
+
+
+def _zinnharvey(field, conn="high", mean=None, var=None):
     """
     Zinn and Harvey transformation to connect low or high values.
 
@@ -68,7 +188,7 @@ def zinnharvey(field, conn="high", mean=None, var=None):
     return field * var + mean
 
 
-def normal_force_moments(field, mean=0, var=1):
+def _normal_force_moments(field, mean=0, var=1):
     """
     Force moments of a normal distributed field.
 
@@ -95,7 +215,7 @@ def normal_force_moments(field, mean=0, var=1):
     return rescale * (field - mean_in) + mean
 
 
-def normal_to_lognormal(field):
+def _normal_to_lognormal(field):
     """
     Transform normal distribution to log-normal distribution.
 
@@ -113,7 +233,7 @@ def normal_to_lognormal(field):
     return np.exp(field)
 
 
-def normal_to_uniform(field, mean=None, var=None):
+def _normal_to_uniform(field, mean=None, var=None):
     """
     Transform normal distribution to uniform distribution on [0, 1].
 
@@ -142,7 +262,7 @@ def normal_to_uniform(field, mean=None, var=None):
     return 0.5 * (1 + erf((field - mean) / np.sqrt(2 * var)))
 
 
-def normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
+def _normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
     """
     Transform normal distribution to arcsin distribution.
 
@@ -170,10 +290,10 @@ def normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
         :class:`numpy.ndarray`
             Transformed field.
     """
-    return _uniform_to_arcsin(normal_to_uniform(field, mean, var), a, b)
+    return _uniform_to_arcsin(_normal_to_uniform(field, mean, var), a, b)
 
 
-def normal_to_uquad(field, mean=None, var=None, a=0, b=1):
+def _normal_to_uquad(field, mean=None, var=None, a=0, b=1):
     """
     Transform normal distribution to U-quadratic distribution.
 
@@ -201,7 +321,7 @@ def normal_to_uquad(field, mean=None, var=None, a=0, b=1):
         :class:`numpy.ndarray`
             Transformed field.
     """
-    return _uniform_to_uquad(normal_to_uniform(field, mean, var), a, b)
+    return _uniform_to_uquad(_normal_to_uniform(field, mean, var), a, b)
 
 
 def _uniform_to_arcsin(field, a=0, b=1):
