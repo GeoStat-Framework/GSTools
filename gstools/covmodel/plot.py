@@ -71,7 +71,7 @@ def plot_covariance(
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(x_s, model.covariance(x_s), label=model.name + " cov")
+    ax.plot(x_s, model.covariance(x_s), label=model.name + " covariance")
     ax.legend()
     fig.show()
     return ax
@@ -85,7 +85,7 @@ def plot_correlation(
     if x_max is None:
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(x_s, model.correlation(x_s), label=model.name + " cov normed")
+    ax.plot(x_s, model.correlation(x_s), label=model.name + " correlation")
     ax.legend()
     fig.show()
     return ax
@@ -100,7 +100,9 @@ def plot_variogram_normed(
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(
-        x_s, model.variogram_normed(x_s), label=model.name + " vario normed"
+        x_s,
+        model.variogram_normed(x_s),
+        label=model.name + " normed variogram",
     )
     ax.legend()
     fig.show()
@@ -118,7 +120,7 @@ def plot_spectrum(
     ax.plot(
         x_s,
         model.spectrum(x_s),
-        label=model.name + " " + str(model.dim) + "D spec",
+        label=model.name + " " + str(model.dim) + "D spectrum",
     )
     ax.legend()
     fig.show()
@@ -136,7 +138,7 @@ def plot_spectral_density(
     ax.plot(
         x_s,
         model.spectral_density(x_s),
-        label=model.name + " " + str(model.dim) + "D spec-dens",
+        label=model.name + " " + str(model.dim) + "D spectral-density",
     )
     ax.legend()
     fig.show()
@@ -154,7 +156,7 @@ def plot_spectral_rad_pdf(
     ax.plot(
         x_s,
         model.spectral_rad_pdf(x_s),
-        label=model.name + " " + str(model.dim) + "D spec-rad-pdf",
+        label=model.name + " " + str(model.dim) + "D spectral-rad-pdf",
     )
     ax.legend()
     fig.show()
