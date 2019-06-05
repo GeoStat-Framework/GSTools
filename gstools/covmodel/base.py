@@ -41,7 +41,7 @@ HANKEL_DEFAULT = {
 
 
 class CovModel(six.with_metaclass(InitSubclassMeta)):
-    """Base class for the GSTools covariance models.
+    r"""Base class for the GSTools covariance models.
 
     Parameters
     ----------
@@ -91,8 +91,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     >>> from gstools import CovModel
     >>> import numpy as np
     >>> class Gau(CovModel):
-    ...     def correlation(self, r):
-    ...         return np.exp(-(r/self.len_scale)**2)
+    ...     def cor(self, h):
+    ...         return np.exp(-h**2)
     ...
     >>> model = Gau()
     >>> model.spectrum(2)
@@ -239,6 +239,17 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             """
             return 1.0 - self.variogram_normed(r)
 
+        def cor_from_cor(self, r):
+            r"""Correlation function (or normalized covariance) of the model.
+
+            Given by: :math:`\mathrm{cor}\left(r\right)`
+
+            It has to be a monotonic decreasing function with
+            :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
+            """
+            r = np.array(np.abs(r), dtype=np.double)
+            return self.cor(r / self.len_scale)
+
         def variogram_normed(self, r):
             r"""Normalized-variogram of the model.
 
@@ -252,6 +263,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         #######################################################################
 
         abstract = True
+        if hasattr(cls, "cor"):
+            cls.correlation = cor_from_cor
+            abstract = False
         if not hasattr(cls, "variogram"):
             cls.variogram = variogram
         else:
@@ -303,7 +317,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     ### special variogram functions ###########################################
 
     def _get_iso_rad(self, pos):
-        x, y, z = pos2xyz(pos)
+        x, y, z = pos2xyz(pos, max_dim=self.dim)
         if self.do_rotation:
             x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
         y, z = make_isotropic(self.dim, self.anis, y, z)
@@ -604,7 +618,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     ### fitting routine #######################################################
 
-    def fit_variogram(self, x_data, y_data, **para_deselect):
+    def fit_variogram(self, x_data, y_data, maxfev=1000, **para_deselect):
         """
         Fiting the isotropic variogram-model to given data.
 
@@ -614,6 +628,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             The radii of the meassured variogram.
         y_data : :class:`numpy.ndarray`
             The messured variogram
+        maxfev : int, optional
+            The maximum number of calls to the function in scipy curvefit.
+            Default: 1000
         **para_deselect
             You can deselect the parameters to be fitted, by setting
             them "False" as keywords. By default, all parameters are
@@ -683,7 +700,11 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                 top_bounds.append(self.opt_arg_bounds[opt][1])
         # fit the variogram
         popt, pcov = curve_fit(
-            curve, x_data, y_data, bounds=(low_bounds, top_bounds)
+            curve,
+            x_data,
+            y_data,
+            bounds=(low_bounds, top_bounds),
+            maxfev=maxfev,
         )
         fit_para = {}
         para_skip = 0
