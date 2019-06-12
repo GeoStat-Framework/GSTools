@@ -41,11 +41,8 @@ class TestCondition(unittest.TestCase):
         self.pos = (self.grid_x, self.grid_y, self.grid_z)
 
     def test_simple(self):
-        print("SIMPLE")
         for Model in self.cov_models:
-            print(Model.name)
             for dim in self.dims:
-                print("  dim: ", dim)
                 model = Model(
                     dim=dim,
                     var=0.5,
@@ -54,23 +51,16 @@ class TestCondition(unittest.TestCase):
                     angles=[0.5, 0, 0],
                 )
                 srf = SRF(model, self.mean, seed=19970221)
-                print("    set condition")
                 srf.set_condition(self.cond_pos[:dim], self.cond_val, "simple")
-                print("    gen unstr")
                 field_1 = srf.unstructured(self.pos[:dim])
-                print("    gen str")
                 field_2 = srf.structured(self.pos[:dim])
-                print("    compare")
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
                     self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
 
     def test_ordinary(self):
-        print("ORDINARY")
         for Model in self.cov_models:
-            print(Model.name)
             for dim in self.dims:
-                print("  dim: ", dim)
                 model = Model(
                     dim=dim,
                     var=0.5,
@@ -79,15 +69,11 @@ class TestCondition(unittest.TestCase):
                     angles=[0.5, 0, 0],
                 )
                 srf = SRF(model, seed=19970221)
-                print("    set condition")
                 srf.set_condition(
                     self.cond_pos[:dim], self.cond_val, "ordinary"
                 )
-                print("    gen unstr")
                 field_1 = srf.unstructured(self.pos[:dim])
-                print("    gen str")
                 field_2 = srf.structured(self.pos[:dim])
-                print("    compare")
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
                     self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
