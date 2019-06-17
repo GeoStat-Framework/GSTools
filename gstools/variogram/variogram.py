@@ -56,14 +56,14 @@ def vario_estimate_unstructured(
         the spatially distributed data
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
-    sampling_size : :class:`int` or :class:`None`, optional
+    sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
         the number of data points to sample randomly
-        Default: :class:`None`
-    sampling_seed : :class:`int` or :class:`None`, optional
+        Default: :any:`None`
+    sampling_seed : :class:`int` or :any:`None`, optional
         seed for samples if sampling_size is given.
-        Default: :class:`None`
+        Default: :any:`None`
 
     Returns
     -------

@@ -49,7 +49,7 @@ class RNG(object):
     ):
         """Sample from a distribution given by ln(pdf).
 
-        This algorithm uses the :any:`emcee.EnsembleSampler`
+        This algorithm uses the :class:`emcee.EnsembleSampler`
 
         Parameters
         ----------
