@@ -48,7 +48,11 @@ class Mock(MagicMock):
         return MagicMock()
 
 
-MOCK_MODULES = ["gstools.variogram.estimator"]
+MOCK_MODULES = [
+    "gstools.variogram.estimator",
+    "gstools.field.summator",
+    "gstools.krige.krigesum"
+]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
