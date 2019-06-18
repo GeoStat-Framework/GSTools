@@ -23,13 +23,15 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../"))
+# local module should not be added to sys path if it's installed on RTFD
+# https://stackoverflow.com/a/31882049/6696397
+# sys.path.insert(0, os.path.abspath("../../"))
 from gstools import __version__ as ver
 
-if sys.version_info >= (3, 3):
-    from unittest.mock import MagicMock
-else:
-    from mock import MagicMock
+# if sys.version_info >= (3, 3):
+#     from unittest.mock import MagicMock
+# else:
+#     from mock import MagicMock
 
 
 def skip(app, what, name, obj, skip, options):
@@ -42,18 +44,18 @@ def setup(app):
     app.connect("autodoc-skip-member", skip)
 
 
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(clsm, name):
-        return MagicMock()
+# class Mock(MagicMock):
+#     @classmethod
+#     def __getattr__(clsm, name):
+#         return MagicMock()
 
 
-MOCK_MODULES = [
-    "gstools.variogram.estimator",
-    "gstools.field.summator",
-    "gstools.krige.krigesum"
-]
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+# MOCK_MODULES = [
+#     "gstools.variogram.estimator",
+#     "gstools.field.summator",
+#     "gstools.krige.krigesum"
+# ]
+# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
 
