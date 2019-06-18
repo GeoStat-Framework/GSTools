@@ -10,10 +10,11 @@ The following classes and functions are provided
    Gaussian
    Exponential
    Matern
-   Rational
    Stable
-   Spherical
+   Rational
    Linear
+   Circular
+   Spherical
    MaternRescal
    SphericalRescal
 """
@@ -28,13 +29,14 @@ from gstools.covmodel.base import CovModel
 __all__ = [
     "Gaussian",
     "Exponential",
+    "Matern",
+    "Stable",
+    "Rational",
+    "Linear",
+    "Circular",
     "Spherical",
     "SphericalRescal",
-    "Rational",
-    "Stable",
-    "Matern",
     "MaternRescal",
-    "Linear",
 ]
 
 
@@ -195,6 +197,10 @@ class Exponential(CovModel):
 class Spherical(CovModel):
     r"""The Spherical covariance model.
 
+    This model is derived from the relative intersection area of
+    two spheres in 3D, where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+
     Notes
     -----
     This model is given by the following correlation function:
@@ -233,6 +239,12 @@ class Spherical(CovModel):
 
 class SphericalRescal(CovModel):
     r"""The rescaled Spherical covariance model.
+
+    This model is derived from the relative intersection area of
+    two spheres in 3D, where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+
+    It was rescaled, so that the given length scale matches the integral scale.
 
     Notes
     -----
@@ -516,6 +528,8 @@ class Matern(CovModel):
 class MaternRescal(CovModel):
     r"""The rescaled Matérn covariance model.
 
+    It was rescaled, so that the given length scale matches the integral scale.
+
     Notes
     -----
     This model is given by the following correlation function:
@@ -621,6 +635,10 @@ class MaternRescal(CovModel):
 class Linear(CovModel):
     r"""The bounded linear covariance model.
 
+    This model is derived from the relative intersection area of
+    two lines in 1D, where the middle points have a distance of :math:`r`
+    and the line lengths are :math:`\ell`.
+
     Notes
     -----
     This model is given by the following correlation function:
@@ -648,4 +666,60 @@ class Linear(CovModel):
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         res[r < self.len_scale] = 1.0 - r[r < self.len_scale] / self.len_scale
+        return res
+
+
+# Circular Model ##############################################################
+
+
+class Circular(CovModel):
+    r"""The circular covariance model.
+
+    This model is derived as the relative intersection area of
+    two discs in 2D, where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \mathrm{cor}(r) =
+       \begin{cases}
+       \frac{2}{\pi}\cdot\left(
+       \cos^{-1}\left(\frac{r}{\ell}\right) -
+       \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
+       \right)
+       & r<\ell\\
+       0 & r\geq\ell
+       \end{cases}
+    """
+
+    def correlation(self, r):
+        r"""Circular correlation function.
+
+        .. math::
+           \mathrm{cor}(r) =
+           \begin{cases}
+           \frac{2}{\pi}\cdot\left(
+           \cos^{-1}\left(\frac{r}{\ell}\right) -
+           \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
+           \right)
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+        """
+        r = np.array(np.abs(r), dtype=np.double)
+        res = np.zeros_like(r)
+        r_low = r < self.len_scale
+        res[r_low] = (
+            2
+            / np.pi
+            * (
+                np.arccos(r[r_low] / self.len_scale)
+                - r[r_low]
+                / self.len_scale
+                * np.sqrt(1 - (r[r_low] / self.len_scale) ** 2)
+            )
+        )
         return res
