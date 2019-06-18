@@ -17,6 +17,7 @@ The following classes and functions are provided
    Spherical
    MaternRescal
    SphericalRescal
+
 """
 # pylint: disable=C0103, E1101
 from __future__ import print_function, division, absolute_import
@@ -53,6 +54,7 @@ class Gaussian(CovModel):
     .. math::
        \mathrm{cor}(r) =
        \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+
     """
 
     def correlation(self, r):
@@ -126,6 +128,7 @@ class Exponential(CovModel):
     .. math::
        \mathrm{cor}(r) =
        \exp\left(- \frac{r}{\ell} \right)
+
     """
 
     def correlation(self, r):
@@ -213,6 +216,7 @@ class Spherical(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
+
     """
 
     def correlation(self, r):
@@ -258,6 +262,7 @@ class SphericalRescal(CovModel):
        & r<\frac{8}{3}\ell\\
        0 & r\geq\frac{8}{3}\ell
        \end{cases}
+
     """
 
     def correlation(self, r):
@@ -650,6 +655,7 @@ class Linear(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
+
     """
 
     def correlation(self, r):

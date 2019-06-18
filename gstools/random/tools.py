@@ -7,6 +7,7 @@ GStools subpackage providing tools for random sampling.
 The following classes are provided
 
 .. autosummary::
+   MasterRNG
    dist_gen
 """
 from __future__ import division, absolute_import, print_function

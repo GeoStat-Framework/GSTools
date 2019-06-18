@@ -31,14 +31,14 @@ def plot_srf(srf, field="field", fig=None, ax=None):  # pragma: no cover
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    srf : :class:`SRF`
         The given srf class instance.
     field : :class:`str`, optional
         Field that should be plotted. Default: "field"
-    fig : :any:`Figure` or :any:`None`, optional
+    fig : :class:`Figure` or :any:`None`, optional
         Figure to plot the axes on. If `None`, a new one will be created.
         Default: `None`
-    ax : :any:`Axes` or :any:`None`, optional
+    ax : :class:`Axes` or :any:`None`, optional
         Axes to plot on. If `None`, a new one will be added to the figure.
         Default: `None`
     """

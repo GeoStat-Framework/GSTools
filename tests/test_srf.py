@@ -240,8 +240,8 @@ class TestSRF(unittest.TestCase):
             mean_velocity=0.5,
         )
         field = srf((self.x_tuple, self.y_tuple), seed=476356)
-        self.assertAlmostEqual(field[0, 0], 0.99406131)
-        self.assertAlmostEqual(field[0, 1], 1.24764012)
+        self.assertAlmostEqual(field[0, 0], 1.23693272)
+        self.assertAlmostEqual(field[0, 1], 0.89242284)
         field = srf(
             (self.x_grid, self.y_grid), seed=4734654, mesh_type="structured"
         )

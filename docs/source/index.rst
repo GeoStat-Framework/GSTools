@@ -202,7 +202,7 @@ VTK Export
 ==========
 
 After you have created a field, you may want to save it to file, so we provide
-a handy `VTK <https://www.vtk.org/>`_ export routine (:any:`vtk_export`):
+a handy `VTK <https://www.vtk.org/>`_ export routine (:class:`vtk_export`):
 
 .. code-block:: python
 

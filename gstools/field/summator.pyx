@@ -188,12 +188,13 @@ def summate_incompr_unstruct(
 
     for i in prange(X_len, nogil=True):
         for j in range(N):
-            phase = 0.
             k_2 = abs_square(cov_samples[:,j])
+            phase = 0.
+            for d in range(dim):
+                phase += cov_samples[d,j] * pos[d,i]
             for d in range(dim):
                 proj[d] = e1[d] - cov_samples[d,j] * cov_samples[0,j] / k_2
-                phase += cov_samples[d,j] * pos[d,i]
-                summed_modes[d,i] += proj[d] * z_1[j] * cos(phase) + z_2[j] * sin(phase)
+                summed_modes[d,i] += proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
 
     return np.asarray(summed_modes)
 

@@ -240,10 +240,10 @@ class SRF(object):
             Field that should be plotted. Can be:
             "field", "raw_field", "krige_field", "err_field" or "krige_var".
             Default: "field"
-        fig : :any:`Figure` or :any:`None`
+        fig : :class:`Figure` or :any:`None`
             Figure to plot the axes on. If `None`, a new one will be created.
             Default: `None`
-        ax : :any:`Axes` or :any:`None`
+        ax : :class:`Axes` or :any:`None`
             Axes to plot on. If `None`, a new one will be added to the figure.
             Default: `None`
         """
