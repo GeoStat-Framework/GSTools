@@ -112,7 +112,7 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
         hurst=0.7,       # hurst coefficient from the power law
     )
     srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-    field = srf((x, y), mesh_type='structured', force_moments=True)
+    field = srf((x, y), mesh_type='structured')
     # show the field in correct xy coordinates
     plt.imshow(field.T, origin="lower")
     plt.show()
