@@ -250,7 +250,7 @@ class SRF(object):
         # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_srf
 
-        plot_srf(self, field, fig, ax)
+        return plot_srf(self, field, fig, ax)
 
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"
