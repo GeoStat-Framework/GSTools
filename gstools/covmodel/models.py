@@ -15,11 +15,9 @@ The following classes and functions are provided
    Linear
    Circular
    Spherical
-   MaternRescal
-   SphericalRescal
-
+   Intersection
 """
-# pylint: disable=C0103, E1101
+# pylint: disable=C0103, E1101, E1137
 from __future__ import print_function, division, absolute_import
 
 import warnings
@@ -36,8 +34,7 @@ __all__ = [
     "Linear",
     "Circular",
     "Spherical",
-    "SphericalRescal",
-    "MaternRescal",
+    "Intersection",
 ]
 
 
@@ -68,7 +65,7 @@ class Gaussian(CovModel):
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
     def spectrum(self, k):
-        """Spektrum of the covariance model."""
+        """Spectrum of the covariance model."""
         k = np.array(k, dtype=np.double)
         return (
             self.var
@@ -142,7 +139,7 @@ class Exponential(CovModel):
         return np.exp(-1 * r / self.len_scale)
 
     def spectrum(self, k):
-        """Spektrum of the covariance model."""
+        """Spectrum of the covariance model."""
         k = np.array(k, dtype=np.double)
         return (
             self.var
@@ -191,105 +188,6 @@ class Exponential(CovModel):
 
     def calc_integral_scale(self):
         """Integral scale of the exponential model is the length scale."""
-        return self.len_scale
-
-
-# Spherical Model #############################################################
-
-
-class Spherical(CovModel):
-    r"""The Spherical covariance model.
-
-    This model is derived from the relative intersection area of
-    two spheres in 3D, where the middle points have a distance of :math:`r`
-    and the diameters are given by :math:`\ell`.
-
-    Notes
-    -----
-    This model is given by the following correlation function:
-
-    .. math::
-       \mathrm{cor}(r) =
-       \begin{cases}
-       1-\frac{3}{2}\cdot\frac{r}{\ell} +
-       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-       & r<\ell\\
-       0 & r\geq\ell
-       \end{cases}
-
-    """
-
-    def correlation(self, r):
-        r"""Spherical correlation function.
-
-        .. math::
-           \mathrm{cor}(r) =
-           \begin{cases}
-           1-\frac{3}{2}\cdot\frac{r}{\ell} +
-           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        res[r < self.len_scale] = (
-            1.0
-            - 3.0 / 2.0 * r[r < self.len_scale] / self.len_scale
-            + 1.0 / 2.0 * (r[r < self.len_scale] / self.len_scale) ** 3
-        )
-        return res
-
-
-class SphericalRescal(CovModel):
-    r"""The rescaled Spherical covariance model.
-
-    This model is derived from the relative intersection area of
-    two spheres in 3D, where the middle points have a distance of :math:`r`
-    and the diameters are given by :math:`\ell`.
-
-    It was rescaled, so that the given length scale matches the integral scale.
-
-    Notes
-    -----
-    This model is given by the following correlation function:
-
-    .. math::
-       \mathrm{cor}(r) =
-       \begin{cases}
-       1-\frac{9}{16}\cdot\frac{r}{\ell} +
-       \frac{27}{1024}\cdot\left(\frac{r}{\ell}\right)^{3}
-       & r<\frac{8}{3}\ell\\
-       0 & r\geq\frac{8}{3}\ell
-       \end{cases}
-
-    """
-
-    def correlation(self, r):
-        r"""Rescaled Spherical correlation function.
-
-        .. math::
-           \mathrm{cor}(r) =
-           \begin{cases}
-           1-\frac{9}{16}\cdot\frac{r}{\ell} +
-           \frac{27}{1024}\cdot\left(\frac{r}{\ell}\right)^{3}
-           & r<\frac{8}{3}\ell\\
-           0 & r\geq\frac{8}{3}\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        res[r < 8 / 3 * self.len_scale] = (
-            1.0
-            - 9.0 / 16.0 * r[r < 8 / 3 * self.len_scale] / self.len_scale
-            + 27.0
-            / 1024.0
-            * (r[r < 8 / 3 * self.len_scale] / self.len_scale) ** 3
-        )
-        return res
-
-    def calc_integral_scale(self):
-        """Integral scale of this spherical model is the length scale."""
         return self.len_scale
 
 
@@ -445,20 +343,27 @@ class Matern(CovModel):
     .. math::
        \mathrm{cor}(r) =
        \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-       \left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
-       \mathrm{K}_{\nu}\left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)
+       \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
+       \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
 
     Where :math:`\Gamma` is the gamma function and :math:`\mathrm{K}_{\nu}`
     is the modified Bessel function of the second kind.
 
-    :math:`\nu` is a shape parameter and should be >= 0.5.
+    :math:`\nu` is a shape parameter and should be >= 0.2.
+
+    If :math:`\nu > 20`, a gaussian model is used, since it is the limit
+    case:
+
+    .. math::
+       \mathrm{cor}(r) =
+       \exp\left(- \frac{1}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
 
     Other Parameters
     ----------------
     **opt_arg
         The following parameters are covered by these keyword arguments
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[0.5, 60]``
+        Shape parameter. Standard range: ``[0.2, 30]``
         Default: ``1.0``
     """
 
@@ -477,28 +382,14 @@ class Matern(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [0.5, 60.0, "cc"]}``
+            * ``{"nu": [0.5, 30.0, "cc"]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [0.5, 60.0, "cc"]}
-
-    def check_opt_arg(self):
-        """Check for the optional arguments.
-
-        Warns
-        -----
-        nu
-            If nu is > 50, the model gets numerically unstable.
-        """
-        if self.nu > 50.0:
-            warnings.warn(
-                "Matern: parameter 'nu' is > 50, "
-                + "calculations most likely get unstable here"
-            )
+        return {"nu": [0.2, 30.0, "cc"]}
 
     def correlation(self, r):
         r"""Matérn correlation function.
@@ -506,132 +397,57 @@ class Matern(CovModel):
         .. math::
            \mathrm{cor}(r) =
            \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-           \left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
-           \mathrm{K}_{\nu}\left(\sqrt{2\nu}\cdot\frac{r}{\ell}\right)
+           \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
+           \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
         """
         r = np.array(np.abs(r), dtype=np.double)
+        # for nu > 20 we just use the gaussian model
+        if self.nu > 20.0:
+            return np.exp(-(r / self.len_scale) ** 2 / 4)
+        # calculate by log-transformation to prevent numerical errors
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
-        with np.errstate(over="ignore", invalid="ignore"):
-            res[r > 0.0] = (
-                np.power(2.0, 1.0 - self.nu)
-                / sps.gamma(self.nu)
-                * np.power(
-                    np.sqrt(2.0 * self.nu) * r_gz / self.len_scale, self.nu
-                )
-                * sps.kv(
-                    self.nu, np.sqrt(2.0 * self.nu) * r_gz / self.len_scale
-                )
-            )
+        # with np.errstate(over="ignore", invalid="ignore"):
+        res[r > 0.0] = np.exp(
+            (1.0 - self.nu) * np.log(2)
+            - sps.loggamma(self.nu)
+            + self.nu * np.log(np.sqrt(self.nu) * r_gz / self.len_scale)
+        ) * sps.kv(self.nu, np.sqrt(self.nu) * r_gz / self.len_scale)
         # if nu >> 1 we get errors for the farfield, there 0 is approached
         res[np.logical_not(np.isfinite(res))] = 0.0
         # covariance is positiv
         res = np.maximum(res, 0.0)
         return res
 
-
-class MaternRescal(CovModel):
-    r"""The rescaled Matérn covariance model.
-
-    It was rescaled, so that the given length scale matches the integral scale.
-
-    Notes
-    -----
-    This model is given by the following correlation function:
-
-    .. math::
-       \mathrm{cor}(r) =
-       \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-       \left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)} \cdot
-       \frac{r}{\ell}\right)^{\nu} \cdot
-       \mathrm{K}_{\nu}\left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)} \cdot
-       \frac{r}{\ell}\right)
-
-    Where :math:`\Gamma` is the gamma function,
-    :math:`\mathrm{K}_{\nu}` is the modified Bessel function
-    of the second kind and :math:`B` is the Euler beta function.
-
-    :math:`\nu` is a shape parameter and should be > 0.5.
-
-    Other Parameters
-    ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
-    nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[0.5, 60]``
-        Default: ``1.0``
-    """
-
-    def default_opt_arg(self):
-        """Defaults for the optional arguments.
-
-            * ``{"nu": 1.0}``
-
-        Returns
-        -------
-        :class:`dict`
-            Defaults for optional arguments
-        """
-        return {"nu": 1.0}
-
-    def default_opt_arg_bounds(self):
-        """Defaults for boundaries of the optional arguments.
-
-            * ``{"nu": [0.5, 60.0, "cc"]}``
-
-        Returns
-        -------
-        :class:`dict`
-            Boundaries for optional arguments
-        """
-        return {"nu": [0.5, 60.0, "cc"]}
-
-    def check_opt_arg(self):
-        """Check for the optional arguments.
-
-        Warns
-        -----
-        nu
-            If nu is > 50, the model gets numerically unstable.
-        """
-        if self.nu > 50.0:
-            warnings.warn(
-                "MaternRescale: parameter 'nu' is > 50, "
-                + "calculations most likely get unstable here"
-            )
-
-    def correlation(self, r):
-        r"""Rescaled Matérn correlation function.
-
-        .. math::
-           \mathrm{cor}(r) =
-           \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-           \left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)} \cdot
-           \frac{r}{\ell}\right)^{\nu} \cdot
-           \mathrm{K}_{\nu}\left(\frac{\pi}{B\left(\nu,\frac{1}{2}\right)}
-           \cdot\frac{r}{\ell}\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        r_gz = r[r > 0.0]
-        res = np.ones_like(r)
-        with np.errstate(over="ignore", invalid="ignore"):
-            res[r > 0.0] = (
-                np.power(2, 1.0 - self.nu)
-                / sps.gamma(self.nu)
-                * np.power(
-                    np.pi / sps.beta(self.nu, 0.5) * r_gz / self.len_scale,
-                    self.nu,
-                )
-                * sps.kv(
-                    self.nu,
-                    np.pi / sps.beta(self.nu, 0.5) * r_gz / self.len_scale,
+    def spectrum(self, k):
+        """Spectrum of the covariance model."""
+        k = np.array(k, dtype=np.double)
+        # for nu > 20 we just use an approximation of the gaussian model
+        if self.nu > 20.0:
+            return (
+                self.var
+                * (self.len_scale / np.sqrt(np.pi)) ** self.dim
+                * np.exp(-(k * self.len_scale) ** 2)
+                * (
+                    1
+                    + (
+                        ((k * self.len_scale) ** 2 - self.dim / 2.0) ** 2
+                        - self.dim / 2.0
+                    )
+                    / self.nu
                 )
             )
-        # if nu >> 1 we get errors for the farfield, there 0 is approached
-        res[np.logical_not(np.isfinite(res))] = 0.0
-        # covariance is positiv
-        res = np.maximum(res, 0.0)
-        return res
+        return (
+            self.var
+            * (self.len_scale / np.sqrt(np.pi)) ** self.dim
+            * np.exp(
+                -(self.nu + self.dim / 2.0)
+                * np.log(1.0 + (k * self.len_scale) ** 2 / self.nu)
+                + sps.loggamma(self.nu + self.dim / 2.0)
+                - sps.loggamma(self.nu)
+                - self.dim * np.log(np.sqrt(self.nu))
+            )
+        )
 
 
 # Bounded linear Model ########################################################
@@ -671,7 +487,9 @@ class Linear(CovModel):
         """
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
-        res[r < self.len_scale] = 1.0 - r[r < self.len_scale] / self.len_scale
+        r_ll = r < self.len_scale
+        r_low = r[r_ll]
+        res[r_ll] = 1.0 - r_low / self.len_scale
         return res
 
 
@@ -717,15 +535,181 @@ class Circular(CovModel):
         """
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
-        r_low = r < self.len_scale
-        res[r_low] = (
+        r_ll = r < self.len_scale
+        r_low = r[r_ll]
+        res[r_ll] = (
             2
             / np.pi
             * (
-                np.arccos(r[r_low] / self.len_scale)
-                - r[r_low]
+                np.arccos(r_low / self.len_scale)
+                - r_low
                 / self.len_scale
-                * np.sqrt(1 - (r[r_low] / self.len_scale) ** 2)
+                * np.sqrt(1 - (r_low / self.len_scale) ** 2)
             )
         )
         return res
+
+
+# Spherical Model #############################################################
+
+
+class Spherical(CovModel):
+    r"""The Spherical covariance model.
+
+    This model is derived from the relative intersection area of
+    two spheres in 3D, where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \mathrm{cor}(r) =
+       \begin{cases}
+       1-\frac{3}{2}\cdot\frac{r}{\ell} +
+       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
+       & r<\ell\\
+       0 & r\geq\ell
+       \end{cases}
+
+    """
+
+    def correlation(self, r):
+        r"""Spherical correlation function.
+
+        .. math::
+           \mathrm{cor}(r) =
+           \begin{cases}
+           1-\frac{3}{2}\cdot\frac{r}{\ell} +
+           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+        """
+        r = np.array(np.abs(r), dtype=np.double)
+        res = np.zeros_like(r)
+        r_ll = r < self.len_scale
+        r_low = r[r_ll]
+        res[r_ll] = (
+            1.0
+            - 3.0 / 2.0 * r_low / self.len_scale
+            + 1.0 / 2.0 * (r_low / self.len_scale) ** 3
+        )
+        return res
+
+
+class Intersection(CovModel):
+    r"""The Intersection covariance model.
+
+    This model is derived from the relative intersection area of
+    two d-dimensional spheres,
+    where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+
+    In 1D this is the Linear model, in 2D this is the Circular model
+    and in 3D this is the Spherical model.
+
+    Notes
+    -----
+    This model is given by the following correlation functions.
+
+    In 1D:
+
+    .. math::
+       \mathrm{cor}(r) =
+       \begin{cases}
+       1-\frac{r}{\ell}
+       & r<\ell\\
+       0 & r\geq\ell
+       \end{cases}
+
+    In 2D:
+
+    .. math::
+       \mathrm{cor}(r) =
+       \begin{cases}
+       \frac{2}{\pi}\cdot\left(
+       \cos^{-1}\left(\frac{r}{\ell}\right) -
+       \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
+       \right)
+       & r<\ell\\
+       0 & r\geq\ell
+       \end{cases}
+
+    In 3D:
+
+    .. math::
+       \mathrm{cor}(r) =
+       \begin{cases}
+       1-\frac{3}{2}\cdot\frac{r}{\ell} +
+       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
+       & r<\ell\\
+       0 & r\geq\ell
+       \end{cases}
+
+    """
+
+    def correlation(self, r):
+        r"""Spherical correlation function.
+
+        .. math::
+           \mathrm{cor}(r) =
+           \begin{cases}
+           1-\frac{3}{2}\cdot\frac{r}{\ell} +
+           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+        """
+        r = np.array(np.abs(r), dtype=np.double)
+        res = np.zeros_like(r)
+        r_ll = r < self.len_scale
+        r_low = r[r_ll]
+        if self.dim == 1:
+            res[r_ll] = 1.0 - r_low / self.len_scale
+        elif self.dim == 2:
+            res[r_ll] = (
+                2
+                / np.pi
+                * (
+                    np.arccos(r_low / self.len_scale)
+                    - r_low
+                    / self.len_scale
+                    * np.sqrt(1 - (r_low / self.len_scale) ** 2)
+                )
+            )
+        else:
+            res[r_ll] = (
+                1.0
+                - 3.0 / 2.0 * r_low / self.len_scale
+                + 1.0 / 2.0 * (r_low / self.len_scale) ** 3
+            )
+        return res
+
+    def spectrum(self, k):
+        """Spectrum of the covariance model."""
+        k = np.array(k, dtype=np.double)
+        res = np.empty_like(k)
+        kl = k * self.len_scale
+        kl_gz = kl > 0
+        # for k=0 we calculate the limit by hand
+        if self.dim == 1:
+            res[kl_gz] = (1.0 - np.cos(kl[kl_gz])) / (
+                np.pi * k[kl_gz] * kl[kl_gz]
+            )
+            res[np.logical_not(kl_gz)] = self.len_scale / 2.0 / np.pi
+        elif self.dim == 2:
+            res[kl_gz] = sps.j1(kl[kl_gz] / 2.0) ** 2 / np.pi / k[kl_gz] ** 2
+            res[np.logical_not(kl_gz)] = self.len_scale ** 2 / 16.0 / np.pi
+        else:
+            res[kl_gz] = -(
+                12 * kl[kl_gz] * np.sin(kl[kl_gz])
+                + (12 - 3 * kl[kl_gz] ** 2) * np.cos(kl[kl_gz])
+                - 3 * kl[kl_gz] ** 2
+                - 12
+            ) / (2 * np.pi ** 2 * kl[kl_gz] ** 3 * k[kl_gz] ** 3)
+            res[np.logical_not(kl_gz)] = (
+                self.len_scale ** 3 / 48.0 / np.pi ** 2
+            )
+        return res * self.var

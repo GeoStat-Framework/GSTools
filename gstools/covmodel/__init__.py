@@ -34,10 +34,10 @@ Standard Covariance Models
    Matern
    Rational
    Stable
-   Spherical
    Linear
-   MaternRescal
-   SphericalRescal
+   Circular
+   Spherical
+   Intersection
 
 Truncated Power Law Covariance Models
 
@@ -57,10 +57,9 @@ from gstools.covmodel.models import (
     Matern,
     Rational,
     Stable,
-    Spherical,
     Linear,
-    MaternRescal,
-    SphericalRescal,
+    Circular,
+    Spherical,
 )
 from gstools.covmodel.tpl_models import TPLGaussian, TPLExponential, TPLStable
 
@@ -71,10 +70,10 @@ __all__ = [
     "Matern",
     "Rational",
     "Stable",
-    "Spherical",
     "Linear",
-    "MaternRescal",
-    "SphericalRescal",
+    "Circular",
+    "Spherical",
+    "Intersection",
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",
