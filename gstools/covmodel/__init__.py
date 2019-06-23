@@ -60,6 +60,7 @@ from gstools.covmodel.models import (
     Linear,
     Circular,
     Spherical,
+    Intersection,
 )
 from gstools.covmodel.tpl_models import TPLGaussian, TPLExponential, TPLStable
 
