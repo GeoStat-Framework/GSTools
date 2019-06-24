@@ -175,7 +175,7 @@ class Exponential(CovModel):
         if self.dim == 2:
             u_power = np.divide(
                 1,
-                u**2,
+                u ** 2,
                 out=np.full_like(u, np.inf),
                 where=np.logical_not(np.isclose(u, 0)),
             )

@@ -61,7 +61,14 @@ def exp_int(s, x):
         return sps.exp1(x)
     if np.isclose(s, np.around(s)) and s > -0.5:
         return sps.expn(int(np.around(s)), x)
-    return inc_gamma(1 - s, x) * x ** (s - 1)
+    x = np.array(x, dtype=np.double)
+    x[np.isclose(x, 0)] = 0  # hack to prevent numerical errors
+    x[np.isclose(1.0 / x, 0)] = np.inf  # hack to prevent numerical errors
+    res = np.full_like(x, 1.0 / (s - 1.0))  # limit at x=0
+    res[x == np.inf] = 0  # limit at x=inf
+    x_fin = np.logical_and(x > 0, x < np.inf)
+    res[x_fin] = inc_gamma(1 - s, x[x_fin]) * x[x_fin] ** (s - 1)
+    return res * 1  # this will create a float out of an array
 
 
 def tplstable_cor(r, len_scale, hurst, alpha):
