@@ -258,7 +258,7 @@ class TPLExponential(CovModel):
         * :math:`C>0` : The scaling factor from the Power-Law.
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
-        * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
+        * :math:`0<H<\frac{1}{2}` : The hurst coefficient (``model.hurst``)
         * :math:`\ell_{\mathrm{low}}\geq 0` : The lower length scale truncation
           of the model (``model.len_low``)
         * :math:`\ell_{\mathrm{up}}\geq 0` : The upper length scale truncation
@@ -315,14 +315,14 @@ class TPLExponential(CovModel):
     def default_opt_arg(self):
         """Defaults for the optional arguments.
 
-            * ``{"hurst": 0.5, "len_low": 0.0}``
+            * ``{"hurst": 0.25, "len_low": 0.0}``
 
         Returns
         -------
         :class:`dict`
             Defaults for optional arguments
         """
-        return {"hurst": 0.5, "len_low": 0.0}
+        return {"hurst": 0.25, "len_low": 0.0}
 
     def default_arg_bounds(self):
         """Provide default boundaries for arguments.
@@ -346,7 +346,7 @@ class TPLExponential(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"hurst": [0.1, 1, "oo"], "len_low": [0, 1000, "cc"]}
+        return {"hurst": [0.1, 0.5, "oo"], "len_low": [0, 1000, "cc"]}
 
     def correlation(self, r):
         r"""Truncated-Power-Law with Exponential modes - correlation function.
@@ -443,7 +443,7 @@ class TPLStable(CovModel):
         * :math:`C>0` : The scaling factor from the Power-Law.
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
-        * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
+        * :math:`0<H<\frac{\alpha}{2}` : The hurst coefficient (``model.hurst``)
         * :math:`\ell_{\mathrm{low}}\geq 0` : The lower length scale truncation
           of the model (``model.len_low``)
         * :math:`\ell_{\mathrm{up}}\geq 0` : The upper length scale truncation

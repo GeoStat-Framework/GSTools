@@ -53,7 +53,7 @@ def exp_int(s, x):
     Parameters
     ----------
     s : :class:`float`
-        exponent in the integral
+        exponent in the integral (should be > -100)
     x : :class:`numpy.ndarray`
         input values
     """
