@@ -62,13 +62,27 @@ def exp_int(s, x):
     if np.isclose(s, np.around(s)) and s > -0.5:
         return sps.expn(int(np.around(s)), x)
     x = np.array(x, dtype=np.double)
-    x[np.isclose(x, 0)] = 0  # hack to prevent numerical errors
-    x[np.isclose(1.0 / x, 0)] = np.inf  # hack to prevent numerical errors
-    res = np.full_like(x, 1.0 / (s - 1.0))  # limit at x=0
-    res[x == np.inf] = 0  # limit at x=inf
-    x_fin = np.logical_and(x > 0, x < np.inf)
-    res[x_fin] = inc_gamma(1 - s, x[x_fin]) * x[x_fin] ** (s - 1)
-    return res * 1  # this will create a float out of an array
+    x_neg = x < 0
+    x = np.abs(x)
+    res = np.empty_like(x)
+    # use asymptotic behavior for zeros
+    x_zero = np.isclose(x ** np.max(((1 - s), 1)), 0, atol=1e-20)
+    x_inf = np.isclose(
+        np.divide(
+            1, x, out=np.full_like(x, np.inf), where=np.logical_not(x_zero)
+        ),
+        0,
+    )
+    x_fin = np.logical_not(np.logical_or(x_zero, x_inf))
+    x_fin_pos = np.logical_and(x_fin, np.logical_not(x_neg))
+    if s > 1.0:  # limit at x=+0
+        res[x_zero] = 1.0 / (s - 1.0)
+    else:
+        res[x_zero] = np.inf
+    res[x_inf] = 0  # limit at x=+inf
+    res[x_fin_pos] = inc_gamma(1 - s, x[x_fin_pos]) * x[x_fin_pos] ** (s - 1)
+    res[x_neg] = np.nan  # nan for x < 0
+    return res * 1  # this will create a float out of an 0-D array
 
 
 def tplstable_cor(r, len_scale, hurst, alpha):
