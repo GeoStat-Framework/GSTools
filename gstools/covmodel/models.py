@@ -173,7 +173,13 @@ class Exponential(CovModel):
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_scale
         if self.dim == 2:
-            return np.sqrt(1 / u ** 2 - 1.0) / self.len_scale
+            u_power = np.divide(
+                1,
+                u**2,
+                out=np.full_like(u, np.inf),
+                where=np.logical_not(np.isclose(u, 0)),
+            )
+            return np.sqrt(u_power - 1.0) / self.len_scale
         return None
 
     def _has_ppf(self):
@@ -651,17 +657,7 @@ class Intersection(CovModel):
     """
 
     def correlation(self, r):
-        r"""Spherical correlation function.
-
-        .. math::
-           \mathrm{cor}(r) =
-           \begin{cases}
-           1-\frac{3}{2}\cdot\frac{r}{\ell} +
-           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
+        """Correlation function."""
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         r_ll = r < self.len_scale
