@@ -64,25 +64,21 @@ def exp_int(s, x):
     x = np.array(x, dtype=np.double)
     x_neg = x < 0
     x = np.abs(x)
+    x_compare = x ** min((10, max(((1 - s), 1))))
     res = np.empty_like(x)
     # use asymptotic behavior for zeros
-    x_zero = np.isclose(x ** np.max(((1 - s), 1)), 0, atol=1e-20)
-    x_inf = np.isclose(
-        np.divide(
-            1, x, out=np.full_like(x, np.inf), where=np.logical_not(x_zero)
-        ),
-        0,
-    )
+    x_zero = np.isclose(x_compare, 0, atol=1e-20)
+    x_inf = x > max(30, -s/2)  # function is like exp(-x)*(1/x + s/x^2)
     x_fin = np.logical_not(np.logical_or(x_zero, x_inf))
     x_fin_pos = np.logical_and(x_fin, np.logical_not(x_neg))
     if s > 1.0:  # limit at x=+0
         res[x_zero] = 1.0 / (s - 1.0)
     else:
         res[x_zero] = np.inf
-    res[x_inf] = 0  # limit at x=+inf
+    res[x_inf] = np.exp(-x[x_inf]) * ( x[x_inf] ** -1 - s * x[x_inf] ** -2)
     res[x_fin_pos] = inc_gamma(1 - s, x[x_fin_pos]) * x[x_fin_pos] ** (s - 1)
     res[x_neg] = np.nan  # nan for x < 0
-    return res * 1  # this will create a float out of an 0-D array
+    return res
 
 
 def tplstable_cor(r, len_scale, hurst, alpha):
