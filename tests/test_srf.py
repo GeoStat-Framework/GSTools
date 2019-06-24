@@ -8,6 +8,7 @@ from __future__ import division, absolute_import, print_function
 import unittest
 import numpy as np
 from gstools import SRF, Gaussian
+from gstools.tools import transform as tf
 
 
 class TestSRF(unittest.TestCase):
@@ -229,6 +230,23 @@ class TestSRF(unittest.TestCase):
         field2 = srf.structured((self.x_tuple, self.y_tuple), seed=self.seed)
         self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
+
+    def test_transform(self):
+        self.cov_model.dim = 2
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        tf.normal_force_moments(srf)  # force ergodicity of the given field
+        self.assertAlmostEqual(srf.field.mean(), srf.mean)
+        self.assertAlmostEqual(srf.field.var(), srf.model.var)
+        tf.zinnharvey(srf)  # make high values mostly connected
+        tf.normal_force_moments(srf)  # force ergodicity of the given field
+        tf.normal_to_lognormal(srf)  # log-normal
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        tf.normal_to_arcsin(srf)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        tf.normal_to_uquad(srf)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        tf.normal_to_uniform(srf)
 
     def test_incomprrandmeth(self):
         self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0, mode_no=100)
