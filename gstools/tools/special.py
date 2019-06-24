@@ -10,7 +10,7 @@ The following functions are provided
    inc_gamma
    exp_int
    inc_beta
-   stable_cov_norm
+   tplstable_cor
 """
 # pylint: disable=C0103, E1101
 from __future__ import print_function, division, absolute_import
@@ -18,7 +18,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from scipy import special as sps
 
-__all__ = ["inc_gamma", "exp_int", "inc_beta", "stable_cov_norm"]
+__all__ = ["inc_gamma", "exp_int", "inc_beta", "tplstable_cor"]
 
 
 # special functions ###########################################################
@@ -64,13 +64,13 @@ def exp_int(s, x):
     return inc_gamma(1 - s, x) * x ** (s - 1)
 
 
-def stable_cov_norm(r, len_scale, hurst, alpha):
-    r"""The normalized covariance function of the stable model.
+def tplstable_cor(r, len_scale, hurst, alpha):
+    r"""The correlation function of the TPLStable model.
 
     Given by
 
     .. math::
-       \tilde{C}(r) =
+       \mathrm{cor}(r) =
        \frac{2H}{\alpha} \cdot
        E_{1+\frac{2H}{\alpha}}
        \left(\left(\frac{r}{\ell}\right)^{\alpha} \right)
@@ -88,7 +88,7 @@ def stable_cov_norm(r, len_scale, hurst, alpha):
         Shape parameter of the stable model.
     """
     r = np.array(np.abs(r / len_scale), dtype=np.double)
-    r[r < 1e-8] = 0  # hack to prevent numerical errors
+    r[np.isclose(r, 0)] = 0  # hack to prevent numerical errors
     res = np.ones_like(r)
     res[r > 0] = (2 * hurst / alpha) * exp_int(
         1 + 2 * hurst / alpha, (r[r > 0]) ** alpha

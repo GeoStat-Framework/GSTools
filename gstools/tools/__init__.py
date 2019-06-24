@@ -19,7 +19,7 @@ Special functions
    inc_gamma
    exp_int
    inc_beta
-   stable_cov_norm
+   tplstable_cor
 
 Geometric
 ^^^^^^^^^
@@ -54,7 +54,7 @@ from gstools.tools.export import (
 
 from gstools.tools.geometric import r3d_x, r3d_y, r3d_z, xyz2pos, pos2xyz
 
-from gstools.tools.special import inc_gamma, exp_int, inc_beta, stable_cov_norm
+from gstools.tools.special import inc_gamma, exp_int, inc_beta, tplstable_cor
 
 from gstools.tools.transform import (
     zinnharvey,
@@ -72,7 +72,7 @@ __all__ = [
     "inc_gamma",
     "exp_int",
     "inc_beta",
-    "stable_cov_norm",
+    "tplstable_cor",
     "xyz2pos",
     "pos2xyz",
     "r3d_x",

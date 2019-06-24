@@ -17,7 +17,7 @@ from __future__ import print_function, division, absolute_import
 import warnings
 import numpy as np
 from gstools.covmodel.base import CovModel
-from gstools.tools.special import stable_cov_norm
+from gstools.tools.special import tplstable_cor
 
 __all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
 
@@ -196,12 +196,12 @@ class TPLGaussian(CovModel):
         """
         # if lower limit is 0 we use the simplified version (faster)
         if np.isclose(self.len_low, 0.0):
-            return stable_cov_norm(r, self.len_scale, self.hurst, 2)
+            return tplstable_cor(r, self.len_scale, self.hurst, 2)
         return (
             self.len_up ** (2 * self.hurst)
-            * stable_cov_norm(r, self.len_up, self.hurst, 2)
+            * tplstable_cor(r, self.len_up, self.hurst, 2)
             - self.len_low ** (2 * self.hurst)
-            * stable_cov_norm(r, self.len_low, self.hurst, 2)
+            * tplstable_cor(r, self.len_low, self.hurst, 2)
         ) / (
             self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
         )
@@ -374,12 +374,12 @@ class TPLExponential(CovModel):
         """
         # if lower limit is 0 we use the simplified version (faster)
         if np.isclose(self.len_low, 0.0):
-            return stable_cov_norm(r, self.len_scale, self.hurst, 1)
+            return tplstable_cor(r, self.len_scale, self.hurst, 1)
         return (
             self.len_up ** (2 * self.hurst)
-            * stable_cov_norm(r, self.len_up, self.hurst, 1)
+            * tplstable_cor(r, self.len_up, self.hurst, 1)
             - self.len_low ** (2 * self.hurst)
-            * stable_cov_norm(r, self.len_low, self.hurst, 1)
+            * tplstable_cor(r, self.len_low, self.hurst, 1)
         ) / (
             self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
         )
@@ -584,12 +584,12 @@ class TPLStable(CovModel):
         """
         # if lower limit is 0 we use the simplified version (faster)
         if np.isclose(self.len_low, 0.0):
-            return stable_cov_norm(r, self.len_scale, self.hurst, self.alpha)
+            return tplstable_cor(r, self.len_scale, self.hurst, self.alpha)
         return (
             self.len_up ** (2 * self.hurst)
-            * stable_cov_norm(r, self.len_up, self.hurst, self.alpha)
+            * tplstable_cor(r, self.len_up, self.hurst, self.alpha)
             - self.len_low ** (2 * self.hurst)
-            * stable_cov_norm(r, self.len_low, self.hurst, self.alpha)
+            * tplstable_cor(r, self.len_low, self.hurst, self.alpha)
         ) / (
             self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
         )
