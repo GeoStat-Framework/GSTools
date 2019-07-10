@@ -118,51 +118,6 @@ vtk_export('3d_field', (x, y, z), field, mesh_type='structured')
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png" alt="3d Random field" width="600px"/>
 </p>
 
-#### Truncated Power Law Model
-
-GSTools also implements truncated power law variograms, which can be represented as a
-superposition of scale dependent modes in form of standard variograms, which are truncated by
-an upper length-scale <i>l<sub>u</sub></i>.
-
-This example shows the truncated power law based on the [stable model][stable_link] and is given by
-
-<p align="center">
-<img src="http://mathurl.com/yasd47ef.png" alt="Truncated Power Law - Stable"/>
-</p>
-
-which gives Gaussian modes for `alpha=2` or exponential modes for `alpha=1`
-
-This results in:
-
-<p align="center">
-<img src="http://mathurl.com/yc669evd.png" alt="Truncated Power Law - Stable"/>
-</p>
-
-```python
-import numpy as np
-from gstools import SRF, TPLStable
-x = y = np.linspace(0, 100, 100)
-model = TPLStable(
-    dim=2,            # spatial dimension
-    var=1,            # variance (C is calculated internally, so that the variance is actually 1)
-    len_low=0,        # lower truncation of the power law
-    len_scale=10,     # length scale (a.k.a. range), len_up = len_low + len_scale
-    nugget=0.1,       # nugget
-    anis=0.5,         # anisotropy between main direction and transversal ones
-    angles=-np.pi/4,  # rotation angles
-    alpha=1.5,        # shape parameter from the stable model
-    hurst=0.7,        # hurst coefficient from the power law
-)
-srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-field = srf((x, y), mesh_type='structured')
-# show the field in xy coordinates
-srf.plot()
-```
-
-<p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/tplstable_field.png" alt="Random field" width="600px"/>
-</p>
-
 
 ## Estimating and Fitting Variograms
 
@@ -277,12 +232,12 @@ After you have created a field, you may want to save it to file, so we provide
 a handy [VTK][vtk_link] export routine:
 
 ```python
-from gstools import SRF, Gaussian, vtk_export
+from gstools import SRF, Gaussian
 x = y = range(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model)
-field = srf((x, y), mesh_type='structured')
-vtk_export("field", (x, y), field, mesh_type='structured')
+srf((x, y), mesh_type='structured')
+srf.vtk_export("field")
 ```
 
 Which gives a RectilinearGrid VTK file ``field.vtr``.
