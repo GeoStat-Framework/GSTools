@@ -455,6 +455,12 @@ class Matern(CovModel):
             )
         )
 
+    def calc_integral_scale(self):
+        """Integral scale of the matern model."""
+        return (
+            self.len_scale * np.pi / np.sqrt(self.nu) / sps.beta(self.nu, 0.5)
+        )
+
 
 # Bounded linear Model ########################################################
 
