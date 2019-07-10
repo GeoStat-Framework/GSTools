@@ -218,16 +218,16 @@ class, which allows to easy define covariance models by the user.
 
 ### Example
 
-Here we re-implement the Gaussian covariance model by defining just the
-[correlation][cor_link] function:
+Here we re-implement the Gaussian covariance model by defining just a
+[correlation][cor_link] function, which takes a non-dimensional distance ``h = r/l``:
 
 ```python
 from gstools import CovModel
 import numpy as np
 # use CovModel as the base-class
 class Gau(CovModel):
-    def correlation(self, r):
-        return np.exp(-(r/self.len_scale)**2)
+    def cor(self, h):
+        return np.exp(-h**2)
 ```
 
 And that's it! With ``Gau`` you now have a fully working covariance model,
