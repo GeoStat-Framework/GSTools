@@ -16,3 +16,4 @@ GSTools API
    variogram.rst
    random.rst
    tools.rst
+   krige.rst
