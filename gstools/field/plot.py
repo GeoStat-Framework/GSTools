@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-GStools subpackage providing plotting routines for spatial random fields.
+GStools subpackage providing plotting routines for spatial fields.
 
 .. currentmodule:: gstools.field.plot
 
 The following classes and functions are provided
 
 .. autosummary::
-   plot_srf
+   plot_field
 """
 # pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
@@ -19,20 +19,20 @@ from mpl_toolkits.mplot3d import Axes3D
 from gstools.tools import pos2xyz
 from gstools.covmodel.plot import _get_fig_ax
 
-__all__ = ["plot_srf"]
+__all__ = ["plot_field"]
 
 
 # plotting routines #######################################################
 
 
-def plot_srf(srf, field="field", fig=None, ax=None):  # pragma: no cover
+def plot_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     """
-    Plot a spatial random field.
+    Plot a spatial field.
 
     Parameters
     ----------
-    srf : :class:`SRF`
-        The given srf class instance.
+    fld : :class:`Field`
+        The given Field class instance.
     field : :class:`str`, optional
         Field that should be plotted. Default: "field"
     fig : :class:`Figure` or :any:`None`, optional
@@ -42,14 +42,14 @@ def plot_srf(srf, field="field", fig=None, ax=None):  # pragma: no cover
         Axes to plot on. If `None`, a new one will be added to the figure.
         Default: `None`
     """
-    plot_field = getattr(srf, field)
-    assert not (srf.pos is None or plot_field is None)
-    if srf.model.dim == 1:
-        ax = _plot_1d(srf.pos, plot_field, fig, ax)
-    elif srf.model.dim == 2:
-        ax = _plot_2d(srf.pos, plot_field, srf.mesh_type, fig, ax)
+    plot_field = getattr(fld, field)
+    assert not (fld.pos is None or plot_field is None)
+    if fld.model.dim == 1:
+        ax = _plot_1d(fld.pos, plot_field, fig, ax)
+    elif fld.model.dim == 2:
+        ax = _plot_2d(fld.pos, plot_field, fld.mesh_type, fig, ax)
     else:
-        ax = _plot_3d(srf.pos, plot_field, srf.mesh_type, fig, ax)
+        ax = _plot_3d(fld.pos, plot_field, fld.mesh_type, fig, ax)
     return ax
 
 
