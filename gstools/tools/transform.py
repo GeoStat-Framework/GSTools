@@ -17,11 +17,14 @@ The following functions are provided
 # pylint: disable=C0103, E1101
 from __future__ import print_function, division, absolute_import
 
+from warnings import warn
+
 import numpy as np
 from scipy.special import erf, erfinv
 
 
 __all__ = [
+    "boxcox",
     "zinnharvey",
     "normal_force_moments",
     "normal_to_lognormal",
@@ -31,9 +34,44 @@ __all__ = [
 ]
 
 
+def boxcox(srf, lamb=1, shift=0):
+    """
+    Box-Cox transformation.
+
+    After this transformation, the again Box-Cox transformed field is normal
+    distributed.
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    lamb : :class:`float`, optional
+        The lambda parameter of the Box-Cox transformation.
+        For ``lamb=0`` one obtains the log-normal transformation.
+        Default: ``1``
+    shift : :class:`float`, optional
+        The shift parameter from the two-parametric Box-Cox transformation.
+        The field will be shifted by that value before transformation.
+        Default: ``0``
+    """
+    if srf.field is None:
+        print("zinnharvey: no field stored in SRF class.")
+    else:
+        srf.mean += shift
+        srf.field += shift
+        if np.isclose(lamb, 0):
+            normal_to_lognormal(srf)
+        if np.min(srf.field) < -1 / lamb:
+            warn("BoxCox: Some values will be cut of!")
+        srf.field = (np.maximum(lamb * srf.field + 1, 0)) ** (1 / lamb)
+
+
 def zinnharvey(srf, conn="high"):
     """
     Zinn and Harvey transformation to connect low or high values.
+
+    After this transformation, the field is still normal distributed.
 
     Parameters
     ----------
@@ -54,6 +92,8 @@ def normal_force_moments(srf):
     """
     Force moments of a normal distributed field.
 
+    After this transformation, the field is still normal distributed.
+
     Parameters
     ----------
     srf : :any:`SRF`
@@ -70,6 +110,8 @@ def normal_to_lognormal(srf):
     """
     Transform normal distribution to log-normal distribution.
 
+    After this transformation, the field is log-normal distributed.
+
     Parameters
     ----------
     srf : :any:`SRF`
@@ -85,6 +127,8 @@ def normal_to_lognormal(srf):
 def normal_to_uniform(srf):
     """
     Transform normal distribution to uniform distribution on [0, 1].
+
+    After this transformation, the field is uniformly distributed on [0, 1].
 
     Parameters
     ----------
@@ -104,6 +148,8 @@ def normal_to_arcsin(srf, a=0, b=1):
 
     See: https://en.wikipedia.org/wiki/Arcsine_distribution
 
+    After this transformation, the field is arcsin-distributed on [a, b].
+
     Parameters
     ----------
     srf : :any:`SRF`
@@ -122,6 +168,7 @@ def normal_to_arcsin(srf, a=0, b=1):
         srf.field = _normal_to_arcsin(
             srf.field, srf.mean, srf.model.sill, a, b
         )
+        srf.mean = (b - a) / 2.0
 
 
 def normal_to_uquad(srf, a=0, b=1):
@@ -129,6 +176,8 @@ def normal_to_uquad(srf, a=0, b=1):
     Transform normal distribution to U-quadratic distribution.
 
     See: https://en.wikipedia.org/wiki/U-quadratic_distribution
+
+    After this transformation, the field is U-quadratic-distributed on [a, b].
 
     Parameters
     ----------
@@ -146,6 +195,7 @@ def normal_to_uquad(srf, a=0, b=1):
         print("normal_to_uquad: no field stored in SRF class.")
     else:
         srf.field = _normal_to_uquad(srf.field, srf.mean, srf.model.sill, a, b)
+        srf.mean = (b - a) / 2.0
 
 
 # low level functions
