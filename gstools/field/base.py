@@ -47,7 +47,7 @@ class Field(object):
         self._model = None
         self.model = model
 
-    def __call__(*args, mesh_type="unstructured", **kwargs):
+    def __call__(*args, **kwargs):
         """Generate the field."""
         pass
 
