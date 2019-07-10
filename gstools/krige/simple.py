@@ -26,6 +26,7 @@ from gstools.field.tools import (
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
 )
+from gstools.field.base import Field
 from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.tools.export import vtk_export as vtk_ex
 from gstools.krige.krigesum import krigesum
@@ -33,7 +34,7 @@ from gstools.krige.krigesum import krigesum
 __all__ = ["Simple"]
 
 
-class Simple(object):
+class Simple(Field):
     """
     A class for simple kriging.
 
@@ -50,16 +51,11 @@ class Simple(object):
     """
 
     def __init__(self, model, mean, cond_pos, cond_val):
-        # initialize private attributes
-        self.field = None
+        super(Simple, self).__init__(model, mean)
         self.krige_var = None
-        self.mean = mean
-
-        self._model = None
+        # initialize private attributes
         self._cond_pos = None
         self._cond_val = None
-
-        self.model = model
         self.set_condition(cond_pos, cond_val)
 
         # initialize attributes
@@ -138,55 +134,6 @@ class Simple(object):
             )
         )
 
-    def vtk_export(
-        self, filename, field_select="field", fieldname="field"
-    ):  # pragma: no cover
-        """Export the stored field to vtk.
-
-        Parameters
-        ----------
-        filename : :class:`str`
-            Filename of the file to be saved, including the path. Note that an
-            ending (.vtr or .vtu) will be added to the name.
-        field_select : :class:`str`, optional
-            Field that should be stored. Can be:
-            "field" or "krige_var".
-            Default: "field"
-        fieldname : :class:`str`, optional
-            Name of the field in the VTK file. Default: "field"
-        """
-        if hasattr(self, field_select):
-            field = getattr(self, field_select)
-        else:
-            field = None
-        if not (self.pos is None or field is None or self.mesh_type is None):
-            vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
-        else:
-            print(
-                "gstools.krige.Simple.vtk_export: No "
-                + field_select
-                + " stored in the class."
-            )
-
-    def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
-        """
-        Plot the stored field.
-
-        Parameters
-        ----------
-        field : :class:`str`, optional
-            Field that should be plotted. Default: "field"
-        fig : :any:`Figure` or :any:`None`
-            Figure to plot the axes on. If `None`, a new one will be created.
-            Default: `None`
-        ax : :any:`Axes` or :any:`None`
-            Axes to plot on. If `None`, a new one will be added to the figure.
-            Default: `None`
-        """
-        from gstools.field.plot import plot_srf
-
-        plot_srf(self, field, fig, ax)
-
     def set_condition(self, cond_pos, cond_val):
         """Set the conditions for kriging.
 
@@ -200,22 +147,6 @@ class Simple(object):
         self._cond_pos = cond_pos
         self._cond_val = np.array(cond_val, dtype=np.double)
 
-    def structured(self, *args, **kwargs):
-        """Simple kriging on a structured mesh.
-
-        See :any:`Simple.__call__`
-        """
-        call = partial(self.__call__, mesh_type="structured")
-        return call(*args, **kwargs)
-
-    def unstructured(self, *args, **kwargs):
-        """Simple kriging on an unstructured mesh.
-
-        See :any:`Simple.__call__`
-        """
-        call = partial(self.__call__, mesh_type="unstructured")
-        return call(*args, **kwargs)
-
     @property
     def cond_pos(self):
         """:class:`list`: The position tuple of the conditions."""
@@ -225,26 +156,6 @@ class Simple(object):
     def cond_val(self):
         """:class:`list`: The values of the conditions."""
         return self._cond_val
-
-    @property
-    def model(self):
-        """:any:`CovModel`: The covariance model used for kriging."""
-        return self._model
-
-    @model.setter
-    def model(self, model):
-        if isinstance(model, CovModel):
-            self._model = model
-        else:
-            raise ValueError(
-                "gstools.krige.Simple: "
-                + "'model' is not an instance of 'gstools.CovModel' "
-                + str(model)
-            )
-
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
 
     def __repr__(self):
         """Return String representation."""

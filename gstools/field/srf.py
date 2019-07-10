@@ -12,10 +12,7 @@ The following classes are provided
 # pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
 
-from functools import partial
-
 import numpy as np
-from gstools.covmodel.base import CovModel
 from gstools.field.generator import RandMeth, IncomprRandMeth
 from gstools.field.tools import (
     check_mesh,
@@ -24,8 +21,8 @@ from gstools.field.tools import (
     reshape_axis_from_struct_to_unstruct,
     reshape_field_from_unstruct_to_struct,
 )
+from gstools.field.base import Field
 from gstools.tools.geometric import pos2xyz, xyz2pos
-from gstools.tools.export import vtk_export as vtk_ex
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 from gstools.field.condition import ordinary, simple
 
@@ -44,7 +41,7 @@ UPSCALING = {
 CONDITION = {"ordinary": ordinary, "simple": simple}
 
 
-class SRF(object):
+class SRF(Field):
     """A class to generate spatial random fields (SRF).
 
     Parameters
@@ -92,8 +89,8 @@ class SRF(object):
         generator="RandMeth",
         **generator_kwargs
     ):
+        super(SRF, self).__init__(model, mean)
         # initialize private attributes
-        self._model = None
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
@@ -102,15 +99,10 @@ class SRF(object):
         self._cond_val = None
         self._krige_type = None
         # initialize attributes
-        self.pos = None
-        self.mesh_type = None
-        self.field = None
         self.raw_field = None
         self.krige_field = None
         self.err_field = None
         self.krige_var = None
-        self.mean = mean
-        self.model = model
         self.set_generator(generator, **generator_kwargs)
         self.upscaling = upscaling
 
@@ -200,58 +192,6 @@ class SRF(object):
 
         return self.field
 
-    def vtk_export(
-        self, filename, field_select="field", fieldname="field"
-    ):  # pragma: no cover
-        """Export the stored field to vtk.
-
-        Parameters
-        ----------
-        filename : :class:`str`
-            Filename of the file to be saved, including the path. Note that an
-            ending (.vtr or .vtu) will be added to the name.
-        field_select : :class:`str`, optional
-            Field that should be stored. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
-            Default: "field"
-        fieldname : :class:`str`, optional
-            Name of the field in the VTK file. Default: "field"
-        """
-        if hasattr(self, field_select):
-            field = getattr(self, field_select)
-        else:
-            field = None
-        if not (self.pos is None or field is None or self.mesh_type is None):
-            vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
-        else:
-            print(
-                "gstools.SRF.vtk_export: No "
-                + field_select
-                + " stored in the class."
-            )
-
-    def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
-        """
-        Plot the spatial random field.
-
-        Parameters
-        ----------
-        field : :class:`str`, optional
-            Field that should be plotted. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
-            Default: "field"
-        fig : :class:`Figure` or :any:`None`
-            Figure to plot the axes on. If `None`, a new one will be created.
-            Default: `None`
-        ax : :class:`Axes` or :any:`None`
-            Axes to plot on. If `None`, a new one will be added to the figure.
-            Default: `None`
-        """
-        # just import if needed; matplotlib is not required by setup
-        from gstools.field.plot import plot_srf
-
-        return plot_srf(self, field, fig, ax)
-
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"
     ):
@@ -303,22 +243,6 @@ class SRF(object):
             return CONDITION[self._krige_type](*args, **kwargs)
         return None
 
-    def structured(self, *args, **kwargs):
-        """Generate an SRF on a structured mesh.
-
-        See :any:`SRF.__call__`
-        """
-        call = partial(self.__call__, mesh_type="structured")
-        return call(*args, **kwargs)
-
-    def unstructured(self, *args, **kwargs):
-        """Generate an SRF on an unstructured mesh.
-
-        See :any:`SRF.__call__`
-        """
-        call = partial(self.__call__, mesh_type="unstructured")
-        return call(*args, **kwargs)
-
     def upscaling_func(self, *args, **kwargs):
         """Upscaling method applied to the field variance."""
         return self._upscaling_func(*args, **kwargs)
@@ -366,24 +290,6 @@ class SRF(object):
             raise ValueError(
                 "gstools.SRF: Unknown upscaling method: " + upscaling
             )
-
-    @property
-    def model(self):
-        """:any:`CovModel`: The covariance model of the random field."""
-        return self._model
-
-    @model.setter
-    def model(self, model):
-        if isinstance(model, CovModel):
-            self._model = model
-        else:
-            raise ValueError(
-                "gstools.SRF: 'model' is not an instance of 'gstools.CovModel'"
-            )
-
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
 
     def __repr__(self):
         """Return String representation."""
