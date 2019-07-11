@@ -33,11 +33,7 @@ class Field(object):
         Mean value of the field.
     """
 
-    def __init__(
-        self,
-        model,
-        mean=0.0,
-    ):
+    def __init__(self, model, mean=0.0):
         # initialize attributes
         self.pos = None
         self.mesh_type = None
@@ -67,64 +63,72 @@ class Field(object):
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
-    def mesh(self, mesh, name="field", points="centriods", **kwargs):
-        """Generate a field on a given meshio mesh.
+    def mesh(self, mesh, points="centriods", name="field", **kwargs):
+        """Generate a field on a given meshio or ogs5py mesh.
 
         Parameters
         ----------
-        mesh : meshio.Mesh
-            The given meshio.Mesh
-        field : :class:`str`, optional
-            Name to store the field in the given mesh as point_data or
-            cell_data. Default: "field"
+        mesh : meshio.Mesh or ogs5py.MSH
+            The given meshio or ogs5py mesh
         points : :class:`str`, optional
             The points to evaluate the field at.
             Either the "centroids" of the mesh cells
             (calculated as mean of the cell vertices) or the "points"
             of the given mesh.
             Default: "centroids"
+        field : :class:`str`, optional
+            Name to store the field in the given mesh as point_data or
+            cell_data. Default: "field"
         **kwargs
             Keyword arguments forwareded to `Field.__call__`.
 
         Notes
         -----
-        This will store the field in the given mesh under the given name.
+        This will store the field in the given mesh under the given name,
+        if a meshio mesh was given.
 
         See: https://github.com/nschloe/meshio
 
         See: :any:`Field.__call__`
         """
-        if points == "centroids":
-            # define unique order of cells
-            cells = list(mesh.cells)
-            offset = []
-            length = []
-            pnts = np.empty((0, 3), dtype=np.double)
-            for cell in cells:
-                pnt = np.mean(mesh.points[mesh.cells[cell]], axis=1)
-                offset.append(pnts.shape[0])
-                length.append(pnt.shape[0])
-                pnts = np.vstack((pnts, pnt))
-            # generate pos for __call__
-            pnts = list(pnts.T)
+        if hasattr(mesh, "centroids_flat"):
+            if points == "centroids":
+                pnts = list(mesh.centroids_flat.T)
+            else:
+                pnts = list(mesh.NODES.T)
             out = self.unstructured(pos=pnts, **kwargs)
-            if isinstance(out, np.ndarray):
-                field = out
-            else:
-                # if multiple values are returned, take the first one
-                field = out[0]
-            field_dict = {}
-            for i, cell in enumerate(cells):
-                field_dict[cell] = field[offset[i]: offset[i] + length[i]]
-            mesh.cell_data[name] = field_dict
         else:
-            out = self.unstructured(pos=list(mesh.points.T), **kwargs)
-            if isinstance(out, np.ndarray):
-                field = out
+            if points == "centroids":
+                # define unique order of cells
+                cells = list(mesh.cells)
+                offset = []
+                length = []
+                pnts = np.empty((0, 3), dtype=np.double)
+                for cell in cells:
+                    pnt = np.mean(mesh.points[mesh.cells[cell]], axis=1)
+                    offset.append(pnts.shape[0])
+                    length.append(pnt.shape[0])
+                    pnts = np.vstack((pnts, pnt))
+                # generate pos for __call__
+                pnts = list(pnts.T)
+                out = self.unstructured(pos=pnts, **kwargs)
+                if isinstance(out, np.ndarray):
+                    field = out
+                else:
+                    # if multiple values are returned, take the first one
+                    field = out[0]
+                field_dict = {}
+                for i, cell in enumerate(cells):
+                    field_dict[cell] = field[offset[i] : offset[i] + length[i]]
+                mesh.cell_data[name] = field_dict
             else:
-                # if multiple values are returned, take the first one
-                field = out[0]
-            mesh.point_data[name] = field
+                out = self.unstructured(pos=list(mesh.points.T), **kwargs)
+                if isinstance(out, np.ndarray):
+                    field = out
+                else:
+                    # if multiple values are returned, take the first one
+                    field = out[0]
+                mesh.point_data[name] = field
         return out
 
     def vtk_export(
