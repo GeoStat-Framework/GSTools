@@ -35,6 +35,8 @@ Transformations
 ^^^^^^^^^^^^^^^
 
 .. autosummary::
+   binary
+   boxcox
    zinnharvey
    normal_force_moments
    normal_to_lognormal
