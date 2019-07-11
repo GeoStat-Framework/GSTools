@@ -4,6 +4,7 @@ gstools.field
 .. automodule:: gstools.field
    :members:
    :undoc-members:
+   :show-inheritance:
 
 .. raw:: latex
 
@@ -14,3 +15,4 @@ gstools.field
 
    field.generator.rst
    field.upscaling.rst
+   field.base.rst
