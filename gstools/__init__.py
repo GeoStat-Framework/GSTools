@@ -20,6 +20,15 @@ Subpackages
     krige
     random
     tools
+    transform
+
+Tools
+=====
+
+.. currentmodule:: gstools.tools
+
+.. autosummary::
+    transform
 
 Classes
 =======
@@ -104,6 +113,7 @@ from gstools.tools.export import (
     vtk_export_unstructured,
     vtk_export,
 )
+from gstools.tools import transform
 from gstools.variogram import (
     vario_estimate_structured,
     vario_estimate_unstructured,
@@ -126,7 +136,7 @@ from gstools.covmodel import (
 
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
-
+__all__ += ["transform"]
 __all__ += [
     "CovModel",
     "Gaussian",
