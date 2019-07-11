@@ -4,6 +4,7 @@ gstools.field
 .. automodule:: gstools.field
    :members:
    :undoc-members:
+   :inherited-members:
    :show-inheritance:
 
 .. raw:: latex
