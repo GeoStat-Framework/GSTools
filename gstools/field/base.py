@@ -18,6 +18,7 @@ import numpy as np
 
 from gstools.covmodel.base import CovModel
 from gstools.tools.export import vtk_export as vtk_ex
+from gstools.field.tools import _get_select
 
 __all__ = ["Field"]
 
@@ -63,7 +64,14 @@ class Field(object):
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
-    def mesh(self, mesh, points="centriods", name="field", **kwargs):
+    def mesh(
+        self,
+        mesh,
+        points="centroids",
+        direction="xyz",
+        name="field",
+        **kwargs
+    ):
         """Generate a field on a given meshio or ogs5py mesh.
 
         Parameters
@@ -76,6 +84,10 @@ class Field(object):
             (calculated as mean of the cell vertices) or the "points"
             of the given mesh.
             Default: "centroids"
+        direction : :class:`str`, optional
+            Here you can state which direction should be choosen for
+            lower dimension. If you got a 2D mesh in xz direction,
+            you have to pass "xz"
         field : :class:`str`, optional
             Name to store the field in the given mesh as point_data or
             cell_data. Default: "field"
@@ -91,11 +103,18 @@ class Field(object):
 
         See: :any:`Field.__call__`
         """
+        select = _get_select(direction)
+        if len(select) < self.model.dim:
+            raise ValueError(
+                "Field.mesh: need at least {} direction(s), got '{}'".format(
+                    self.model.dim, direction
+                )
+            )
         if hasattr(mesh, "centroids_flat"):
             if points == "centroids":
-                pnts = list(mesh.centroids_flat.T)
+                pnts = mesh.centroids_flat.T[select]
             else:
-                pnts = list(mesh.NODES.T)
+                pnts = mesh.NODES.T[select]
             out = self.unstructured(pos=pnts, **kwargs)
         else:
             if points == "centroids":
@@ -110,7 +129,7 @@ class Field(object):
                     length.append(pnt.shape[0])
                     pnts = np.vstack((pnts, pnt))
                 # generate pos for __call__
-                pnts = list(pnts.T)
+                pnts = pnts.T[select]
                 out = self.unstructured(pos=pnts, **kwargs)
                 if isinstance(out, np.ndarray):
                     field = out
@@ -122,7 +141,7 @@ class Field(object):
                     field_dict[cell] = field[offset[i] : offset[i] + length[i]]
                 mesh.cell_data[name] = field_dict
             else:
-                out = self.unstructured(pos=list(mesh.points.T), **kwargs)
+                out = self.unstructured(pos=mesh.points.T[select], **kwargs)
                 if isinstance(out, np.ndarray):
                     field = out
                 else:

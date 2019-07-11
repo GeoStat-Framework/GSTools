@@ -183,3 +183,43 @@ def reshape_field_from_unstruct_to_struct(dim, field, axis_lens):
         field = np.reshape(field, axis_lens)
         return field
     return None
+
+
+def _get_select(direction):
+    select = []
+    if not (0 < len(direction) < 4):
+        raise ValueError(
+            "Field.mesh: need 1 to 3 direction(s), got '{}'".format(direction)
+        )
+    for axis in direction:
+        if axis == "x":
+            if 0 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(
+                        direction
+                    )
+                )
+            select.append(0)
+        elif axis == "y":
+            if 1 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(
+                        direction
+                    )
+                )
+            select.append(1)
+        elif axis == "z":
+            if 2 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(
+                        direction
+                    )
+                )
+            select.append(2)
+        else:
+            raise ValueError(
+                "Field.mesh: got unknown direction {}".format(
+                    axis
+                )
+            )
+    return select
