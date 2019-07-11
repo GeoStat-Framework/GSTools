@@ -57,6 +57,8 @@ from gstools.tools.geometric import r3d_x, r3d_y, r3d_z, xyz2pos, pos2xyz
 from gstools.tools.special import inc_gamma, exp_int, inc_beta, tplstable_cor
 
 from gstools.tools.transform import (
+    binary,
+    boxcox,
     zinnharvey,
     normal_force_moments,
     normal_to_lognormal,
@@ -78,6 +80,8 @@ __all__ = [
     "r3d_x",
     "r3d_y",
     "r3d_z",
+    "binary",
+    "boxcox",
     "zinnharvey",
     "normal_force_moments",
     "normal_to_lognormal",

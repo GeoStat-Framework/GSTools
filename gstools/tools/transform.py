@@ -7,6 +7,8 @@ GStools subpackage providing field transformations.
 The following functions are provided
 
 .. autosummary::
+   binary
+   boxcox
    zinnharvey
    normal_force_moments
    normal_to_lognormal
@@ -24,6 +26,7 @@ from scipy.special import erf, erfinv
 
 
 __all__ = [
+    "binary",
     "boxcox",
     "zinnharvey",
     "normal_force_moments",
@@ -34,12 +37,42 @@ __all__ = [
 ]
 
 
+def binary(srf, divide=0.0, upper=1.0, lower=-1.0):
+    """
+    Binary transformation.
+
+    After this transformation, the field only has two values.
+
+    Parameters
+    ----------
+    srf : :any:`SRF`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    divide : :class:`float`, optional
+        The dividing value.
+        Default: ``0.0``
+    upper : :class:`float`, optional
+        The resulting upper value of the field.
+        Default: ``0.0``
+    lower : :class:`float`, optional
+        The resulting lower value of the field.
+        Default: ``0.0``
+    """
+    if srf.field is None:
+        print("binary: no field stored in SRF class.")
+    else:
+        srf.field[srf.field > divide] = upper
+        srf.field[srf.field <= divide] = lower
+
+
 def boxcox(srf, lamb=1, shift=0):
     """
     Box-Cox transformation.
 
     After this transformation, the again Box-Cox transformed field is normal
     distributed.
+
+    See: https://en.wikipedia.org/wiki/Power_transform#Box%E2%80%93Cox_transformation
 
     Parameters
     ----------
@@ -56,14 +89,14 @@ def boxcox(srf, lamb=1, shift=0):
         Default: ``0``
     """
     if srf.field is None:
-        print("zinnharvey: no field stored in SRF class.")
+        print("Box-Cox: no field stored in SRF class.")
     else:
         srf.mean += shift
         srf.field += shift
         if np.isclose(lamb, 0):
             normal_to_lognormal(srf)
         if np.min(srf.field) < -1 / lamb:
-            warn("BoxCox: Some values will be cut of!")
+            warn("Box-Cox: Some values will be cut off!")
         srf.field = (np.maximum(lamb * srf.field + 1, 0)) ** (1 / lamb)
 
 
