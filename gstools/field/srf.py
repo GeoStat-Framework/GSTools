@@ -135,7 +135,7 @@ class SRF(Field):
             the SRF
         """
         # internal conversation
-        x, y, z = pos2xyz(pos)
+        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
         self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
         # update the model/seed in the generator if any changes were made

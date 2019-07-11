@@ -82,8 +82,10 @@ class Simple(Field):
             the kriging error variance
         """
         # internal conversation
-        x, y, z = pos2xyz(pos, dtype=np.double)
-        c_x, c_y, c_z = pos2xyz(self.cond_pos, dtype=np.double)
+        x, y, z = pos2xyz(pos, dtype=np.double, max_dim=self.model.dim)
+        c_x, c_y, c_z = pos2xyz(
+            self.cond_pos, dtype=np.double, max_dim=self.model.dim
+        )
         self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
         # format the positional arguments of the mesh
