@@ -196,16 +196,14 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             * ``model.variogram(r)``
                 :math:`\gamma\left(r\right)=
                 \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
-            * ``model.variogram_normed(r)``
-                :math:`\tilde{\gamma}\left(r\right)=
-                1-\mathrm{cor}\left(r\right)`
             * ``model.covariance(r)``
                 :math:`C\left(r\right)=
                 \sigma^2\cdot\mathrm{cor}\left(r\right)`
             * ``model.correlation(r)``
                 :math:`\mathrm{cor}\left(r\right)`
 
-        Best practice is to use the ``correlation`` function!
+        Best practice is to use the ``correlation`` function, or the ``cor``
+        function. The latter one takes the dimensionles distance h=r/l.
         """
         # overrid one of these ################################################
 
@@ -237,7 +235,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             It has to be a monotonic decreasing function with
             :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
             """
-            return 1.0 - self.variogram_normed(r)
+            return 1.0 - (self.variogram(r) - self.nugget) / self.var
 
         def cor_from_cor(self, r):
             r"""Correlation function (or normalized covariance) of the model.
@@ -249,16 +247,6 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             """
             r = np.array(np.abs(r), dtype=np.double)
             return self.cor(r / self.len_scale)
-
-        def variogram_normed(self, r):
-            r"""Normalized-variogram of the model.
-
-            Given by: :math:`\tilde{\gamma}\left(r\right)=
-            1-\mathrm{cor}\left(r\right)`
-
-            Where :math:`\mathrm{cor}(r)` is the correlation function.
-            """
-            return (self.variogram(r) - self.nugget) / self.var
 
         #######################################################################
 
@@ -278,18 +266,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             cls.correlation = correlation
         else:
             abstract = False
-        if not hasattr(cls, "variogram_normed"):
-            cls.variogram_normed = variogram_normed
-        else:
-            abstract = False
         if abstract:
             raise TypeError(
                 "Can't instantiate class '"
                 + cls.__name__
                 + "', "
                 + "without overriding at least on of the methods "
-                + "'variogram', 'covariance', "
-                + "'correlation', or 'variogram_normed'."
+                + "'variogram', 'covariance' or 'correlation'."
             )
 
         # modify the docstrings ###############################################
@@ -514,7 +497,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
         # define a curve, that has its root at the wanted point
         def curve(x):
-            return self.variogram_normed(x) - per
+            return 1.0 - self.correlation(x) - per
 
         # take 'per * len_scale' as initial guess
         return root(curve, per * self.len_scale)["x"][0]

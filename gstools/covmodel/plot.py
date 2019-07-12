@@ -8,7 +8,6 @@ The following classes and functions are provided
 
 .. autosummary::
    plot_variogram
-   plot_variogram_normed
    plot_covariance
    plot_correlation
    plot_spectrum
@@ -18,11 +17,9 @@ The following classes and functions are provided
 # pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
 import numpy as np
-from matplotlib import pyplot as plt
 
 __all__ = [
     "plot_variogram",
-    "plot_variogram_normed",
     "plot_covariance",
     "plot_correlation",
     "plot_spectrum",
@@ -35,6 +32,8 @@ __all__ = [
 
 
 def _get_fig_ax(fig, ax, ax_name="rectilinear"):  # pragma: no cover
+    from matplotlib import pyplot as plt
+
     if fig is None and ax is None:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection=ax_name)
@@ -86,24 +85,6 @@ def plot_correlation(
         x_max = 3 * model.integral_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(x_s, model.correlation(x_s), label=model.name + " correlation")
-    ax.legend()
-    fig.show()
-    return ax
-
-
-def plot_variogram_normed(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
-):  # pragma: no cover
-    """Plot normalized variogram of a given CovModel."""
-    fig, ax = _get_fig_ax(fig, ax)
-    if x_max is None:
-        x_max = 3 * model.integral_scale
-    x_s = np.linspace(x_min, x_max)
-    ax.plot(
-        x_s,
-        model.variogram_normed(x_s),
-        label=model.name + " normed variogram",
-    )
     ax.legend()
     fig.show()
     return ax
