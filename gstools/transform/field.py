@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 
-def binary(srf, divide=0.0, upper=1.0, lower=-1.0):
+def binary(fld, divide=0.0, upper=1.0, lower=-1.0):
     """
     Binary transformation.
 
@@ -45,7 +45,7 @@ def binary(srf, divide=0.0, upper=1.0, lower=-1.0):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     divide : :class:`float`, optional
@@ -58,14 +58,14 @@ def binary(srf, divide=0.0, upper=1.0, lower=-1.0):
         The resulting lower value of the field.
         Default: ``0.0``
     """
-    if srf.field is None:
+    if fld.field is None:
         print("binary: no field stored in SRF class.")
     else:
-        srf.field[srf.field > divide] = upper
-        srf.field[srf.field <= divide] = lower
+        fld.field[fld.field > divide] = upper
+        fld.field[fld.field <= divide] = lower
 
 
-def boxcox(srf, lamb=1, shift=0):
+def boxcox(fld, lamb=1, shift=0):
     """
     Box-Cox transformation.
 
@@ -76,7 +76,7 @@ def boxcox(srf, lamb=1, shift=0):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     lamb : :class:`float`, optional
@@ -88,19 +88,19 @@ def boxcox(srf, lamb=1, shift=0):
         The field will be shifted by that value before transformation.
         Default: ``0``
     """
-    if srf.field is None:
+    if fld.field is None:
         print("Box-Cox: no field stored in SRF class.")
     else:
-        srf.mean += shift
-        srf.field += shift
+        fld.mean += shift
+        fld.field += shift
         if np.isclose(lamb, 0):
-            normal_to_lognormal(srf)
-        if np.min(srf.field) < -1 / lamb:
+            normal_to_lognormal(fld)
+        if np.min(fld.field) < -1 / lamb:
             warn("Box-Cox: Some values will be cut off!")
-        srf.field = (np.maximum(lamb * srf.field + 1, 0)) ** (1 / lamb)
+        fld.field = (np.maximum(lamb * fld.field + 1, 0)) ** (1 / lamb)
 
 
-def zinnharvey(srf, conn="high"):
+def zinnharvey(fld, conn="high"):
     """
     Zinn and Harvey transformation to connect low or high values.
 
@@ -108,20 +108,20 @@ def zinnharvey(srf, conn="high"):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     conn : :class:`str`, optional
         Desired connectivity. Either "low" or "high".
         Default: "high"
     """
-    if srf.field is None:
+    if fld.field is None:
         print("zinnharvey: no field stored in SRF class.")
     else:
-        srf.field = _zinnharvey(srf.field, conn, srf.mean, srf.model.sill)
+        fld.field = _zinnharvey(fld.field, conn, fld.mean, fld.model.sill)
 
 
-def normal_force_moments(srf):
+def normal_force_moments(fld):
     """
     Force moments of a normal distributed field.
 
@@ -129,17 +129,17 @@ def normal_force_moments(srf):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     """
-    if srf.field is None:
+    if fld.field is None:
         print("normal_force_moments: no field stored in SRF class.")
     else:
-        srf.field = _normal_force_moments(srf.field, srf.mean, srf.model.sill)
+        fld.field = _normal_force_moments(fld.field, fld.mean, fld.model.sill)
 
 
-def normal_to_lognormal(srf):
+def normal_to_lognormal(fld):
     """
     Transform normal distribution to log-normal distribution.
 
@@ -147,17 +147,17 @@ def normal_to_lognormal(srf):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     """
-    if srf.field is None:
+    if fld.field is None:
         print("normal_to_lognormal: no field stored in SRF class.")
     else:
-        srf.field = _normal_to_lognormal(srf.field)
+        fld.field = _normal_to_lognormal(fld.field)
 
 
-def normal_to_uniform(srf):
+def normal_to_uniform(fld):
     """
     Transform normal distribution to uniform distribution on [0, 1].
 
@@ -165,17 +165,17 @@ def normal_to_uniform(srf):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     """
-    if srf.field is None:
+    if fld.field is None:
         print("normal_to_uniform: no field stored in SRF class.")
     else:
-        srf.field = _normal_to_uniform(srf.field, srf.mean, srf.model.sill)
+        fld.field = _normal_to_uniform(fld.field, fld.mean, fld.model.sill)
 
 
-def normal_to_arcsin(srf, a=0, b=1):
+def normal_to_arcsin(fld, a=0, b=1):
     """
     Transform normal distribution to the bimodal arcsin distribution.
 
@@ -185,7 +185,7 @@ def normal_to_arcsin(srf, a=0, b=1):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     a : :class:`float`, optional
@@ -195,16 +195,16 @@ def normal_to_arcsin(srf, a=0, b=1):
         Parameter b of the arcsin distribution (upper bound).
         Default: 1
     """
-    if srf.field is None:
+    if fld.field is None:
         print("normal_to_arcsin: no field stored in SRF class.")
     else:
-        srf.field = _normal_to_arcsin(
-            srf.field, srf.mean, srf.model.sill, a, b
+        fld.field = _normal_to_arcsin(
+            fld.field, fld.mean, fld.model.sill, a, b
         )
-        srf.mean = (b - a) / 2.0
+        fld.mean = (b - a) / 2.0
 
 
-def normal_to_uquad(srf, a=0, b=1):
+def normal_to_uquad(fld, a=0, b=1):
     """
     Transform normal distribution to U-quadratic distribution.
 
@@ -214,7 +214,7 @@ def normal_to_uquad(srf, a=0, b=1):
 
     Parameters
     ----------
-    srf : :any:`SRF`
+    fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     a : :class:`float`, optional
@@ -224,11 +224,11 @@ def normal_to_uquad(srf, a=0, b=1):
         Parameter b of the U-quadratic distribution (upper bound).
         Default: 1
     """
-    if srf.field is None:
+    if fld.field is None:
         print("normal_to_uquad: no field stored in SRF class.")
     else:
-        srf.field = _normal_to_uquad(srf.field, srf.mean, srf.model.sill, a, b)
-        srf.mean = (b - a) / 2.0
+        fld.field = _normal_to_uquad(fld.field, fld.mean, fld.model.sill, a, b)
+        fld.mean = (b - a) / 2.0
 
 
 # low level functions
