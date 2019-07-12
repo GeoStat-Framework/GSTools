@@ -486,12 +486,12 @@ The following standard covariance models are provided by GSTools
    Gaussian
    Exponential
    Matern
-   Rational
    Stable
-   Spherical
+   Rational
    Linear
-   MaternRescal
-   SphericalRescal
+   Circular
+   Spherical
+   Intersection
 
 As a special feature, we also provide truncated power law (TPL) covariance models
 
