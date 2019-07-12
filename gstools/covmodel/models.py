@@ -64,8 +64,7 @@ class Gaussian(CovModel):
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
-    def spectrum(self, k):
-        """Spectrum of the covariance model."""
+    def spectrum(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (
             self.var
@@ -89,7 +88,12 @@ class Gaussian(CovModel):
         return None
 
     def spectral_rad_ppf(self, u):
-        """Radial spectral ppf."""
+        """Radial spectral ppf.
+
+        Notes
+        -----
+        Not defined for 3D.
+        """
         u = np.array(u, dtype=np.double)
         if self.dim == 1:
             return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
@@ -98,17 +102,12 @@ class Gaussian(CovModel):
         return None
 
     def _has_ppf(self):
-        """State if ppf is given.
-
-        ppf for 3 dimensions is not analytical
-        """
         # since the ppf is not analytical for dim=3, we have to state that
         if self.dim == 3:
             return False
         return True
 
-    def calc_integral_scale(self):
-        """Integral scale of the gaussian model is the length scale."""
+    def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
 
 
@@ -138,8 +137,7 @@ class Exponential(CovModel):
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-1 * r / self.len_scale)
 
-    def spectrum(self, k):
-        """Spectrum of the covariance model."""
+    def spectrum(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (
             self.var
@@ -168,7 +166,12 @@ class Exponential(CovModel):
         return None
 
     def spectral_rad_ppf(self, u):
-        """Radial spectral ppf."""
+        """Radial spectral ppf.
+
+        Notes
+        -----
+        Not defined for 3D.
+        """
         u = np.array(u, dtype=np.double)
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_scale
@@ -183,17 +186,12 @@ class Exponential(CovModel):
         return None
 
     def _has_ppf(self):
-        """State if ppf is given.
-
-        ppf for 3 dimensions is not analytical
-        """
         # since the ppf is not analytical for dim=3, we have to state that
         if self.dim == 3:
             return False
         return True
 
-    def calc_integral_scale(self):
-        """Integral scale of the exponential model is the length scale."""
+    def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
 
 
@@ -425,8 +423,7 @@ class Matern(CovModel):
         res = np.maximum(res, 0.0)
         return res
 
-    def spectrum(self, k):
-        """Spectrum of the covariance model."""
+    def spectrum(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
@@ -455,8 +452,7 @@ class Matern(CovModel):
             )
         )
 
-    def calc_integral_scale(self):
-        """Integral scale of the matern model."""
+    def calc_integral_scale(self):  # noqa: D102
         return (
             self.len_scale * np.pi / np.sqrt(self.nu) / sps.beta(self.nu, 0.5)
         )
@@ -529,6 +525,7 @@ class Circular(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
+
     """
 
     def correlation(self, r):
@@ -544,6 +541,7 @@ class Circular(CovModel):
            & r<\ell\\
            0 & r\geq\ell
            \end{cases}
+
         """
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
@@ -662,8 +660,7 @@ class Intersection(CovModel):
 
     """
 
-    def correlation(self, r):
-        """Correlation function."""
+    def correlation(self, r):  # noqa: D102
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         r_ll = r < self.len_scale
@@ -689,8 +686,7 @@ class Intersection(CovModel):
             )
         return res
 
-    def spectrum(self, k):
-        """Spectrum of the covariance model."""
+    def spectrum(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         res = np.empty_like(k)
         kl = k * self.len_scale
