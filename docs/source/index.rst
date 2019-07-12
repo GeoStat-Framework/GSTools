@@ -16,17 +16,44 @@ Installation
 
 The package can be installed via `pip <https://pypi.org/project/gstools/>`_.
 On Windows you can install `WinPython <https://winpython.github.io/>`_ to get
-Python and pip running.
+Python and pip running. Also `conda provides pip support <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages>`_.
+Install GSTools by typing the following into the command prompt:
 
 .. code-block:: none
 
     pip install gstools
 
+To get the latest development version you can install it directly from GitHub:
+
+.. code-block:: none
+
+    pip install https://github.com/GeoStat-Framework/GSTools/archive/master.zip
+
+To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
+Then use the following command:
+
+.. code-block:: none
+
+    pip install --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/master.zip
+
+If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
+
+
+Citation
+========
+
+At the moment you can cite the Zenodo code publication of GSTools:
+
+| *Sebastian Müller, & Lennart Schüler. (2019, January 18). GeoStat-Framework/GSTools: Bouncy Blue (Version v1.0.1). Zenodo. http://doi.org/10.5281/zenodo.2543658*
+
+A publication for the GeoStat-Framework is in preperation.
 
 Spatial Random Field Generation
 ===============================
 
-The core of this library is the generation of spatial random fields. These fields are generated using the randomisation method, described by `Heße et al. 2014 <https://doi.org/10.1016/j.envsoft.2014.01.013>`_.
+The core of this library is the generation of spatial random fields.
+These fields are generated using the randomisation method, described by
+`Heße et al. 2014 <https://doi.org/10.1016/j.envsoft.2014.01.013>`_.
 
 
 Examples
@@ -47,11 +74,29 @@ with a :any:`Gaussian` covariance model.
     x = y = range(100)
     model = Gaussian(dim=2, var=1, len_scale=10)
     srf = SRF(model)
-    field = srf((x, y), mesh_type='structured')
-    plt.imshow(field)
-    plt.show()
+    srf((x, y), mesh_type='structured')
+    srf.plot()
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png
+   :width: 400px
+   :align: center
+
+A similar example but for a three dimensional field is exported to a
+`VTK <https://vtk.org/>`_ file, which can be visualized with
+`ParaView <https://www.paraview.org/>`_.
+
+.. code-block:: python
+
+   from gstools import SRF, Gaussian, vtk_export
+   import matplotlib.pyplot as pt
+   # structured field with a size 100x100x100 and a grid-size of 1x1x1
+   x = y = z = range(100)
+   model = Gaussian(dim=3, var=0.6, len_scale=20)
+   srf = SRF(model)
+   field = srf((x, y, z), mesh_type='structured')
+   vtk_export('3d_field', (x, y, z), field, mesh_type='structured')
+
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
    :width: 400px
    :align: center
 
@@ -112,10 +157,8 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
         hurst=0.7,       # hurst coefficient from the power law
     )
     srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-    field = srf((x, y), mesh_type='structured')
-    # show the field in correct xy coordinates
-    plt.imshow(field.T, origin="lower")
-    plt.show()
+    srf((x, y), mesh_type='structured')
+    srf.plot()
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/tplstable_field.png
    :width: 400px
@@ -179,11 +222,12 @@ One of the core-features of GSTools is the powerfull
 class, which allows to easy define covariance models by the user.
 
 
-Examples
---------
+Example
+-------
 
-Here we reimplement the Gaussian covariance model by defining just the
-`correlation <https://en.wikipedia.org/wiki/Autocovariance#Normalization>`_ function:
+Here we re-implement the Gaussian covariance model by defining just the
+`correlation <https://en.wikipedia.org/wiki/Autocovariance#Normalization>`_ function,
+which takes a non-dimensional distance :class:`h = r/l`
 
 .. code-block:: python
 
@@ -191,18 +235,47 @@ Here we reimplement the Gaussian covariance model by defining just the
     import numpy as np
     # use CovModel as the base-class
     class Gau(CovModel):
-        def correlation(self, r):
-            return np.exp(-(r/self.len_scale)**2)
+        def cor(self, h):
+            return np.exp(-h**2)
 
-And that's it! With ``Gau`` you now have a fully working covariance model,
+And that's it! With :class:`Gau` you now have a fully working covariance model,
 which you could use for field generation or variogram fitting as shown above.
+
+
+Incompressible Vector Field Generation
+======================================
+
+Using the original `Kraichnan method <https://doi.org/10.1063/1.1692799>`_, incompressible random
+spatial vector fields can be generated.
+
+
+Example
+-------
+
+.. code-block:: python
+
+   import numpy as np
+   import matplotlib.pyplot as plt
+   from gstools import SRF, Gaussian
+   x = np.arange(100)
+   y = np.arange(100)
+   model = Gaussian(dim=2, var=1, len_scale=10)
+   srf = SRF(model, generator='VectorField')
+   srf((x, y), mesh_type='structured', seed=19841203)
+   srf.plot()
+
+yielding
+
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/vec_srf_tut_gau.png
+   :width: 600px
+   :align: center
 
 
 VTK Export
 ==========
 
 After you have created a field, you may want to save it to file, so we provide
-a handy `VTK <https://www.vtk.org/>`_ export routine (:class:`vtk_export`):
+a handy `VTK <https://www.vtk.org/>`_ export routine (:any:`vtk_export`):
 
 .. code-block:: python
 
@@ -219,8 +292,8 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 Requirements
 ============
 
-- `Numpy >= 1.14.5 <http://www.numpy.org>`_
-- `SciPy >= 1.1.0 <http://www.scipy.org>`_
+- `Numpy >= 1.13.0 <http://www.numpy.org>`_
+- `SciPy >= 0.19.1 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
@@ -230,4 +303,4 @@ Requirements
 License
 =======
 
-`GPL <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018
+`GPL <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018-2019
