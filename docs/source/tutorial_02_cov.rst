@@ -197,12 +197,6 @@ variogram:
      \gamma\left(r\right)=
      \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n
 
-- ``variogram_normed`` : The normalized variogram of the model given by
-
-  .. math::
-     \tilde{\gamma}\left(r\right)=
-     1-\mathrm{cor}\left(r\right)
-
 - ``covariance`` : The (auto-)covariance of the model given by
 
   .. math::
@@ -222,7 +216,6 @@ If one of the above functions is given, the others will be determined:
 
     model = Gau(dim=3, var=2., len_scale=10, nugget=0.5)
     print(model.variogram(10.))
-    print(model.variogram_normed(10.))
     print(model.covariance(10.))
     print(model.correlation(10.))
 

@@ -14,6 +14,7 @@ GSTools API
    covmodel.rst
    field.rst
    variogram.rst
+   krige.rst
    random.rst
    tools.rst
-   krige.rst
+   transform.rst

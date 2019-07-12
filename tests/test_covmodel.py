@@ -85,10 +85,6 @@ class TestCovModel(unittest.TestCase):
                                 model.var * model.correlation(1),
                             )
                             self.assertAlmostEqual(
-                                model.variogram_normed(1),
-                                1.0 - model.correlation(1),
-                            )
-                            self.assertAlmostEqual(
                                 model.vario_spatial((1, 2, 3)),
                                 model.var
                                 + model.nugget
