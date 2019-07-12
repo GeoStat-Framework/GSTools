@@ -69,6 +69,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Random Field Generation][tut1_link]
 - [The Covariance Model][tut2_link]
 - [Variogram Estimation][tut3_link]
+- [Random Vector Field Generation][tut4_link]
 
 Some more examples are provided in the examples folder.
 
@@ -271,5 +272,6 @@ You can contact us via <info@geostat-framework.org>.
 [tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html
 [tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html
 [tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html
+[tut4_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
