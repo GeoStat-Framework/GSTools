@@ -2,7 +2,7 @@
 """
 GStools subpackage providing field transformations.
 
-.. currentmodule:: gstools.tools.transform
+.. currentmodule:: gstools.transform.field
 
 The following functions are provided
 

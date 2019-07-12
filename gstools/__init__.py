@@ -22,14 +22,6 @@ Subpackages
     tools
     transform
 
-Tools
-=====
-
-.. currentmodule:: gstools.tools
-
-.. autosummary::
-    transform
-
 Classes
 =======
 
@@ -103,17 +95,19 @@ Estimate the variogram of a given field
    vario_estimate_structured
    vario_estimate_unstructured
 """
+
 from __future__ import absolute_import
 
 from gstools._version import __version__
-from gstools import field, variogram, random, covmodel, tools, krige
+from gstools import (
+    covmodel, field, variogram, krige, random, tools, transform
+)
 from gstools.field import SRF
 from gstools.tools.export import (
     vtk_export_structured,
     vtk_export_unstructured,
     vtk_export,
 )
-from gstools.tools import transform
 from gstools.variogram import (
     vario_estimate_structured,
     vario_estimate_unstructured,

@@ -31,19 +31,6 @@ Geometric
    r3d_y
    r3d_z
 
-Transformations
-^^^^^^^^^^^^^^^
-
-.. autosummary::
-   binary
-   boxcox
-   zinnharvey
-   normal_force_moments
-   normal_to_lognormal
-   normal_to_uniform
-   normal_to_arcsin
-   normal_to_uquad
-
 ----
 """
 from __future__ import absolute_import
@@ -54,20 +41,9 @@ from gstools.tools.export import (
     vtk_export,
 )
 
-from gstools.tools.geometric import r3d_x, r3d_y, r3d_z, xyz2pos, pos2xyz
-
 from gstools.tools.special import inc_gamma, exp_int, inc_beta, tplstable_cor
 
-from gstools.tools.transform import (
-    binary,
-    boxcox,
-    zinnharvey,
-    normal_force_moments,
-    normal_to_lognormal,
-    normal_to_uniform,
-    normal_to_arcsin,
-    normal_to_uquad,
-)
+from gstools.tools.geometric import r3d_x, r3d_y, r3d_z, xyz2pos, pos2xyz
 
 __all__ = [
     "vtk_export_structured",
@@ -82,12 +58,4 @@ __all__ = [
     "r3d_x",
     "r3d_y",
     "r3d_z",
-    "binary",
-    "boxcox",
-    "zinnharvey",
-    "normal_force_moments",
-    "normal_to_lognormal",
-    "normal_to_uniform",
-    "normal_to_arcsin",
-    "normal_to_uquad",
 ]
