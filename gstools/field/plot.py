@@ -77,7 +77,10 @@ def _plot_2d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     if mesh_type == "unstructured":
         cont = ax.tricontourf(x, y, field.ravel(), levels=256)
     else:
-        cont = ax.contourf(x, y, field.T, levels=256)
+        try:
+            cont = ax.contourf(x, y, field.T, levels=256)
+        except TypeError:
+            cont = ax.contourf(x, y, field.T, 256)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_title(title)
