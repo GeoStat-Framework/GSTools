@@ -209,17 +209,14 @@ x = np.arange(100)
 y = np.arange(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model, generator='VectorField')
-field = srf((x, y), mesh_type='structured', seed=19841203)
-
-norm = np.sqrt(field[0,:].T**2 + field[1,:].T**2)
-plt.streamplot(x, y, field[0,:].T, field[1,:].T, color=norm, linewidth=norm/2)
-plt.show()
+srf((x, y), mesh_type='structured', seed=19841203)
+srf.plot()
 ```
 
 yielding
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/srf_vector_field.png" alt="vector field" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/vec_srf_tut_gau.png" alt="vector field" width="600px"/>
 </p>
 
 
