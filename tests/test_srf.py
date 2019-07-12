@@ -8,7 +8,7 @@ from __future__ import division, absolute_import, print_function
 import unittest
 import numpy as np
 from gstools import SRF, Gaussian
-from gstools.tools import transform as tf
+from gstools import transform as tf
 
 
 class TestSRF(unittest.TestCase):
