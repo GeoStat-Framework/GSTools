@@ -11,3 +11,4 @@ explore its whole beauty and power.
    tutorial_01_srf.rst
    tutorial_02_cov.rst
    tutorial_03_vario.rst
+   tutorial_04_vec_field.rst
