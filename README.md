@@ -195,7 +195,7 @@ optional parameters and optimizations.
 
 ## Incompressible Vector Field Generation
 
-Using the original [Kraichnan method][kraichnan_link], Incompressible random
+Using the original [Kraichnan method][kraichnan_link], incompressible random
 spatial vector fields can be generated.
 
 
