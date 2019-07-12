@@ -198,9 +198,22 @@ class Field(object):
             Default: `None`
         """
         # just import if needed; matplotlib is not required by setup
-        from gstools.field.plot import plot_field
+        from gstools.field.plot import plot_field, plot_vec_field
 
-        return plot_field(self, field, fig, ax)
+        # check if we have a vector field, this check should be sufficient
+        # for all but very edgy edge cases, which ate not going to be plotted
+        # anyway
+        if self.field.shape[0] == self.model.dim:
+            if self.model.dim == 2:
+                r = plot_vec_field(self, field, fig, ax)
+            else:
+                raise RuntimeError(
+                    "Streamflow plotting only supported for 2d case."
+                )
+        else:
+            r = plot_field(self, field, fig, ax)
+
+        return r
 
     @property
     def mean(self):

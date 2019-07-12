@@ -8,6 +8,7 @@ The following classes and functions are provided
 
 .. autosummary::
    plot_field
+   plot_vec_field
 """
 # pylint: disable=C0103
 from __future__ import print_function, division, absolute_import
@@ -19,7 +20,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from gstools.tools import pos2xyz
 from gstools.covmodel.plot import _get_fig_ax
 
-__all__ = ["plot_field"]
+__all__ = ["plot_field", "plot_vec_field"]
 
 
 # plotting routines #######################################################
@@ -205,5 +206,51 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     cont = update(0)
     cax = plt.axes([0.85, 0.2, 0.03, 0.6])
     fig.colorbar(cont, cax=cax, ax=ax)
+    fig.show()
+    return ax
+
+def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
+    """
+    Plot a spatial random vector field.
+
+    Parameters
+    ----------
+    fld : :class:`Field`
+        The given field class instance.
+    field : :class:`str`, optional
+        Field that should be plotted. Default: "field"
+    fig : :class:`Figure` or :any:`None`, optional
+        Figure to plot the axes on. If `None`, a new one will be created.
+        Default: `None`
+    ax : :class:`Axes` or :any:`None`, optional
+        Axes to plot on. If `None`, a new one will be added to the figure.
+        Default: `None`
+    """
+    if fld.mesh_type is not "structured":
+        raise RuntimeError(
+            "Only structured vector fields are supported"
+            + " for plotting. Please create one on a structured grid."
+        )
+    plot_field = getattr(fld, field)
+    assert not (fld.pos is None or plot_field is None)
+
+    norm = np.sqrt(plot_field[0, :].T ** 2 + plot_field[1, :].T ** 2)
+
+    fig, ax = _get_fig_ax(fig, ax)
+    title = "Field 2D " + fld.mesh_type + ": " + str(plot_field.shape)
+    x, y, __ = pos2xyz(fld.pos)
+
+    sp = plt.streamplot(
+        x,
+        y,
+        plot_field[0, :].T,
+        plot_field[1, :].T,
+        color=norm,
+        linewidth=norm / 2,
+    )
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_title(title)
+    fig.colorbar(sp.lines)
     fig.show()
     return ax
