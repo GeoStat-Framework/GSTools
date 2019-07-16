@@ -94,9 +94,8 @@ import matplotlib.pyplot as plt
 x = y = range(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model)
-field = srf((x, y), mesh_type='structured')
-plt.imshow(field)
-plt.show()
+srf((x, y), mesh_type='structured')
+srf.plot()
 ```
 <p align="center">
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
