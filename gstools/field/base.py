@@ -207,7 +207,7 @@ class Field(object):
 
         if self.value_type is None:
             raise ValueError(
-                "Unknown field value type, specify 'scalar' or 'vector' before plotting."
+                "Field value type not set, specify 'scalar' or 'vector' before plotting."
             )
 
         elif self.value_type == "scalar":
