@@ -26,6 +26,7 @@ from gstools.covmodel.tools import (
     set_angles,
     check_bounds,
 )
+from gstools.covmodel import plot
 
 __all__ = ["CovModel"]
 
@@ -347,6 +348,36 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         res[r_gz] = self.variogram(r[r_gz])
         res[np.logical_not(r_gz)] = 0.0
         return res
+
+    def plot(self, func="variogram", **kwargs):  # pragma: no cover
+        """
+        Plot a function of a the CovModel.
+
+        Parameters
+        ----------
+        func : :class:`str`, optional
+            Function to be plotted. Could be one of:
+
+                * "variogram"
+                * "covariance"
+                * "correlation"
+                * "plot_vario_spatial"
+                * "plot_cov_spatial"
+                * "plot_cor_spatial"
+                * "spectrum"
+                * "spectral_density"
+                * "spectral_rad_pdf"
+
+        **kwargs
+            Keyword arguments forwarded to the plotting function
+            `"plot_" + func` in :any:`gstools.covmodel.plot`.
+
+        See Also
+        --------
+        gstools.covmodel.plot
+        """
+        routine = getattr(plot, "plot_" + func)
+        return routine(self, **kwargs)
 
     ###########################################################################
     ### pykrige functions #####################################################

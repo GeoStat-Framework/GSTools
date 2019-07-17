@@ -18,6 +18,9 @@ The following classes and functions are provided
 from __future__ import print_function, division, absolute_import
 import numpy as np
 
+import gstools
+from gstools.field.tools import reshape_axis_from_struct_to_unstruct
+
 __all__ = [
     "plot_variogram",
     "plot_covariance",
@@ -46,6 +49,57 @@ def _get_fig_ax(fig, ax, ax_name="rectilinear"):  # pragma: no cover
         assert ax.name == ax_name
         assert ax.get_figure() == fig
     return fig, ax
+
+
+def plot_vario_spatial(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
+    """Plot spatial variogram of a given CovModel."""
+    field = gstools.field.base.Field(model)
+    if x_max is None:
+        x_max = 3 * model.integral_scale
+    field.mesh_type = "structured"
+    x_s = np.linspace(-x_max, x_max) + x_min
+    pos = [x_s] * model.dim
+    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
+    vario = model.vario_spatial([x, y, z][: model.dim]).reshape(shape)
+    field.pos = pos
+    field.field = vario
+    return field.plot(fig=fig, ax=ax)
+
+
+def plot_cov_spatial(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
+    """Plot spatial covariance of a given CovModel."""
+    field = gstools.field.base.Field(model)
+    if x_max is None:
+        x_max = 3 * model.integral_scale
+    field.mesh_type = "structured"
+    x_s = np.linspace(-x_max, x_max) + x_min
+    pos = [x_s] * model.dim
+    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
+    vario = model.cov_spatial([x, y, z][: model.dim]).reshape(shape)
+    field.pos = pos
+    field.field = vario
+    return field.plot(fig=fig, ax=ax)
+
+
+def plot_cor_spatial(
+    model, x_min=0.0, x_max=None, fig=None, ax=None
+):  # pragma: no cover
+    """Plot spatial correlation of a given CovModel."""
+    field = gstools.field.base.Field(model)
+    if x_max is None:
+        x_max = 3 * model.integral_scale
+    field.mesh_type = "structured"
+    x_s = np.linspace(-x_max, x_max) + x_min
+    pos = [x_s] * model.dim
+    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
+    vario = model.cor_spatial([x, y, z][: model.dim]).reshape(shape)
+    field.pos = pos
+    field.field = vario
+    return field.plot(fig=fig, ax=ax)
 
 
 def plot_variogram(
