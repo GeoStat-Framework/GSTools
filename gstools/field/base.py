@@ -65,12 +65,7 @@ class Field(object):
         return call(*args, **kwargs)
 
     def mesh(
-        self,
-        mesh,
-        points="centroids",
-        direction="xyz",
-        name="field",
-        **kwargs
+        self, mesh, points="centroids", direction="xyz", name="field", **kwargs
     ):
         """Generate a field on a given meshio or ogs5py mesh.
 

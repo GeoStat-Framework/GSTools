@@ -195,31 +195,23 @@ def _get_select(direction):
         if axis == "x":
             if 0 in select:
                 raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(
-                        direction
-                    )
+                    "Field.mesh: got duplicate directions {}".format(direction)
                 )
             select.append(0)
         elif axis == "y":
             if 1 in select:
                 raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(
-                        direction
-                    )
+                    "Field.mesh: got duplicate directions {}".format(direction)
                 )
             select.append(1)
         elif axis == "z":
             if 2 in select:
                 raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(
-                        direction
-                    )
+                    "Field.mesh: got duplicate directions {}".format(direction)
                 )
             select.append(2)
         else:
             raise ValueError(
-                "Field.mesh: got unknown direction {}".format(
-                    axis
-                )
+                "Field.mesh: got unknown direction {}".format(axis)
             )
     return select

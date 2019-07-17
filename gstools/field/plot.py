@@ -212,6 +212,7 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     fig.show()
     return ax
 
+
 def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     """
     Plot a spatial random vector field.
