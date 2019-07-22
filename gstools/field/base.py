@@ -167,10 +167,12 @@ class Field(object):
             raise ValueError(
                 "Unknown field value type, specify 'scalar' or 'vector' before plotting."
             )
-        if self.value_type == "vector":
+        elif self.value_type == "vector":
             raise NotImplementedError(
-                "Vector fields cannot yet be exported."
+                "Vector fields cannot be exported yet."
             )
+        else:
+            raise ValueError('Unknown field value type.')
 
         if hasattr(self, field_select):
             field = getattr(self, field_select)
