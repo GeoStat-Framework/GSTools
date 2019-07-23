@@ -19,13 +19,13 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 def read(*file_paths):
-    """read file data"""
+    """Read file data."""
     with codecs.open(os.path.join(HERE, *file_paths), "r") as file_in:
         return file_in.read()
 
 
 def find_version(*file_paths):
-    """find version without importing module"""
+    """Find version without importing module."""
     version_file = read(*file_paths)
     version_match = re.search(
         r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
@@ -36,9 +36,10 @@ def find_version(*file_paths):
 
 
 # openmp finder ###############################################################
-# This code is adapted for a large part from the scikit-learn openmp helpers, which
-# can be found at:
+# This code is adapted for a large part from the scikit-learn openmp helpers,
+# which can be found at:
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
+
 
 # TemporaryDirectory not avialable in python2
 class _TemporaryDirectory(object):
@@ -66,7 +67,7 @@ return 0;
 
 
 def get_openmp_flag(compiler):
-    """get the compiler dependent openmp flag"""
+    """Get the compiler dependent openmp flag."""
     if hasattr(compiler, "compiler"):
         compiler = compiler.compiler[0]
     else:
@@ -96,7 +97,7 @@ def get_openmp_flag(compiler):
 
 
 def check_openmp_support():
-    """Check whether OpenMP test code can be compiled and run"""
+    """Check whether OpenMP test code can be compiled and run."""
     ccompiler = new_compiler()
     customize_compiler(ccompiler)
 
@@ -173,7 +174,7 @@ USE_OPENMP = USE_OPENMP and CAN_USE_OPENMP
 # python3 setup.py --openmp build_ext --inplace
 # pip install --global-option="--openmp" gstools
 class MPDistribution(Distribution):
-    """Distribution with --openmp as global option"""
+    """Distribution with --openmp as global option."""
 
     global_options = Distribution.global_options + [
         ("openmp", None, "Flag to use openmp in the build")
