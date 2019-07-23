@@ -10,6 +10,9 @@ The following classes and functions are provided
    plot_variogram
    plot_covariance
    plot_correlation
+   plot_vario_spatial
+   plot_cov_spatial
+   plot_cor_spatial
    plot_spectrum
    plot_spectral_density
    plot_spectral_rad_pdf
@@ -25,6 +28,9 @@ __all__ = [
     "plot_variogram",
     "plot_covariance",
     "plot_correlation",
+    "plot_vario_spatial",
+    "plot_cov_spatial",
+    "plot_cor_spatial",
     "plot_spectrum",
     "plot_spectral_density",
     "plot_spectral_rad_pdf",

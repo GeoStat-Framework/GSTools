@@ -549,8 +549,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         Internally, this is calculated by the hankel transformation:
 
         .. math:: S(k) = \left(\frac{1}{2\pi}\right)^n \cdot
-           \frac{(2\pi)^{n/2}}{(bk)^{n/2-1}}
-           \int_0^\infty r^{n/2-1} f(r) J_{n/2-1}(bkr) r dr
+           \frac{(2\pi)^{n/2}}{k^{n/2-1}}
+           \int_0^\infty r^{n/2} C(r) J_{n/2-1}(kr) dr
 
         Where :math:`C(r)` is the covariance function of the model.
 
