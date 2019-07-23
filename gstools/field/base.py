@@ -43,6 +43,7 @@ class Field(object):
         self._mean = mean
         self._model = None
         self.model = model
+        self._value_type = None
 
     def __call__(*args, **kwargs):
         """Generate the field."""
@@ -162,6 +163,17 @@ class Field(object):
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
+        if self.value_type is None:
+            raise ValueError(
+                "Unknown field value type, specify 'scalar' or 'vector' before plotting."
+            )
+        elif self.value_type == "vector":
+            raise NotImplementedError(
+                "Vector fields cannot be exported yet."
+            )
+        else:
+            raise ValueError('Unknown field value type.')
+
         if hasattr(self, field_select):
             field = getattr(self, field_select)
         else:
@@ -195,10 +207,15 @@ class Field(object):
         # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_field, plot_vec_field
 
-        # check if we have a vector field, this check should be sufficient
-        # for all but very edgy edge cases, which ate not going to be plotted
-        # anyway
-        if self.field.shape[0] == self.model.dim:
+        if self.value_type is None:
+            raise ValueError(
+                "Field value type not set, specify 'scalar' or 'vector' before plotting."
+            )
+
+        elif self.value_type == "scalar":
+            r = plot_field(self, field, fig, ax)
+
+        elif self.value_type == "vector":
             if self.model.dim == 2:
                 r = plot_vec_field(self, field, fig, ax)
             else:
@@ -206,7 +223,7 @@ class Field(object):
                     "Streamflow plotting only supported for 2d case."
                 )
         else:
-            r = plot_field(self, field, fig, ax)
+            raise ValueError('Unknown field value type.')
 
         return r
 
@@ -232,6 +249,11 @@ class Field(object):
             raise ValueError(
                 "Field: 'model' is not an instance of 'gstools.CovModel'"
             )
+
+    @property
+    def value_type(self):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+        return self._value_type
 
     def __str__(self):
         """Return String representation."""

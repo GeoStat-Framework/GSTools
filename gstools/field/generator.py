@@ -82,6 +82,7 @@ class RandMeth(object):
         self._z_1 = None
         self._z_2 = None
         self._cov_sample = None
+        self._value_type = "scalar"
         # set model and seed
         self.update(model, seed)
 
@@ -287,6 +288,11 @@ class RandMeth(object):
         """:class:`str`: Name of the generator."""
         return self.__class__.__name__
 
+    @property
+    def value_type(self):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+        return self._value_type
+
     def __str__(self):
         """Return String representation."""
         return self.__repr__()
@@ -362,6 +368,7 @@ class IncomprRandMeth(RandMeth):
         )
 
         self.mean_u = mean_velocity
+        self._value_type = "vector"
 
     def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
         """Calculate the random modes for the randomization method.

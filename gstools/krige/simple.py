@@ -54,6 +54,7 @@ class Simple(Field):
         super(Simple, self).__init__(model, mean)
         self.krige_var = None
         # initialize private attributes
+        self._value_type = "scalar"
         self._cond_pos = None
         self._cond_val = None
         self.set_condition(cond_pos, cond_val)

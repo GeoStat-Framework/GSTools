@@ -105,6 +105,10 @@ class SRF(Field):
         self.krige_var = None
         self.set_generator(generator, **generator_kwargs)
         self.upscaling = upscaling
+        if self._value_type is None:
+            raise ValueError(
+                "Unknown field value type, specify 'scalar' or 'vector' before calling SRF."
+            )
 
     def __call__(
         self, pos, seed=np.nan, point_volumes=0.0, mesh_type="unstructured"
@@ -261,6 +265,7 @@ class SRF(Field):
         if generator in GENERATOR:
             gen = GENERATOR[generator]
             self._generator = gen(self.model, **generator_kwargs)
+            self._value_type = self._generator.value_type
         else:
             raise ValueError("gstools.SRF: Unknown generator: " + generator)
 
