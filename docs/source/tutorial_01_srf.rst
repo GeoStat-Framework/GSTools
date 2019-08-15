@@ -31,11 +31,9 @@ But :any:`SRF` also needs a covariance model and we will simply take the :any:`G
 
 .. code-block:: python
 
-    import numpy as np
-    import matplotlib.pyplot as pt
     from gstools import SRF, Gaussian
-    
-    x = y = np.arange(100)
+
+    x = y = range(100)
 
 Now we create the covariance model with the parameters :math:`\sigma^2` and
 :math:`\lambda` and hand it over to :any:`SRF`. By specifying a seed,
@@ -51,9 +49,8 @@ We will create the field on a structured grid (as you might have guessed from th
 
 .. code-block:: python
 
-    field = srf((x, y), mesh_type='structured')
-    pt.imshow(field.T, origin='lower')
-    pt.show()
+    field = srf.structured([x, y])
+    srf.plot()
 
 Yielding
 
@@ -92,7 +89,7 @@ step, we will be using the loop counter as the seeds.
     ens_no = 4
     field = []
     for i in range(ens_no):
-        field.append(srf((x, y), seed=i, mesh_type='structured'))
+        field.append(srf.structured([x, y], seed=i))
 
 Now let's have a look at the results:
 
@@ -124,7 +121,7 @@ then look like
     from gstools.random import MasterRNG
     seed = MasterRNG(20170519)
     for i in range(ens_no):
-        field.append(srf((x, y), seed=seed(), mesh_type='structured'))
+        field.append(srf.structured([x, y], seed=seed()))
 
 Creating Fancier Fields
 -----------------------
@@ -140,19 +137,16 @@ The code is very similar to the previous examples, but with a different covarian
 
 .. code-block:: python
 
-    from gstools import SRF, Exponential
     import numpy as np
-    import matplotlib.pyplot as pt
+    from gstools import SRF, Exponential
 
     x = y = np.arange(100)
 
     model = Exponential(dim=2, var=1, len_scale=[12., 3.], angles=np.pi/8.)
     srf = SRF(model, seed=20170519)
 
-    field = srf((x, y), mesh_type='structured')
-
-    pt.imshow(field.T, origin='lower')
-    pt.show()
+    srf.structured([x, y])
+    srf.plot()
 
 Yielding
 
@@ -176,7 +170,6 @@ then create a random field at those coordinates.
 .. code-block:: python
 
     import numpy as np
-    import matplotlib.pyplot as pt
     from gstools import SRF, Exponential
     from gstools.random import MasterRNG
 
@@ -188,12 +181,8 @@ then create a random field at those coordinates.
     model = Exponential(dim=2, var=1, len_scale=[12., 3.], angles=np.pi/8.)
 
     srf = SRF(model, seed=20170519)
-
-    field = srf((x, y))
-
-    pt.tricontourf(x, y, field.T)
-    pt.axes().set_aspect('equal')
-    pt.show()
+    srf([x, y])
+    srf.plot()
 
 Yielding
 
@@ -214,8 +203,7 @@ Using the field from `previous example <Using an Unstructured Grid_>`__, it can 
 
 .. code-block:: python
 
-    from gstools import vtk_export
-    vtk_export('field', (x, y), field)
+    srf.vtk_export("field")
 
 The script can be found in :download:`gstools/examples/04_export.py<../../examples/04_export.py>` and
 in :download:`gstools/examples/06_unstr_srf_export.py<../../examples/06_unstr_srf_export.py>`
@@ -243,7 +231,7 @@ exactly like in example `Using an Unstructured Grid`_:
 
     srf = SRF(model, seed=20170519)
 
-    field = srf((x, y))
+    field = srf([x, y])
 
 But now we extend the field on the right hand side by creating a new
 unstructured grid and calculating a field with the same parameters and the
