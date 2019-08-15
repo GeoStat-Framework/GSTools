@@ -166,27 +166,29 @@ class Field(object):
         """
         if self.value_type is None:
             raise ValueError(
-                "Unknown field value type, "
-                + "specify 'scalar' or 'vector' before plotting."
+                "Field value type not set! "
+                + "Specify 'scalar' or 'vector' before plotting."
             )
         elif self.value_type == "vector":
-            raise NotImplementedError(
-                "Vector fields cannot be exported yet."
-            )
+            raise NotImplementedError("Vector fields cannot be exported yet.")
+        elif self.value_type == "scalar":
+            if hasattr(self, field_select):
+                field = getattr(self, field_select)
+            else:
+                field = None
+            if not (
+                self.pos is None or field is None or self.mesh_type is None
+            ):
+                vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
+            else:
+                print(
+                    "Field.vtk_export: No "
+                    + field_select
+                    + " stored in the class."
+                )
         else:
-            raise ValueError('Unknown field value type.')
-
-        if hasattr(self, field_select):
-            field = getattr(self, field_select)
-        else:
-            field = None
-        if not (self.pos is None or field is None or self.mesh_type is None):
-            vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
-        else:
-            print(
-                "Field.vtk_export: No "
-                + field_select
-                + " stored in the class."
+            raise ValueError(
+                "Unknown field value type: {}".format(self.value_type)
             )
 
     def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
@@ -211,8 +213,8 @@ class Field(object):
 
         if self.value_type is None:
             raise ValueError(
-                "Field value type not set, "
-                + "specify 'scalar' or 'vector' before plotting."
+                "Field value type not set! "
+                + "Specify 'scalar' or 'vector' before plotting."
             )
 
         elif self.value_type == "scalar":
@@ -226,7 +228,9 @@ class Field(object):
                     "Streamflow plotting only supported for 2d case."
                 )
         else:
-            raise ValueError('Unknown field value type.')
+            raise ValueError(
+                "Unknown field value type: {}".format(self.value_type)
+            )
 
         return r
 

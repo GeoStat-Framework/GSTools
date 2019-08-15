@@ -107,7 +107,8 @@ class SRF(Field):
         self.upscaling = upscaling
         if self._value_type is None:
             raise ValueError(
-                "Unknown field value type, specify 'scalar' or 'vector' before calling SRF."
+                "Unknown field value type, "
+                + "specify 'scalar' or 'vector' before calling SRF."
             )
 
     def __call__(
