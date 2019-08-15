@@ -509,7 +509,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     ### calculation of different scales #######################################
 
-    def _calc_integral_scale(self):
+    def calc_integral_scale(self):
         """Calculate the integral scale of the isotrope model."""
         self._integral_scale = integral(self.correlation, 0, np.inf)[0]
         return self._integral_scale
@@ -1065,7 +1065,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         ValueError
             If integral scale is not setable.
         """
-        self._integral_scale = self._calc_integral_scale()
+        self._integral_scale = self.calc_integral_scale()
         return self._integral_scale
 
     @integral_scale.setter
@@ -1076,7 +1076,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             integral_scale = self.len_scale
             # reset len_scale
             self.len_scale = 1.0
-            int_tmp = self._calc_integral_scale()
+            int_tmp = self.calc_integral_scale()
             self.len_scale = integral_scale / int_tmp
             if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
                 raise ValueError(
