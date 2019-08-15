@@ -82,8 +82,9 @@ class Field(object):
             Default: "centroids"
         direction : :class:`str`, optional
             Here you can state which direction should be choosen for
-            lower dimension. If you got a 2D mesh in xz direction,
+            lower dimension. For example, if you got a 2D mesh in xz direction,
             you have to pass "xz"
+            Default: "xyz"
         field : :class:`str`, optional
             Name to store the field in the given mesh as point_data or
             cell_data. Default: "field"
@@ -165,7 +166,8 @@ class Field(object):
         """
         if self.value_type is None:
             raise ValueError(
-                "Unknown field value type, specify 'scalar' or 'vector' before plotting."
+                "Unknown field value type, "
+                + "specify 'scalar' or 'vector' before plotting."
             )
         elif self.value_type == "vector":
             raise NotImplementedError(
@@ -209,7 +211,8 @@ class Field(object):
 
         if self.value_type is None:
             raise ValueError(
-                "Field value type not set, specify 'scalar' or 'vector' before plotting."
+                "Field value type not set, "
+                + "specify 'scalar' or 'vector' before plotting."
             )
 
         elif self.value_type == "scalar":
@@ -219,7 +222,7 @@ class Field(object):
             if self.model.dim == 2:
                 r = plot_vec_field(self, field, fig, ax)
             else:
-                raise RuntimeError(
+                raise NotImplementedError(
                     "Streamflow plotting only supported for 2d case."
                 )
         else:
