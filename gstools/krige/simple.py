@@ -12,13 +12,11 @@ The following classes are provided
 # pylint: disable=C0103
 from __future__ import division, absolute_import, print_function
 
-from functools import partial
 
 import numpy as np
 from scipy.linalg import inv
 from scipy.spatial.distance import cdist
 
-from gstools.covmodel.base import CovModel
 from gstools.field.tools import (
     check_mesh,
     make_isotropic,
@@ -28,7 +26,6 @@ from gstools.field.tools import (
 )
 from gstools.field.base import Field
 from gstools.tools.geometric import pos2xyz, xyz2pos
-from gstools.tools.export import vtk_export as vtk_ex
 from gstools.krige.krigesum import krigesum
 
 __all__ = ["Simple"]
