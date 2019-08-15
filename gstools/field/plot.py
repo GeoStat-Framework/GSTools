@@ -230,7 +230,7 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
         Axes to plot on. If `None`, a new one will be added to the figure.
         Default: `None`
     """
-    if fld.mesh_type is not "structured":
+    if fld.mesh_type != "structured":
         raise RuntimeError(
             "Only structured vector fields are supported"
             + " for plotting. Please create one on a structured grid."
