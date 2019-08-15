@@ -170,7 +170,18 @@ class Field(object):
                 + "Specify 'scalar' or 'vector' before plotting."
             )
         elif self.value_type == "vector":
-            raise NotImplementedError("Vector fields cannot be exported yet.")
+            if hasattr(self, field_select):
+                field = getattr(self, field_select)
+            else:
+                field = None
+            if not (
+                self.pos is None or field is None or self.mesh_type is None
+            ):
+                suf = ["_X", "_Y", "_Z"]
+                fields = {}
+                for i in range(self.model.dim):
+                    fields[fieldname + suf[i]] = field[i]
+                vtk_ex(filename, self.pos, fields, self.mesh_type)
         elif self.value_type == "scalar":
             if hasattr(self, field_select):
                 field = getattr(self, field_select)
@@ -179,7 +190,7 @@ class Field(object):
             if not (
                 self.pos is None or field is None or self.mesh_type is None
             ):
-                vtk_ex(filename, self.pos, field, fieldname, self.mesh_type)
+                vtk_ex(filename, self.pos, {fieldname: field}, self.mesh_type)
             else:
                 print(
                     "Field.vtk_export: No "
