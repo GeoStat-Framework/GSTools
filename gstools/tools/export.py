@@ -24,73 +24,79 @@ __all__ = ["vtk_export_structured", "vtk_export_unstructured", "vtk_export"]
 # export routines #############################################################
 
 
-def vtk_export_structured(
-    filename, pos, field, fieldname="field"
-):  # pragma: no cover
+def vtk_export_structured(filename, pos, fields):  # pragma: no cover
     """Export a field to vtk structured rectilinear grid file.
 
     Parameters
     ----------
     filename : :class:`str`
         Filename of the file to be saved, including the path. Note that an
-        ending (.vtr or .vtu) will be added to the name.
+        ending (.vtr) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
-    field : :class:`numpy.ndarray`
-        Structured field to be saved. As returned by SRF.
-    fieldname : :class:`str`, optional
-        Name of the field in the VTK file. Default: "field"
+    fields : :class:`dict` or :class:`numpy.ndarray`
+        Structured fields to be saved.
+        Either a single numpy array as returned by SRF,
+        or a dictionary of fields with theirs names as keys.
     """
+    if not isinstance(fields, dict):
+        fields = {"field": fields}
     x, y, z = pos2xyz(pos)
     if y is None:
         y = np.array([0])
     if z is None:
         z = np.array([0])
     # need fortran order in VTK
-    field = field.reshape(-1, order="F")
-    if len(field) != len(x) * len(y) * len(z):
-        raise ValueError(
-            "gstools.vtk_export_structured: "
-            + "field shape doesn't match the given mesh"
-        )
-    gridToVTK(filename, x, y, z, pointData={fieldname: field})
+    for field in fields:
+        fields[field] = fields[field].reshape(-1, order="F")
+        if len(fields[field]) != len(x) * len(y) * len(z):
+            raise ValueError(
+                "gstools.vtk_export_structured: "
+                + "field shape doesn't match the given mesh"
+            )
+    gridToVTK(filename, x, y, z, pointData=fields)
 
 
-def vtk_export_unstructured(
-    filename, pos, field, fieldname="field"
-):  # pragma: no cover
+def vtk_export_unstructured(filename, pos, fields):  # pragma: no cover
     """Export a field to vtk structured rectilinear grid file.
 
     Parameters
     ----------
     filename : :class:`str`
         Filename of the file to be saved, including the path. Note that an
-        ending (.vtr or .vtu) will be added to the name.
+        ending (.vtu) will be added to the name.
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
-    field : :class:`numpy.ndarray`
-        Unstructured field to be saved. As returned by SRF.
-    fieldname : :class:`str`, optional
-        Name of the field in the VTK file. Default: "field"
+    fields : :class:`dict` or :class:`numpy.ndarray`
+        Unstructured fields to be saved.
+        Either a single numpy array as returned by SRF,
+        or a dictionary of fields with theirs names as keys.
     """
+    if not isinstance(fields, dict):
+        fields = {"field": fields}
     x, y, z = pos2xyz(pos)
     if y is None:
         y = np.zeros_like(x)
     if z is None:
         z = np.zeros_like(x)
-    field = np.array(field).reshape(-1)
-    if len(field) != len(x) or len(field) != len(y) or len(field) != len(z):
-        raise ValueError(
-            "gstools.vtk_export_unstructured: "
-            + "field shape doesn't match the given mesh"
-        )
-    pointsToVTK(filename, x, y, z, data={fieldname: field})
+    for field in fields:
+        fields[field] = fields[field].reshape(-1)
+        if (
+            len(fields[field]) != len(x)
+            or len(fields[field]) != len(y)
+            or len(fields[field]) != len(z)
+        ):
+            raise ValueError(
+                "gstools.vtk_export_unstructured: "
+                + "field shape doesn't match the given mesh"
+            )
+    pointsToVTK(filename, x, y, z, data=fields)
 
 
 def vtk_export(
-    filename, pos, field, fieldname="field", mesh_type="unstructured"
+    filename, pos, fields, mesh_type="unstructured"
 ):  # pragma: no cover
     """Export a field to vtk.
 
@@ -102,18 +108,14 @@ def vtk_export(
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
-    field : :class:`numpy.ndarray`
-        Unstructured field to be saved. As returned by SRF.
-    fieldname : :class:`str`, optional
-        Name of the field in the VTK file. Default: "field"
+    fields : :class:`dict` or :class:`numpy.ndarray`
+        [Un]structured fields to be saved.
+        Either a single numpy array as returned by SRF,
+        or a dictionary of fields with theirs names as keys.
     mesh_type : :class:`str`, optional
         'structured' / 'unstructured'. Default: structured
     """
     if mesh_type == "structured":
-        vtk_export_structured(
-            filename=filename, pos=pos, field=field, fieldname=fieldname
-        )
+        vtk_export_structured(filename=filename, pos=pos, fields=fields)
     else:
-        vtk_export_unstructured(
-            filename=filename, pos=pos, field=field, fieldname=fieldname
-        )
+        vtk_export_unstructured(filename=filename, pos=pos, fields=fields)
