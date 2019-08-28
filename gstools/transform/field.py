@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 
-def binary(fld, divide=0.0, upper=1.0, lower=-1.0):
+def binary(fld, divide=None, upper=None, lower=None):
     """
     Binary transformation.
 
@@ -50,17 +50,20 @@ def binary(fld, divide=0.0, upper=1.0, lower=-1.0):
         Field will be transformed inplace.
     divide : :class:`float`, optional
         The dividing value.
-        Default: ``0.0``
+        Default: ``fld.mean``
     upper : :class:`float`, optional
         The resulting upper value of the field.
-        Default: ``0.0``
+        Default: ``mean + sqrt(fld.model.var)``
     lower : :class:`float`, optional
         The resulting lower value of the field.
-        Default: ``0.0``
+        Default: ``mean - sqrt(fld.model.var)``
     """
     if fld.field is None:
         print("binary: no field stored in SRF class.")
     else:
+        divide = fld.mean if divide is None else divide
+        upper = fld.mean + np.sqrt(fld.model.var) if upper is None else upper
+        lower = fld.mean - np.sqrt(fld.model.var) if lower is None else lower
         fld.field[fld.field > divide] = upper
         fld.field[fld.field <= divide] = lower
 
