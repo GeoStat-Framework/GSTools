@@ -12,3 +12,6 @@ explore its whole beauty and power.
    tutorial_02_cov.rst
    tutorial_03_vario.rst
    tutorial_04_vec_field.rst
+   tutorial_05_kriging.rst
+   tutorial_06_conditioning.rst
+   tutorial_07_transformations.rst

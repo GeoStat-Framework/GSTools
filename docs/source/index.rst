@@ -30,7 +30,15 @@ To get the latest development version you can install it directly from GitHub:
     pip install https://github.com/GeoStat-Framework/GSTools/archive/master.zip
 
 To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
+To get all other dependencies, it is recommended to first install gstools once
+in the standard way just decribed.
 Then use the following command:
+
+.. code-block:: none
+
+    pip install --global-option="--openmp" gstools
+
+Or for the development version:
 
 .. code-block:: none
 
@@ -82,7 +90,7 @@ with a :any:`Gaussian` covariance model.
    :align: center
 
 A similar example but for a three dimensional field is exported to a
-`VTK <https://vtk.org/>`_ file, which can be visualized with
+`VTK <https://vtk.org/>`__ file, which can be visualized with
 `ParaView <https://www.paraview.org/>`_.
 
 .. code-block:: python
@@ -275,7 +283,7 @@ VTK Export
 ==========
 
 After you have created a field, you may want to save it to file, so we provide
-a handy `VTK <https://www.vtk.org/>`_ export routine (:any:`vtk_export`):
+a handy `VTK <https://www.vtk.org/>`__ export routine:
 
 .. code-block:: python
 
