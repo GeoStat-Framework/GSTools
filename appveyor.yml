@@ -2,9 +2,11 @@ environment:
   global:
     TWINE_USERNAME: geostatframework
     CIBW_BEFORE_BUILD: pip install numpy==1.14.5 cython==0.28.3
+    CIBW_TEST_REQUIRES: pytest-cov
+    CIBW_TEST_COMMAND: cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests
 
 build_script:
-  - pip install cibuildwheel==0.10.2
+  - pip install cibuildwheel==0.11.1
   - cibuildwheel --output-dir wheelhouse
   - python -m pip install twine
   - python -m twine upload --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
