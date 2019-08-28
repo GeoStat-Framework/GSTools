@@ -62,13 +62,13 @@ def binary(fld, divide=None, upper=None, lower=None):
         print("binary: no field stored in SRF class.")
     else:
         divide = fld.mean if divide is None else divide
-        upper = fld.mean + np.sqrt(fld.model.var) if upper is None else upper
-        lower = fld.mean - np.sqrt(fld.model.var) if lower is None else lower
+        upper = fld.mean + np.sqrt(fld.model.sill) if upper is None else upper
+        lower = fld.mean - np.sqrt(fld.model.sill) if lower is None else lower
         fld.field[fld.field > divide] = upper
         fld.field[fld.field <= divide] = lower
 
 
-def boxcox(fld, lamb=1, shift=0):
+def boxcox(fld, lmbda=1, shift=0):
     """
     Box-Cox transformation.
 
@@ -82,9 +82,9 @@ def boxcox(fld, lamb=1, shift=0):
     fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
-    lamb : :class:`float`, optional
+    lmbda : :class:`float`, optional
         The lambda parameter of the Box-Cox transformation.
-        For ``lamb=0`` one obtains the log-normal transformation.
+        For ``lmbda=0`` one obtains the log-normal transformation.
         Default: ``1``
     shift : :class:`float`, optional
         The shift parameter from the two-parametric Box-Cox transformation.
@@ -96,11 +96,11 @@ def boxcox(fld, lamb=1, shift=0):
     else:
         fld.mean += shift
         fld.field += shift
-        if np.isclose(lamb, 0):
+        if np.isclose(lmbda, 0):
             normal_to_lognormal(fld)
-        if np.min(fld.field) < -1 / lamb:
+        if np.min(fld.field) < -1 / lmbda:
             warn("Box-Cox: Some values will be cut off!")
-        fld.field = (np.maximum(lamb * fld.field + 1, 0)) ** (1 / lamb)
+        fld.field = (np.maximum(lmbda * fld.field + 1, 0)) ** (1 / lmbda)
 
 
 def zinnharvey(fld, conn="high"):
@@ -178,7 +178,7 @@ def normal_to_uniform(fld):
         fld.field = _normal_to_uniform(fld.field, fld.mean, fld.model.sill)
 
 
-def normal_to_arcsin(fld, a=0, b=1):
+def normal_to_arcsin(fld, a=None, b=None):
     """
     Transform normal distribution to the bimodal arcsin distribution.
 
@@ -193,21 +193,23 @@ def normal_to_arcsin(fld, a=0, b=1):
         Field will be transformed inplace.
     a : :class:`float`, optional
         Parameter a of the arcsin distribution (lower bound).
-        Default: 0
+        Default: keep mean and variance
     b : :class:`float`, optional
         Parameter b of the arcsin distribution (upper bound).
-        Default: 1
+        Default: keep mean and variance
     """
     if fld.field is None:
         print("normal_to_arcsin: no field stored in SRF class.")
     else:
+        a = fld.mean - np.sqrt(2.0 * fld.model.sill) if a is None else a
+        b = fld.mean + np.sqrt(2.0 * fld.model.sill) if b is None else b
         fld.field = _normal_to_arcsin(
             fld.field, fld.mean, fld.model.sill, a, b
         )
-        fld.mean = (b - a) / 2.0
+        fld.mean = (a + b) / 2.0
 
 
-def normal_to_uquad(fld, a=0, b=1):
+def normal_to_uquad(fld, a=None, b=None):
     """
     Transform normal distribution to U-quadratic distribution.
 
@@ -222,16 +224,18 @@ def normal_to_uquad(fld, a=0, b=1):
         Field will be transformed inplace.
     a : :class:`float`, optional
         Parameter a of the U-quadratic distribution (lower bound).
-        Default: 0
+        Default: keep mean and variance
     b : :class:`float`, optional
         Parameter b of the U-quadratic distribution (upper bound).
-        Default: 1
+        Default: keep mean and variance
     """
     if fld.field is None:
         print("normal_to_uquad: no field stored in SRF class.")
     else:
+        a = fld.mean - np.sqrt(5.0 / 3.0 * fld.model.sill) if a is None else a
+        b = fld.mean + np.sqrt(5.0 / 3.0 * fld.model.sill) if b is None else b
         fld.field = _normal_to_uquad(fld.field, fld.mean, fld.model.sill, a, b)
-        fld.mean = (b - a) / 2.0
+        fld.mean = (a + b) / 2.0
 
 
 # low level functions
