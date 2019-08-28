@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from gstools import SRF, Gaussian, Exponential
 
-
 # the grid
 x = np.arange(100)
 y = np.arange(100)

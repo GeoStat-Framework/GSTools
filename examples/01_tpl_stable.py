@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from gstools import SRF, TPLStable
 x = y = np.linspace(0, 100, 100)
 model = TPLStable(
@@ -14,7 +13,5 @@ model = TPLStable(
     hurst=0.7,       # hurst coefficient from the power law
 )
 srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-field = srf((x, y), mesh_type='structured', force_moments=True)
-# show the field in xy coordinates
-plt.imshow(field.T, origin="lower")
-plt.show()
+srf.structured([x, y])
+srf.plot()
