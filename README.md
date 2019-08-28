@@ -70,6 +70,9 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [The Covariance Model][tut2_link]
 - [Variogram Estimation][tut3_link]
 - [Random Vector Field Generation][tut4_link]
+- [Kriging][tut5_link]
+- [Conditioned random field generation][tut6_link]
+- [Field transformations][tut7_link]
 
 Some more examples are provided in the examples folder.
 
@@ -268,5 +271,8 @@ You can contact us via <info@geostat-framework.org>.
 [tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html
 [tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html
 [tut4_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html
+[tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html
+[tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html
+[tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/

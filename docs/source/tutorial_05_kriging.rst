@@ -20,7 +20,7 @@ The resluting value :math:`z_0` at :math:`x_0` is calculated as a weighted mean:
 
 .. math::
 
-   z_0 = \sum_{i=1}^n w_i(x_0) \cdot z_i
+   z_0 = \sum_{i=1}^n w_i \cdot z_i
 
 The weights :math:`W = (w_1,\ldots,w_n)` depent on the given covariance model and the location of the target point.
 

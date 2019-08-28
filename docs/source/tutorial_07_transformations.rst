@@ -1,5 +1,5 @@
-Tutorial 7: Field-transformation
-================================
+Tutorial 7: Field transformations
+=================================
 
 The generated fields of gstools are ordinary gaussian random fields.
 In application there are several transformations to describe real world
