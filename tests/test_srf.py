@@ -247,6 +247,10 @@ class TestSRF(unittest.TestCase):
         tf.normal_to_uquad(srf)
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
         tf.normal_to_uniform(srf)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        tf.binary(srf)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        tf.boxcox(srf)
 
     def test_incomprrandmeth(self):
         self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0, mode_no=100)

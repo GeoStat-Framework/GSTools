@@ -76,21 +76,19 @@ class TestIncomprRandMeth(unittest.TestCase):
             self.assertAlmostEqual(modes[1, 1, 1, 1], -0.12304040)
 
     def test_struct_unstruct(self):
-        x_grid = np.arange(0., 2., 1.)
-        y_grid = np.arange(0., 2., 1.)
-        x_tuple = np.array((0., 0., 1., 1.))
-        y_tuple = np.array((0., 1., 0., 1.))
-        unstr_modes = self.rm_2d(
-            x_tuple, y_tuple, mesh_type="unstructured"
-        )
-        str_modes = self.rm_2d(
-            x_grid, y_grid, mesh_type="structured"
-        )
+        x_grid = np.arange(0.0, 2.0, 1.0)
+        y_grid = np.arange(0.0, 2.0, 1.0)
+        x_tuple = np.array((0.0, 0.0, 1.0, 1.0))
+        y_tuple = np.array((0.0, 1.0, 0.0, 1.0))
+        unstr_modes = self.rm_2d(x_tuple, y_tuple, mesh_type="unstructured")
+        str_modes = self.rm_2d(x_grid, y_grid, mesh_type="structured")
         for d in range(2):
             k = 0
             for i in range(len(x_grid)):
                 for j in range(len(y_grid)):
-                    self.assertAlmostEqual(str_modes[d, i, j], unstr_modes[d, k])
+                    self.assertAlmostEqual(
+                        str_modes[d, i, j], unstr_modes[d, k]
+                    )
                     k += 1
 
     def test_assertions(self):
