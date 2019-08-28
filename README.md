@@ -104,14 +104,14 @@ srf.plot()
 A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/).
 
 ```python
-from gstools import SRF, Gaussian, vtk_export
+from gstools import SRF, Gaussian
 import matplotlib.pyplot as pt
 # structured field with a size 100x100x100 and a grid-size of 1x1x1
 x = y = z = range(100)
 model = Gaussian(dim=3, var=0.6, len_scale=20)
 srf = SRF(model)
-field = srf((x, y, z), mesh_type='structured')
-vtk_export('3d_field', (x, y, z), field, mesh_type='structured')
+srf((x, y, z), mesh_type='structured')
+srf.vtk_export('3d_field')
 ```
 
 <p align="center">
@@ -133,8 +133,6 @@ model again.
 ```python
 import numpy as np
 from gstools import SRF, Exponential, Stable, vario_estimate_unstructured
-from gstools.covmodel.plot import plot_variogram
-import matplotlib.pyplot as plt
 # generate a synthetic field with an exponential model
 x = np.random.RandomState(19970221).rand(1000) * 100.
 y = np.random.RandomState(20011012).rand(1000) * 100.
@@ -144,14 +142,13 @@ field = srf((x, y))
 # estimate the variogram of the field with 40 bins
 bins = np.arange(40)
 bin_center, gamma = vario_estimate_unstructured((x, y), field, bins)
-plt.plot(bin_center, gamma)
 # fit the variogram with a stable model. (no nugget fitted)
 fit_model = Stable(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
-plot_variogram(fit_model, x_max=40)
 # output
+ax = fit_model.plot(x_max=40)
+ax.plot(bin_center, gamma)
 print(fit_model)
-plt.show()
 ```
 
 Which gives:
@@ -201,7 +198,6 @@ spatial vector fields can be generated.
 ### Example
 
 ```python
-
 import numpy as np
 import matplotlib.pyplot as plt
 from gstools import SRF, Gaussian
@@ -242,8 +238,8 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 
 ## Requirements:
 
-- [NumPy >= 1.13.0](https://www.numpy.org)
-- [SciPy >= 0.19.1](https://www.scipy.org/scipylib)
+- [NumPy >= 1.14.5](https://www.numpy.org)
+- [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
 - [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
 - [emcee](https://github.com/dfm/emcee)
 - [pyevtk](https://bitbucket.org/pauloh/pyevtk)
@@ -257,13 +253,13 @@ You can contact us via <info@geostat-framework.org>.
 
 ## License
 
-[GPL][gpl_link] © 2018-2019
+[GPL][license_link] © 2018-2019
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
 [winpy_link]: https://winpython.github.io/
-[gpl_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
+[license_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
 [cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
 [doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/

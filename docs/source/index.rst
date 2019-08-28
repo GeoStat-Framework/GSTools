@@ -95,14 +95,14 @@ A similar example but for a three dimensional field is exported to a
 
 .. code-block:: python
 
-   from gstools import SRF, Gaussian, vtk_export
-   import matplotlib.pyplot as pt
-   # structured field with a size 100x100x100 and a grid-size of 1x1x1
-   x = y = z = range(100)
-   model = Gaussian(dim=3, var=0.6, len_scale=20)
-   srf = SRF(model)
-   field = srf((x, y, z), mesh_type='structured')
-   vtk_export('3d_field', (x, y, z), field, mesh_type='structured')
+    from gstools import SRF, Gaussian
+    import matplotlib.pyplot as pt
+    # structured field with a size 100x100x100 and a grid-size of 1x1x1
+    x = y = z = range(100)
+    model = Gaussian(dim=3, var=0.6, len_scale=20)
+    srf = SRF(model)
+    srf((x, y, z), mesh_type='structured')
+    srf.vtk_export('3d_field')
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
    :width: 400px
@@ -191,8 +191,6 @@ model again.
 
     import numpy as np
     from gstools import SRF, Exponential, Stable, vario_estimate_unstructured
-    from gstools.covmodel.plot import plot_variogram
-    import matplotlib.pyplot as plt
     # generate a synthetic field with an exponential model
     x = np.random.RandomState(19970221).rand(1000) * 100.
     y = np.random.RandomState(20011012).rand(1000) * 100.
@@ -202,14 +200,13 @@ model again.
     # estimate the variogram of the field with 40 bins
     bins = np.arange(40)
     bin_center, gamma = vario_estimate_unstructured((x, y), field, bins)
-    plt.plot(bin_center, gamma)
     # fit the variogram with a stable model. (no nugget fitted)
     fit_model = Stable(dim=2)
     fit_model.fit_variogram(bin_center, gamma, nugget=False)
-    plot_variogram(fit_model, x_max=40)
     # output
+    ax = fit_model.plot(x_max=40)
+    ax.plot(bin_center, gamma)
     print(fit_model)
-    plt.show()
 
 Which gives:
 
@@ -287,12 +284,12 @@ a handy `VTK <https://www.vtk.org/>`__ export routine:
 
 .. code-block:: python
 
-    from gstools import SRF, Gaussian, vtk_export
+    from gstools import SRF, Gaussian
     x = y = range(100)
     model = Gaussian(dim=2, var=1, len_scale=10)
     srf = SRF(model)
-    field = srf((x, y), mesh_type='structured')
-    vtk_export("field", (x, y), field, mesh_type='structured')
+    srf((x, y), mesh_type='structured')
+    srf.vtk_export("field")
 
 Which gives a RectilinearGrid VTK file ``field.vtr``.
 
@@ -300,8 +297,8 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 Requirements
 ============
 
-- `Numpy >= 1.13.0 <http://www.numpy.org>`_
-- `SciPy >= 0.19.1 <http://www.scipy.org>`_
+- `Numpy >= 1.14.5 <http://www.numpy.org>`_
+- `SciPy >= 1.1.0 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
