@@ -53,10 +53,10 @@ def binary(fld, divide=None, upper=None, lower=None):
         Default: ``fld.mean``
     upper : :class:`float`, optional
         The resulting upper value of the field.
-        Default: ``mean + sqrt(fld.model.var)``
+        Default: ``mean + sqrt(fld.model.sill)``
     lower : :class:`float`, optional
         The resulting lower value of the field.
-        Default: ``mean - sqrt(fld.model.var)``
+        Default: ``mean - sqrt(fld.model.sill)``
     """
     if fld.field is None:
         print("binary: no field stored in SRF class.")
