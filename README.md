@@ -256,7 +256,7 @@ You can contact us via <info@geostat-framework.org>.
 
 ## License
 
-[GPL][license_link] © 2018-2019
+[LGPLv3][license_link] © 2018-2019
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages

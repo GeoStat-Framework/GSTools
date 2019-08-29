@@ -308,4 +308,4 @@ Requirements
 License
 =======
 
-`GPL <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018-2019
+`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018-2019
