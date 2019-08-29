@@ -12,11 +12,11 @@ ens_no = 4
 field = []
 seed = MasterRNG(20170519)
 for i in range(ens_no):
-    field.append(srf((x, y), seed=seed(), mesh_type='structured'))
+    field.append(srf((x, y), seed=seed(), mesh_type="structured"))
 
 fig, ax = pt.subplots(2, 2, sharex=True, sharey=True)
 ax = ax.flatten()
 for i in range(ens_no):
-    ax[i].imshow(field[i].T, origin='lower')
+    ax[i].imshow(field[i].T, origin="lower")
 
 pt.show()

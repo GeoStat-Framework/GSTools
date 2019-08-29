@@ -1,13 +1,16 @@
 from gstools import CovModel
 import numpy as np
+
 # use CovModel as the base-class
 class Gau(CovModel):
     def correlation(self, r):
-        return np.exp(-(r/self.len_scale)**2)
+        return np.exp(-(r / self.len_scale) ** 2)
 
-model = Gau(dim=2, var=2., len_scale=10)
+
+model = Gau(dim=2, var=2.0, len_scale=10)
 
 from gstools.covmodel.plot import plot_variogram
+
 plot_variogram(model)
 
 print(model.dim, model.var, model.len_scale, model.nugget, model.sill)
@@ -17,49 +20,53 @@ model.len_scale = 15
 model.nugget = 0.1
 print(model.dim, model.var, model.len_scale, model.nugget, model.sill)
 
-model = Gau(dim=3, var=2., len_scale=10, anis=0.5)
+model = Gau(dim=3, var=2.0, len_scale=10, anis=0.5)
 print(model.anis)
 print(model.len_scale_vec)
 
-model = Gau(dim=3, var=2., len_scale=[10, 5, 4])
+model = Gau(dim=3, var=2.0, len_scale=[10, 5, 4])
 print(model.anis)
 print(model.len_scale)
 print(model.len_scale_vec)
 
-model = Gau(dim=3, var=2., len_scale=10, angles=2.5)
+model = Gau(dim=3, var=2.0, len_scale=10, angles=2.5)
 print(model.angles)
 
-model = Gau(dim=3, var=2., len_scale=10, nugget=0.5)
-print(model.variogram(10.))
-print(model.variogram_normed(10.))
-print(model.covariance(10.))
-print(model.correlation(10.))
+model = Gau(dim=3, var=2.0, len_scale=10, nugget=0.5)
+print(model.variogram(10.0))
+print(model.variogram_normed(10.0))
+print(model.covariance(10.0))
+print(model.correlation(10.0))
 
-model = Gau(dim=3, var=2., len_scale=10)
+model = Gau(dim=3, var=2.0, len_scale=10)
 print(model.spectrum(0.1))
 print(model.spectral_density(0.1))
 
-model = Gau(dim=3, var=2., len_scale=10)
+model = Gau(dim=3, var=2.0, len_scale=10)
 print(model.integral_scale)
 print(model.integral_scale_vec)
 
-model = Gau(dim=3, var=2., integral_scale=[10, 4, 2])
+model = Gau(dim=3, var=2.0, integral_scale=[10, 4, 2])
 print(model.anis)
 print(model.len_scale)
 print(model.len_scale_vec)
 print(model.integral_scale)
 print(model.integral_scale_vec)
 
-model = Gau(dim=3, var=2., len_scale=10)
+model = Gau(dim=3, var=2.0, len_scale=10)
 print(model.percentile_scale(0.9))
+
 
 class Stab(CovModel):
     def default_opt_arg(self):
         return {"alpha": 1.5}
+
     def correlation(self, r):
-        return np.exp(-(r/self.len_scale)**self.alpha)
-model1 = Stab(dim=2, var=2., len_scale=10)
-model2 = Stab(dim=2, var=2., len_scale=10, alpha=0.5)
+        return np.exp(-(r / self.len_scale) ** self.alpha)
+
+
+model1 = Stab(dim=2, var=2.0, len_scale=10)
+model2 = Stab(dim=2, var=2.0, len_scale=10, alpha=0.5)
 print(model1)
 print(model2)
 
@@ -73,6 +80,7 @@ model.set_arg_bounds(alpha=[0, 3])
 results, pcov = model.fit_variogram(x, y, nugget=False)
 print(results)
 from matplotlib import pyplot as plt
+
 plt.cla()
 plt.scatter(x, y, color="k")
 plot_variogram(model)

@@ -1,5 +1,6 @@
 import numpy as np
 from gstools import Gaussian, krige
+
 # condtions
 cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
 cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]

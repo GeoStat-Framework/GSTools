@@ -9,7 +9,7 @@ rng = np.random.RandomState(seed())
 x = rng.randint(0, 100, size=10000)
 y = rng.randint(0, 100, size=10000)
 
-model = Exponential(dim=2, var=1, len_scale=[12., 3.], angles=np.pi / 8.)
+model = Exponential(dim=2, var=1, len_scale=[12.0, 3.0], angles=np.pi / 8.0)
 
 srf = SRF(model, seed=20170519)
 
@@ -17,5 +17,5 @@ field = srf((x, y))
 srf.vtk_export("field")
 
 pt.tricontourf(x, y, field.T)
-pt.axes().set_aspect('equal')
+pt.axes().set_aspect("equal")
 pt.show()

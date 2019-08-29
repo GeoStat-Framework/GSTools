@@ -1,8 +1,9 @@
 import numpy as np
 from gstools import SRF, Exponential, Stable, vario_estimate_unstructured
+
 # generate a synthetic field with an exponential model
-x = np.random.RandomState(19970221).rand(1000) * 100.
-y = np.random.RandomState(20011012).rand(1000) * 100.
+x = np.random.RandomState(19970221).rand(1000) * 100.0
+y = np.random.RandomState(20011012).rand(1000) * 100.0
 model = Exponential(dim=2, var=2, len_scale=8)
 srf = SRF(model, mean=0, seed=19970221)
 field = srf((x, y))
