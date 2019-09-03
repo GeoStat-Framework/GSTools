@@ -9,8 +9,8 @@ cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 gridx = np.linspace(0.0, 15.0, 151)
 # spatial random field class
 model = Gaussian(dim=1, var=0.5, len_scale=2)
-kr1 = krige.Simple(model=model, mean=1, cond_pos=[cond_pos], cond_val=cond_val)
-kr2 = krige.Ordinary(model=model, cond_pos=[cond_pos], cond_val=cond_val)
+kr1 = krige.Simple(model=model, mean=1, cond_pos=cond_pos, cond_val=cond_val)
+kr2 = krige.Ordinary(model=model, cond_pos=cond_pos, cond_val=cond_val)
 kr1([gridx])
 kr2([gridx])
 plt.plot(gridx, kr1.field, label="simple kriged field")

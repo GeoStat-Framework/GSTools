@@ -59,6 +59,6 @@ def plot_rand_meth_samples(generator):
     fig.show()
 
 
-model = Stable(dim=3, alpha=1)
+model = Stable(dim=3, alpha=1.5)
 srf = SRF(model)
 plot_rand_meth_samples(srf.generator)

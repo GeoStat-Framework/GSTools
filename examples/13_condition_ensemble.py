@@ -9,7 +9,7 @@ gridx = np.linspace(0.0, 15.0, 151)
 # spatial random field class
 model = Gaussian(dim=1, var=0.5, len_scale=2)
 srf = SRF(model)
-srf.set_condition([cond_pos], cond_val, "ordinary")
+srf.set_condition(cond_pos, cond_val, "ordinary")
 fields = []
 for i in range(100):
     if i % 10 == 0:
