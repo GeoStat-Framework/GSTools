@@ -13,8 +13,8 @@ We provide two kinds of kriging routines:
 Theoretical Background
 ----------------------
 
-Aim of kriging is to derive the value of a field at some point :math:`x_0`,
-when there are fix observed values :math:`z(x_1)\ldots z(x_n)` at given points :math:`x_i`.
+The aim of kriging is to derive the value of a field at some point :math:`x_0`,
+when there are fixed observed values :math:`z(x_1)\ldots z(x_n)` at given points :math:`x_i`.
 
 The resluting value :math:`z_0` at :math:`x_0` is calculated as a weighted mean:
 
@@ -31,7 +31,7 @@ Implementation
 --------------
 
 The routines for kriging are almost identical to the routines for spatial random fields.
-First you define a covariance model, as described in the SRF Tutorial,
+First you define a covariance model, as described in :doc:`the SRF tutorial</tutorial_02_cov>`,
 then you initialize the kriging class with this model:
 
 .. code-block:: python
@@ -44,7 +44,7 @@ then you initialize the kriging class with this model:
     krig = krige.Simple(model, mean=1, cond_pos=[cond_pos], cond_val=cond_val)
 
 The resulting field instance ``krig`` has the same methods as the :any:`SRF` class.
-You can call it to evaluate the kriging field at different points,
+You can call it to evaluate the kriged field at different points,
 you can plot the latest field or you can export the field and so on.
 Have a look at the documentation of :any:`Simple` and :any:`Ordinary`.
 
@@ -73,7 +73,7 @@ Thereby :math:`c(x_i,x_j)` is the covariance of the given observations.
 Example
 ^^^^^^^
 
-Here we use simple kriging in 1D (for plotting reasons) with 5 given observations/condtions.
+Here we use simple kriging in 1D (for plotting reasons) with 5 given observations/conditions.
 The mean of the field has to be given beforehand.
 
 .. code-block:: python
@@ -97,14 +97,17 @@ The mean of the field has to be given beforehand.
    :width: 600px
    :align: center
 
+The function signature looks a bit strange for the 1D case with ``cond_pos=[cond_pos]``,
+but for 2 or more dimensions, it makes more sense with something like ``cond_pos=[cond_pos_x, cond_pos_y]``.
+
 
 Ordinary Kriging
 ----------------
 
 Ordinary kriging will estimate an appropriate mean of the field,
-based on the given observations/conditions and the covariance model in use.
+based on the given observations/conditions and the covariance model used.
 
-The resulting equation system for :math:`W` is given by:
+The resulting system of equations for :math:`W` is given by:
 
 .. math::
 
@@ -123,7 +126,7 @@ and :math:`\mu` is a Lagrange multiplier to minimize the kriging error and estim
 Example
 ^^^^^^^
 
-Here we use ordinary kriging in 1D (for plotting reasons) with 5 given observations/condtions.
+Here we use ordinary kriging in 1D (for plotting reasons) with 5 given observations/conditions.
 The estimated mean can be accessed by ``krig.mean``.
 
 .. code-block:: python
