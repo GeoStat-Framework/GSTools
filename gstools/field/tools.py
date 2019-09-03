@@ -133,8 +133,8 @@ def unrotate_mesh(dim, angles, x, y, z):
         rot_mat = r3d_z(-angles[0])[0:2, 0:2]
         pos_tuple = np.vstack((x, y))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 2)
-        x = np.squeeze(pos_tuple[0])
-        y = np.squeeze(pos_tuple[1])
+        x = pos_tuple[0].reshape(np.shape(x))
+        y = pos_tuple[1].reshape(np.shape(y))
         return x, y, z
     if dim == 3:
         alpha = -angles[0]
@@ -143,9 +143,9 @@ def unrotate_mesh(dim, angles, x, y, z):
         rot_mat = np.dot(np.dot(r3d_z(alpha), r3d_y(beta)), r3d_x(gamma))
         pos_tuple = np.vstack((x, y, z))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
-        x = np.squeeze(pos_tuple[0])
-        y = np.squeeze(pos_tuple[1])
-        z = np.squeeze(pos_tuple[2])
+        x = pos_tuple[0].reshape(np.shape(x))
+        y = pos_tuple[1].reshape(np.shape(y))
+        z = pos_tuple[2].reshape(np.shape(z))
         return x, y, z
     return None
 
