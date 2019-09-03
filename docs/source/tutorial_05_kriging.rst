@@ -41,7 +41,7 @@ then you initialize the kriging class with this model:
     cond_pos = ...
     cond_val = ...
     model = Gaussian(dim=1, var=0.5, len_scale=2)
-    krig = krige.Simple(model, mean=1, cond_pos=[cond_pos], cond_val=cond_val)
+    krig = krige.Simple(model, mean=1, cond_pos=cond_pos, cond_val=cond_val)
 
 The resulting field instance ``krig`` has the same methods as the :any:`SRF` class.
 You can call it to evaluate the kriged field at different points,
@@ -87,7 +87,7 @@ The mean of the field has to be given beforehand.
     gridx = np.linspace(0.0, 15.0, 151)
     # spatial random field class
     model = Gaussian(dim=1, var=0.5, len_scale=2)
-    krig = krige.Simple(model, mean=1, cond_pos=[cond_pos], cond_val=cond_val)
+    krig = krige.Simple(model, mean=1, cond_pos=cond_pos, cond_val=cond_val)
     krig([gridx])
     ax = krig.plot()
     ax.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
@@ -96,9 +96,6 @@ The mean of the field has to be given beforehand.
 .. image:: pics/05_simple.png
    :width: 600px
    :align: center
-
-The function signature looks a bit strange for the 1D case with ``cond_pos=[cond_pos]``,
-but for 2 or more dimensions, it makes more sense with something like ``cond_pos=[cond_pos_x, cond_pos_y]``.
 
 
 Ordinary Kriging
@@ -140,7 +137,7 @@ The estimated mean can be accessed by ``krig.mean``.
     gridx = np.linspace(0.0, 15.0, 151)
     # spatial random field class
     model = Gaussian(dim=1, var=0.5, len_scale=2)
-    krig = krige.Ordinary(model, cond_pos=[cond_pos], cond_val=cond_val)
+    krig = krige.Ordinary(model, cond_pos=cond_pos, cond_val=cond_val)
     krig([gridx])
     ax = krig.plot()
     ax.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")

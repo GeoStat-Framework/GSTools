@@ -25,13 +25,13 @@ You just need to add the conditions as described in :doc:`the kriging tutorial</
 
 .. code-block:: python
 
-    srf.set_condition([cond_pos], cond_val, "simple")
+    srf.set_condition(cond_pos, cond_val, "simple")
 
 or:
 
 .. code-block:: python
 
-    srf.set_condition([cond_pos], cond_val, "ordinary")
+    srf.set_condition(cond_pos, cond_val, "ordinary")
 
 
 Example: Conditioning with Ordinary Kriging
@@ -53,7 +53,7 @@ The estimated mean can be accessed by ``srf.mean``.
     # spatial random field class
     model = Gaussian(dim=1, var=0.5, len_scale=2)
     srf = SRF(model)
-    srf.set_condition([cond_pos], cond_val, "ordinary")
+    srf.set_condition(cond_pos, cond_val, "ordinary")
     fields = []
     for i in range(100):
         if i % 10 == 0: print(i)
