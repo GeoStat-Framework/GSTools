@@ -1,7 +1,7 @@
 Tutorial 7: Field transformations
 =================================
 
-The generated fields of gstools are ordinary gaussian random fields.
+The generated fields of gstools are ordinary Gaussian random fields.
 In application there are several transformations to describe real world
 problems in an appropriate manner.
 
@@ -27,7 +27,7 @@ Implementation
 All the transformations take a field class, that holds a generated field,
 as input and will manipulate this field inplace.
 
-Just import the transform submodule and apply a transformation to the srf class:
+Simply import the transform submodule and apply a transformation to the srf class:
 
 .. code-block:: python
 
@@ -71,7 +71,7 @@ Here we transform a field to a log-normal distribution:
 
 Here we transform a field to a binary field with only two values.
 The dividing value is the mean by default and the upper and lower values
-are derived to keep the same variance.
+are derived to preserve the variance.
 
 .. code-block:: python
 
@@ -91,13 +91,13 @@ are derived to keep the same variance.
    :align: center
 
 
-3. Example: Zinn&Harvey transformation
---------------------------------------
+3. Example: Zinn & Harvey transformation
+----------------------------------------
 
-Here we transform a field with the so called "Zinn & Harvey" transformation presented in
-`Zinn&Harvey (2003) <https://www.researchgate.net/publication/282442995_zinnharvey2003>`__.
-With this transformation one could overcome the restriction that in ordinary
-gaussian random fields the mean values are most connected.
+Here, we transform a field with the so called "Zinn & Harvey" transformation presented in
+`Zinn & Harvey (2003) <https://www.researchgate.net/publication/282442995_zinnharvey2003>`__.
+With this transformation, one could overcome the restriction that in ordinary
+Gaussian random fields the mean values are the ones being the most connected.
 
 .. code-block:: python
 
@@ -120,12 +120,12 @@ gaussian random fields the mean values are most connected.
 4. Example: bimodal fields
 --------------------------
 
-We provide to transformations to obtain a bimodal distribution:
+We provide two transformations to obtain bimodal distributions:
 
 * `arcsin <https://en.wikipedia.org/wiki/Arcsine_distribution>`__.
 * `uquad <https://en.wikipedia.org/wiki/U-quadratic_distribution>`__.
 
-Both transformations will keep the mean and variance of the given field by default.
+Both transformations will preserve the mean and variance of the given field by default.
 
 .. code-block:: python
 
@@ -150,9 +150,9 @@ Both transformations will keep the mean and variance of the given field by defau
 
 You can combine different transformations simply by successively applying them.
 
-Here we first force the single field realization to hold the given moments,
+Here, we first force the single field realization to hold the given moments,
 namely mean and variance.
-Then we apply the Zinn&Harvey transformation to connect the low values.
+Then we apply the Zinn & Harvey transformation to connect the low values.
 Afterwards the field is transformed to a binary field and last but not least,
 we transform it to log-values.
 
@@ -179,7 +179,8 @@ we transform it to log-values.
 
 
 The resulting field could be interpreted as a transmissivity field, where
-the values of low permeability are most connected and there only occur two kinds of soil.
+the values of low permeability are the ones being the most connected
+and only two kinds of soil exist.
 
 
 .. raw:: latex
