@@ -41,7 +41,7 @@ def ordinary(srf):
     krige_field, krige_var = krige_ok(srf.pos, srf.mesh_type)
 
     # evaluate the field at the conditional points
-    x, y, z = pos2xyz(srf.cond_pos)
+    x, y, z = pos2xyz(srf.cond_pos, max_dim=srf.model.dim)
     if srf.model.do_rotation:
         x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
     y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
@@ -84,7 +84,7 @@ def simple(srf):
     krige_field, krige_var = krige_sk(srf.pos, srf.mesh_type)
 
     # evaluate the field at the conditional points
-    x, y, z = pos2xyz(srf.cond_pos)
+    x, y, z = pos2xyz(srf.cond_pos, max_dim=srf.model.dim)
     if srf.model.do_rotation:
         x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
     y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)

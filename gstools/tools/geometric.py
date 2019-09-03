@@ -113,6 +113,8 @@ def pos2xyz(pos, dtype=None, calc_dim=False, max_dim=3):
     -----
     If len(pos) > 3, everything after pos[2] will be ignored.
     """
+    if max_dim == 1:  # sanity check
+        pos = np.array(pos, ndmin=2)
     x = np.array(pos[0], dtype=dtype).reshape(-1)
     dim = 1
     y = z = None

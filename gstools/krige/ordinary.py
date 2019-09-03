@@ -49,6 +49,7 @@ class Ordinary(Field):
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"
+        self._c_x = self._c_y = self._c_z = None
         self._cond_pos = None
         self._cond_val = None
         self.set_condition(cond_pos, cond_val)
@@ -78,9 +79,7 @@ class Ordinary(Field):
         """
         # internal conversation
         x, y, z = pos2xyz(pos, dtype=np.double, max_dim=self.model.dim)
-        c_x, c_y, c_z = pos2xyz(
-            self.cond_pos, dtype=np.double, max_dim=self.model.dim
-        )
+        c_x, c_y, c_z = self.cond_xyz
         self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
         # format the positional arguments of the mesh
@@ -157,8 +156,16 @@ class Ordinary(Field):
         cond_val : :class:`numpy.ndarray`
             the values of the conditions
         """
-        self._cond_pos = cond_pos
-        self._cond_val = np.array(cond_val, dtype=np.double)
+        self._c_x, self._c_y, self._c_z = pos2xyz(
+            cond_pos, dtype=np.double, max_dim=self.model.dim
+        )
+        self._cond_pos = xyz2pos(self._c_x, self._c_y, self._c_z)
+        self._cond_val = np.array(cond_val, dtype=np.double).reshape(-1)
+
+    @property
+    def cond_xyz(self):
+        """:class:`list`: The position coordinates of the conditions."""
+        return self._c_x, self._c_y, self._c_z
 
     @property
     def cond_pos(self):
