@@ -88,7 +88,7 @@ The mean of the field has to be given beforehand.
     # spatial random field class
     model = Gaussian(dim=1, var=0.5, len_scale=2)
     krig = krige.Simple(model, mean=1, cond_pos=cond_pos, cond_val=cond_val)
-    krig([gridx])
+    krig(gridx)
     ax = krig.plot()
     ax.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
     ax.legend()
@@ -138,7 +138,7 @@ The estimated mean can be accessed by ``krig.mean``.
     # spatial random field class
     model = Gaussian(dim=1, var=0.5, len_scale=2)
     krig = krige.Ordinary(model, cond_pos=cond_pos, cond_val=cond_val)
-    krig([gridx])
+    krig(gridx)
     ax = krig.plot()
     ax.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
     ax.legend()

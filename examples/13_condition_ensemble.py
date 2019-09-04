@@ -14,7 +14,7 @@ fields = []
 for i in range(100):
     if i % 10 == 0:
         print(i)
-    fields.append(srf([gridx], seed=i))
+    fields.append(srf(gridx, seed=i))
     label = "Conditioned ensemble" if i == 0 else None
     plt.plot(gridx, fields[i], color="k", alpha=0.1, label=label)
 plt.plot(gridx, np.full_like(gridx, srf.mean), label="estimated mean")
