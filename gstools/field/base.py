@@ -85,7 +85,7 @@ class Field(object):
             lower dimension. For example, if you got a 2D mesh in xz direction,
             you have to pass "xz"
             Default: "xyz"
-        field : :class:`str`, optional
+        name : :class:`str`, optional
             Name to store the field in the given mesh as point_data or
             cell_data. Default: "field"
         **kwargs
