@@ -104,7 +104,7 @@ srf.plot()
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
-A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/).
+A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/) or [PyVista](http://docs.pyvista.org) in Python:
 
 ```python
 from gstools import SRF, Gaussian
@@ -114,7 +114,10 @@ x = y = z = range(100)
 model = Gaussian(dim=3, var=0.6, len_scale=20)
 srf = SRF(model)
 srf((x, y, z), mesh_type='structured')
-srf.vtk_export('3d_field')
+srf.vtk_export('3d_field') # Save to a VTK file for ParaView
+
+mesh = srf.to_pyvista() # Create a PyVista mesh for plotting in Python
+mesh.threshold_percent(0.5).plot()
 ```
 
 <p align="center">
@@ -222,10 +225,11 @@ yielding
 [kraichnan_link]: https://doi.org/10.1063/1.1692799
 
 
-## VTK Export
+## VTK/PyVista Export
 
 After you have created a field, you may want to save it to file, so we provide
-a handy [VTK][vtk_link] export routine:
+a handy [VTK][vtk_link] export routine using the `.vtk_export()` or you could
+create a VTK/PyVista dataset for use in Python with to `.to_pyvista()` method:
 
 ```python
 from gstools import SRF, Gaussian
@@ -233,10 +237,13 @@ x = y = range(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model)
 srf((x, y), mesh_type='structured')
-srf.vtk_export("field")
+srf.vtk_export("field") # Saves to a VTK file
+mesh = srf.to_pyvista() # Create a VTK/PyVista dataset in memory
+mesh.plot()
 ```
 
-Which gives a RectilinearGrid VTK file ``field.vtr``.
+Which gives a RectilinearGrid VTK file ``field.vtr`` or creates a PyVista mesh
+in memory for immediate 3D plotting in Python.
 
 
 ## Requirements:
@@ -245,7 +252,7 @@ Which gives a RectilinearGrid VTK file ``field.vtr``.
 - [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
 - [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
 - [emcee](https://github.com/dfm/emcee)
-- [pyevtk](https://bitbucket.org/pauloh/pyevtk)
+- [pyvista](https://docs.pyvista.org/)
 - [six](https://github.com/benjaminp/six)
 
 

@@ -205,6 +205,13 @@ Using the field from `previous example <Using an Unstructured Grid_>`__, it can 
 
     srf.vtk_export("field")
 
+Or it could visualized immediately in Python using `PyVista <http://docs.pyvista.org>`__:
+
+.. code-block:: python
+
+    mesh = srf.to_pyvista("field")
+    mesh.plot()
+
 The script can be found in :download:`gstools/examples/04_export.py<../../examples/04_export.py>` and
 in :download:`gstools/examples/06_unstr_srf_export.py<../../examples/06_unstr_srf_export.py>`
 

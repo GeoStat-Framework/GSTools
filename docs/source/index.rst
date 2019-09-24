@@ -91,7 +91,8 @@ with a :any:`Gaussian` covariance model.
 
 A similar example but for a three dimensional field is exported to a
 `VTK <https://vtk.org/>`__ file, which can be visualized with
-`ParaView <https://www.paraview.org/>`_.
+`ParaView <https://www.paraview.org/>`_ or
+`PyVista <http://docs.pyvista.org>`__ in Python:
 
 .. code-block:: python
 
@@ -102,7 +103,10 @@ A similar example but for a three dimensional field is exported to a
     model = Gaussian(dim=3, var=0.6, len_scale=20)
     srf = SRF(model)
     srf((x, y, z), mesh_type='structured')
-    srf.vtk_export('3d_field')
+    srf.vtk_export('3d_field') # Save to a VTK file for ParaView
+
+    mesh = srf.to_pyvista() # Create a PyVista mesh for plotting in Python
+    mesh.threshold_percent(0.5).plot()
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
    :width: 400px
@@ -301,7 +305,7 @@ Requirements
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
-- `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
+- `pyvista <https://docs.pyvista.org>`_
 - `six <https://github.com/benjaminp/six>`_
 
 

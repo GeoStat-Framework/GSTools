@@ -15,6 +15,8 @@ srf = SRF(model, seed=20170519)
 
 field = srf((x, y))
 srf.vtk_export("field")
+# Or create a PyVista dataset
+# mesh = srf.to_pyvista()
 
 pt.tricontourf(x, y, field.T)
 pt.axes().set_aspect("equal")

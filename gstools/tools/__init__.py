@@ -8,9 +8,13 @@ Export
 ^^^^^^
 
 .. autosummary::
-   vtk_export
+   save_vtk_grid
+   to_vtk_structured
    vtk_export_structured
+   to_vtk_unstructured
    vtk_export_unstructured
+   to_vtk
+   vtk_export
 
 Special functions
 ^^^^^^^^^^^^^^^^^
