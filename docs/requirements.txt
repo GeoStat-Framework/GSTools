@@ -5,6 +5,5 @@ scipy>=1.1.0
 hankel>=0.3.6
 emcee
 pyevtk
-pyvista
 six
 numpydoc
