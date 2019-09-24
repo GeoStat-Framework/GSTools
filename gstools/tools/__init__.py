@@ -8,7 +8,6 @@ Export
 ^^^^^^
 
 .. autosummary::
-   save_vtk_grid
    to_vtk_structured
    vtk_export_structured
    to_vtk_unstructured

@@ -305,8 +305,14 @@ Requirements
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
 - `emcee <https://github.com/dfm/emcee>`_
-- `pyvista <https://docs.pyvista.org>`_
+- `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
 - `six <https://github.com/benjaminp/six>`_
+
+Optional
+~~~~~~~~
+
+- `matplotlib <https://matplotlib.org>`_
+- `pyvista <https://docs.pyvista.org>`_
 
 
 License
