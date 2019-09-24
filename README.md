@@ -252,8 +252,13 @@ in memory for immediate 3D plotting in Python.
 - [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
 - [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
 - [emcee](https://github.com/dfm/emcee)
-- [pyvista](https://docs.pyvista.org/)
+- [pyevtk](https://bitbucket.org/pauloh/pyevtk)
 - [six](https://github.com/benjaminp/six)
+
+### Optional
+
+- [matplotlib](https://matplotlib.org)
+- [pyvista](https://docs.pyvista.org/)
 
 
 ## Contact
