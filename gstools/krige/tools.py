@@ -31,6 +31,11 @@ def set_condition(cond_pos, cond_val, max_dim=3):
     max_dim : :class:`int`, optional
         Cut of information above the given dimension. Default: 3
     """
+    if len(cond_pos[0]) != len(cond_val):
+        raise ValueError(
+            "Please check your 'cond_pos' and 'cond_val' parameters. " +
+            "The shapes do not match (len(cond_pos[0]) != len(cond_val))."
+        )
     c_x, c_y, c_z = pos2xyz(
         cond_pos, dtype=np.double, max_dim=max_dim
     )
