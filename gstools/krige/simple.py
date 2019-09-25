@@ -27,6 +27,7 @@ from gstools.field.tools import (
 from gstools.field.base import Field
 from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.krige.krigesum import krigesum
+from gstools.krige.tools import set_condition
 
 __all__ = ["Simple"]
 
@@ -52,12 +53,10 @@ class Simple(Field):
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"
-        self._c_x = self._c_y = self._c_z = None
-        self._cond_pos = None
-        self._cond_val = None
-        self.set_condition(cond_pos, cond_val)
+        self._cond_pos, self._cond_val = set_condition(cond_pos, cond_val)
 
         # initialize attributes
+        self.set_condition = set_condition
 
     def __call__(self, pos, mesh_type="unstructured"):
         """
@@ -82,7 +81,11 @@ class Simple(Field):
         """
         # internal conversation
         x, y, z = pos2xyz(pos, dtype=np.double, max_dim=self.model.dim)
-        c_x, c_y, c_z = self.cond_xyz
+        c_x, c_y, c_z = pos2xyz(
+            self.cond_pos,
+            dtype=np.double,
+            max_dim=self.model.dim
+        )
         self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
         # format the positional arguments of the mesh
@@ -132,27 +135,6 @@ class Simple(Field):
                 np.column_stack(pos2[: self.model.dim]),
             )
         )
-
-    def set_condition(self, cond_pos, cond_val):
-        """Set the conditions for kriging.
-
-        Parameters
-        ----------
-        cond_pos : :class:`list`
-            the position tuple of the conditions (x, [y, z])
-        cond_val : :class:`numpy.ndarray`
-            the values of the conditions
-        """
-        self._c_x, self._c_y, self._c_z = pos2xyz(
-            cond_pos, dtype=np.double, max_dim=self.model.dim
-        )
-        self._cond_pos = xyz2pos(self._c_x, self._c_y, self._c_z)
-        self._cond_val = np.array(cond_val, dtype=np.double).reshape(-1)
-
-    @property
-    def cond_xyz(self):
-        """:class:`list`: The position coordinates of the conditions."""
-        return self._c_x, self._c_y, self._c_z
 
     @property
     def cond_pos(self):
