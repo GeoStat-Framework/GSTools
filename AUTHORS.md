@@ -13,3 +13,4 @@ and was created by following people.
 ## Contributors (in order of contributions)
 
 - Falk Heße, Email: <falk.hesse@ufz.de>
+- Bane Sullivan, GitHub: [@banesullivan](https://github.com/banesullivan)
