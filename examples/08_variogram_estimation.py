@@ -26,6 +26,7 @@ def download_herten():
 
 
 def download_scripts():
+    import fileinput
     # download a script for file conversion
     print("Downloading scripts")
     tools_filename = "scripts.zip"
@@ -34,8 +35,14 @@ def download_scripts():
     )
     urllib.request.urlretrieve(tool_url, tools_filename)
 
+    filename = os.path.join("tools", "vtk2gslib.py")
+
     with zipfile.ZipFile(tools_filename, "r") as zf:
-        zf.extract(os.path.join("tools", "vtk2gslib.py"))
+        zf.extract(filename)
+
+    with fileinput.FileInput(filename, inplace=True) as fin:
+        for line in fin:
+            print(line.replace('header=-1', 'header=None'), end='')
 
 
 def create_unstructured_grid(x_s, y_s):
