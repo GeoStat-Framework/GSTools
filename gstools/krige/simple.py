@@ -53,7 +53,9 @@ class Simple(Field):
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"
-        self._cond_pos, self._cond_val = set_condition(cond_pos, cond_val)
+        self._cond_pos, self._cond_val = set_condition(
+            cond_pos, cond_val, self.model.dim
+        )
 
         # initialize attributes
         self.set_condition = set_condition
@@ -82,9 +84,7 @@ class Simple(Field):
         # internal conversation
         x, y, z = pos2xyz(pos, dtype=np.double, max_dim=self.model.dim)
         c_x, c_y, c_z = pos2xyz(
-            self.cond_pos,
-            dtype=np.double,
-            max_dim=self.model.dim
+            self.cond_pos, dtype=np.double, max_dim=self.model.dim
         )
         self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type

@@ -15,9 +15,8 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 from gstools.tools.geometric import pos2xyz, xyz2pos
 
-__all__ = [
-    "set_condition"
-]
+__all__ = ["set_condition"]
+
 
 def set_condition(cond_pos, cond_val, max_dim=3):
     """Set the conditions for kriging.
@@ -30,15 +29,24 @@ def set_condition(cond_pos, cond_val, max_dim=3):
         the values of the conditions
     max_dim : :class:`int`, optional
         Cut of information above the given dimension. Default: 3
+    Returns
+    -------
+    cond_pos : :class:`list`
+        the error checked cond_pos
+    cond_val : :class:`numpy.ndarray`
+        the error checked cond_val
     """
-    if len(cond_pos[0]) != len(cond_val):
+    error = False
+    if max_dim > 1:
+        if len(cond_pos[0]) != len(cond_val):
+            error = True
+    else:
+        if len(cond_pos) != len(cond_val):
+            error = True
+    if error:
         raise ValueError(
-            "Please check your 'cond_pos' and 'cond_val' parameters. " +
-            "The shapes do not match (len(cond_pos[0]) != len(cond_val))."
+            "Please check your 'cond_pos' and 'cond_val' parameters. "
+            + "The shapes do not match."
         )
-    c_x, c_y, c_z = pos2xyz(
-        cond_pos, dtype=np.double, max_dim=max_dim
-    )
-    cond_pos = xyz2pos(c_x, c_y, c_z)
     cond_val = np.array(cond_val, dtype=np.double).reshape(-1)
     return cond_pos, cond_val
