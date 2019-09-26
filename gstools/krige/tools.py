@@ -29,6 +29,7 @@ def set_condition(cond_pos, cond_val, max_dim=3):
         the values of the conditions
     max_dim : :class:`int`, optional
         Cut of information above the given dimension. Default: 3
+
     Returns
     -------
     cond_pos : :class:`list`
@@ -38,7 +39,9 @@ def set_condition(cond_pos, cond_val, max_dim=3):
     """
     error = False
     if max_dim > 1:
-        if len(cond_pos[0]) != len(cond_val):
+        if not all(
+            [len(cond_pos[i]) == len(cond_val) for i in range(max_dim)]
+        ):
             error = True
     else:
         if len(cond_pos) != len(cond_val):
