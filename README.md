@@ -165,6 +165,43 @@ Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alph
 </p>
 
 
+## Kriging and Conditioned Random Fields
+
+An important part of geostatistics is Kriging and conditioning spatial random
+fields to measurements. With conditioned random fields, an ensemble of field realizations with their variability depending on the proximity of the measurements can be generated.
+
+### Example
+For better visualization, we will condition a 1d field to a few "measurements", generate 100 realizations and plot them:
+
+```python
+import numpy as np
+from gstools import Gaussian, SRF
+import matplotlib.pyplot as plt
+
+# conditions
+cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
+cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
+
+gridx = np.linspace(0.0, 15.0, 151)
+
+# spatial random field class
+model = Gaussian(dim=1, var=0.5, len_scale=2)
+srf = SRF(model)
+srf.set_condition(cond_pos, cond_val, "ordinary")
+
+# generate the ensemble of field realizations
+fields = []
+for i in range(100):
+    fields.append(srf(gridx, seed=i))
+    plt.plot(gridx, fields[i], color="k", alpha=0.1)
+plt.scatter(cond_pos, cond_val, color="k")
+plt.show()
+```
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/cond_ens.png" alt="Conditioned" width="600px"/>
+</p>
+
 ## User Defined Covariance Models
 
 One of the core-features of GSTools is the powerful
