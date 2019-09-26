@@ -50,9 +50,7 @@ class Ordinary(Field):
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"
-        self._cond_pos, self._cond_val = set_condition(
-            cond_pos, cond_val, self.model.dim
-        )
+        self._cond_pos, self._cond_val = self.set_condition(cond_pos, cond_val)
 
         # initialize attributes
         self.set_condition = set_condition
@@ -148,6 +146,25 @@ class Ordinary(Field):
         if add:
             return np.vstack((res, np.ones((1, res.shape[1]))))
         return res
+
+    def set_condition(self, cond_pos, cond_val):
+        """Set the conditions for kriging.
+
+        Parameters
+        ----------
+        cond_pos : :class:`list`
+            the position tuple of the conditions (x, [y, z])
+        cond_val : :class:`numpy.ndarray`
+            the values of the conditions
+
+        Returns
+        -------
+        cond_pos : :class:`list`
+            the error checked cond_pos
+        cond_val : :class:`numpy.ndarray`
+            the error checked cond_val
+        """
+        return set_condition(cond_pos, cond_val, self.model.dim)
 
     @property
     def cond_pos(self):
