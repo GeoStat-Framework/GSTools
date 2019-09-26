@@ -46,7 +46,7 @@ The estimated mean can be accessed by ``srf.mean``.
     import numpy as np
     from gstools import Gaussian, SRF
     import matplotlib.pyplot as plt
-    # condtions
+    # conditions
     cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
     cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
     gridx = np.linspace(0.0, 15.0, 151)
