@@ -32,7 +32,27 @@ class TestKrige(unittest.TestCase):
 
     def test_simple(self):
         for Model in self.cov_models:
-            for dim in self.dims:
+            model = Model(
+                dim=1,
+                var=0.5,
+                len_scale=2,
+                anis=[0.1, 1],
+                angles=[0.5, 0, 0],
+            )
+            simple = krige.Simple(
+                model, self.mean, self.cond_pos[0], self.cond_val
+            )
+            field_1, __ = simple.unstructured(self.pos[0])
+            field_2, __ = simple.structured(self.pos[0])
+            for i, val in enumerate(self.cond_val):
+                self.assertAlmostEqual(val, field_1[i], places=2)
+                self.assertAlmostEqual(val, field_2[(i,)], places=2)
+            self.assertAlmostEqual(self.mean, field_1[-1], places=2)
+            self.assertAlmostEqual(
+                self.mean, field_2[(-1,)], places=2
+            )
+
+            for dim in self.dims[1:]:
                 model = Model(
                     dim=dim,
                     var=0.5,
@@ -55,7 +75,23 @@ class TestKrige(unittest.TestCase):
 
     def test_ordinary(self):
         for Model in self.cov_models:
-            for dim in self.dims:
+            model = Model(
+                dim=1,
+                var=0.5,
+                len_scale=2,
+                anis=[0.1, 1],
+                angles=[0.5, 0, 0],
+            )
+            ordinary = krige.Ordinary(
+                model, self.cond_pos[0], self.cond_val
+            )
+            field_1, __ = ordinary.unstructured(self.pos[0])
+            field_2, __ = ordinary.structured(self.pos[0])
+            for i, val in enumerate(self.cond_val):
+                self.assertAlmostEqual(val, field_1[i], places=2)
+                self.assertAlmostEqual(val, field_2[(i,)], places=2)
+
+            for dim in self.dims[1:]:
                 model = Model(
                     dim=dim,
                     var=0.5,
