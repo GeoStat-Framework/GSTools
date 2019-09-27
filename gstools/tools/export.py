@@ -72,6 +72,12 @@ def to_vtk_structured(pos, fields):  # pragma: no cover
         Structured fields to be saved.
         Either a single numpy array as returned by SRF,
         or a dictionary of fields with theirs names as keys.
+
+    Returns
+    -------
+    pyvista.RectilinearGrid
+        A PyVista rectilinear grid of the structured field data. Data arrays
+        live on the point data of this PyVista dataset.
     """
     x, y, z, fields = _vtk_structured_helper(pos=pos, fields=fields)
     try:
@@ -137,6 +143,13 @@ def to_vtk_unstructured(pos, fields):  # pragma: no cover
         Unstructured fields to be saved.
         Either a single numpy array as returned by SRF,
         or a dictionary of fields with theirs names as keys.
+
+    Returns
+    -------
+    pyvista.UnstructuredGrid
+        A PyVista unstructured grid of the unstructured field data. Data arrays
+        live on the point data of this PyVista dataset. This is essentially
+        a point cloud with no topology.
     """
     x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
     try:
@@ -183,6 +196,14 @@ def to_vtk(pos, fields, mesh_type="unstructured"):  # pragma: no cover
         or a dictionary of fields with theirs names as keys.
     mesh_type : :class:`str`, optional
         'structured' / 'unstructured'. Default: structured
+
+    Returns
+    -------
+    pyvista.Common
+        This will return a PyVista object for the given field data in its
+        appropriate type. Structured meshes will return a
+        :class:`pyvista.RectilinearGrid` and unstructured meshes will return
+        an :class:`pyvista.UnstructuredGrid` object.
     """
     if mesh_type == "structured":
         grid = to_vtk_structured(pos=pos, fields=fields)

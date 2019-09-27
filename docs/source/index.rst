@@ -92,7 +92,7 @@ with a :any:`Gaussian` covariance model.
 A similar example but for a three dimensional field is exported to a
 `VTK <https://vtk.org/>`__ file, which can be visualized with
 `ParaView <https://www.paraview.org/>`_ or
-`PyVista <http://docs.pyvista.org>`__ in Python:
+`PyVista <https://docs.pyvista.org>`__ in Python:
 
 .. code-block:: python
 

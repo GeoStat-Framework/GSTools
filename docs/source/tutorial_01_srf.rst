@@ -205,7 +205,7 @@ Using the field from `previous example <Using an Unstructured Grid_>`__, it can 
 
     srf.vtk_export("field")
 
-Or it could visualized immediately in Python using `PyVista <http://docs.pyvista.org>`__:
+Or it could visualized immediately in Python using `PyVista <https://docs.pyvista.org>`__:
 
 .. code-block:: python
 

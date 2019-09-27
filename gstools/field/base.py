@@ -150,12 +150,17 @@ class Field(object):
     def _to_vtk_helper(
         self, filename=None, field_select="field", fieldname="field"
     ):  # pragma: no cover
-        """Create a VTK/PyVista grid of the stored field.
+        """Create a VTK/PyVista grid of the stored field or save a VTK dataset
+        to a file.
 
         This is an internal helper that will handle saving or creating objects
 
         Parameters
         ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtr or .vtu) will be added to the name. If ``None`` is
+            passed, a PyVista dataset of the appropriate type will be returned.
         field_select : :class:`str`, optional
             Field that should be stored. Can be:
             "field", "raw_field", "krige_field", "err_field" or "krige_var".
