@@ -27,6 +27,7 @@ def download_herten():
 
 def download_scripts():
     import fileinput
+
     # download a script for file conversion
     print("Downloading scripts")
     tools_filename = "scripts.zip"
@@ -42,7 +43,7 @@ def download_scripts():
 
     with fileinput.FileInput(filename, inplace=True) as fin:
         for line in fin:
-            print(line.replace('header=-1', 'header=None'), end='')
+            print(line.replace("header=-1", "header=None"), end="")
 
 
 def create_unstructured_grid(x_s, y_s):

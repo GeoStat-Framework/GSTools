@@ -27,12 +27,14 @@ try:
 except ImportError:
     pv = None
 
-__all__ = ["to_vtk_structured",
-           "vtk_export_structured",
-           "to_vtk_unstructured",
-           "vtk_export_unstructured",
-           "to_vtk",
-           "vtk_export"]
+__all__ = [
+    "to_vtk_structured",
+    "vtk_export_structured",
+    "to_vtk_unstructured",
+    "vtk_export_unstructured",
+    "to_vtk",
+    "vtk_export",
+]
 
 
 # export routines #############################################################
@@ -59,7 +61,6 @@ def _vtk_structured_helper(pos, fields):
     return x, y, z, fields
 
 
-
 def to_vtk_structured(pos, fields):  # pragma: no cover
     """Create a vtk structured rectilinear grid from a field.
 
@@ -82,6 +83,7 @@ def to_vtk_structured(pos, fields):  # pragma: no cover
     x, y, z, fields = _vtk_structured_helper(pos=pos, fields=fields)
     try:
         import pyvista as pv
+
         grid = pv.RectilinearGrid(x, y, z)
         grid.point_arrays.update(fields)
     except ImportError:
@@ -154,6 +156,7 @@ def to_vtk_unstructured(pos, fields):  # pragma: no cover
     x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
     try:
         import pyvista as pv
+
         grid = pv.PolyData(np.c_[x, y, z]).cast_to_unstructured_grid()
         grid.point_arrays.update(fields)
     except ImportError:
@@ -179,7 +182,6 @@ def vtk_export_unstructured(filename, pos, fields):  # pragma: no cover
     """
     x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
     return pointsToVTK(filename, x, y, z, data=fields)
-
 
 
 def to_vtk(pos, fields, mesh_type="unstructured"):  # pragma: no cover
@@ -235,4 +237,6 @@ def vtk_export(
     if mesh_type == "structured":
         return vtk_export_structured(filename=filename, pos=pos, fields=fields)
     else:
-        return vtk_export_unstructured(filename=filename, pos=pos, fields=fields)
+        return vtk_export_unstructured(
+            filename=filename, pos=pos, fields=fields
+        )

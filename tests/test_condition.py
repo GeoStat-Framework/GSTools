@@ -43,11 +43,7 @@ class TestCondition(unittest.TestCase):
     def test_simple(self):
         for Model in self.cov_models:
             model = Model(
-                dim=1,
-                var=0.5,
-                len_scale=2,
-                anis=[0.1, 1],
-                angles=[0.5, 0, 0],
+                dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
             srf = SRF(model, self.mean, seed=19970221)
             srf.set_condition(self.cond_pos[0], self.cond_val, "simple")
@@ -76,16 +72,10 @@ class TestCondition(unittest.TestCase):
     def test_ordinary(self):
         for Model in self.cov_models:
             model = Model(
-                dim=1,
-                var=0.5,
-                len_scale=2,
-                anis=[0.1, 1],
-                angles=[0.5, 0, 0],
+                dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
             srf = SRF(model, seed=19970221)
-            srf.set_condition(
-                self.cond_pos[0], self.cond_val, "ordinary"
-            )
+            srf.set_condition(self.cond_pos[0], self.cond_val, "ordinary")
             field_1 = srf.unstructured(self.pos[0])
             field_2 = srf.structured(self.pos[0])
             for i, val in enumerate(self.cond_val):

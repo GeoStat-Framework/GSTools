@@ -12,6 +12,7 @@ from gstools.random import MasterRNG
 HAS_PYVISTA = False
 try:
     import pyvista as pv
+
     HAS_PYVISTA = True
 except ImportError:
     pass
@@ -24,21 +25,21 @@ class TestKrige(unittest.TestCase):
         x = y = z = range(100)
         model = Gaussian(dim=3, var=0.6, len_scale=20)
         self.srf_structured = SRF(model)
-        self.srf_structured((x, y, z), mesh_type='structured')
+        self.srf_structured((x, y, z), mesh_type="structured")
         # unstrucutred field
         seed = MasterRNG(19970221)
         rng = np.random.RandomState(seed())
         x = rng.randint(0, 100, size=10000)
         y = rng.randint(0, 100, size=10000)
-        model = Exponential(dim=2, var=1, len_scale=[12., 3.], angles=np.pi/8.)
+        model = Exponential(
+            dim=2, var=1, len_scale=[12.0, 3.0], angles=np.pi / 8.0
+        )
         self.srf_unstructured = SRF(model, seed=20170519)
         self.srf_unstructured([x, y])
-
 
     def tearDown(self):
         # Remove the test data directory after the test
         shutil.rmtree(self.test_dir)
-
 
     @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed.")
     def test_pyvista(self):
@@ -46,7 +47,6 @@ class TestKrige(unittest.TestCase):
         self.assertIsInstance(mesh, pv.RectilinearGrid)
         mesh = self.srf_unstructured.to_pyvista()
         self.assertIsInstance(mesh, pv.UnstructuredGrid)
-
 
     def test_pyevtk_export(self):
         # Structured

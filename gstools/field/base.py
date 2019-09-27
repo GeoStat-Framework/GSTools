@@ -188,7 +188,9 @@ class Field(object):
                 if filename is None:
                     return to_vtk(self.pos, fields, self.mesh_type)
                 else:
-                    return vtk_export(filename, self.pos, fields, self.mesh_type)
+                    return vtk_export(
+                        filename, self.pos, fields, self.mesh_type
+                    )
         elif self.value_type == "scalar":
             if hasattr(self, field_select):
                 field = getattr(self, field_select)
@@ -200,16 +202,19 @@ class Field(object):
                 if filename is None:
                     return to_vtk(self.pos, {fieldname: field}, self.mesh_type)
                 else:
-                    return vtk_export(filename, self.pos, {fieldname: field}, self.mesh_type)
+                    return vtk_export(
+                        filename, self.pos, {fieldname: field}, self.mesh_type
+                    )
             else:
                 print(
-                    "Field.to_vtk: No " + field_select + " stored in the class."
+                    "Field.to_vtk: No "
+                    + field_select
+                    + " stored in the class."
                 )
         else:
             raise ValueError(
                 "Unknown field value type: {}".format(self.value_type)
             )
-
 
     def to_pyvista(
         self, field_select="field", fieldname="field"
@@ -225,10 +230,10 @@ class Field(object):
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        grid = self._to_vtk_helper(filename=None, field_select=field_select,
-                                   fieldname=fieldname)
+        grid = self._to_vtk_helper(
+            filename=None, field_select=field_select, fieldname=fieldname
+        )
         return grid
-
 
     def vtk_export(
         self, filename, field_select="field", fieldname="field"
@@ -249,10 +254,9 @@ class Field(object):
         """
         if not isinstance(filename, str):
             raise TypeError("Please use a string filename.")
-        return self._to_vtk_helper(filename=filename,
-                                   field_select=field_select,
-                                   fieldname=fieldname)
-
+        return self._to_vtk_helper(
+            filename=filename, field_select=field_select, fieldname=fieldname
+        )
 
     def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
         """

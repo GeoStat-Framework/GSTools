@@ -277,9 +277,7 @@ setup(
         "pyevtk",
         "six",
     ],
-    extras_require={
-        "plotting": ["pyvista", "matplotlib"],
-    },
+    extras_require={"plotting": ["pyvista", "matplotlib"]},
     packages=find_packages(exclude=["tests*", "docs*"]),
     ext_modules=EXT_MODULES,
     include_dirs=[numpy.get_include()],
