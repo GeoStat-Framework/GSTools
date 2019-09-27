@@ -37,19 +37,13 @@ def set_condition(cond_pos, cond_val, max_dim=3):
     cond_val : :class:`numpy.ndarray`
         the error checked cond_val
     """
-    error = False
-    if max_dim > 1:
-        if not all(
-            [len(cond_pos[i]) == len(cond_val) for i in range(max_dim)]
-        ):
-            error = True
-    else:
-        if len(cond_pos) != len(cond_val):
-            error = True
-    if error:
+    # convert the input for right shapes and dimension checks
+    c_x, c_y, c_z = pos2xyz(cond_pos, dtype=np.double, max_dim=max_dim)
+    cond_pos = xyz2pos(c_x, c_y, c_z)
+    cond_val = np.array(cond_val, dtype=np.double).reshape(-1)
+    if not all([len(cond_pos[i]) == len(cond_val) for i in range(max_dim)]):
         raise ValueError(
             "Please check your 'cond_pos' and 'cond_val' parameters. "
             + "The shapes do not match."
         )
-    cond_val = np.array(cond_val, dtype=np.double).reshape(-1)
     return cond_pos, cond_val

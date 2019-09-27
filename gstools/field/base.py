@@ -150,8 +150,7 @@ class Field(object):
     def _to_vtk_helper(
         self, filename=None, field_select="field", fieldname="field"
     ):  # pragma: no cover
-        """Create a VTK/PyVista grid of the stored field or save a VTK dataset
-        to a file.
+        """Create a VTK/PyVista grid of the field or save it as a VTK file.
 
         This is an internal helper that will handle saving or creating objects
 
