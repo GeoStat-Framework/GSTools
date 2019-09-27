@@ -75,7 +75,7 @@ def to_vtk_structured(pos, fields):  # pragma: no cover
 
     Returns
     -------
-    pyvista.RectilinearGrid
+    :class:`pyvista.RectilinearGrid`
         A PyVista rectilinear grid of the structured field data. Data arrays
         live on the point data of this PyVista dataset.
     """
@@ -146,7 +146,7 @@ def to_vtk_unstructured(pos, fields):  # pragma: no cover
 
     Returns
     -------
-    pyvista.UnstructuredGrid
+    :class:`pyvista.UnstructuredGrid`
         A PyVista unstructured grid of the unstructured field data. Data arrays
         live on the point data of this PyVista dataset. This is essentially
         a point cloud with no topology.
@@ -199,7 +199,7 @@ def to_vtk(pos, fields, mesh_type="unstructured"):  # pragma: no cover
 
     Returns
     -------
-    pyvista.Common
+    :class:`pyvista.RectilinearGrid` or :class:`pyvista.UnstructuredGrid`
         This will return a PyVista object for the given field data in its
         appropriate type. Structured meshes will return a
         :class:`pyvista.RectilinearGrid` and unstructured meshes will return
