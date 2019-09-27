@@ -213,6 +213,11 @@ class SRF(Field):
             Used kriging type for conditioning.
             Either 'ordinary' or 'simple'.
             Default: 'ordinary'
+
+        Notes
+        -----
+        When using "ordinary" as ``krige_type``, the ``mean`` attribute of the
+        spatial random field will be overwritten with the estimated mean.
         """
         if cond_pos is not None:
             self._cond_pos, self._cond_val = set_condition(

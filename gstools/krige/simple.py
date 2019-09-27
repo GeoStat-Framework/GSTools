@@ -142,12 +142,6 @@ class Simple(Field):
             the position tuple of the conditions (x, [y, z])
         cond_val : :class:`numpy.ndarray`
             the values of the conditions
-        Returns
-        -------
-        cond_pos : :class:`list`
-            the error checked cond_pos
-        cond_val : :class:`numpy.ndarray`
-            the error checked cond_val
         """
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.model.dim
