@@ -81,8 +81,11 @@ Routines to export fields to the vtk format
 .. currentmodule:: gstools.tools
 
 .. autosummary::
+   to_vtk
    vtk_export
+   to_vtk_structured
    vtk_export_structured
+   to_vtk_unstructured
    vtk_export_unstructured
 
 variogram estimation
@@ -149,7 +152,10 @@ __all__ += ["vario_estimate_structured", "vario_estimate_unstructured"]
 
 __all__ += [
     "SRF",
+    "to_vtk_structured",
     "vtk_export_structured",
+    "to_vtk_unstructured",
     "vtk_export_unstructured",
+    "to_vtk",
     "vtk_export",
 ]
