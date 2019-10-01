@@ -9,9 +9,7 @@ class Gau(CovModel):
 
 model = Gau(dim=2, var=2.0, len_scale=10)
 
-from gstools.covmodel.plot import plot_variogram
-
-plot_variogram(model)
+model.plot()
 
 print(model.dim, model.var, model.len_scale, model.nugget, model.sill)
 model.dim = 3
@@ -34,7 +32,6 @@ print(model.angles)
 
 model = Gau(dim=3, var=2.0, len_scale=10, nugget=0.5)
 print(model.variogram(10.0))
-print(model.variogram_normed(10.0))
 print(model.covariance(10.0))
 print(model.correlation(10.0))
 
@@ -79,9 +76,6 @@ model = Stab(dim=2)
 model.set_arg_bounds(alpha=[0, 3])
 results, pcov = model.fit_variogram(x, y, nugget=False)
 print(results)
-from matplotlib import pyplot as plt
 
-plt.cla()
-plt.scatter(x, y, color="k")
-plot_variogram(model)
-plt.show()
+ax = model.plot()
+ax.scatter(x, y, color="k")
