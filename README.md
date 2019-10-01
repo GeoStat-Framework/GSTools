@@ -41,7 +41,13 @@ To get the latest development version you can install it directly from GitHub:
     pip install https://github.com/GeoStat-Framework/GSTools/archive/master.zip
 
 To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
+To get all other dependencies, it is recommended to first install gstools once
+in the standard way just decribed.
 Then use the following command:
+
+    pip install --global-option="--openmp" gstools
+
+Or for the development version:
 
     pip install --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/master.zip
 

@@ -56,6 +56,23 @@ At the moment you can cite the Zenodo code publication of GSTools:
 
 A publication for the GeoStat-Framework is in preperation.
 
+Tutorials and Examples
+======================
+
+The documentation also includes some `tutorials <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html>`_,
+showing the most important use cases of GSTools, which are
+
+- `Random Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html>`_
+- `The Covariance Model <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html>`_
+- `Variogram Estimation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html>`_
+- `Random Vector Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html>`_
+- `Kriging <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html>`_
+- `Conditioned random field generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html>`_
+- `Field transformations <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html>`_
+
+Some more examples are provided in the examples folder.
+
+
 Spatial Random Field Generation
 ===============================
 
@@ -223,6 +240,49 @@ Which gives:
    :align: center
 
 
+Kriging and Conditioned Random Fields
+=====================================
+
+An important part of geostatistics is Kriging and conditioning spatial random
+fields to measurements. With conditioned random fields, an ensemble of field realizations
+with their variability depending on the proximity of the measurements can be generated.
+
+Example
+-------
+
+For better visualization, we will condition a 1d field to a few "measurements",
+generate 100 realizations and plot them:
+
+.. code-block:: python
+
+    import numpy as np
+    from gstools import Gaussian, SRF
+    import matplotlib.pyplot as plt
+
+    # conditions
+    cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
+    cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
+
+    gridx = np.linspace(0.0, 15.0, 151)
+
+    # spatial random field class
+    model = Gaussian(dim=1, var=0.5, len_scale=2)
+    srf = SRF(model)
+    srf.set_condition(cond_pos, cond_val, "ordinary")
+
+    # generate the ensemble of field realizations
+    fields = []
+    for i in range(100):
+        fields.append(srf(gridx, seed=i))
+        plt.plot(gridx, fields[i], color="k", alpha=0.1)
+    plt.scatter(cond_pos, cond_val, color="k")
+    plt.show()
+
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/cond_ens.png
+   :width: 600px
+   :align: center
+
+
 User defined covariance models
 ==============================
 
@@ -280,11 +340,12 @@ yielding
    :align: center
 
 
-VTK Export
-==========
+VTK/PyVista Export
+==================
 
 After you have created a field, you may want to save it to file, so we provide
-a handy `VTK <https://www.vtk.org/>`__ export routine:
+a handy `VTK <https://www.vtk.org/>`_ export routine using the :class:`.vtk_export()` or you could
+create a VTK/PyVista dataset for use in Python with to :class:`.to_pyvista()` method:
 
 .. code-block:: python
 
@@ -293,9 +354,12 @@ a handy `VTK <https://www.vtk.org/>`__ export routine:
     model = Gaussian(dim=2, var=1, len_scale=10)
     srf = SRF(model)
     srf((x, y), mesh_type='structured')
-    srf.vtk_export("field")
+    srf.vtk_export("field") # Saves to a VTK file
+    mesh = srf.to_pyvista() # Create a VTK/PyVista dataset in memory
+    mesh.plot()
 
-Which gives a RectilinearGrid VTK file ``field.vtr``.
+Which gives a RectilinearGrid VTK file :file:`field.vtr` or creates a PyVista mesh
+in memory for immediate 3D plotting in Python.
 
 
 Requirements
@@ -309,7 +373,7 @@ Requirements
 - `six <https://github.com/benjaminp/six>`_
 
 Optional
-~~~~~~~~
+--------
 
 - `matplotlib <https://matplotlib.org>`_
 - `pyvista <https://docs.pyvista.org>`_
