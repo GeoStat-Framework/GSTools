@@ -9,7 +9,6 @@ import unittest
 import numpy as np
 from gstools import Gaussian
 from gstools.field.generator import IncomprRandMeth
-import emcee as mc
 
 
 class TestIncomprRandMeth(unittest.TestCase):

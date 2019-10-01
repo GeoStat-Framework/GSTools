@@ -9,7 +9,6 @@ import unittest
 import numpy as np
 from gstools import Gaussian
 from gstools.field.generator import RandMeth
-import emcee as mc
 
 
 class TestRandMeth(unittest.TestCase):
