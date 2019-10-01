@@ -12,9 +12,6 @@ from gstools.field.generator import IncomprRandMeth
 import emcee as mc
 
 
-MC_VER = int(mc.__version__.split(".")[0])
-
-
 class TestIncomprRandMeth(unittest.TestCase):
     def setUp(self):
         self.cov_model_2d = Gaussian(
@@ -45,14 +42,9 @@ class TestIncomprRandMeth(unittest.TestCase):
 
     def test_unstruct_3d(self):
         modes = self.rm_3d(self.x_tuple, self.y_tuple, self.z_tuple)
-        if MC_VER < 3:
-            self.assertAlmostEqual(modes[0, 1], 1.69734094)
-            self.assertAlmostEqual(modes[1, 0], -0.10457179)
-            self.assertAlmostEqual(modes[1, 1], -0.43476757)
-        else:
-            self.assertAlmostEqual(modes[0, 0], 2.41526352)
-            self.assertAlmostEqual(modes[0, 1], 3.29398652)
-            self.assertAlmostEqual(modes[1, 0], -0.33790866)
+        self.assertAlmostEqual(modes[0, 0], 1.49469700)
+        self.assertAlmostEqual(modes[0, 1], 3.29398652)
+        self.assertAlmostEqual(modes[1, 0], -0.33790866)
 
     def test_struct_2d(self):
         modes = self.rm_2d(self.x_grid, self.y_grid, mesh_type="structured")
@@ -64,16 +56,10 @@ class TestIncomprRandMeth(unittest.TestCase):
         modes = self.rm_3d(
             self.x_grid, self.y_grid, self.z_grid, mesh_type="structured"
         )
-        if MC_VER < 3:
-            self.assertAlmostEqual(modes[0, 1, 0, 0], 1.69569140)
-            self.assertAlmostEqual(modes[0, 0, 1, 0], 1.04667503)
-            self.assertAlmostEqual(modes[0, 0, 0, 1], 1.19464729)
-            self.assertAlmostEqual(modes[1, 1, 1, 0], -0.36103764)
-        else:
-            self.assertAlmostEqual(modes[0, 0, 0, 0], 1.49469700)
-            self.assertAlmostEqual(modes[1, 0, 1, 1], 0.12813365)
-            self.assertAlmostEqual(modes[1, 1, 0, 1], 0.01443056)
-            self.assertAlmostEqual(modes[1, 1, 1, 1], -0.12304040)
+        self.assertAlmostEqual(modes[0, 0, 0, 0], 1.49469700)
+        self.assertAlmostEqual(modes[1, 0, 1, 1], 0.12813365)
+        self.assertAlmostEqual(modes[1, 1, 0, 1], 0.01443056)
+        self.assertAlmostEqual(modes[1, 1, 1, 1], -0.12304040)
 
     def test_struct_unstruct(self):
         x_grid = np.arange(0.0, 2.0, 1.0)

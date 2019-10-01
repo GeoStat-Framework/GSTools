@@ -3,7 +3,7 @@ cython>=0.28.3
 numpy>=1.14.5
 scipy>=1.1.0
 hankel>=0.3.6
-emcee
+emcee>=3.0.0
 pyevtk
 six
 numpydoc

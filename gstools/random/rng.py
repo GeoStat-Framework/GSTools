@@ -15,11 +15,10 @@ from __future__ import division, absolute_import, print_function
 import numpy as np
 import numpy.random as rand
 import emcee as mc
+from emcee.state import State
 from gstools.random.tools import MasterRNG, dist_gen
 
 __all__ = ["RNG"]
-
-MC_VER = int(mc.__version__.split(".")[0])
 
 
 class RNG(object):
@@ -88,39 +87,18 @@ class RNG(object):
         # initialize the sampler
         sampler = mc.EnsembleSampler(nwalkers, 1, ln_pdf)
         # burn in phase with saving of last position
-        ##################### mc 2 and 3 compatibility
-        if MC_VER < 3:  # pragma: no cover
-            burn_in_state, __, __ = sampler.run_mcmc(
-                pos0=init_guess, N=burn_in, rstate0=self.random.get_state()
-            )
-        else:  # pragma: no cover
-            from emcee.state import State
-
-            initial_state = State(init_guess, copy=True)
-            initial_state.random_state = self.random.get_state()
-            burn_in_state = sampler.run_mcmc(
-                initial_state=initial_state, nsteps=burn_in
-            )
-        ##################### mc 2 and 3 compatibility
+        initial_state = State(init_guess, copy=True)
+        initial_state.random_state = self.random.get_state()
+        burn_in_state = sampler.run_mcmc(
+            initial_state=initial_state, nsteps=burn_in
+        )
         # reset after burn_in
         sampler.reset()
         # actual sampling
-        ##################### mc 2 and 3 compatibility
-        if MC_VER < 3:  # pragma: no cover
-            sampler.run_mcmc(
-                pos0=burn_in_state,
-                N=sample_size,
-                rstate0=self.random.get_state(),
-            )
-            samples = sampler.flatchain[:, 0]
-        else:  # pragma: no cover
-            from emcee.state import State
-
-            initial_state = State(burn_in_state, copy=True)
-            initial_state.random_state = self.random.get_state()
-            sampler.run_mcmc(initial_state=initial_state, nsteps=sample_size)
-            samples = sampler.get_chain(flat=True)[:, 0]
-        ##################### mc 2 and 3 compatibility
+        initial_state = State(burn_in_state, copy=True)
+        initial_state.random_state = self.random.get_state()
+        sampler.run_mcmc(initial_state=initial_state, nsteps=sample_size)
+        samples = sampler.get_chain(flat=True)[:, 0]
 
         # choose samples according to size
         return self.random.choice(samples, size)

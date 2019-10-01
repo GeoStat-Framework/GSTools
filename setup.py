@@ -273,7 +273,7 @@ setup(
         "numpy>=1.14.5",
         "scipy>=1.1.0",
         "hankel>=0.3.6",
-        "emcee",  # 2 and 3 should be compatible
+        "emcee>=3.0.0",
         "pyevtk",
         "six",
     ],

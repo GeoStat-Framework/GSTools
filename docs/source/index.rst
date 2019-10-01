@@ -368,7 +368,7 @@ Requirements
 - `Numpy >= 1.14.5 <http://www.numpy.org>`_
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
 - `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
-- `emcee <https://github.com/dfm/emcee>`_
+- `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
 - `six <https://github.com/benjaminp/six>`_
 

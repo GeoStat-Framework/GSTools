@@ -294,7 +294,7 @@ in memory for immediate 3D plotting in Python.
 - [NumPy >= 1.14.5](https://www.numpy.org)
 - [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
 - [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
-- [emcee](https://github.com/dfm/emcee)
+- [emcee >= 3.0.0](https://github.com/dfm/emcee)
 - [pyevtk](https://bitbucket.org/pauloh/pyevtk)
 - [six](https://github.com/benjaminp/six)
 
