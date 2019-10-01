@@ -64,11 +64,10 @@ class Gaussian(CovModel):
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
 
-    def spectrum(self, k):  # noqa: D102
+    def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (
-            self.var
-            * (self.len_scale / np.pi) ** self.dim
+            (self.len_scale / np.pi) ** self.dim
             * np.exp(-(k * self.len_scale) ** 2 / np.pi)
         )
 
@@ -137,11 +136,10 @@ class Exponential(CovModel):
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-1 * r / self.len_scale)
 
-    def spectrum(self, k):  # noqa: D102
+    def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (
-            self.var
-            * self.len_scale ** self.dim
+            self.len_scale ** self.dim
             * sps.gamma((self.dim + 1) / 2)
             / (np.pi * (1.0 + (k * self.len_scale) ** 2))
             ** ((self.dim + 1) / 2)
@@ -423,13 +421,12 @@ class Matern(CovModel):
         res = np.maximum(res, 0.0)
         return res
 
-    def spectrum(self, k):  # noqa: D102
+    def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
             return (
-                self.var
-                * (self.len_scale / np.sqrt(np.pi)) ** self.dim
+                (self.len_scale / np.sqrt(np.pi)) ** self.dim
                 * np.exp(-(k * self.len_scale) ** 2)
                 * (
                     1
@@ -441,8 +438,7 @@ class Matern(CovModel):
                 )
             )
         return (
-            self.var
-            * (self.len_scale / np.sqrt(np.pi)) ** self.dim
+            (self.len_scale / np.sqrt(np.pi)) ** self.dim
             * np.exp(
                 -(self.nu + self.dim / 2.0)
                 * np.log(1.0 + (k * self.len_scale) ** 2 / self.nu)
@@ -686,7 +682,7 @@ class Intersection(CovModel):
             )
         return res
 
-    def spectrum(self, k):  # noqa: D102
+    def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         res = np.empty_like(k)
         kl = k * self.len_scale
@@ -710,4 +706,4 @@ class Intersection(CovModel):
             res[np.logical_not(kl_gz)] = (
                 self.len_scale ** 3 / 48.0 / np.pi ** 2
             )
-        return res * self.var
+        return res
