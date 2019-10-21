@@ -58,7 +58,7 @@ If something went wrong during installation, try the [``-I`` flag from pip][pipi
 
 At the moment you can cite the Zenodo code publication of GSTools:
 
-> *Sebastian Müller, & Lennart Schüler. (2019, January 18). GeoStat-Framework/GSTools: Bouncy Blue (Version v1.0.1). Zenodo. http://doi.org/10.5281/zenodo.2543658*
+> Sebastian Müller, & Lennart Schüler. (2019, October 1). GeoStat-Framework/GSTools: Reverberating Red (Version v1.1.0). Zenodo. http://doi.org/10.5281/zenodo.3468230
 
 A publication for the GeoStat-Framework is in preperation.
 
