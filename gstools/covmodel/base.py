@@ -483,7 +483,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         """Provide default boundaries for optional arguments."""
         res = {}
         for opt in self.opt_arg:
-            res[opt] = [0.0, 1000.0]
+            res[opt] = [-np.inf, np.inf]
         return res
 
     def check_opt_arg(self):
@@ -761,9 +761,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         Given as a dictionary.
         """
         res = {
-            "var": (0.0, 100.0, "oc"),
-            "len_scale": (0.0, 1000.0, "oo"),
-            "nugget": (0.0, 100.0, "cc"),
+            "var": (0.0, np.inf, "oo"),
+            "len_scale": (0.0, np.inf, "oo"),
+            "nugget": (0.0, np.inf, "co"),
         }
         return res
 

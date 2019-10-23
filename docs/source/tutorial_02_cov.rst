@@ -435,10 +435,10 @@ Which gives:
 As you can see, we have to provide boundaries for the parameters.
 As a default, the following bounds are set:
 
-- additional parameters: ``[0.0, 1000.0]``
-- variance: ``[0.0, 100.0]``
-- len_scale: ``[0.0, 1000.0]``
-- nugget: ``[0.0, 100.0]``
+- additional parameters: ``[-np.inf, np.inf]``
+- variance: ``[0.0, np.inf]``
+- len_scale: ``[0.0, np.inf]``
+- nugget: ``[0.0, np.inf]``
 
 Also, you can deselect parameters from fitting, so their predefined values
 will be kept. In our case, we fixed a ``nugget`` of ``0.0``, which was set
