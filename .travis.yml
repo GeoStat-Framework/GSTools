@@ -55,18 +55,6 @@ matrix:
         - CIBW_BUILD="cp37-*"
         - COVER="off"
 
-    # https://docs.travis-ci.com/user/languages/python/#python-37-and-higher
-    - name: "Linux py38"
-      sudo: required
-      language: python
-      python: 3.8
-      dist: xenial
-      services: docker
-      env:
-        - PIP=pip
-        - CIBW_BUILD="cp38-*"
-        - COVER="off"
-
     - name: "MacOS py27"
       os: osx
       language: generic
@@ -105,14 +93,6 @@ matrix:
       env:
         - PIP=pip2
         - CIBW_BUILD="cp37-*"
-        - COVER="off"
-
-    - name: "MacOS py38"
-      os: osx
-      language: generic
-      env:
-        - PIP=pip2
-        - CIBW_BUILD="cp38-*"
         - COVER="off"
 
 env:
