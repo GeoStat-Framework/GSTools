@@ -18,19 +18,19 @@ except ImportError:
     pass
 
 
-class TestKrige(unittest.TestCase):
+class TestExport(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
         # structured field with a size 100x100x100 and a grid-size of 1x1x1
-        x = y = z = range(100)
+        x = y = z = range(50)
         model = Gaussian(dim=3, var=0.6, len_scale=20)
         self.srf_structured = SRF(model)
         self.srf_structured((x, y, z), mesh_type="structured")
         # unstrucutred field
         seed = MasterRNG(19970221)
         rng = np.random.RandomState(seed())
-        x = rng.randint(0, 100, size=10000)
-        y = rng.randint(0, 100, size=10000)
+        x = rng.randint(0, 100, size=1000)
+        y = rng.randint(0, 100, size=1000)
         model = Exponential(
             dim=2, var=1, len_scale=[12.0, 3.0], angles=np.pi / 8.0
         )
