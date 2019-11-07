@@ -162,11 +162,8 @@ if USE_OPENMP:
     else:
         print("## GSTOOLS setup: OpenMP not found.")
 else:
-    CAN_USE_OPENMP = False
     print("## GSTOOLS setup: OpenMP not wanted by the user.")
     FLAGS = []
-
-USE_OPENMP = USE_OPENMP and CAN_USE_OPENMP
 
 
 # add the "--openmp" to the global options
@@ -184,40 +181,37 @@ class MPDistribution(Distribution):
 # cython extensions ###########################################################
 
 
-EXT_MODULES = []
-
-EXTRA_COMPILE_ARGS = FLAGS
-EXTRA_LINK_ARGS = FLAGS
-
-SUMMATOR_EXT = Extension(
-    "gstools.field.summator",
-    [os.path.join("gstools", "field", "summator.pyx")],
-    include_dirs=[numpy.get_include()],
-    extra_compile_args=EXTRA_COMPILE_ARGS,
-    extra_link_args=EXTRA_LINK_ARGS,
+CY_MODULES = []
+CY_MODULES.append(
+    Extension(
+        "gstools.field.summator",
+        [os.path.join("gstools", "field", "summator.pyx")],
+        include_dirs=[numpy.get_include()],
+        extra_compile_args=FLAGS,
+        extra_link_args=FLAGS,
+    )
 )
-VARIOGRAM_EXT = Extension(
-    "gstools.variogram.estimator",
-    [os.path.join("gstools", "variogram", "estimator.pyx")],
-    include_dirs=[numpy.get_include()],
-    extra_compile_args=EXTRA_COMPILE_ARGS,
-    extra_link_args=EXTRA_LINK_ARGS,
+CY_MODULES.append(
+    Extension(
+        "gstools.variogram.estimator",
+        [os.path.join("gstools", "variogram", "estimator.pyx")],
+        include_dirs=[numpy.get_include()],
+        extra_compile_args=FLAGS,
+        extra_link_args=FLAGS,
+    )
 )
-
-KRIGESUM_EXT = Extension(
-    "gstools.krige.krigesum",
-    [os.path.join("gstools", "krige", "krigesum.pyx")],
-    include_dirs=[numpy.get_include()],
-    extra_compile_args=EXTRA_COMPILE_ARGS,
-    extra_link_args=EXTRA_LINK_ARGS,
+CY_MODULES.append(
+    Extension(
+        "gstools.krige.krigesum",
+        [os.path.join("gstools", "krige", "krigesum.pyx")],
+        include_dirs=[numpy.get_include()],
+        extra_compile_args=FLAGS,
+        extra_link_args=FLAGS,
+    )
 )
+EXT_MODULES = cythonize(CY_MODULES)  # annotate=True
 
-EXT_MODULES += cythonize(
-    [VARIOGRAM_EXT, SUMMATOR_EXT, KRIGESUM_EXT],
-    # annotate=True
-)
-
-# This is the important part. By setting this compiler directive, cython will
+# This is an important part. By setting this compiler directive, cython will
 # embed signature information in docstrings. Sphinx then knows how to extract
 # and use those signatures.
 # python setup.py build_ext --inplace --> then sphinx build
@@ -231,7 +225,7 @@ for ext_m in EXT_MODULES:
 # version import not possible due to cython
 # see: https://packaging.python.org/guides/single-sourcing-package-version/
 VERSION = find_version("gstools", "_version.py")
-DOCLINES = __doc__.split("\n")
+DOCLINE = __doc__.split("\n")[0]
 README = read("README.md")
 
 CLASSIFIERS = [
@@ -254,7 +248,7 @@ setup(
     version=VERSION,
     maintainer="Lennart Schueler, Sebastian Mueller",
     maintainer_email="info@geostat-framework.org",
-    description=DOCLINES[0],
+    description=DOCLINE,
     long_description=README,
     long_description_content_type="text/markdown",
     author="Lennart Schueler, Sebastian Mueller",
@@ -265,7 +259,7 @@ setup(
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
     setup_requires=[
-        "numpy>=1.14.5",  # numpy imported in setup.py
+        "numpy>=1.14.5",
         "cython>=0.28.3",
         "setuptools>=41.0.1",
     ],
