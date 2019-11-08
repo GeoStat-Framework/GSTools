@@ -10,6 +10,17 @@ All notable changes to **GSTools** will be documented in this file.
 ### Changes
 
 ### Bugfixes
+
+
+## [1.1.1] - Reverberating Red - 2019-11-08
+
+### Enhancements
+- added a changelog. See: https://github.com/GeoStat-Framework/GSTools/commit/fbea88300d0862393e52f4b7c3d2b15c2039498b
+
+### Changes
+- deprecation warnings are now printed if Python versions 2.7 or 3.4 are used #40 #41
+
+### Bugfixes
 - define spectral_density instead of spectrum in covariance models since Cov-base derives spectrum. See: https://github.com/GeoStat-Framework/GSTools/commit/00f2747fd0503ff8806f2eebfba36acff813416b
 - better boundaries for CovModel parameters. See: https://github.com/GeoStat-Framework/GSTools/issues/37
 
@@ -86,7 +97,8 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/GeoStat-Framework/gstools/compare/0.4.0...v1.0.0
