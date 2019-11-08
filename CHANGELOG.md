@@ -4,7 +4,6 @@ All notable changes to **GSTools** will be documented in this file.
 
 
 ## [Unreleased]
-**Reverberating Red**
 
 ### Enhancements
 
@@ -15,8 +14,7 @@ All notable changes to **GSTools** will be documented in this file.
 - better boundaries for CovModel parameters. See: https://github.com/GeoStat-Framework/GSTools/issues/37
 
 
-## [1.1.0] - 2019-10-01
-**Reverberating Red**
+## [1.1.0] - Reverberating Red - 2019-10-01
 
 ### Enhancements
 - by using Cython for all the heavy computations, we could achieve quite some speed ups and reduce the memory consumption significantly #16
@@ -44,15 +42,13 @@ All notable changes to **GSTools** will be documented in this file.
 - several minor bugfixes
 
 
-## [1.0.1] - 2019-01-18
-**Bouncy Blue**
+## [1.0.1] - Bouncy Blue - 2019-01-18
 
 ### Bugfixes
 - fixed Numpy and Cython version during build process
 
 
-## [1.0.0] - 2019-01-16
-**Bouncy Blue**
+## [1.0.0] - Bouncy Blue - 2019-01-16
 
 ### Enhancements
 - added a new covariance class, which allows the easy usage of arbitrary covariance models
@@ -79,15 +75,13 @@ All notable changes to **GSTools** will be documented in this file.
 - several minor bugfixes
 
 
-## [0.4.0] - 2018-07-17
-**Glorious Green**
+## [0.4.0] - Glorious Green - 2018-07-17
 
 ### Bugfixes
 - import of cython functions put into a try-block
 
 
-## [0.3.6] - 2018-07-17
-**Original Orange**
+## [0.3.6] - Original Orange - 2018-07-17
 
 First release of GSTools.
 
