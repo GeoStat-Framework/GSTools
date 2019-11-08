@@ -66,9 +66,8 @@ class Gaussian(CovModel):
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
-        return (
-            (self.len_scale / np.pi) ** self.dim
-            * np.exp(-(k * self.len_scale) ** 2 / np.pi)
+        return (self.len_scale / np.pi) ** self.dim * np.exp(
+            -(k * self.len_scale) ** 2 / np.pi
         )
 
     def spectral_rad_cdf(self, r):
@@ -437,15 +436,12 @@ class Matern(CovModel):
                     / self.nu
                 )
             )
-        return (
-            (self.len_scale / np.sqrt(np.pi)) ** self.dim
-            * np.exp(
-                -(self.nu + self.dim / 2.0)
-                * np.log(1.0 + (k * self.len_scale) ** 2 / self.nu)
-                + sps.loggamma(self.nu + self.dim / 2.0)
-                - sps.loggamma(self.nu)
-                - self.dim * np.log(np.sqrt(self.nu))
-            )
+        return (self.len_scale / np.sqrt(np.pi)) ** self.dim * np.exp(
+            -(self.nu + self.dim / 2.0)
+            * np.log(1.0 + (k * self.len_scale) ** 2 / self.nu)
+            + sps.loggamma(self.nu + self.dim / 2.0)
+            - sps.loggamma(self.nu)
+            - self.dim * np.log(np.sqrt(self.nu))
         )
 
     def calc_integral_scale(self):  # noqa: D102
