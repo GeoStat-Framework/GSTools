@@ -38,7 +38,7 @@ Install GSTools by typing the following into the command prompt:
 
 To get the latest development version you can install it directly from GitHub:
 
-    pip install https://github.com/GeoStat-Framework/GSTools/archive/master.zip
+    pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
 
 To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
 To get all other dependencies, it is recommended to first install gstools once
@@ -49,7 +49,7 @@ Then use the following command:
 
 Or for the development version:
 
-    pip install --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/master.zip
+    pip install --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
 
 If something went wrong during installation, try the [``-I`` flag from pip][pipiflag].
 
