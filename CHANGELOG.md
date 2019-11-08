@@ -9,6 +9,8 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 
+- deprecation warnings are now printed if Python versions 2.7 or 3.4 are used #40
+
 ### Bugfixes
 - define spectral_density instead of spectrum in covariance models since Cov-base derives spectrum. See: https://github.com/GeoStat-Framework/GSTools/commit/00f2747fd0503ff8806f2eebfba36acff813416b
 - better boundaries for CovModel parameters. See: https://github.com/GeoStat-Framework/GSTools/issues/37
