@@ -1,9 +1,4 @@
-#required for readthedocs.org
-cython>=0.28.3
-numpy>=1.14.5
-scipy>=1.1.0
-hankel>=0.3.6
-emcee>=3.0.0
-pyevtk
-six
+# required for readthedocs.org
 numpydoc
+# https://stackoverflow.com/a/11704396/6696397
+-r ../requirements.txt
