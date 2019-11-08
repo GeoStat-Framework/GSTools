@@ -9,8 +9,6 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 
-- deprecation warnings are now printed if Python versions 2.7 or 3.4 are used #40 #41
-
 ### Bugfixes
 
 
