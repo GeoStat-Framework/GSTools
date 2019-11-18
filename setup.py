@@ -258,6 +258,7 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
     setup_requires=["numpy>=1.14.5", "cython>=0.28.3", "setuptools>=41.0.1"],
     install_requires=[
         "numpy>=1.14.5",
