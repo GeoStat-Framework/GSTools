@@ -8,6 +8,7 @@ All notable changes to **GSTools** will be documented in this file.
 ### Enhancements
 
 ### Changes
+- Python versions 2.7 and 3.4 are no longer supported #40 #43
 
 ### Bugfixes
 
