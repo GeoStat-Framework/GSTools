@@ -107,7 +107,7 @@ class DistPdf(rv_continuous):
 
     def __init__(self, pdf_in, **kwargs):
         self.pdf_in = pdf_in
-        super(DistPdf, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _pdf(self, x, *args):
         return self.pdf_in(x)
@@ -118,7 +118,7 @@ class DistCdf(rv_continuous):
 
     def __init__(self, cdf_in, **kwargs):
         self.cdf_in = cdf_in
-        super(DistCdf, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _cdf(self, x, *args):
         return self.cdf_in(x)
@@ -130,7 +130,7 @@ class DistPdfCdf(rv_continuous):
     def __init__(self, pdf_in, cdf_in, **kwargs):
         self.pdf_in = pdf_in
         self.cdf_in = cdf_in
-        super(DistPdfCdf, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _pdf(self, x, *args):
         return self.pdf_in(x)
@@ -145,7 +145,7 @@ class DistPdfPpf(rv_continuous):
     def __init__(self, pdf_in, ppf_in, **kwargs):
         self.pdf_in = pdf_in
         self.ppf_in = ppf_in
-        super(DistPdfPpf, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _pdf(self, x, *args):
         return self.pdf_in(x)
@@ -160,7 +160,7 @@ class DistCdfPpf(rv_continuous):
     def __init__(self, cdf_in, ppf_in, **kwargs):
         self.cdf_in = cdf_in
         self.ppf_in = ppf_in
-        super(DistCdfPpf, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _cdf(self, x, *args):
         return self.cdf_in(x)
@@ -176,7 +176,7 @@ class DistPdfCdfPpf(rv_continuous):
         self.pdf_in = pdf_in
         self.cdf_in = cdf_in
         self.ppf_in = ppf_in
-        super(DistPdfCdfPpf, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _pdf(self, x, *args):
         return self.pdf_in(x)

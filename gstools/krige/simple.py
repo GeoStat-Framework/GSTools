@@ -47,7 +47,7 @@ class Simple(Field):
     """
 
     def __init__(self, model, mean, cond_pos, cond_val):
-        super(Simple, self).__init__(model, mean)
+        super().__init__(model, mean)
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"
