@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-from __future__ import division, absolute_import, print_function
 import sys, os, codecs, re, tempfile, glob, subprocess, shutil
 
 from distutils.errors import CompileError, LinkError
@@ -237,7 +236,6 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "Operating System :: Unix",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
@@ -258,7 +256,7 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
-    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*",
+    python_requires=">=3.5",
     setup_requires=["numpy>=1.14.5", "cython>=0.28.3", "setuptools>=41.0.1"],
     install_requires=[
         "numpy>=1.14.5",
