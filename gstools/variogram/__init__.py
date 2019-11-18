@@ -13,7 +13,6 @@ Variogram estimation
 
 ----
 """
-from __future__ import absolute_import
 
 from gstools.variogram.variogram import (
     vario_estimate_structured,

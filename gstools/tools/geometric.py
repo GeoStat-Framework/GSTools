@@ -14,7 +14,6 @@ The following functions are provided
    xyz2pos
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 

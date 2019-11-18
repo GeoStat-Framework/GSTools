@@ -11,7 +11,6 @@ The following classes and functions are provided
    plot_vec_field
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 import numpy as np
 from scipy import interpolate as inter
 import matplotlib.pyplot as plt

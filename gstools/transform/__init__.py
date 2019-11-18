@@ -19,7 +19,6 @@ Field-Transformations
 
 ----
 """
-from __future__ import absolute_import
 
 from gstools.transform.field import (
     binary,

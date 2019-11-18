@@ -10,7 +10,6 @@ The following classes are provided
    MasterRNG
    dist_gen
 """
-from __future__ import division, absolute_import, print_function
 
 from scipy.stats import rv_continuous
 import numpy.random as rand

@@ -16,7 +16,6 @@ The following classes and functions are provided
    inc_beta
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from scipy import special as sps

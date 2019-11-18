@@ -18,7 +18,6 @@ The following classes and functions are provided
    plot_spectral_rad_pdf
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 import numpy as np
 
 import gstools

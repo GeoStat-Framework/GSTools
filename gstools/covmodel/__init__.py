@@ -48,7 +48,6 @@ Truncated Power Law Covariance Models
    TPLExponential
    TPLStable
 """
-from __future__ import absolute_import
 
 from gstools.covmodel.base import CovModel
 from gstools.covmodel.models import (

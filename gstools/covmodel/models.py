@@ -18,7 +18,6 @@ The following classes and functions are provided
    Intersection
 """
 # pylint: disable=C0103, E1101, E1137
-from __future__ import print_function, division, absolute_import
 
 import warnings
 import numpy as np

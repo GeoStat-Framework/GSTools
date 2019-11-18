@@ -36,7 +36,6 @@ Geometric
 
 ----
 """
-from __future__ import absolute_import
 
 from gstools.tools.export import (
     vtk_export_structured,

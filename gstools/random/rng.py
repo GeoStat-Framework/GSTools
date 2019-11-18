@@ -10,7 +10,6 @@ The following classes are provided
    RNG
 """
 # pylint: disable=no-member
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import numpy.random as rand

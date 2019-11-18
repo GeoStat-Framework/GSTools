@@ -2,7 +2,6 @@
 """
 This is the unittest of the RandMeth class.
 """
-from __future__ import division, absolute_import, print_function
 
 import copy
 import unittest

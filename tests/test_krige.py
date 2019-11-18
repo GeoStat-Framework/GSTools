@@ -2,7 +2,6 @@
 """
 This is the unittest of CovModel class.
 """
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import unittest

@@ -10,7 +10,6 @@ The following classes are provided
    CovModel
 """
 # pylint: disable=C0103, R0201
-from __future__ import print_function, division, absolute_import
 
 import six
 import numpy as np

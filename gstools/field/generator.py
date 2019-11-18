@@ -11,7 +11,6 @@ The following classes are provided
    IncomprRandMeth
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 from copy import deepcopy as dcp
 import numpy as np

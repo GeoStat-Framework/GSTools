@@ -11,7 +11,6 @@ The following functions are provided
    vario_estimate_structured
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 

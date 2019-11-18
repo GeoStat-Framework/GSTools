@@ -10,8 +10,6 @@ The following classes are provided
    Simple
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
-
 
 import numpy as np
 from scipy.linalg import inv

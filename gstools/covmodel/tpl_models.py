@@ -12,7 +12,6 @@ The following classes and functions are provided
    TPLStable
 """
 # pylint: disable=C0103, E1101
-from __future__ import print_function, division, absolute_import
 
 import warnings
 import numpy as np
