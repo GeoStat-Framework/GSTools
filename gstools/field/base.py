@@ -22,7 +22,7 @@ from gstools.field.tools import _get_select
 __all__ = ["Field"]
 
 
-class Field(object):
+class Field:
     """A field base class for random and kriging fields ect.
 
     Parameters

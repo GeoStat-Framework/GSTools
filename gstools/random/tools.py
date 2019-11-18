@@ -17,7 +17,7 @@ import numpy.random as rand
 __all__ = ["MasterRNG", "dist_gen"]
 
 
-class MasterRNG(object):
+class MasterRNG:
     """Master random number generator for generating seeds.
 
     Parameters

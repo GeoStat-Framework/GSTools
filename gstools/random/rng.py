@@ -20,7 +20,7 @@ from gstools.random.tools import MasterRNG, dist_gen
 __all__ = ["RNG"]
 
 
-class RNG(object):
+class RNG:
     """
     A random number generator for different distributions and multiple streams.
 

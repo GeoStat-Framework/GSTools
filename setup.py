@@ -40,8 +40,7 @@ def find_version(*file_paths):
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
 
 
-# TemporaryDirectory not avialable in python2
-class _TemporaryDirectory(object):
+class _TemporaryDirectory:
     def __enter__(self):
         self.dir_name = tempfile.mkdtemp()
         return self.dir_name

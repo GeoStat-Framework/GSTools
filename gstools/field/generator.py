@@ -26,7 +26,7 @@ from gstools.field.summator import (
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
 
-class RandMeth(object):
+class RandMeth:
     r"""Randomization method for calculating isotropic spatial random fields.
 
     Parameters
