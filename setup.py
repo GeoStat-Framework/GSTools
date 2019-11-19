@@ -40,19 +40,6 @@ def find_version(*file_paths):
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
 
 
-class _TemporaryDirectory:
-    def __enter__(self):
-        self.dir_name = tempfile.mkdtemp()
-        return self.dir_name
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        shutil.rmtree(self.dir_name)
-
-
-TemporaryDirectory = getattr(
-    tempfile, "TemporaryDirectory", _TemporaryDirectory
-)
-
 CCODE = """
 #include <omp.h>
 #include <stdio.h>
@@ -99,7 +86,7 @@ def check_openmp_support():
     ccompiler = new_compiler()
     customize_compiler(ccompiler)
 
-    with TemporaryDirectory() as tmp_dir:
+    with tempfile.TemporaryDirectory() as tmp_dir:
         try:
             os.chdir(tmp_dir)
             # Write test program
