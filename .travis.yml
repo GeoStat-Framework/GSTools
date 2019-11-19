@@ -2,136 +2,107 @@ language: python
 
 matrix:
   include:
-    - name: "Linux py27"
+    - name: "sdist and coverage"
       sudo: required
       language: python
-      python: 2.7
+      python: 3.6
       services: docker
-      env:
-        - PIP=pip
-        - CIBW_BUILD="cp27-*"
-        - COVER="off"
-
-    - name: "Linux py34"
-      sudo: required
-      language: python
-      python: 3.4
-      services: docker
-      env:
-        - PIP=pip
-        - CIBW_BUILD="cp34-*"
-        - COVER="off"
+      script:
+        - python -m pip install -U setuptools pytest-cov coveralls
+        - python -m pip install -U numpy==1.17.3 cython==0.29.14
+        - python -m pip install -r requirements.txt
+        - python setup.py sdist -d dist
+        - python setup.py build_ext --inplace
+        - python -m pytest --cov gstools --cov-report term-missing -v tests/
+        - python -m coveralls
 
     - name: "Linux py35"
       sudo: required
       language: python
-      python: 3.5
+      python: 3.6
       services: docker
-      env:
-        - PIP=pip
-        - CIBW_BUILD="cp35-*"
-        - COVER="off"
-
-    # py36 for coverage and sdist
+      env: CIBW_BUILD="cp35-*"
     - name: "Linux py36"
       sudo: required
       language: python
       python: 3.6
       services: docker
-      env:
-        - PIP=pip
-        - CIBW_BUILD="cp36-*"
-        - COVER="on"
-
-    # https://github.com/travis-ci/travis-ci/issues/9815
+      env: CIBW_BUILD="cp36-*"
     - name: "Linux py37"
       sudo: required
       language: python
-      python: 3.7
-      dist: xenial
+      python: 3.6
       services: docker
-      env:
-        - PIP=pip
-        - CIBW_BUILD="cp37-*"
-        - COVER="off"
-
-    - name: "MacOS py27"
-      os: osx
-      language: generic
-      env:
-        - PIP=pip2
-        - CIBW_BUILD="cp27-*"
-        - COVER="off"
-
-    - name: "MacOS py34"
-      os: osx
-      language: generic
-      env:
-        - PIP=pip2
-        - CIBW_BUILD="cp34-*"
-        - COVER="off"
+      env: CIBW_BUILD="cp37-*"
+    - name: "Linux py38"
+      sudo: required
+      language: python
+      python: 3.6
+      services: docker
+      env: CIBW_BUILD="cp38-*"
 
     - name: "MacOS py35"
       os: osx
       language: generic
-      env:
-        - PIP=pip2
-        - CIBW_BUILD="cp35-*"
-        - COVER="off"
-
+      env: CIBW_BUILD="cp35-*"
     - name: "MacOS py36"
       os: osx
       language: generic
-      env:
-        - PIP=pip2
-        - CIBW_BUILD="cp36-*"
-        - COVER="off"
-
+      env: CIBW_BUILD="cp36-*"
     - name: "MacOS py37"
       os: osx
       language: generic
+      env: CIBW_BUILD="cp37-*"
+    - name: "MacOS py38"
+      os: osx
+      language: generic
+      env: CIBW_BUILD="cp38-*"
+
+    - name: "Win py35"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.6.8 --no-progress -y
       env:
-        - PIP=pip2
+        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
+        - CIBW_BUILD="cp35-*"
+    - name: "Win py36"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.6.8 --no-progress -y
+      env:
+        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
+        - CIBW_BUILD="cp36-*"
+    - name: "Win py37"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.6.8 --no-progress -y
+      env:
+        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
         - CIBW_BUILD="cp37-*"
-        - COVER="off"
+    - name: "Win py38"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.6.8 --no-progress -y
+      env:
+        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
+        - CIBW_BUILD="cp38-*"
 
 env:
   global:
     - TWINE_USERNAME=geostatframework
-    - CIBW_BEFORE_BUILD="pip install numpy==1.14.5 cython==0.28.3"
-    - CIBW_TEST_REQUIRES=pytest-cov
-    # inplace cython build and test run
-    - CIBW_TEST_COMMAND="cd {project} && python setup.py build_ext --inplace && py.test --cov gstools --cov-report term-missing -v {project}/tests"
+    - CIBW_BEFORE_BUILD="pip install numpy==1.17.3 cython==0.29.14 setuptools"
+    - CIBW_TEST_REQUIRES=pytest
+    - CIBW_TEST_COMMAND="python -m pytest -v {project}/tests"
 
 script:
-  # create wheels
-  - $PIP install cibuildwheel==0.11.1
-  - cibuildwheel --output-dir wheelhouse
-  # create source dist for pypi and create coverage (only once for linux py3.6)
-  - |
-    if [[ $COVER == "on" ]]; then
-      rm -rf dist
-      python -m pip install -U numpy==1.14.5 cython==0.28.3 setuptools
-      python -m pip install pytest-cov coveralls
-      python -m pip install -r docs/requirements.txt
-      python setup.py sdist
-      python setup.py build_ext --inplace
-      python -m pytest --cov gstools --cov-report term-missing -v tests/
-      python -m coveralls
-    fi
+  - python -m pip install cibuildwheel==1.0.0
+  - python -m cibuildwheel --output-dir dist
 
 after_success:
-  # pypi upload ("test" allways and "official" on TAG)
   - python -m pip install twine
-  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ wheelhouse/*.whl
-  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*.tar.gz
-  - |
-    if [[ $TRAVIS_TAG ]]; then
-      python -m twine upload --verbose --skip-existing wheelhouse/*.whl
-      python -m twine upload --verbose --skip-existing dist/*.tar.gz
-    fi
-
+  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
+  - if [[ $TRAVIS_TAG ]]; then python -m twine upload --verbose dist/*; fi
 notifications:
   email:
     recipients:
-    - info@geostat-framework.org
+      - info@geostat-framework.org
