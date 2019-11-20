@@ -17,7 +17,6 @@ The following functions are provided
    normal_to_uquad
 """
 # pylint: disable=C0103, E1101
-from __future__ import print_function, division, absolute_import
 
 from warnings import warn
 

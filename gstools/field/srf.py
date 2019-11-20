@@ -10,7 +10,6 @@ The following classes are provided
    SRF
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 from gstools.field.generator import RandMeth, IncomprRandMeth
@@ -90,7 +89,7 @@ class SRF(Field):
         generator="RandMeth",
         **generator_kwargs
     ):
-        super(SRF, self).__init__(model, mean)
+        super().__init__(model, mean)
         # initialize private attributes
         self._generator = None
         self._upscaling = None

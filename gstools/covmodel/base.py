@@ -10,9 +10,7 @@ The following classes are provided
    CovModel
 """
 # pylint: disable=C0103, R0201
-from __future__ import print_function, division, absolute_import
 
-import six
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -41,7 +39,7 @@ HANKEL_DEFAULT = {
 # The CovModel Base-Class #####################################################
 
 
-class CovModel(six.with_metaclass(InitSubclassMeta)):
+class CovModel(metaclass=InitSubclassMeta):
     r"""Base class for the GSTools covariance models.
 
     Parameters

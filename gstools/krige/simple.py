@@ -10,8 +10,6 @@ The following classes are provided
    Simple
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
-
 
 import numpy as np
 from scipy.linalg import inv
@@ -49,7 +47,7 @@ class Simple(Field):
     """
 
     def __init__(self, model, mean, cond_pos, cond_val):
-        super(Simple, self).__init__(model, mean)
+        super().__init__(model, mean)
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"

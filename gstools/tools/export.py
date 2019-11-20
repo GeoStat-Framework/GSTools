@@ -15,7 +15,6 @@ The following functions are provided
    vtk_export
 """
 # pylint: disable=C0103, E1101
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from pyevtk.hl import gridToVTK, pointsToVTK

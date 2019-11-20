@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-from __future__ import division, absolute_import, print_function
-import sys, os, codecs, re, tempfile, glob, subprocess, shutil
+import sys, os, codecs, re, tempfile, glob, subprocess
 
 from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
@@ -40,20 +39,6 @@ def find_version(*file_paths):
 # which can be found at:
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
 
-
-# TemporaryDirectory not avialable in python2
-class _TemporaryDirectory(object):
-    def __enter__(self):
-        self.dir_name = tempfile.mkdtemp()
-        return self.dir_name
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        shutil.rmtree(self.dir_name)
-
-
-TemporaryDirectory = getattr(
-    tempfile, "TemporaryDirectory", _TemporaryDirectory
-)
 
 CCODE = """
 #include <omp.h>
@@ -101,7 +86,7 @@ def check_openmp_support():
     ccompiler = new_compiler()
     customize_compiler(ccompiler)
 
-    with TemporaryDirectory() as tmp_dir:
+    with tempfile.TemporaryDirectory() as tmp_dir:
         try:
             os.chdir(tmp_dir)
             # Write test program
@@ -237,8 +222,12 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "Operating System :: Unix",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
 ]
@@ -258,6 +247,7 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
+    python_requires=">=3.5",
     setup_requires=["numpy>=1.14.5", "cython>=0.28.3", "setuptools>=41.0.1"],
     install_requires=[
         "numpy>=1.14.5",
@@ -265,7 +255,6 @@ setup(
         "hankel>=0.3.6",
         "emcee>=3.0.0",
         "pyevtk",
-        "six",
     ],
     extras_require={"plotting": ["pyvista", "matplotlib"]},
     packages=find_packages(exclude=["tests*", "docs*"]),

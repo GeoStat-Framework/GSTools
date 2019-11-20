@@ -10,7 +10,6 @@ The following classes and functions are provided
    set_condition
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from gstools.tools.geometric import pos2xyz, xyz2pos

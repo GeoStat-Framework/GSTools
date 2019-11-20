@@ -24,7 +24,6 @@ Distribution factory
 
 ----
 """
-from __future__ import absolute_import
 
 from gstools.random.rng import RNG
 from gstools.random.tools import MasterRNG, dist_gen

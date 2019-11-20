@@ -11,7 +11,6 @@ The following classes are provided
    IncomprRandMeth
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 from copy import deepcopy as dcp
 import numpy as np
@@ -27,7 +26,7 @@ from gstools.field.summator import (
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
 
-class RandMeth(object):
+class RandMeth:
     r"""Randomization method for calculating isotropic spatial random fields.
 
     Parameters
@@ -363,9 +362,7 @@ class IncomprRandMeth(RandMeth):
                 "Only 2- and 3-dimensional incompressible fields "
                 + "can be generated."
             )
-        super(IncomprRandMeth, self).__init__(
-            model, mode_no, seed, verbose, **kwargs
-        )
+        super().__init__(model, mode_no, seed, verbose, **kwargs)
 
         self.mean_u = mean_velocity
         self._value_type = "vector"

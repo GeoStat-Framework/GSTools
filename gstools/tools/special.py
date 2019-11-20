@@ -13,7 +13,6 @@ The following functions are provided
    tplstable_cor
 """
 # pylint: disable=C0103, E1101
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from scipy import special as sps

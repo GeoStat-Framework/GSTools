@@ -99,8 +99,6 @@ Estimate the variogram of a given field
    vario_estimate_unstructured
 """
 
-from __future__ import absolute_import
-
 import sys
 
 from gstools._version import __version__

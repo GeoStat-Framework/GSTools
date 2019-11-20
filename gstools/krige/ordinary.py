@@ -10,7 +10,6 @@ The following classes are provided
    Ordinary
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 from scipy.linalg import inv
@@ -46,7 +45,7 @@ class Ordinary(Field):
     """
 
     def __init__(self, model, cond_pos, cond_val):
-        super(Ordinary, self).__init__(model, mean=0.0)
+        super().__init__(model, mean=0.0)
         self.krige_var = None
         # initialize private attributes
         self._value_type = "scalar"

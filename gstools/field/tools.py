@@ -17,7 +17,6 @@ The following classes and functions are provided
    reshape_field_from_unstruct_to_struct
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 from gstools.tools.geometric import r3d_x, r3d_y, r3d_z

@@ -15,9 +15,8 @@ The following classes and functions are provided
    exp_int
    inc_beta
 """
-# pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 
+# pylint: disable=C0103
 import numpy as np
 from scipy import special as sps
 
