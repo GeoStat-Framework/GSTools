@@ -7,7 +7,6 @@ GStools subpackage providing tools for the covariance-model.
 The following classes and functions are provided
 
 .. autosummary::
-   InitSubclassMeta
    rad_fac
    set_len_anis
    check_bounds
@@ -20,42 +19,7 @@ The following classes and functions are provided
 import numpy as np
 from scipy import special as sps
 
-__all__ = ["InitSubclassMeta", "rad_fac", "set_len_anis", "check_bounds"]
-
-
-# __init_subclass__ hack ######################################################
-
-if hasattr(object, "__init_subclass__"):
-    InitSubclassMeta = type
-else:
-
-    class InitSubclassMeta(type):  # pragma: no cover
-        """Metaclass that implements PEP 487 protocol.
-
-        Notes
-        -----
-        See :
-            https://www.python.org/dev/peps/pep-0487
-
-        taken from :
-            https://github.com/graphql-python/graphene/blob/master/graphene/pyutils/init_subclass.py
-        """
-
-        def __new__(cls, name, bases, ns, **kwargs):
-            """Create a new subclass."""
-            __init_subclass__ = ns.pop("__init_subclass__", None)
-            if __init_subclass__:
-                __init_subclass__ = classmethod(__init_subclass__)
-                ns["__init_subclass__"] = __init_subclass__
-            return super().__new__(
-                cls, name, bases, ns, **kwargs
-            )
-
-        def __init__(cls, name, bases, ns, **kwargs):
-            super().__init__(name, bases, ns)
-            super_class = super(cls, cls)
-            if hasattr(super_class, "__init_subclass__"):
-                super_class.__init_subclass__.__func__(cls, **kwargs)
+__all__ = ["rad_fac", "set_len_anis", "check_bounds"]
 
 
 # Helping functions ###########################################################

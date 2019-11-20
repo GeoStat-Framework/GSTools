@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-import sys, os, codecs, re, tempfile, glob, subprocess, shutil
+import sys, os, codecs, re, tempfile, glob, subprocess
 
 from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
@@ -223,6 +223,11 @@ CLASSIFIERS = [
     "Operating System :: Unix",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
 ]
@@ -250,7 +255,6 @@ setup(
         "hankel>=0.3.6",
         "emcee>=3.0.0",
         "pyevtk",
-        "six",
     ],
     extras_require={"plotting": ["pyvista", "matplotlib"]},
     packages=find_packages(exclude=["tests*", "docs*"]),
