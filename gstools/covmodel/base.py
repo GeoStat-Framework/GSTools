@@ -11,7 +11,6 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201
 
-from abc import ABC
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -19,6 +18,7 @@ from hankel import SymmetricFourierTransform as SFT
 from gstools.field.tools import make_isotropic, unrotate_mesh
 from gstools.tools.geometric import pos2xyz
 from gstools.covmodel.tools import (
+    InitSubclassMeta,
     rad_fac,
     set_len_anis,
     set_angles,
@@ -39,7 +39,7 @@ HANKEL_DEFAULT = {
 # The CovModel Base-Class #####################################################
 
 
-class CovModel(ABC):
+class CovModel(metaclass=InitSubclassMeta):
     r"""Base class for the GSTools covariance models.
 
     Parameters
