@@ -2,6 +2,26 @@ language: python
 
 matrix:
   include:
+    - name: "Linux py27"
+      sudo: required
+      language: python
+      python: 2.7
+      services: docker
+      env:
+        - PIP=pip
+        - CIBW_BUILD="cp27-*"
+        - COVER="off"
+
+    - name: "Linux py34"
+      sudo: required
+      language: python
+      python: 3.4
+      services: docker
+      env:
+        - PIP=pip
+        - CIBW_BUILD="cp34-*"
+        - COVER="off"
+
     - name: "Linux py35"
       sudo: required
       language: python
@@ -33,6 +53,22 @@ matrix:
       env:
         - PIP=pip
         - CIBW_BUILD="cp37-*"
+        - COVER="off"
+
+    - name: "MacOS py27"
+      os: osx
+      language: generic
+      env:
+        - PIP=pip2
+        - CIBW_BUILD="cp27-*"
+        - COVER="off"
+
+    - name: "MacOS py34"
+      os: osx
+      language: generic
+      env:
+        - PIP=pip2
+        - CIBW_BUILD="cp34-*"
         - COVER="off"
 
     - name: "MacOS py35"
