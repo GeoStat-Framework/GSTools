@@ -11,6 +11,7 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201
 
+from abc import ABC
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -38,7 +39,7 @@ HANKEL_DEFAULT = {
 # The CovModel Base-Class #####################################################
 
 
-class CovModel:
+class CovModel(ABC):
     r"""Base class for the GSTools covariance models.
 
     Parameters
