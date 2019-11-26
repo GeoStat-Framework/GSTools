@@ -14,10 +14,31 @@ covariance models.
 Installation
 ============
 
-The package can be installed via `pip <https://pypi.org/project/gstools/>`_.
+conda
+-----
+
+GSTools can be installed via
+`conda <https://docs.conda.io/en/latest/miniconda.html>`_ on Linux, Mac, and
+Windows.
+Install the package by typing the following command in a command terminal:
+
+.. code-block:: none
+
+    conda install gstools
+
+In case conda forge is not set up for your system yet, see the easy to follow
+instructions on `conda forge <https://github.com/conda-forge/gstools-feedstock#installing-gstools>`_.
+Using conda, the parallelized version of GSTools should be installed.
+
+
+pip
+---
+
+GSTools can be installed via `pip <https://pypi.org/project/gstools/>`_
+on Linux, Mac, and Windows.
 On Windows you can install `WinPython <https://winpython.github.io/>`_ to get
-Python and pip running. Also `conda provides pip support <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages>`_.
-Install GSTools by typing the following into the command prompt:
+Python and pip running.
+Install the package by typing the following into command in a command terminal:
 
 .. code-block:: none
 

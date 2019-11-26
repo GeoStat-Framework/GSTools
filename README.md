@@ -28,10 +28,24 @@ GeoStatTools provides geostatistical tools for various purposes:
 
 ## Installation
 
-The package can be installed via [pip][pip_link] on Windows, Linux and Mac.
-On Windows you can install [WinPython][winpy_link] to get
-Python and pip running. Also [conda provides pip support][conda_pip].
-Install GSTools by typing the following into the command prompt:
+
+### conda
+
+GSTools can be installed via [conda][conda_link] on Linux, Mac, and Windows.
+Install the package by typing the following command in a command terminal:
+
+    conda install gstools
+
+In case conda forge is not set up for your system yet, see the easy to follow
+instructions on [conda forge][conda_forge_link]. Using conda, the parallelized
+version of GSTools should be installed.
+
+
+### pip
+
+GSTools can be installed via [pip][pip_link] on Linux, Mac, and Windows.
+On Windows you can install [WinPython][winpy_link] to get Python and pip
+running. Install the package by typing the following command in a command terminal:
 
     pip install gstools
 
@@ -313,6 +327,8 @@ You can contact us via <info@geostat-framework.org>.
 [LGPLv3][license_link] © 2018-2019
 
 [pip_link]: https://pypi.org/project/gstools
+[conda_link]: https://docs.conda.io/en/latest/miniconda.html
+[conda_forge_link]: https://github.com/conda-forge/gstools-feedstock#installing-gstools
 [conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
 [winpy_link]: https://winpython.github.io/
