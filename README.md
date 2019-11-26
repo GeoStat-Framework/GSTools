@@ -323,7 +323,7 @@ You can contact us via <info@geostat-framework.org>.
 [cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
 [doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/
-[doc_install_link]: https://gstools.readthedocs.io/en/stable/#pip
+[doc_install_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/#pip
 [tut_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html
 [tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html
 [tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html
