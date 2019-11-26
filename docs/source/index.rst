@@ -50,22 +50,26 @@ To get the latest development version you can install it directly from GitHub:
 
     pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
 
+If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
+
 To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
 To get all other dependencies, it is recommended to first install gstools once
 in the standard way just decribed.
-Then use the following command:
+Simply use the following commands:
 
 .. code-block:: none
 
-    pip install --global-option="--openmp" gstools
+    pip install gstools
+    pip install -I --no-deps --global-option="--openmp" gstools
 
 Or for the development version:
 
 .. code-block:: none
 
-    pip install --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
+    pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
+    pip install -I --no-deps --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
 
-If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
+The flags :code:`-I --no-deps` force pip to reinstall gstools but not the dependencies.
 
 
 Citation
@@ -76,6 +80,7 @@ At the moment you can cite the Zenodo code publication of GSTools:
 | *Sebastian Müller, & Lennart Schüler. (2019, October 1). GeoStat-Framework/GSTools: Reverberating Red (Version v1.1.0). Zenodo. http://doi.org/10.5281/zenodo.3468230*
 
 A publication for the GeoStat-Framework is in preperation.
+
 
 Tutorials and Examples
 ======================
@@ -104,7 +109,6 @@ These fields are generated using the randomisation method, described by
 
 Examples
 --------
-
 
 Gaussian Covariance Model
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,6 +272,7 @@ An important part of geostatistics is Kriging and conditioning spatial random
 fields to measurements. With conditioned random fields, an ensemble of field realizations
 with their variability depending on the proximity of the measurements can be generated.
 
+
 Example
 -------
 
@@ -392,6 +397,7 @@ Requirements
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
 - `six <https://github.com/benjaminp/six>`_
+
 
 Optional
 --------
