@@ -11,7 +11,11 @@ from cython.parallel import prange
 cimport numpy as np
 
 
-def krigesum(double[:,:] krig_mat, double[:,:] krig_vecs, double[:] cond):
+def krigesum(
+    const double[:,:] krig_mat,
+    const double[:,:] krig_vecs,
+    const double[:] cond
+):
 
     cdef int mat_i = krig_mat.shape[0]
     cdef int res_i = krig_vecs.shape[1]

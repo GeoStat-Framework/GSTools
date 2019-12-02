@@ -16,25 +16,51 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-cdef inline double _distance_1d(double[:] x, double[:] y, double[:] z,
-                               int i, int j) nogil:
+cdef inline double _distance_1d(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const int i,
+    const int j
+) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]))
 
-cdef inline double _distance_2d(double[:] x, double[:] y, double[:] z,
-                               int i, int j) nogil:
+cdef inline double _distance_2d(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const int i,
+    const int j
+) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]))
 
-cdef inline double _distance_3d(double[:] x, double[:] y, double[:] z,
-                               int i, int j) nogil:
+cdef inline double _distance_3d(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const int i,
+    const int j
+) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) +
                 (y[i] - y[j]) * (y[i] - y[j]) +
                 (z[i] - z[j]) * (z[i] - z[j]))
 
-ctypedef double (*_dist_func)(double[:], double[:], double[:], int, int) nogil
+ctypedef double (*_dist_func)(
+    const double[:],
+    const double[:],
+    const double[:],
+    const int,
+    const int
+) nogil
 
 
-def unstructured(double[:] f, double[:] bin_edges, double[:] x,
-                 double[:] y=None, double[:] z=None):
+def unstructured(
+    const double[:] f,
+    const double[:] bin_edges,
+    const double[:] x,
+    const double[:] y=None,
+    const double[:] z=None
+):
     if x.shape[0] != f.shape[0]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
                          format(x.shape[0], f.shape[0]))
@@ -81,7 +107,7 @@ def unstructured(double[:] f, double[:] bin_edges, double[:] x,
     return np.asarray(variogram)
 
 
-def structured_3d(double[:,:,:] f):
+def structured_3d(const double[:,:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -104,7 +130,7 @@ def structured_3d(double[:,:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def structured_2d(double[:,:] f):
+def structured_2d(const double[:,:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -125,7 +151,7 @@ def structured_2d(double[:,:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def structured_1d(double[:] f):
+def structured_1d(const double[:] f):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
@@ -144,7 +170,7 @@ def structured_1d(double[:] f):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_3d(double[:,:,:] f, bint[:,:,:] mask):
+def ma_structured_3d(const double[:,:,:] f, const bint[:,:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -168,7 +194,7 @@ def ma_structured_3d(double[:,:,:] f, bint[:,:,:] mask):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_2d(double[:,:] f, bint[:,:] mask):
+def ma_structured_2d(const double[:,:] f, const bint[:,:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -190,7 +216,7 @@ def ma_structured_2d(double[:,:] f, bint[:,:] mask):
         variogram[i] /= (2. * counts[i])
     return np.asarray(variogram)
 
-def ma_structured_1d(double[:] f, bint[:] mask):
+def ma_structured_1d(const double[:] f, const bint[:] mask):
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
