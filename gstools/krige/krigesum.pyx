@@ -1,9 +1,8 @@
-# cython: language_level=2
+#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 # -*- coding: utf-8 -*-
 """
 This is a summator for the kriging routines
 """
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
@@ -12,8 +11,6 @@ from cython.parallel import prange
 cimport numpy as np
 
 
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
 def krigesum(double[:,:] krig_mat, double[:,:] krig_vecs, double[:] cond):
 
     cdef int mat_i = krig_mat.shape[0]

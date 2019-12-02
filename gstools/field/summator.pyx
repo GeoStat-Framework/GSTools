@@ -1,10 +1,8 @@
-#!python
-#cython: language_level=2
+#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 # -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
 """
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
@@ -18,9 +16,6 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -46,9 +41,6 @@ def summate_unstruct(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -64,9 +56,6 @@ def summate_struct(
     else:
         return summate_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct_1d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -89,9 +78,6 @@ def summate_struct_1d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -116,9 +102,6 @@ def summate_struct_2d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -150,9 +133,6 @@ def summate_struct_3d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef (double) abs_square(double[:] vec) nogil:
     cdef int i
     cdef double r = 0.
@@ -162,9 +142,6 @@ cdef (double) abs_square(double[:] vec) nogil:
 
     return r
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_unstruct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -198,9 +175,6 @@ def summate_incompr_unstruct(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_struct(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -214,9 +188,6 @@ def summate_incompr_struct(
     else:
         return summate_incompr_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_struct_2d(
     double[:,:] cov_samples,
     double[:] z_1,
@@ -250,9 +221,6 @@ def summate_incompr_struct_2d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_struct_3d(
     double[:,:] cov_samples,
     double[:] z_1,
