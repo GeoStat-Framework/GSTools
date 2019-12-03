@@ -8,7 +8,7 @@ import numpy as np
 
 cimport cython
 from cython.parallel import prange
-from libc.math cimport sqrt
+from libc.math cimport fabs, sqrt
 cimport numpy as np
 
 
@@ -49,6 +49,9 @@ cdef inline double _distance_3d(
 cdef inline double estimator_matheron(const double f_diff) nogil:
     return f_diff * f_diff
 
+cdef inline double estimator_cressie(const double f_diff) nogil:
+    return sqrt(fabs(f_diff))
+
 ctypedef double (*_estimator_func)(const double) nogil
 
 cdef inline void normalization_matheron(
@@ -63,16 +66,38 @@ cdef inline void normalization_matheron(
             counts[i] = 1
         variogram[i] /= (2. * counts[i])
 
+cdef inline void normalization_cressie(
+    double[:] variogram,
+    long[:] counts,
+    const int variogram_len
+) nogil:
+    cdef int i
+    for i in range(variogram_len):
+        # avoid division by zero
+        if counts[i] == 0:
+            counts[i] = 1
+        variogram[i] = (
+            (1./counts[i] * variogram[i])**4 /
+            (0.457 + 0.494 / counts[i] + 0.045 / counts[i]**2)
+        )
+
 ctypedef void (*_normalization_func)(double[:], long[:], const int) nogil
 
-cdef void choose_estimator(
-    str estimator_type,
-    _estimator_func estimator_func,
-    _normalization_func normalization_func
-):
+cdef _estimator_func choose_estimator_func(str estimator_type):
+    cdef _estimator_func estimator_func
     if estimator_type == 'm':
         estimator_func = estimator_matheron
+    elif estimator_type == 'c':
+        estimator_func = estimator_cressie
+    return estimator_func
+
+cdef _normalization_func choose_estimator_normalization(str estimator_type):
+    cdef _normalization_func normalization_func
+    if estimator_type == 'm':
         normalization_func = normalization_matheron
+    elif estimator_type == 'c':
+        normalization_func = normalization_cressie
+    return normalization_func
 
 ctypedef double (*_dist_func)(
     const double[:],
@@ -81,7 +106,6 @@ ctypedef double (*_dist_func)(
     const int,
     const int
 ) nogil
-
 
 
 def unstructured(
@@ -115,10 +139,8 @@ def unstructured(
     else:
         distance = _distance_1d
 
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = x.shape[0] - 1
@@ -141,10 +163,8 @@ def unstructured(
 
 
 def structured_3d(const double[:,:,:] f, str estimator_type='m'):
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -166,10 +186,8 @@ def structured_3d(const double[:,:,:] f, str estimator_type='m'):
     return np.asarray(variogram)
 
 def structured_2d(const double[:,:] f, str estimator_type='m'):
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -189,10 +207,8 @@ def structured_2d(const double[:,:] f, str estimator_type='m'):
     return np.asarray(variogram)
 
 def structured_1d(const double[:] f, str estimator_type='m'):
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
@@ -214,10 +230,8 @@ def ma_structured_3d(
     const bint[:,:,:] mask,
     str estimator_type='m'
 ):
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -244,10 +258,8 @@ def ma_structured_2d(
     const bint[:,:] mask,
     str estimator_type='m'
 ):
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -272,10 +284,8 @@ def ma_structured_1d(
     const bint[:] mask,
     str estimator_type='m'
 ):
-    # use some default value before setting the correct one
-    cdef _estimator_func estimator_func = estimator_matheron
-    cdef _normalization_func normalization_func = normalization_matheron
-    choose_estimator(estimator_type, estimator_func, normalization_func)
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1

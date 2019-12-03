@@ -31,6 +31,8 @@ __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 def _set_estimator(estimator):
     if estimator.lower() == "matheron":
         cython_estimator = "m"
+    elif estimator.lower() == "cressie":
+        cython_estimator = "c"
     else:
         raise ValueError(f"Unknown variogram estimator function {estimator}")
     return cython_estimator
@@ -79,6 +81,7 @@ def vario_estimate_unstructured(
     estimator : :class:`str`, optional
         the estimator function, possible choices:
             * "mathoron"
+            * "cressie"
         Default: "matheron"
 
     Returns
@@ -144,6 +147,7 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     estimator : :class:`str`, optional
         the estimator function, possible choices:
             * "mathoron"
+            * "cressie"
         Default: "matheron"
 
     Returns

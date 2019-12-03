@@ -48,6 +48,11 @@ class TestVariogramstructured(unittest.TestCase):
         gamma = variogram.vario_estimate_structured(z)
         self.assertAlmostEqual(gamma[1], 0.4917, places=4)
 
+    def test_cressie_1d(self):
+        z = [41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3]
+        gamma = variogram.vario_estimate_structured(z, estimator='cressie')
+        self.assertAlmostEqual(gamma[1], 1.546, places=3)
+
     def test_1d(self):
         # literature values
         z = np.array(
@@ -159,6 +164,31 @@ class TestVariogramstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
         self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=2)
         self.assertAlmostEqual(gamma_y[-1], var, places=2)
+
+    def test_uncorrelated_cressie_2d(self):
+        x = np.linspace(0.0, 100.0, 80)
+        y = np.linspace(0.0, 100.0, 60)
+
+        rng = np.random.RandomState(1479373475)
+        field = rng.rand(len(x), len(y))
+
+        gamma_x = variogram.vario_estimate_structured(
+            field,
+            direction="x",
+            estimator="cressie"
+        )
+        gamma_y = variogram.vario_estimate_structured(
+            field,
+            direction="y",
+            estimator="cressie"
+        )
+
+        # TODO figure out what is going on here
+        var = 0.177
+        self.assertAlmostEqual(gamma_x[0], 0.0, places=1)
+        self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=1)
+        self.assertAlmostEqual(gamma_y[0], 0.0, places=1)
+        self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=1)
 
     def test_uncorrelated_3d(self):
         x = np.linspace(0.0, 100.0, 30)
