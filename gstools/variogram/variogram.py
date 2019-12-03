@@ -28,8 +28,21 @@ from gstools.variogram.estimator import (
 __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
+def _set_estimator(estimator):
+    if estimator.lower() == "matheron":
+        cython_estimator = "m"
+    else:
+        raise ValueError(f"Unknown variogram estimator function {estimator}")
+    return cython_estimator
+
+
 def vario_estimate_unstructured(
-    pos, field, bin_edges, sampling_size=None, sampling_seed=None
+    pos,
+    field,
+    bin_edges,
+    sampling_size=None,
+    sampling_seed=None,
+    estimator="matheron",
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -63,6 +76,10 @@ def vario_estimate_unstructured(
     sampling_seed : :class:`int` or :any:`None`, optional
         seed for samples if sampling_size is given.
         Default: :any:`None`
+    estimator : :class:`str`, optional
+        the estimator function, possible choices:
+            * "mathoron"
+        Default: "matheron"
 
     Returns
     -------
@@ -86,10 +103,19 @@ def vario_estimate_unstructured(
         if dim > 2:
             z = z[sampled_idx]
 
-    return bin_centres, unstructured(field, bin_edges, x, y, z)
+    cython_estimator = _set_estimator(estimator)
+
+    return bin_centres, unstructured(
+        field,
+        bin_edges,
+        x,
+        y,
+        z,
+        estimator_type=cython_estimator
+    )
 
 
-def vario_estimate_structured(field, direction="x"):
+def vario_estimate_structured(field, direction="x", estimator="matheron"):
     r"""Estimates the variogram on a regular grid.
 
     The indices of the given direction are used for the bins.
@@ -115,6 +141,10 @@ def vario_estimate_structured(field, direction="x"):
         the spatially distributed data
     direction : :class:`str`
         the axis over which the variogram will be estimated (x, y, z)
+    estimator : :class:`str`, optional
+        the estimator function, possible choices:
+            * "mathoron"
+        Default: "matheron"
 
     Returns
     -------
@@ -144,19 +174,21 @@ def vario_estimate_structured(field, direction="x"):
     if masked:
         mask = mask.swapaxes(0, axis_to_swap)
 
+    cython_estimator = _set_estimator(estimator)
+
     if len(shape) == 3:
         if mask is None:
-            gamma = structured_3d(field)
+            gamma = structured_3d(field, cython_estimator)
         else:
-            gamma = ma_structured_3d(field, mask)
+            gamma = ma_structured_3d(field, mask, cython_estimator)
     elif len(shape) == 2:
         if mask is None:
-            gamma = structured_2d(field)
+            gamma = structured_2d(field, cython_estimator)
         else:
-            gamma = ma_structured_2d(field, mask)
+            gamma = ma_structured_2d(field, mask, cython_estimator)
     else:
         if mask is None:
-            gamma = structured_1d(np.array(field, ndmin=1, dtype=np.double))
+            gamma = structured_1d(np.array(field, ndmin=1, dtype=np.double), cython_estimator)
         else:
-            gamma = ma_structured_1d(field, mask)
+            gamma = ma_structured_1d(field, mask, cython_estimator)
     return gamma
