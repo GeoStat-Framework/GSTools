@@ -45,6 +45,35 @@ cdef inline double _distance_3d(
                 (y[i] - y[j]) * (y[i] - y[j]) +
                 (z[i] - z[j]) * (z[i] - z[j]))
 
+
+cdef inline double estimator_matheron(const double f_diff) nogil:
+    return f_diff * f_diff
+
+ctypedef double (*_estimator_func)(const double) nogil
+
+cdef inline void normalization_matheron(
+    double[:] variogram,
+    long[:] counts,
+    const int variogram_len
+) nogil:
+    cdef int i
+    for i in range(variogram_len):
+        # avoid division by zero
+        if counts[i] == 0:
+            counts[i] = 1
+        variogram[i] /= (2. * counts[i])
+
+ctypedef void (*_normalization_func)(double[:], long[:], const int) nogil
+
+cdef void choose_estimator(
+    str estimator_type,
+    _estimator_func estimator_func,
+    _normalization_func normalization_func
+):
+    if estimator_type == 'm':
+        estimator_func = estimator_matheron
+        normalization_func = normalization_matheron
+
 ctypedef double (*_dist_func)(
     const double[:],
     const double[:],
@@ -54,12 +83,14 @@ ctypedef double (*_dist_func)(
 ) nogil
 
 
+
 def unstructured(
     const double[:] f,
     const double[:] bin_edges,
     const double[:] x,
     const double[:] y=None,
-    const double[:] z=None
+    const double[:] z=None,
+    str estimator_type='m'
 ):
     if x.shape[0] != f.shape[0]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
@@ -84,6 +115,11 @@ def unstructured(
     else:
         distance = _distance_1d
 
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = x.shape[0] - 1
     cdef int k_max = x.shape[0]
@@ -98,16 +134,18 @@ def unstructured(
                 dist = distance(x, y, z, k, j)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     counts[i] += 1
-                    variogram[i] += (f[k] - f[j])**2
-    for i in range(i_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+                    variogram[i] += estimator_func(f[k] - f[j])
+
+    normalization_func(variogram, counts, i_max)
     return np.asarray(variogram)
 
 
-def structured_3d(const double[:,:,:] f):
+def structured_3d(const double[:,:,:] f, str estimator_type='m'):
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -122,15 +160,17 @@ def structured_3d(const double[:,:,:] f):
             for k in range(k_max):
                 for l in range(1, l_max-i):
                     counts[l] += 1
-                    variogram[l] += (f[i,j,k] - f[i+l,j,k])**2
-    for i in range(l_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+                    variogram[l] += estimator_func(f[i,j,k] - f[i+l,j,k])
+
+    normalization_func(variogram, counts, l_max)
     return np.asarray(variogram)
 
-def structured_2d(const double[:,:] f):
+def structured_2d(const double[:,:] f, str estimator_type='m'):
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -143,15 +183,17 @@ def structured_2d(const double[:,:] f):
         for j in range(j_max):
             for k in range(1, k_max-i):
                 counts[k] += 1
-                variogram[k] += (f[i,j] - f[i+k,j])**2
-    for i in range(k_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+                variogram[k] += estimator_func(f[i,j] - f[i+k,j])
+
+    normalization_func(variogram, counts, k_max)
     return np.asarray(variogram)
 
-def structured_1d(const double[:] f):
+def structured_1d(const double[:] f, str estimator_type='m'):
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
@@ -162,15 +204,21 @@ def structured_1d(const double[:] f):
     for i in range(i_max):
         for j in range(1, j_max-i):
             counts[j] += 1
-            variogram[j] += (f[i] - f[i+j])**2
-    for i in range(j_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+            variogram[j] += estimator_func(f[i] - f[i+j])
+
+    normalization_func(variogram, counts, j_max)
     return np.asarray(variogram)
 
-def ma_structured_3d(const double[:,:,:] f, const bint[:,:,:] mask):
+def ma_structured_3d(
+    const double[:,:,:] f,
+    const bint[:,:,:] mask,
+    str estimator_type='m'
+):
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = f.shape[2]
@@ -186,15 +234,21 @@ def ma_structured_3d(const double[:,:,:] f, const bint[:,:,:] mask):
                 for l in range(1, l_max-i):
                     if not mask[i,j,k] and not mask[i+l,j,k]:
                         counts[l] += 1
-                        variogram[l] += (f[i,j,k] - f[i+l,j,k])**2
-    for i in range(l_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+                        variogram[l] += estimator_func(f[i,j,k] - f[i+l,j,k])
+
+    normalization_func(variogram, counts, l_max)
     return np.asarray(variogram)
 
-def ma_structured_2d(const double[:,:] f, const bint[:,:] mask):
+def ma_structured_2d(
+    const double[:,:] f,
+    const bint[:,:] mask,
+    str estimator_type='m'
+):
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
@@ -208,15 +262,21 @@ def ma_structured_2d(const double[:,:] f, const bint[:,:] mask):
             for k in range(1, k_max-i):
                 if not mask[i,j] and not mask[i+k,j]:
                     counts[k] += 1
-                    variogram[k] += (f[i,j] - f[i+k,j])**2
-    for i in range(k_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+                    variogram[k] += estimator_func(f[i,j] - f[i+k,j])
+
+    normalization_func(variogram, counts, k_max)
     return np.asarray(variogram)
 
-def ma_structured_1d(const double[:] f, const bint[:] mask):
+def ma_structured_1d(
+    const double[:] f,
+    const bint[:] mask,
+    str estimator_type='m'
+):
+    # use some default value before setting the correct one
+    cdef _estimator_func estimator_func = estimator_matheron
+    cdef _normalization_func normalization_func = normalization_matheron
+    choose_estimator(estimator_type, estimator_func, normalization_func)
+
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = i_max + 1
 
@@ -228,10 +288,7 @@ def ma_structured_1d(const double[:] f, const bint[:] mask):
         for j in range(1, j_max-i):
             if not mask[i] and not mask[j]:
                 counts[j] += 1
-                variogram[j] += (f[i] - f[i+j])**2
-    for i in range(j_max):
-        # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+                variogram[j] += estimator_func(f[i] - f[i+j])
+
+    normalization_func(variogram, counts, j_max)
     return np.asarray(variogram)
