@@ -34,7 +34,7 @@ def _set_estimator(estimator):
     elif estimator.lower() == "cressie":
         cython_estimator = "c"
     else:
-        raise ValueError(f"Unknown variogram estimator function {estimator}")
+        raise ValueError("Unknown variogram estimator function " + str(estimator))
     return cython_estimator
 
 
