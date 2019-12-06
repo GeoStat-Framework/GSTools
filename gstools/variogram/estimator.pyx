@@ -140,7 +140,9 @@ def unstructured(
         distance = _distance_1d
 
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
+    cdef _normalization_func normalization_func = (
+        choose_estimator_normalization(estimator_type)
+    )
 
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = x.shape[0] - 1
@@ -162,9 +164,11 @@ def unstructured(
     return np.asarray(variogram)
 
 
-def structured_3d(const double[:,:,:] f, str estimator_type='m'):
+def structured(const double[:,:,:] f, str estimator_type='m'):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
+    cdef _normalization_func normalization_func = (
+        choose_estimator_normalization(estimator_type)
+    )
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -175,7 +179,8 @@ def structured_3d(const double[:,:,:] f, str estimator_type='m'):
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k, l
 
-    for i in prange(i_max, nogil=True):
+    #for i in prange(i_max, nogil=True):
+    for i in range(i_max):
         for j in range(j_max):
             for k in range(k_max):
                 for l in range(1, l_max-i):
@@ -185,53 +190,15 @@ def structured_3d(const double[:,:,:] f, str estimator_type='m'):
     normalization_func(variogram, counts, l_max)
     return np.asarray(variogram)
 
-def structured_2d(const double[:,:] f, str estimator_type='m'):
-    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
-
-    cdef int i_max = f.shape[0] - 1
-    cdef int j_max = f.shape[1]
-    cdef int k_max = i_max + 1
-
-    cdef double[:] variogram = np.zeros(k_max)
-    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
-    cdef int i, j, k
-
-    for i in prange(i_max, nogil=True):
-        for j in range(j_max):
-            for k in range(1, k_max-i):
-                counts[k] += 1
-                variogram[k] += estimator_func(f[i,j] - f[i+k,j])
-
-    normalization_func(variogram, counts, k_max)
-    return np.asarray(variogram)
-
-def structured_1d(const double[:] f, str estimator_type='m'):
-    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
-
-    cdef int i_max = f.shape[0] - 1
-    cdef int j_max = i_max + 1
-
-    cdef double[:] variogram = np.zeros(j_max)
-    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
-    cdef int i, j
-
-    for i in range(i_max):
-        for j in range(1, j_max-i):
-            counts[j] += 1
-            variogram[j] += estimator_func(f[i] - f[i+j])
-
-    normalization_func(variogram, counts, j_max)
-    return np.asarray(variogram)
-
-def ma_structured_3d(
+def ma_structured(
     const double[:,:,:] f,
     const bint[:,:,:] mask,
     str estimator_type='m'
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
+    cdef _normalization_func normalization_func = (
+        choose_estimator_normalization(estimator_type)
+    )
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
@@ -242,7 +209,8 @@ def ma_structured_3d(
     cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
     cdef int i, j, k, l
 
-    for i in prange(i_max, nogil=True):
+    #for i in prange(i_max, nogil=True):
+    for i in range(i_max):
         for j in range(j_max):
             for k in range(k_max):
                 for l in range(1, l_max-i):
@@ -251,54 +219,4 @@ def ma_structured_3d(
                         variogram[l] += estimator_func(f[i,j,k] - f[i+l,j,k])
 
     normalization_func(variogram, counts, l_max)
-    return np.asarray(variogram)
-
-def ma_structured_2d(
-    const double[:,:] f,
-    const bint[:,:] mask,
-    str estimator_type='m'
-):
-    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
-
-    cdef int i_max = f.shape[0] - 1
-    cdef int j_max = f.shape[1]
-    cdef int k_max = i_max + 1
-
-    cdef double[:] variogram = np.zeros(k_max)
-    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
-    cdef int i, j, k
-
-    for i in prange(i_max, nogil=True):
-        for j in range(j_max):
-            for k in range(1, k_max-i):
-                if not mask[i,j] and not mask[i+k,j]:
-                    counts[k] += 1
-                    variogram[k] += estimator_func(f[i,j] - f[i+k,j])
-
-    normalization_func(variogram, counts, k_max)
-    return np.asarray(variogram)
-
-def ma_structured_1d(
-    const double[:] f,
-    const bint[:] mask,
-    str estimator_type='m'
-):
-    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = choose_estimator_normalization(estimator_type)
-
-    cdef int i_max = f.shape[0] - 1
-    cdef int j_max = i_max + 1
-
-    cdef double[:] variogram = np.zeros(j_max)
-    cdef long[:] counts = np.zeros_like(variogram, dtype=np.int)
-    cdef int i, j
-
-    for i in range(i_max):
-        for j in range(1, j_max-i):
-            if not mask[i] and not mask[j]:
-                counts[j] += 1
-                variogram[j] += estimator_func(f[i] - f[i+j])
-
-    normalization_func(variogram, counts, j_max)
     return np.asarray(variogram)

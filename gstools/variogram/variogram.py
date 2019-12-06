@@ -17,12 +17,8 @@ import numpy as np
 from gstools.tools.geometric import pos2xyz
 from gstools.variogram.estimator import (
     unstructured,
-    structured_3d,
-    structured_2d,
-    structured_1d,
-    ma_structured_3d,
-    ma_structured_2d,
-    ma_structured_1d,
+    structured,
+    ma_structured,
 )
 
 __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
@@ -187,7 +183,6 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
         mask = None
         field = np.array(field, ndmin=1, dtype=np.double)
         masked = False
-    shape = field.shape
 
     if direction == "x":
         axis_to_swap = 0
@@ -204,19 +199,15 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
 
     cython_estimator = _set_estimator(estimator)
 
-    if len(shape) == 3:
-        if mask is None:
-            gamma = structured_3d(field, cython_estimator)
-        else:
-            gamma = ma_structured_3d(field, mask, cython_estimator)
-    elif len(shape) == 2:
-        if mask is None:
-            gamma = structured_2d(field, cython_estimator)
-        else:
-            gamma = ma_structured_2d(field, mask, cython_estimator)
+    # fill up the field with empty dimensions up to a number of 3
+    for i in range(3 - len(field.shape)):
+        field = field[..., np.newaxis]
+    if masked:
+        for i in range(3 - len(mask.shape)):
+            mask = mask[..., np.newaxis]
+
+    if mask is None:
+        gamma = structured(field, cython_estimator)
     else:
-        if mask is None:
-            gamma = structured_1d(np.array(field, ndmin=1, dtype=np.double), cython_estimator)
-        else:
-            gamma = ma_structured_1d(field, mask, cython_estimator)
+        gamma = ma_structured(field, mask, cython_estimator)
     return gamma
