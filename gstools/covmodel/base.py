@@ -11,6 +11,7 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201
 
+import warnings
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -35,6 +36,11 @@ HANKEL_DEFAULT = {
     "N": 1000,
     "h": 0.001,
 }
+
+
+class AttributeWarning(UserWarning):
+    pass
+
 
 # The CovModel Base-Class #####################################################
 
@@ -134,6 +140,13 @@ class CovModel(metaclass=InitSubclassMeta):
                     + opt_name
                     + "' has a 'bad' name, since it is already present in "
                     + "the class. It could not be added to the model"
+                )
+            if opt_name not in self.default_opt_arg().keys():
+                warnings.warn(
+                    "The given optional argument '{}' ".format(opt_name)
+                    + "is unknown or has at least no defined standard value. "
+                    + "Or you made a Typo... hehe.",
+                    AttributeWarning,
                 )
             # Magic happens here
             setattr(self, opt_name, opt_arg[opt_name])

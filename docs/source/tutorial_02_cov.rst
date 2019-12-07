@@ -371,7 +371,10 @@ This leads to the so called **stable** covariance model and we can define it by
 
 As you can see, we override the method :any:`CovModel.default_opt_arg` to provide
 a standard value for the optional argument ``alpha`` and we can access it
-in the correlation function by ``self.alpha``
+in the correlation function by ``self.alpha``.
+
+We strongly encourage to define a standard value this way. Otherwise a
+warning will occure when creating the model.
 
 Now we can instantiate this model:
 
