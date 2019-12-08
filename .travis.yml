@@ -100,9 +100,13 @@ script:
   - python -m cibuildwheel --output-dir dist
 
 after_success:
-  - python -m pip install twine
-  - python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
-  - if [[ $TRAVIS_TAG ]]; then python -m twine upload --verbose dist/*; fi
+  - |
+    if [[ $TRAVIS_PULL_REQUEST == 'false' ]]; then
+      python -m pip install twine
+      python -m twine upload --verbose --skip-existing --repository-url https://test.pypi.org/legacy/ dist/*
+      if [[ $TRAVIS_TAG ]]; then python -m twine upload --verbose dist/*; fi
+    fi
+
 notifications:
   email:
     recipients:
