@@ -33,7 +33,7 @@ __all__ = ["CovModel"]
 HANKEL_DEFAULT = {
     "a": -1,  # should only be changed, if you know exactly what
     "b": 1,  # you do or if you are crazy
-    "N": 1000,
+    "N": 200,
     "h": 0.001,
 }
 
