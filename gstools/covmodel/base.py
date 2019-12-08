@@ -11,6 +11,7 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201
 
+import copy
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -1090,7 +1091,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @hankel_kw.setter
     def hankel_kw(self, hankel_kw):
-        self._hankel_kw = HANKEL_DEFAULT if hankel_kw is None else hankel_kw
+        if self._hankel_kw is None or hankel_kw is None:
+            self._hankel_kw = copy.copy(HANKEL_DEFAULT)
+        if hankel_kw is not None:
+            self._hankel_kw.update(hankel_kw)
         if self.dim is not None:
             self._sft = SFT(ndim=self.dim, **self.hankel_kw)
 
