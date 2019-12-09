@@ -12,6 +12,7 @@ The following classes are provided
 # pylint: disable=C0103, R0201
 
 import warnings
+import copy
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -33,7 +34,7 @@ __all__ = ["CovModel"]
 HANKEL_DEFAULT = {
     "a": -1,  # should only be changed, if you know exactly what
     "b": 1,  # you do or if you are crazy
-    "N": 1000,
+    "N": 200,
     "h": 0.001,
 }
 
@@ -1103,7 +1104,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @hankel_kw.setter
     def hankel_kw(self, hankel_kw):
-        self._hankel_kw = HANKEL_DEFAULT if hankel_kw is None else hankel_kw
+        if self._hankel_kw is None or hankel_kw is None:
+            self._hankel_kw = copy.copy(HANKEL_DEFAULT)
+        if hankel_kw is not None:
+            self._hankel_kw.update(hankel_kw)
         if self.dim is not None:
             self._sft = SFT(ndim=self.dim, **self.hankel_kw)
 
