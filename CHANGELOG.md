@@ -6,11 +6,13 @@ All notable changes to **GSTools** will be documented in this file.
 ## [Unreleased]
 
 ### Enhancements
+- different variogram estimator functions can now be used #51
 
 ### Changes
 - Python versions 2.7 and 3.4 are no longer supported #40 #43
 
 ### Bugfixes
+- a race condition in the structured variogram estimation has been fixed #51
 
 
 ## [1.1.1] - Reverberating Red - 2019-11-08
