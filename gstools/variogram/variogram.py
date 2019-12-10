@@ -25,6 +25,7 @@ __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
 def _set_estimator(estimator):
+    """Translate the verbose Python estimator identifier to single char"""
     if estimator.lower() == "matheron":
         cython_estimator = "m"
     elif estimator.lower() == "cressie":
