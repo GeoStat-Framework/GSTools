@@ -180,6 +180,7 @@ CY_MODULES.append(
     Extension(
         "gstools.variogram.estimator",
         [os.path.join("gstools", "variogram", "estimator.pyx")],
+        language="c++",
         include_dirs=[numpy.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
