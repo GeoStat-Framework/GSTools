@@ -61,15 +61,22 @@ class CovModel(metaclass=InitSubclassMeta):
         If a single value is given, the same length-scale will be used for
         every direction. If multiple values (for main and transversal
         directions) are given, `anis` will be
-        recalculated accordingly.
+        recalculated accordingly. If only two values are given in 3D,
+        the latter one will be used for both transversal directions.
         Default: ``1.0``
     nugget : :class:`float`, optional
         nugget of the model. Default: ``0.0``
     anis : :class:`float` or :class:`list`, optional
-        anisotropy ratios in the transversal directions [y, z].
+        anisotropy ratios in the transversal directions [e_y, e_z].
+
+            * e_y = l_y / l_x
+            * e_z = l_z / l_x
+
+        If only one value is given in 3D, e_y will be set to 1.
+        This value will be ignored, if multiple len_scales are given.
         Default: ``1.0``
     angles : :class:`float` or :class:`list`, optional
-        angles of rotation:
+        angles of rotation (given in rad):
 
             * in 2D: given as rotation around z-axis
             * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
