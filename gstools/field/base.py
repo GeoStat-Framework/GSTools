@@ -317,6 +317,7 @@ class Field:
     def model(self, model):
         if isinstance(model, CovModel):
             self._model = model
+            self._update_model()
         else:
             raise ValueError(
                 "Field: 'model' is not an instance of 'gstools.CovModel'"
@@ -326,6 +327,10 @@ class Field:
     def value_type(self):
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
+
+    def _update_model(self):
+        """Can be overridden if anything needs to be updated with new model."""
+        pass
 
     def __str__(self):
         """Return String representation."""
