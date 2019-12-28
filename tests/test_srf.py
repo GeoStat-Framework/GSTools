@@ -12,7 +12,7 @@ from gstools import transform as tf
 
 class TestSRF(unittest.TestCase):
     def setUp(self):
-        self.cov_model = Gaussian(dim=2, var=1.5, len_scale=4.0, mode_no=100)
+        self.cov_model = Gaussian(dim=2, var=1.5, len_scale=4.0)
         self.mean = 0.3
         self.mode_no = 100
 
