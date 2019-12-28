@@ -155,7 +155,7 @@ class TestSRF(unittest.TestCase):
 
     def test_rotation_unstruct_3d(self):
         self.cov_model = Gaussian(
-            dim=3, var=1.5, len_scale=4.0, anis=(0.25, 0.5), mode_no=100
+            dim=3, var=1.5, len_scale=4.0, anis=(0.25, 0.5)
         )
         x_len = len(self.x_grid_c)
         y_len = len(self.y_grid_c)
@@ -252,7 +252,7 @@ class TestSRF(unittest.TestCase):
         tf.boxcox(srf)
 
     def test_incomprrandmeth(self):
-        self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0, mode_no=100)
+        self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0)
         srf = SRF(
             self.cov_model,
             mean=self.mean,
