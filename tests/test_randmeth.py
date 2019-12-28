@@ -12,9 +12,7 @@ from gstools.field.generator import RandMeth
 
 class TestRandMeth(unittest.TestCase):
     def setUp(self):
-        self.cov_model_1d = Gaussian(
-            dim=1, var=1.5, len_scale=3.5, mode_no=100
-        )
+        self.cov_model_1d = Gaussian(dim=1, var=1.5, len_scale=3.5)
         self.cov_model_2d = copy.deepcopy(self.cov_model_1d)
         self.cov_model_2d.dim = 2
         self.cov_model_3d = copy.deepcopy(self.cov_model_1d)
