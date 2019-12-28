@@ -17,7 +17,14 @@ import numpy as np
 
 from gstools.covmodel.base import CovModel
 from gstools.tools.export import to_vtk, vtk_export
-from gstools.field.tools import _get_select
+from gstools.field.tools import (
+    _get_select,
+    check_mesh,
+    make_isotropic,
+    unrotate_mesh,
+    reshape_axis_from_struct_to_unstruct,
+)
+from gstools.tools.geometric import pos2xyz, xyz2pos
 
 __all__ = ["Field"]
 
@@ -63,6 +70,49 @@ class Field:
         """
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
+
+    def pre_pos(self, pos, mesh_type):
+        """
+        Preprocessing positions and mesh_type.
+
+        Parameters
+        ----------
+        pos : :any:`iterable`
+            the position tuple, containing main direction and transversal
+            directions
+        mesh_type : :class:`str`
+            'structured' / 'unstructured'
+
+        Returns
+        -------
+        x : :class:`numpy.ndarray`
+            first components of position vectors
+        y : :class:`numpy.ndarray` or None
+            analog to x
+        z : :class:`numpy.ndarray` or None
+            analog to x
+        mesh_type_gen : :class:`str`
+            'structured' / 'unstructured' for the generator
+        mesh_type_changed : :class:`bool`
+            State if mesh_type was changed.
+        """
+        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
+        pos = xyz2pos(x, y, z)
+        mesh_type_gen = mesh_type
+        # format the positional arguments of the mesh
+        check_mesh(self.model.dim, x, y, z, mesh_type)
+        mesh_type_changed = False
+        axis_lens = None
+        if self.model.do_rotation:
+            if mesh_type == "structured":
+                mesh_type_changed = True
+                mesh_type_gen = "unstructured"
+                x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
+                    self.model.dim, x, y, z
+                )
+            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
+        y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
+        return x, y, z, mesh_type_gen, mesh_type_changed, axis_lens
 
     def mesh(
         self, mesh, points="centroids", direction="xyz", name="field", **kwargs
