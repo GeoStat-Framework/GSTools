@@ -149,7 +149,7 @@ def xyz2pos(x, y=None, z=None, dtype=None, max_dim=3):
 
     Returns
     -------
-    pos : :class:`numpy.ndarray`
+    pos : :class:`tuple` of :class:`numpy.ndarray`
         the position tuple
     """
     if y is None and z is not None:
