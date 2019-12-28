@@ -91,6 +91,8 @@ class Field:
             analog to x
         z : :class:`numpy.ndarray` or None
             analog to x
+        pos : :class:`tuple` of :class:`numpy.ndarray`
+            the normalized position tuple
         mesh_type_gen : :class:`str`
             'structured' / 'unstructured' for the generator
         mesh_type_changed : :class:`bool`
@@ -112,7 +114,7 @@ class Field:
                 )
             x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
         y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-        return x, y, z, mesh_type_gen, mesh_type_changed, axis_lens
+        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
 
     def mesh(
         self, mesh, points="centroids", direction="xyz", name="field", **kwargs

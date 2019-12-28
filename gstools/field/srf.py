@@ -15,7 +15,6 @@ import numpy as np
 from gstools.field.generator import RandMeth, IncomprRandMeth
 from gstools.field.tools import reshape_field_from_unstruct_to_struct
 from gstools.field.base import Field
-from gstools.tools.geometric import xyz2pos
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 from gstools.field.condition import ordinary, simple
 from gstools.krige.tools import set_condition
@@ -137,10 +136,15 @@ class SRF(Field):
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # internal conversation
-        x, y, z, mesh_type_gen, mesh_type_changed, axis_lens = self.pre_pos(
-            pos, mesh_type
-        )
-        self.pos = xyz2pos(x, y, z)
+        (
+            x,
+            y,
+            z,
+            self.pos,
+            mesh_type_gen,
+            mesh_type_changed,
+            axis_lens,
+        ) = self.pre_pos(pos, mesh_type)
         # generate the field
         self.raw_field = self.generator.__call__(x, y, z, mesh_type_gen)
         # reshape field if we got an unstructured mesh
