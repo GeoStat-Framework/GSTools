@@ -78,7 +78,7 @@ class Krige(Field):
         """
         self.mesh_type = mesh_type
         # internal conversation
-        x, __, __, self.pos, __, mt_changed, ax_lens = self.pre_pos(
+        x, y, z, self.pos, __, mt_changed, ax_lens = self.pre_pos(
             pos, mesh_type, make_unstruct=True
         )
         point_no = len(x)
@@ -94,7 +94,7 @@ class Krige(Field):
             chunk_slice = (i * chunk_size, (i + 1) * chunk_size)
             c_slice = slice(*chunk_slice)
             # get RHS of the kriging system (access pos via self.pos)
-            k_vec = self.krige_vecs(chunk_slice, ext_drift)
+            k_vec = self.krige_vecs((x, y, z), chunk_slice, ext_drift)
             # generate the raw kriging field and error variance
             field[c_slice], krige_var[c_slice] = krigesum(
                 self.krige_mat, k_vec, self.krige_cond
@@ -158,7 +158,7 @@ class Krige(Field):
         pos2_stack = np.column_stack(pos2[: self.model.dim])[p2s, ...]
         return cdist(pos1_stack, pos2_stack)
 
-    def krige_vecs(self, chunk_slice=(0, None), ext_drift=None):
+    def krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         return None
 
