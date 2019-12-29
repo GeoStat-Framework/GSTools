@@ -33,11 +33,9 @@ class Simple(Krige):
         mean value of the kriging field
     """
 
-    def update_model(self):
+    def get_krige_mat(self):
         """Update the kriging model settings."""
-        self._krige_mat = inv(
-            self.model.cov_nugget(self.get_dists(self.krige_pos))
-        )
+        return inv(self.model.cov_nugget(self.get_dists(self.krige_pos)))
 
     def post_field(self, field, krige_var):
         """

@@ -95,7 +95,7 @@ class Krige(Field):
             chunk_slice = (i * chunk_size, (i + 1) * chunk_size)
             c_slice = slice(*chunk_slice)
             # get RHS of the kriging system
-            k_vec = self.krige_vecs((x, y, z), chunk_slice, ext_drift)
+            k_vec = self.get_krige_vecs((x, y, z), chunk_slice, ext_drift)
             # generate the raw kriging field and error variance
             field[c_slice], krige_var[c_slice] = krigesum(
                 self.krige_mat, k_vec, self.krige_cond
@@ -130,7 +130,12 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
+            ext_shape = np.shape(ext_drift)
             shape = (self.drift_no, point_no)
+            if ext_shape[0] != self.drift_no:
+                raise ValueError("Krige: wrong number of external drifts.")
+            if np.prod(ext_shape) != np.prod(shape):
+                raise ValueError("Krige: wrong number of ext. drift values.")
             return np.array(ext_drift, dtype=np.double).reshape(shape)
         return None
 
@@ -159,9 +164,17 @@ class Krige(Field):
         pos2_stack = np.column_stack(pos2[: self.model.dim])[p2s, ...]
         return cdist(pos1_stack, pos2_stack)
 
-    def krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         return None
+
+    def get_krige_mat(self):
+        """Calculate the LHS of the kriging equation."""
+        return None
+
+    def get_mean(self):
+        """Calculate the estimated mean."""
+        return self._mean
 
     def post_field(self, field, krige_var):
         """
@@ -190,9 +203,14 @@ class Krige(Field):
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.model.dim
         )
+        self.update_model()
+
+    def update_model(self):
+        """Update the kriging model settings."""
+        self._krige_mat = self.get_krige_mat()
+        self._mean = self.get_mean()
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
-        self.update_model()
 
     @property
     def krige_mat(self):
