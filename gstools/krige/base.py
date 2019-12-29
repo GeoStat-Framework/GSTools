@@ -10,7 +10,7 @@ The following classes are provided
    Krige
 """
 # pylint: disable=C0103
-
+import collections
 import numpy as np
 
 # from scipy.linalg import inv
@@ -18,7 +18,7 @@ from scipy.spatial.distance import cdist
 from gstools.field.tools import reshape_field_from_unstruct_to_struct
 from gstools.field.base import Field
 from gstools.krige.krigesum import krigesum
-from gstools.krige.tools import set_condition
+from gstools.krige.tools import set_condition, get_drift_functions
 
 __all__ = ["Krige"]
 
@@ -37,9 +37,24 @@ class Krige(Field):
         the values of the conditions
     mean : :class:`float`, optional
         mean value of the kriging field
+    ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
+        the external drift values at the given cond. positions (only for EDK)
+    drift_functions : :class:`list` of :any:`callable` or :class:`str`
+        Either a list of callable functions or one of the following strings:
+
+            * "linear" : regional linear drift
+            * "quadratic" : regional quadratic drift
     """
 
-    def __init__(self, model, cond_pos, cond_val, mean=0.0):
+    def __init__(
+        self,
+        model,
+        cond_pos,
+        cond_val,
+        mean=0.0,
+        ext_drift=None,
+        drift_functions=None,
+    ):
         super().__init__(model, mean)
         self.krige_var = None
         # initialize private attributes
@@ -49,7 +64,11 @@ class Krige(Field):
         self._krige_mat = None
         self._krige_cond = None
         self._krige_pos = None
-        self.set_condition(cond_pos, cond_val)
+        self._krige_ext_drift = None
+        self._unbiased = True
+        self._drift_functions = None
+        self.set_drift_functions(drift_functions)
+        self.set_condition(cond_pos, cond_val, ext_drift)
 
     def __call__(
         self, pos, mesh_type="unstructured", ext_drift=None, chunk_size=None
@@ -92,7 +111,7 @@ class Krige(Field):
         # iterate of chunks
         for i in range(chunk_no):
             # get chunk slice for actual chunk
-            chunk_slice = (i * chunk_size, (i + 1) * chunk_size)
+            chunk_slice = (i * chunk_size, min(point_no, (i + 1) * chunk_size))
             c_slice = slice(*chunk_slice)
             # get RHS of the kriging system
             k_vec = self.get_krige_vecs((x, y, z), chunk_slice, ext_drift)
@@ -111,9 +130,9 @@ class Krige(Field):
         self.post_field(field, krige_var)
         return self.field, self.krige_var
 
-    def pre_ext_drift(self, point_no, ext_drift=None):
+    def pre_ext_drift(self, point_no, ext_drift=None, set_cond=False):
         """
-        Preprocessor for external drift terms.
+        Preprocessor for external drifts.
 
         Parameters
         ----------
@@ -123,6 +142,9 @@ class Krige(Field):
             the external drift values at the given positions (only for EDK)
             For multiple external drifts, the first dimension
             should be the index of the drift term.
+        set_cond : :class:`bool`, optional
+            State if the given external drift is set for the conditioning
+            points. Default: False
 
         Returns
         -------
@@ -130,6 +152,11 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
+            if set_cond:
+                ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
+                if len(ext_drift.shape) > 2 or ext_drift.shape[1] != point_no:
+                    raise ValueError("Krige: wrong number of cond. drifts.")
+                return ext_drift
             ext_shape = np.shape(ext_drift)
             shape = (self.drift_no, point_no)
             if ext_shape[0] != self.drift_no:
@@ -190,7 +217,7 @@ class Krige(Field):
         self.field = field
         self.krige_var = krige_var
 
-    def set_condition(self, cond_pos, cond_val):
+    def set_condition(self, cond_pos, cond_val, ext_drift=None):
         """Set the conditions for kriging.
 
         Parameters
@@ -199,11 +226,56 @@ class Krige(Field):
             the position tuple of the conditions (x, [y, z])
         cond_val : :class:`numpy.ndarray`
             the values of the conditions
+        ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
+            the external drift values at the given conditions (only for EDK)
+            For multiple external drifts, the first dimension
+            should be the index of the drift term.
         """
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.model.dim
         )
+        self._krige_ext_drift = self.pre_ext_drift(
+            self.cond_no, ext_drift, set_cond=True
+        )
         self.update_model()
+
+    def set_drift_functions(self, drift_functions):
+        """
+        Set the drift functions for universal kriging.
+
+        Parameters
+        ----------
+        drift_functions : TYPE
+            DESCRIPTION.
+
+        Raises
+        ------
+        ValueError
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        if drift_functions is None:
+            self._drift_functions = None
+        elif isinstance(drift_functions, str):
+            self._drift_functions = get_drift_functions(
+                self.model.dim, drift_functions
+            )
+        else:
+            if isinstance(drift_functions, collections.Iterator):
+                drift_functions = list(drift_functions)
+            # check for a single content thats not a string
+            try:
+                iter(drift_functions)
+            except TypeError:
+                drift_functions = [drift_functions]
+            for f in drift_functions:
+                if not callable(f):
+                    raise ValueError("Universal: Drift functions not callable")
+            self._drift_functions = drift_functions
 
     def update_model(self):
         """Update the kriging model settings."""
@@ -228,6 +300,11 @@ class Krige(Field):
         return self._krige_pos
 
     @property
+    def krige_ext_drift(self):
+        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
+        return self._krige_ext_drift
+
+    @property
     def drift_no(self):
         """:class:`int`: Number of drift values per point."""
         return 0
@@ -241,6 +318,21 @@ class Krige(Field):
     def cond_val(self):
         """:class:`list`: The values of the conditions."""
         return self._cond_val
+
+    @property
+    def cond_no(self):
+        """:class:`int`: The number of the conditions."""
+        return len(self._cond_val)
+
+    @property
+    def drift_functions(self):
+        """:class:`list` of :any:`callable`: The drift functions."""
+        return self._drift_functions
+
+    @property
+    def unbiased(self):
+        """:class:`bool`: Whether the kriging is unbiased or not."""
+        return self._unbiased
 
 
 if __name__ == "__main__":  # pragma: no cover
