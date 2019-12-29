@@ -46,8 +46,9 @@ class Field:
         self.mesh_type = None
         self.field = None
         # initialize private attributes
-        self._mean = mean
+        self._mean = None
         self._model = None
+        self.mean = mean
         self.model = model
         self._value_type = None
 
