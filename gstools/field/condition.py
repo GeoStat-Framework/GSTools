@@ -35,6 +35,8 @@ def ordinary(srf):
     krige_var : :class:`numpy.ndarray`
         the variance of the kriged field
     """
+    if srf._value_type != "scalar":
+        raise ValueError("Conditioned SRF: only scalar fields allowed.")
     krige_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=srf.cond_val
     )
@@ -75,6 +77,8 @@ def simple(srf):
     krige_var : :class:`numpy.ndarray`
         the variance of the kriged field
     """
+    if srf._value_type != "scalar":
+        raise ValueError("Conditioned SRF: only scalar fields allowed.")
     krige_sk = Simple(
         model=srf.model,
         mean=srf.mean,
@@ -90,13 +94,13 @@ def simple(srf):
     y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
     err_data = srf.generator.__call__(x, y, z, "unstructured") + srf.mean
 
-    err_ok = Simple(
+    err_sk = Simple(
         model=srf.model,
         mean=srf.mean,
         cond_pos=srf.cond_pos,
         cond_val=err_data,
     )
-    err_field, __ = err_ok(srf.pos, srf.mesh_type)
+    err_field, __ = err_sk(srf.pos, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field + srf.mean
     info = {}
     return cond_field, krige_field, err_field, krige_var, info
