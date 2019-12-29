@@ -207,10 +207,10 @@ class Krige(Field):
 
     def update_model(self):
         """Update the kriging model settings."""
-        self._krige_mat = self.get_krige_mat()
-        self._mean = self.get_mean()
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
+        self._krige_mat = self.get_krige_mat()
+        self._mean = self.get_mean()
 
     @property
     def krige_mat(self):
