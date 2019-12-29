@@ -54,6 +54,12 @@ class Simple(Krige):
         self.field = field + self.mean
         self.krige_var = self.model.sill - krige_var
 
+    def krige_vecs(self, chunk_slice=(0, None), ext_drift=None):
+        """Calculate the RHS of the kriging equation."""
+        return self.model.cov_nugget(
+            self.get_dists(self.cond_pos, self.pos, chunk_slice)
+        )
+
     @property
     def krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
