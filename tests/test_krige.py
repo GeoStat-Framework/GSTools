@@ -35,7 +35,7 @@ class TestKrige(unittest.TestCase):
                 dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
             simple = krige.Simple(
-                model, self.mean, self.cond_pos[0], self.cond_val
+                model, self.cond_pos[0], self.cond_val, self.mean
             )
             field_1, __ = simple.unstructured(self.pos[0])
             field_2, __ = simple.structured(self.pos[0])
@@ -54,7 +54,7 @@ class TestKrige(unittest.TestCase):
                     angles=[0.5, 0, 0],
                 )
                 simple = krige.Simple(
-                    model, self.mean, self.cond_pos[:dim], self.cond_val
+                    model, self.cond_pos[:dim], self.cond_val, self.mean
                 )
                 field_1, __ = simple.unstructured(self.pos[:dim])
                 field_2, __ = simple.structured(self.pos[:dim])
