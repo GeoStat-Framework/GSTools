@@ -48,6 +48,7 @@ class Krige(Field):
         self._cond_val = None
         self._krige_mat = None
         self._krige_cond = None
+        self._krige_pos = None
         self.set_condition(cond_pos, cond_val)
 
     def __call__(
@@ -93,7 +94,7 @@ class Krige(Field):
             # get chunk slice for actual chunk
             chunk_slice = (i * chunk_size, (i + 1) * chunk_size)
             c_slice = slice(*chunk_slice)
-            # get RHS of the kriging system (access pos via self.pos)
+            # get RHS of the kriging system
             k_vec = self.krige_vecs((x, y, z), chunk_slice, ext_drift)
             # generate the raw kriging field and error variance
             field[c_slice], krige_var[c_slice] = krigesum(
@@ -189,6 +190,8 @@ class Krige(Field):
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.model.dim
         )
+        x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
+        self._krige_pos = (x, y, z)[: self.model.dim]
         self.update_model()
 
     @property
@@ -200,6 +203,11 @@ class Krige(Field):
     def krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
         return np.pad(self.cond_val, (0, self.drift_no), constant_values=0)
+
+    @property
+    def krige_pos(self):
+        """:class:`numpy.ndarray`: The unrotated and isotopic cond pos."""
+        return self._krige_pos
 
     @property
     def drift_no(self):

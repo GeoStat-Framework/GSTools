@@ -36,7 +36,7 @@ class Simple(Krige):
     def update_model(self):
         """Update the kriging model settings."""
         self._krige_mat = inv(
-            self.model.cov_nugget(self.get_dists(self.cond_pos))
+            self.model.cov_nugget(self.get_dists(self.krige_pos))
         )
 
     def post_field(self, field, krige_var):
@@ -57,7 +57,7 @@ class Simple(Krige):
     def krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         return self.model.cov_nugget(
-            self.get_dists(self.cond_pos, pos, chunk_slice)
+            self.get_dists(self.krige_pos, pos, chunk_slice)
         )
 
     @property
