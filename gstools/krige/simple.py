@@ -37,6 +37,12 @@ class Simple(Krige):
         """Update the kriging model settings."""
         return inv(self.model.cov_nugget(self.get_dists(self.krige_pos)))
 
+    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+        """Calculate the RHS of the kriging equation."""
+        return self.model.cov_nugget(
+            self.get_dists(self.krige_pos, pos, chunk_slice)
+        )
+
     def post_field(self, field, krige_var):
         """
         Postprocessing and saving of kriging field and error variance.
@@ -51,12 +57,6 @@ class Simple(Krige):
         # add the given mean
         self.field = field + self.mean
         self.krige_var = self.model.sill - krige_var
-
-    def krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
-        """Calculate the RHS of the kriging equation."""
-        return self.model.cov_nugget(
-            self.get_dists(self.krige_pos, pos, chunk_slice)
-        )
 
     @property
     def krige_cond(self):
