@@ -58,7 +58,7 @@ def get_drift_functions(dim, drift_type):
     dim : :class:`int`
         Given dimension.
     drift_type : :class:`str`
-        Drift type: 'ordinary', 'linear' or 'quadratic'.
+        Drift type: 'linear' or 'quadratic'.
 
     Raises
     ------
@@ -70,22 +70,15 @@ def get_drift_functions(dim, drift_type):
     :class:`list` of :any:`callable`
         List of drift functions.
     """
-    ord_drift = [_f_1]
     lin_drift = [_f_x, _f_y, _f_z][:dim]
     qu1_drift = [_f_xx, _f_yy, _f_zz][:dim]
     qu2_drift = [] if dim < 2 else [_f_xy]
     qu3_drift = [] if dim < 3 else [_f_yz, _f_xz]
-    if drift_type in ["const", "ord", "constant", "ordinary"]:
-        return ord_drift
     if drift_type in ["lin", "linear"]:
-        return ord_drift + lin_drift
+        return lin_drift
     if drift_type in ["quad", "quadratic"]:
-        return ord_drift + lin_drift + qu1_drift + qu2_drift + qu3_drift
+        return lin_drift + qu1_drift + qu2_drift + qu3_drift
     raise ValueError("Drift: unknown drift given: '{}'".format(drift_type))
-
-
-def _f_1(*pos):
-    return np.ones_like(pos[0])
 
 
 def _f_x(*pos):
