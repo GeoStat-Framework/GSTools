@@ -133,7 +133,7 @@ class Krige(Field):
             return np.array(ext_drift, dtype=np.double).reshape(shape)
         return None
 
-    def get_dists(self, pos1, pos2, pos2_slice=(0, None)):
+    def get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
         """
         Calculate pairwise distances.
 
@@ -141,8 +141,8 @@ class Krige(Field):
         ----------
         pos1 : :class:`tuple` of :class:`numpy.ndarray`
             the first position tuple
-        pos2 : :class:`tuple` of :class:`numpy.ndarray`
-            the second position tuple
+        pos2 : :class:`tuple` of :class:`numpy.ndarray`, optional
+            the second position tuple. If none, the first one is taken.
         pos2_slice : :class:`tuple` of :class:`int`, optional
             Start and stop of slice for the pos2 array. Default: all values.
 
@@ -151,10 +151,12 @@ class Krige(Field):
         :class:`numpy.ndarray`
             Matrix containing the pairwise distances.
         """
-        return cdist(
-            np.column_stack(pos1[: self.model.dim]),
-            np.column_stack(pos2[: self.model.dim])[slice(*pos2_slice), ...],
-        )
+        pos1_stack = np.column_stack(pos1[: self.model.dim])
+        if pos2 is None:
+            return cdist(pos1_stack, pos1_stack)
+        p2s = slice(*pos2_slice)
+        pos2_stack = np.column_stack(pos2[: self.model.dim])[p2s, ...]
+        return cdist(pos1_stack, pos2_stack)
 
     def krige_vecs(self, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
