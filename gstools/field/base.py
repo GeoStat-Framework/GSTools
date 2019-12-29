@@ -71,7 +71,7 @@ class Field:
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
-    def pre_pos(self, pos, mesh_type):
+    def pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
         """
         Preprocessing positions and mesh_type.
 
@@ -82,6 +82,8 @@ class Field:
             directions
         mesh_type : :class:`str`
             'structured' / 'unstructured'
+        make_unstruct: :class:`bool`
+            State if mesh_type should be made unstructured.
 
         Returns
         -------
@@ -96,7 +98,9 @@ class Field:
         mesh_type_gen : :class:`str`
             'structured' / 'unstructured' for the generator
         mesh_type_changed : :class:`bool`
-            State if mesh_type was changed.
+            State if the mesh_type was changed.
+        axis_lens : :class:`tuple` or :any:`None`
+            axis lenghts of the structured mesh if mesh type was changed.
         """
         x, y, z = pos2xyz(pos, max_dim=self.model.dim)
         pos = xyz2pos(x, y, z)
@@ -105,13 +109,15 @@ class Field:
         check_mesh(self.model.dim, x, y, z, mesh_type)
         mesh_type_changed = False
         axis_lens = None
+        if (
+            self.model.do_rotation or make_unstruct
+        ) and mesh_type == "structured":
+            mesh_type_changed = True
+            mesh_type_gen = "unstructured"
+            x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
+                self.model.dim, x, y, z
+            )
         if self.model.do_rotation:
-            if mesh_type == "structured":
-                mesh_type_changed = True
-                mesh_type_gen = "unstructured"
-                x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                    self.model.dim, x, y, z
-                )
             x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
         y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
         return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
