@@ -162,17 +162,17 @@ class Universal(Krige):
         """Update the kriging model settings."""
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, size), dtype=np.double)
-        res[:size, :size] = self.model.vario_nugget(
+        res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
             self.get_dists(self.krige_pos)
         )
         if self.unbiased:
-            res[size, :] = 1
-            res[:, size] = 1
-            res[size, size] = 0
+            res[self.cond_no, : self.cond_no] = 1
+            res[: self.cond_no, self.cond_no] = 1
         for i, f in enumerate(self.drift_functions):
             drift_tmp = f(*self.cond_pos)
             res[-self.drift_no + i, : self.cond_no] = drift_tmp
             res[: self.cond_no, -self.drift_no + i] = drift_tmp
+        res[self.cond_no :, self.cond_no :] = 0
         return inv(res)
 
     def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
@@ -186,7 +186,7 @@ class Universal(Krige):
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
-        chunk_pos = pos[: self.model.dim]
+        chunk_pos = list(pos[: self.model.dim])
         for i in range(self.model.dim):
             chunk_pos[i] = chunk_pos[i][slice(*chunk_slice)]
         for i, f in enumerate(self.drift_functions):
@@ -228,15 +228,15 @@ class ExtDrift(Krige):
         """Update the kriging model settings."""
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, size), dtype=np.double)
-        res[:size, :size] = self.model.vario_nugget(
+        res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
             self.get_dists(self.krige_pos)
         )
         if self.unbiased:
-            res[size, :] = 1
-            res[:, size] = 1
-            res[size, size] = 0
+            res[self.cond_no, : self.cond_no] = 1
+            res[: self.cond_no, self.cond_no] = 1
         res[-self.drift_no :, : self.cond_no] = self.krige_ext_drift
         res[: self.cond_no, -self.drift_no :] = self.krige_ext_drift.T
+        res[self.cond_no :, self.cond_no :] = 0
         return inv(res)
 
     def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
@@ -250,7 +250,7 @@ class ExtDrift(Krige):
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
-        res[-self.drift_no :, :] = ext_drift[: slice(*chunk_slice)]
+        res[-self.drift_no :, :] = ext_drift[:, slice(*chunk_slice)]
         return res
 
     @property

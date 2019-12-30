@@ -157,6 +157,7 @@ class Krige(Field):
                 if len(ext_drift.shape) > 2 or ext_drift.shape[1] != point_no:
                     raise ValueError("Krige: wrong number of cond. drifts.")
                 return ext_drift
+            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
             ext_shape = np.shape(ext_drift)
             shape = (self.drift_no, point_no)
             if ext_shape[0] != self.drift_no:
