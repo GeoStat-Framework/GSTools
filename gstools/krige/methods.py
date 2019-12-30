@@ -120,6 +120,13 @@ class Ordinary(Krige):
             res[self.cond_no, :] = 1
         return res
 
+    def get_mean(self):
+        """Calculate the estimated mean."""
+        mean_est = np.concatenate(
+            (np.full_like(self.cond_val, self.model.sill), [1])
+        )
+        return np.einsum("i,ij,j", self.krige_cond, self.krige_mat, mean_est)
+
     def __repr__(self):
         """Return String representation."""
         return "Ordinary(model={0}, cond_pos={1}, cond_val={2}".format(
