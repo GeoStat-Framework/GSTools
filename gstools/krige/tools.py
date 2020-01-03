@@ -51,7 +51,7 @@ def set_condition(cond_pos, cond_val, max_dim=3):
 
 def get_drift_functions(dim, drift_type):
     """
-    Get functions for a given drift type.
+    Get functions for a given drift type in universal kriging.
 
     Parameters
     ----------
