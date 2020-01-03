@@ -636,11 +636,8 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def ln_spectral_rad_pdf(self, r):
         """Log radial spectral density of the model."""
-        spec = np.array(self.spectral_rad_pdf(r))
-        spec_gz = np.logical_not(np.isclose(spec, 0))
-        res = np.full_like(spec, -np.inf, dtype=np.double)
-        res[spec_gz] = np.log(spec[spec_gz])
-        return res
+        with np.errstate(divide='ignore'):
+            return np.log(self.spectral_rad_pdf(r))
 
     def _has_cdf(self):
         """State if a cdf is defined with 'spectral_rad_cdf'."""
