@@ -120,7 +120,8 @@ class Field:
             )
         if self.model.do_rotation:
             x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
-        y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
+        if not self.model.is_isotropic:
+            y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
         return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
 
     def mesh(
