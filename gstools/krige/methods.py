@@ -24,6 +24,8 @@ class Simple(Krige):
     """
     A class for simple kriging.
 
+    Simple kriging is used to interpolate data with a given mean.
+
     Parameters
     ----------
     model : :any:`CovModel`
@@ -81,6 +83,8 @@ class Ordinary(Krige):
     """
     A class for ordinary kriging.
 
+    Ordinary kriging is used to estimate a constant mean from the given data.
+
     Parameters
     ----------
     model : :any:`CovModel`
@@ -137,6 +141,9 @@ class Ordinary(Krige):
 class Universal(Krige):
     """
     A class for universal kriging.
+
+    Universal kriging is used to interpolate given data with a variable mean,
+    that is determined by a functional drift.
 
     Parameters
     ----------
@@ -208,6 +215,9 @@ class Universal(Krige):
 class ExtDrift(Krige):
     """
     A class for external drift kriging (EDK).
+
+    Universal kriging is used to interpolate given data with a variable mean,
+    that is determined by an external drift.
 
     Parameters
     ----------
