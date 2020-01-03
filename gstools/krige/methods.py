@@ -288,7 +288,7 @@ class Detrended(Simple):
     """
 
     def __init__(self, model, cond_pos, cond_val, trend_function):
-        self._trend = None
+        self._krige_trend = None
         self._trend_function = None
         self.trend_function = trend_function
         super().__init__(model, cond_pos, cond_val, mean=0.0)
@@ -298,7 +298,7 @@ class Detrended(Simple):
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self.get_krige_mat()
-        self._trend = self.trend_function(*self._krige_pos)
+        self._krige_trend = self.trend_function(*self._krige_pos)
 
     def post_field(self, field, krige_var):
         """
