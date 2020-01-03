@@ -323,7 +323,8 @@ class CovModel(metaclass=InitSubclassMeta):
         x, y, z = pos2xyz(pos, max_dim=self.dim)
         if self.do_rotation:
             x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
-        y, z = make_isotropic(self.dim, self.anis, y, z)
+        if not self.is_isotropic:
+            y, z = make_isotropic(self.dim, self.anis, y, z)
         return np.linalg.norm((x, y, z)[: self.dim], axis=0)
 
     def vario_spatial(self, pos):
@@ -1208,7 +1209,14 @@ class CovModel(metaclass=InitSubclassMeta):
     @property
     def do_rotation(self):
         """:any:`bool`: State if a rotation is performed."""
-        return not np.all(np.isclose(self.angles, 0.0))
+        return (
+            not np.all(np.isclose(self.angles, 0.0)) and not self.is_isotropic
+        )
+
+    @property
+    def is_isotropic(self):
+        """:any:`bool`: State if a model is isotropic."""
+        return np.all(np.isclose(self.anis, 1.0))
 
     ### magic methods #########################################################
 
