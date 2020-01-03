@@ -74,13 +74,13 @@ class TPLGaussian(CovModel):
 
     The following Parameters occure:
 
-        * :math:`C>0` : The scaling factor from the Power-Law.
+        * :math:`C>0` : scaling factor from the Power-Law
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
-        * :math:`0<H<1` : The hurst coefficient (``model.hurst``)
-        * :math:`\ell_{\mathrm{low}}\geq 0` : The lower length scale truncation
+        * :math:`0<H<1` : hurst coefficient (``model.hurst``)
+        * :math:`\ell_{\mathrm{low}}\geq 0` : lower length scale truncation
           of the model (``model.len_low``)
-        * :math:`\ell_{\mathrm{up}}\geq 0` : The upper length scale truncation
+        * :math:`\ell_{\mathrm{up}}\geq 0` : upper length scale truncation
           of the model (``model.len_up``)
 
           This will be calculated internally by:
@@ -254,13 +254,13 @@ class TPLExponential(CovModel):
 
     The following Parameters occure:
 
-        * :math:`C>0` : The scaling factor from the Power-Law.
+        * :math:`C>0` : scaling factor from the Power-Law
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
-        * :math:`0<H<\frac{1}{2}` : The hurst coefficient (``model.hurst``)
-        * :math:`\ell_{\mathrm{low}}\geq 0` : The lower length scale truncation
+        * :math:`0<H<\frac{1}{2}` : hurst coefficient (``model.hurst``)
+        * :math:`\ell_{\mathrm{low}}\geq 0` : lower length scale truncation
           of the model (``model.len_low``)
-        * :math:`\ell_{\mathrm{up}}\geq 0` : The upper length scale truncation
+        * :math:`\ell_{\mathrm{up}}\geq 0` : upper length scale truncation
           of the model (``model.len_up``)
 
           This will be calculated internally by:
@@ -439,13 +439,13 @@ class TPLStable(CovModel):
             * :math:`\alpha=1` : Exponential modes
             * :math:`\alpha=2` : Gaussian modes
 
-        * :math:`C>0` : The scaling factor from the Power-Law.
+        * :math:`C>0` : scaling factor from the Power-Law
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
-        * :math:`0<H<\frac{\alpha}{2}` : The hurst coefficient (``model.hurst``)
-        * :math:`\ell_{\mathrm{low}}\geq 0` : The lower length scale truncation
+        * :math:`0<H<\frac{\alpha}{2}` : hurst coefficient (``model.hurst``)
+        * :math:`\ell_{\mathrm{low}}\geq 0` : lower length scale truncation
           of the model (``model.len_low``)
-        * :math:`\ell_{\mathrm{up}}\geq 0` : The upper length scale truncation
+        * :math:`\ell_{\mathrm{up}}\geq 0` : upper length scale truncation
           of the model (``model.len_up``)
 
           This will be calculated internally by:
@@ -527,7 +527,9 @@ class TPLStable(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"hurst": [0, 1, "oo"], "alpha": [0, 2, "oc"], "len_low": [0, 1000, "cc"]}``
+            * ``{"hurst": [0, 1, "oo"],
+              "alpha": [0, 2, "oc"],
+              "len_low": [0, 1000, "cc"]}``
 
         Returns
         -------
