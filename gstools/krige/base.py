@@ -58,15 +58,15 @@ class Krige(Field):
         super().__init__(model, mean)
         self.krige_var = None
         # initialize private attributes
+        self._unbiased = True
         self._value_type = "scalar"
         self._cond_pos = None
         self._cond_val = None
         self._krige_mat = None
         self._krige_cond = None
         self._krige_pos = None
-        self._krige_ext_drift = None
-        self._unbiased = True
-        self._drift_functions = None
+        self._krige_ext_drift = np.array([])
+        self._drift_functions = []
         self.set_drift_functions(drift_functions)
         self.set_condition(cond_pos, cond_val, ext_drift)
 
@@ -165,7 +165,7 @@ class Krige(Field):
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
             return np.array(ext_drift, dtype=np.double).reshape(shape)
-        return None
+        return np.array([])
 
     def get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
         """
@@ -240,27 +240,26 @@ class Krige(Field):
         )
         self.update_model()
 
-    def set_drift_functions(self, drift_functions):
+    def set_drift_functions(self, drift_functions=None):
         """
         Set the drift functions for universal kriging.
 
         Parameters
         ----------
-        drift_functions : TYPE
-            DESCRIPTION.
+        drift_functions : :class:`list` of :any:`callable` or :class:`str`
+            Either a list of callable functions
+            or one of the following strings:
+
+                * "linear" : regional linear drift
+                * "quadratic" : regional quadratic drift
 
         Raises
         ------
         ValueError
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
+            If the given drift functions are not callable.
         """
         if drift_functions is None:
-            self._drift_functions = None
+            self._drift_functions = []
         elif isinstance(drift_functions, str):
             self._drift_functions = get_drift_functions(
                 self.model.dim, drift_functions
@@ -302,16 +301,6 @@ class Krige(Field):
         return self._krige_pos
 
     @property
-    def krige_ext_drift(self):
-        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
-        return self._krige_ext_drift
-
-    @property
-    def drift_no(self):
-        """:class:`int`: Number of drift values per point."""
-        return 0
-
-    @property
     def cond_pos(self):
         """:class:`list`: The position tuple of the conditions."""
         return self._cond_pos
@@ -330,6 +319,16 @@ class Krige(Field):
     def drift_functions(self):
         """:class:`list` of :any:`callable`: The drift functions."""
         return self._drift_functions
+
+    @property
+    def krige_ext_drift(self):
+        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
+        return self._krige_ext_drift
+
+    @property
+    def drift_no(self):
+        """:class:`int`: Number of drift values per point."""
+        return len(self.drift_functions) + self.krige_ext_drift.shape[0]
 
     @property
     def unbiased(self):
