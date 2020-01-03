@@ -16,7 +16,11 @@ The following classes and functions are provided
 import warnings
 import numpy as np
 from gstools.covmodel.base import CovModel
-from gstools.tools.special import tplstable_cor
+from gstools.tools.special import (
+    tplstable_cor,
+    tpl_gau_spec_dens,
+    tpl_exp_spec_dens,
+)
 
 __all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
 
@@ -193,6 +197,11 @@ class TPLGaussian(CovModel):
             self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
         )
 
+    def spectral_density(self, k):  # noqa: D102
+        return tpl_gau_spec_dens(
+            k, self.dim, self.len_scale, self.hurst, self.len_low
+        )
+
 
 class TPLExponential(CovModel):
     r"""Truncated-Power-Law with Exponential modes.
@@ -357,6 +366,11 @@ class TPLExponential(CovModel):
             * tplstable_cor(r, self.len_low, self.hurst, 1)
         ) / (
             self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
+        )
+
+    def spectral_density(self, k):  # noqa: D102
+        return tpl_exp_spec_dens(
+            k, self.dim, self.len_scale, self.hurst, self.len_low
         )
 
 
