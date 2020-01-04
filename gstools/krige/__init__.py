@@ -13,6 +13,7 @@ Kriging Classes
    Universal
    ExtDrift
    Detrended
+   DetrendedOrdinary
 
 ----
 """
@@ -22,6 +23,14 @@ from gstools.krige.methods import (
     Universal,
     ExtDrift,
     Detrended,
+    DetrendedOrdinary,
 )
 
-__all__ = ["Simple", "Ordinary", "Universal", "ExtDrift", "Detrended"]
+__all__ = [
+    "Simple",
+    "Ordinary",
+    "Universal",
+    "ExtDrift",
+    "Detrended",
+    "DetrendedOrdinary",
+]
