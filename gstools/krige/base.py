@@ -238,7 +238,7 @@ class Krige(Field):
         self._krige_ext_drift = self.pre_ext_drift(
             self.cond_no, ext_drift, set_cond=True
         )
-        self.update_model()
+        self.update()
 
     def set_drift_functions(self, drift_functions=None):
         """
@@ -277,8 +277,8 @@ class Krige(Field):
                     raise ValueError("Universal: Drift functions not callable")
             self._drift_functions = drift_functions
 
-    def update_model(self):
-        """Update the kriging model settings."""
+    def update(self):
+        """Update the kriging settings."""
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self.get_krige_mat()

@@ -293,8 +293,8 @@ class Detrended(Simple):
         self.trend_function = trend_function
         super().__init__(model, cond_pos, cond_val, mean=0.0)
 
-    def update_model(self):
-        """Update the kriging model settings."""
+    def update(self):
+        """Update the kriging settings."""
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self.get_krige_mat()
