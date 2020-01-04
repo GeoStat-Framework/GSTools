@@ -283,7 +283,7 @@ class Detrended(Simple):
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
-    func : :any:`callable`
+    trend_function : :any:`callable`
         The callable trend function. Should have the signiture: f(x, [y, z])
     """
 
