@@ -1,6 +1,8 @@
 """
-Transform 3
-===========
+log-normal fields
+-----------------
+
+Here we transform a field to a log-normal distribution:
 """
 from gstools import SRF, Gaussian
 from gstools import transform as tf
@@ -10,5 +12,5 @@ x = y = range(100)
 model = Gaussian(dim=2, var=1, len_scale=10)
 srf = SRF(model, seed=20170519)
 srf.structured([x, y])
-tf.zinnharvey(srf, conn="high")
+tf.normal_to_lognormal(srf)
 srf.plot()
