@@ -18,7 +18,12 @@ from scipy.spatial.distance import cdist
 from gstools.field.tools import reshape_field_from_unstruct_to_struct
 from gstools.field.base import Field
 from gstools.krige.krigesum import krigesum
-from gstools.krige.tools import set_condition, get_drift_functions
+from gstools.krige.tools import (
+    set_condition,
+    get_drift_functions,
+    no_trend,
+    eval_func,
+)
 
 __all__ = ["Krige"]
 
@@ -44,6 +49,13 @@ class Krige(Field):
 
             * "linear" : regional linear drift
             * "quadratic" : regional quadratic drift
+
+    trend_function : :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z])
+        This is used for detrended kriging, where the trended is subtracted
+        from the conditions before kriging is applied.
+        This can be used for regression kriging, where the trend function
+        is determined by an external regression algorithm.
     """
 
     def __init__(
@@ -54,6 +66,7 @@ class Krige(Field):
         mean=0.0,
         ext_drift=None,
         drift_functions=None,
+        trend_function=None,
     ):
         super().__init__(model, mean)
         self.krige_var = None
@@ -65,6 +78,9 @@ class Krige(Field):
         self._krige_mat = None
         self._krige_cond = None
         self._krige_pos = None
+        self._krige_trend = None
+        self._trend_function = None
+        self.trend_function = trend_function
         self._krige_ext_drift = np.array([])
         self._drift_functions = []
         self.set_drift_functions(drift_functions)
@@ -215,7 +231,12 @@ class Krige(Field):
         krige_var : :class:`numpy.ndarray`
             Raw kriging error variance.
         """
-        self.field = field
+        if self.trend_function is no_trend:
+            self.field = field
+        else:
+            self.field = field + eval_func(
+                self.trend_function, self.pos, self.mesh_type
+            )
         self.krige_var = krige_var
 
     def set_condition(self, cond_pos, cond_val, ext_drift=None):
@@ -282,6 +303,7 @@ class Krige(Field):
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self.get_krige_mat()
+        self._krige_trend = self.trend_function(*self._krige_pos)
         self._mean = self.get_mean()
 
     @property
@@ -293,7 +315,9 @@ class Krige(Field):
     def krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
         pad_size = self.drift_no + int(self.unbiased)
-        return np.pad(self.cond_val, (0, pad_size), constant_values=0)
+        return np.pad(
+            self.cond_val - self.krige_trend, (0, pad_size), constant_values=0
+        )
 
     @property
     def krige_pos(self):
@@ -334,6 +358,24 @@ class Krige(Field):
     def unbiased(self):
         """:class:`bool`: Whether the kriging is unbiased or not."""
         return self._unbiased
+
+    @property
+    def krige_trend(self):
+        """:class:`numpy.ndarray`: Trend at the conditions."""
+        return self._krige_trend
+
+    @property
+    def trend_function(self):
+        """:any:`callable`: The trend function."""
+        return self._trend_function
+
+    @trend_function.setter
+    def trend_function(self, trend_function):
+        if trend_function is None:
+            trend_function = no_trend
+        if not callable(trend_function):
+            raise ValueError("Detrended kriging: trend function not callable.")
+        self._trend_function = trend_function
 
 
 if __name__ == "__main__":  # pragma: no cover

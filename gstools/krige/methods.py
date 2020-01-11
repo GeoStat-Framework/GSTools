@@ -12,22 +12,14 @@ The following classes are provided
    Universal
    ExtDrift
    Detrended
-   DetrendedOrdinary
 """
 # pylint: disable=C0103
 import numpy as np
 from scipy.linalg import inv
 from gstools.krige.base import Krige
-from gstools.krige.tools import eval_func
+from gstools.krige.tools import eval_func, no_trend
 
-__all__ = [
-    "Simple",
-    "Ordinary",
-    "Universal",
-    "ExtDrift",
-    "Detrended",
-    "DetrendedOrdinary",
-]
+__all__ = ["Simple", "Ordinary", "Universal", "ExtDrift", "Detrended"]
 
 
 class Simple(Krige):
@@ -46,10 +38,20 @@ class Simple(Krige):
         the values of the conditions
     mean : :class:`float`, optional
         mean value of the kriging field
+    trend_function : :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z])
+        This is used for detrended kriging, where the trended is subtracted
+        from the conditions before kriging is applied.
+        This can be used for regression kriging, where the trend function
+        is determined by an external regression algorithm.
     """
 
-    def __init__(self, model, cond_pos, cond_val, mean=0.0):
-        super().__init__(model, cond_pos, cond_val, mean=mean)
+    def __init__(
+        self, model, cond_pos, cond_val, mean=0.0, trend_function=None
+    ):
+        super().__init__(
+            model, cond_pos, cond_val, mean=mean, trend_function=trend_function
+        )
         self._unbiased = False
 
     def get_krige_mat(self):
@@ -73,19 +75,27 @@ class Simple(Krige):
         krige_var : :class:`numpy.ndarray`
             Raw kriging error variance.
         """
+        if self.trend_function is no_trend:
+            print("no trend")
+            self.field = field + self.mean
+        else:
+            self.field = (
+                field
+                + self.mean
+                + eval_func(self.trend_function, self.pos, self.mesh_type)
+            )
         # add the given mean
-        self.field = field + self.mean
         self.krige_var = self.model.sill - krige_var
 
     @property
     def krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
-        return self.cond_val - self.mean
+        return self.cond_val - self.mean - self.krige_trend
 
     def __repr__(self):
         """Return String representation."""
-        return "Simple(model={0}, mean={1}, cond_pos={2}, cond_val={3})".format(
-            self.model, self.mean, self.cond_pos, self.cond_val
+        return "Simple(model={0}, cond_pos={1}, cond_val={2}, mean={3})".format(
+            self.model, self.cond_pos, self.cond_val, self.mean
         )
 
 
@@ -103,10 +113,18 @@ class Ordinary(Krige):
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
+    trend_function : :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z])
+        This is used for detrended kriging, where the trended is subtracted
+        from the conditions before kriging is applied.
+        This can be used for regression kriging, where the trend function
+        is determined by an external regression algorithm.
     """
 
-    def __init__(self, model, cond_pos, cond_val):
-        super().__init__(model, cond_pos, cond_val)
+    def __init__(self, model, cond_pos, cond_val, trend_function=None):
+        super().__init__(
+            model, cond_pos, cond_val, trend_function=trend_function
+        )
 
     def get_krige_mat(self):
         """Update the kriging model settings."""
@@ -155,6 +173,11 @@ class Universal(Krige):
     Universal kriging is used to interpolate given data with a variable mean,
     that is determined by a functional drift.
 
+    This estimator is set to be unbiased by default.
+    This means, that the weights in the kriging equation sum up to 1.
+    Consequently no constant function needs to be given for a constant drift,
+    since the unbiased condition is applied to all given drift functions.
+
     Parameters
     ----------
     model : :any:`CovModel`
@@ -164,15 +187,29 @@ class Universal(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
     drift_functions : :class:`list` of :any:`callable` or :class:`str`
+        The given functional drift for universal kriging.
         Either a list of callable functions or one of the following strings:
 
             * "linear" : regional linear drift
             * "quadratic" : regional quadratic drift
+
+    trend_function : :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z])
+        This is used for detrended kriging, where the trended is subtracted
+        from the conditions before kriging is applied.
+        This can be used for regression kriging, where the trend function
+        is determined by an external regression algorithm.
     """
 
-    def __init__(self, model, cond_pos, cond_val, drift_functions):
+    def __init__(
+        self, model, cond_pos, cond_val, drift_functions, trend_function=None
+    ):
         super().__init__(
-            model, cond_pos, cond_val, drift_functions=drift_functions
+            model,
+            cond_pos,
+            cond_val,
+            drift_functions=drift_functions,
+            trend_function=trend_function,
         )
 
     def get_krige_mat(self):
@@ -224,6 +261,11 @@ class ExtDrift(Krige):
     External drift kriging is used to interpolate given data
     with a variable mean, that is determined by an external drift.
 
+    This estimator is set to be unbiased by default.
+    This means, that the weights in the kriging equation sum up to 1.
+    Consequently no constant external drift needs to be given to estimate
+    a proper mean.
+
     Parameters
     ----------
     model : :any:`CovModel`
@@ -233,11 +275,25 @@ class ExtDrift(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
     ext_drift : :class:`numpy.ndarray`
-        the external drift values at the given cond. positions (only for EDK)
+        the external drift values at the given condition positions.
+    trend_function : :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z])
+        This is used for detrended kriging, where the trended is subtracted
+        from the conditions before kriging is applied.
+        This can be used for regression kriging, where the trend function
+        is determined by an external regression algorithm.
     """
 
-    def __init__(self, model, cond_pos, cond_val, ext_drift):
-        super().__init__(model, cond_pos, cond_val, ext_drift=ext_drift)
+    def __init__(
+        self, model, cond_pos, cond_val, ext_drift, trend_function=None
+    ):
+        super().__init__(
+            model,
+            cond_pos,
+            cond_val,
+            ext_drift=ext_drift,
+            trend_function=trend_function,
+        )
 
     def get_krige_mat(self):
         """Update the kriging model settings."""
@@ -283,7 +339,11 @@ class Detrended(Simple):
     simple kriging with zero mean.
 
     The trend needs to be a callable function the user has to provide.
-    This can be used for regression kriging.
+    This can be used for regression kriging, where the trend function
+    is determined by an external regression algorithm.
+
+    This is just a shortcut for simple kriging with a given trend function
+    and zero mean. A trend can be given with EVERY provided kriging routine.
 
     Parameters
     ----------
@@ -298,143 +358,13 @@ class Detrended(Simple):
     """
 
     def __init__(self, model, cond_pos, cond_val, trend_function):
-        self._krige_trend = None
-        self._trend_function = None
-        self.trend_function = trend_function
-        super().__init__(model, cond_pos, cond_val, mean=0.0)
-
-    def update(self):
-        """Update the kriging settings."""
-        x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
-        self._krige_pos = (x, y, z)[: self.model.dim]
-        self._krige_mat = self.get_krige_mat()
-        self._krige_trend = self.trend_function(*self._krige_pos)
-
-    def post_field(self, field, krige_var):
-        """
-        Postprocessing and saving of kriging field and error variance.
-
-        Parameters
-        ----------
-        field : :class:`numpy.ndarray`
-            Raw kriging field.
-        krige_var : :class:`numpy.ndarray`
-            Raw kriging error variance.
-        """
-        # add the given mean
-        self.field = field + eval_func(
-            self.trend_function, self.pos, self.mesh_type
+        super().__init__(
+            model, cond_pos, cond_val, trend_function=trend_function
         )
-        self.krige_var = self.model.sill - krige_var
-
-    @property
-    def krige_cond(self):
-        """:class:`numpy.ndarray`: The prepared kriging conditions."""
-        return self.cond_val - self.krige_trend
-
-    @property
-    def krige_trend(self):
-        """:class:`numpy.ndarray`: Trend at the conditions."""
-        return self._krige_trend
-
-    @property
-    def trend_function(self):
-        """:any:`callable`: The trend function."""
-        return self._trend_function
-
-    @trend_function.setter
-    def trend_function(self, trend_function):
-        if not callable(trend_function):
-            raise ValueError("Detrended kriging: trend function not callable.")
-        self._trend_function = trend_function
 
     def __repr__(self):
         """Return String representation."""
         return "Detrended(model={0} cond_pos={1}, cond_val={2})".format(
-            self.model, self.cond_pos, self.cond_val
-        )
-
-
-class DetrendedOrdinary(Ordinary):
-    """
-    Detrended ordinary kriging.
-
-    In detrended kriging, the data is detrended before interpolation by
-    ordinary kriging. The given trend will not result in the field mean,
-    since ordinary kriging will estimate a constant mean deviation from the
-    given trend.
-
-    The trend needs to be a callable function the user has to provide.
-
-    This can be used for regression kriging. The regression model could be
-    estimated with
-
-    Parameters
-    ----------
-    model : :any:`CovModel`
-        Covariance Model used for kriging.
-    cond_pos : :class:`list`
-        tuple, containing the given condition positions (x, [y, z])
-    cond_val : :class:`numpy.ndarray`
-        the values of the conditions
-    trend_function : :any:`callable`
-        The callable trend function. Should have the signiture: f(x, [y, z])
-    """
-
-    def __init__(self, model, cond_pos, cond_val, trend_function):
-        self._krige_trend = None
-        self._trend_function = None
-        self.trend_function = trend_function
-        super().__init__(model, cond_pos, cond_val)
-
-    def update(self):
-        """Update the kriging settings."""
-        x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
-        self._krige_pos = (x, y, z)[: self.model.dim]
-        self._krige_mat = self.get_krige_mat()
-        self._krige_trend = self.trend_function(*self._krige_pos)
-
-    def post_field(self, field, krige_var):
-        """
-        Postprocessing and saving of kriging field and error variance.
-
-        Parameters
-        ----------
-        field : :class:`numpy.ndarray`
-            Raw kriging field.
-        krige_var : :class:`numpy.ndarray`
-            Raw kriging error variance.
-        """
-        # add the given mean
-        self.field = field + eval_func(
-            self.trend_function, self.pos, self.mesh_type
-        )
-        self.krige_var = krige_var
-
-    @property
-    def krige_cond(self):
-        """:class:`numpy.ndarray`: The prepared kriging conditions."""
-        return self.cond_val - self.krige_trend
-
-    @property
-    def krige_trend(self):
-        """:class:`numpy.ndarray`: Trend at the conditions."""
-        return self._krige_trend
-
-    @property
-    def trend_function(self):
-        """:any:`callable`: The trend function."""
-        return self._trend_function
-
-    @trend_function.setter
-    def trend_function(self, trend_function):
-        if not callable(trend_function):
-            raise ValueError("Detrended kriging: trend function not callable.")
-        self._trend_function = trend_function
-
-    def __repr__(self):
-        """Return String representation."""
-        return "DetrendedOrdinary(model={0} cond_pos={1}, cond_val={2})".format(
             self.model, self.cond_pos, self.cond_val
         )
 

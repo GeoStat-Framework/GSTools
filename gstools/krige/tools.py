@@ -9,6 +9,8 @@ The following classes and functions are provided
 .. autosummary::
    set_condition
    get_drift_functions
+   no_trend
+   eval_func
 """
 # pylint: disable=C0103
 
@@ -19,7 +21,27 @@ from gstools.field.tools import (
     reshape_field_from_unstruct_to_struct,
 )
 
-__all__ = ["set_condition", "get_drift_functions"]
+__all__ = ["no_trend", "eval_func", "set_condition", "get_drift_functions"]
+
+
+def no_trend(*args, **kwargs):
+    """
+    Zero trend dummy function.
+
+    Parameters
+    ----------
+    *args : any
+        Ignored arguments.
+    **kwargs : any
+        Ignored keyword arguments.
+
+    Returns
+    -------
+    float
+        A zero trend given as single float.
+
+    """
+    return 0.0
 
 
 def eval_func(func, pos, mesh_type="structured"):

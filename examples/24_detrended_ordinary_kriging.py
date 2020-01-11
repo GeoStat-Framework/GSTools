@@ -17,7 +17,7 @@ gridx = np.linspace(0.0, 15.0, 151)
 drift_field = drift(gridx) + trend(gridx)
 # kriging
 model = Gaussian(dim=1, var=0.1, len_scale=2)
-krig_trend = krige.DetrendedOrdinary(model, cond_pos, cond_val, trend)
+krig_trend = krige.Ordinary(model, cond_pos, cond_val, trend)
 krig_trend(gridx)
 ax = krig_trend.plot()
 ax.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
