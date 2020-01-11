@@ -7,9 +7,6 @@ random according to a given covariance model away from the observations proximit
 we provide the generation of conditioned random fields.
 
 
-Theoretical Background
-----------------------
-
 The idea behind conditioned random fields builds up on kriging.
 First we generate a field with a kriging method, then we generate a random field,
 and finally we generate another kriged field to eliminate the error between

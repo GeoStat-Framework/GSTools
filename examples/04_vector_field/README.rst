@@ -7,9 +7,6 @@ velocity field, he came up with a randomization method which includes a
 projector which ensures the incompressibility of the vector field.
 
 
-Theoretical Background
-----------------------
-
 Without loss of generality we assume that the mean velocity :math:`\bar{U}` is oriented
 towards the direction of the first basis vector :math:`\mathbf{e}_1`. Our goal is now to
 generate random fluctuations with a given covariance model around this mean velocity.

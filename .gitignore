@@ -111,3 +111,6 @@ info/
 
 
 docs/source/examples/
+
+
+*.DS_Store

@@ -6,8 +6,6 @@ These spatial correlations can be expressed by the variogram, which can be
 estimated with the subpackage :any:`gstools.variogram`. The variograms can be
 estimated on structured and unstructured grids.
 
-Theoretical Background
-----------------------
 
 The same `(semi-)variogram <https://en.wikipedia.org/wiki/Variogram#Semivariogram>`_ as
 :doc:`the Covariance Model</tutorial_02_cov>` is being used

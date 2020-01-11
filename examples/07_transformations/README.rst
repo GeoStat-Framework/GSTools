@@ -21,9 +21,6 @@ common transformations:
    normal_to_uquad
 
 
-Implementation
---------------
-
 All the transformations take a field class, that holds a generated field,
 as input and will manipulate this field inplace.
 

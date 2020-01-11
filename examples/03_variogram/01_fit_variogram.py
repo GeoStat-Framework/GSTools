@@ -1,6 +1,6 @@
 """
 Fit Variogram
-=============
+-------------
 """
 import numpy as np
 from gstools import SRF, Exponential, Stable, vario_estimate_unstructured

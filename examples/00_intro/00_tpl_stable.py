@@ -1,6 +1,6 @@
 """
 TPL Stable
-==========
+----------
 """
 
 import numpy as np

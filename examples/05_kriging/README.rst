@@ -10,9 +10,6 @@ We provide two kinds of kriging routines:
 * Ordinary: The mean of the resulting field is unkown and estimated during interpolation.
 
 
-Theoretical Background
-----------------------
-
 The aim of kriging is to derive the value of a field at some point :math:`x_0`,
 when there are fixed observed values :math:`z(x_1)\ldots z(x_n)` at given points :math:`x_i`.
 
@@ -27,8 +24,6 @@ The weights :math:`W = (w_1,\ldots,w_n)` depent on the given covariance model an
 The different kriging approaches provide different ways of calculating :math:`W`.
 
 
-Implementation
---------------
 
 The routines for kriging are almost identical to the routines for spatial random fields.
 First you define a covariance model, as described in :doc:`the SRF tutorial</tutorial_02_cov>`,

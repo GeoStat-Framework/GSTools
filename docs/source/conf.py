@@ -257,10 +257,26 @@ from sphinx_gallery.sorting import FileNameSortKey
 sphinx_gallery_conf = {
     # path to your examples scripts
     "examples_dirs": [
-        "../../examples/",
+        "../../examples/00_intro/",
+        "../../examples/01_random_field/",
+        "../../examples/02_cov_model/",
+        "../../examples/03_variogram/",
+        "../../examples/04_vector_field/",
+        "../../examples/05_kriging/",
+        "../../examples/06_conditioned_fields/",
+        "../../examples/07_transformations/",
     ],
     # path where to save gallery generated examples
-    "gallery_dirs": ["examples"],
+    "gallery_dirs": [
+        "examples/00_intro/",
+        "examples/01_random_field/",
+        "examples/02_cov_model/",
+        "examples/03_variogram/",
+        "examples/04_vector_field/",
+        "examples/05_kriging/",
+        "examples/06_conditioned_fields/",
+        "examples/07_transformations/",
+    ],
     # Patter to search for example files
     "filename_pattern": r"\.py",
     # Remove the "Download all examples" button from the top level gallery

@@ -6,9 +6,6 @@ which can generate random fields following a given covariance model.
 The generator provides a lot of nice features, which will be explained in
 the following
 
-Theoretical Background
-----------------------
-
 GSTools generates spatial random fields with a given covariance model or
 semi-variogram. This is done by using the so-called randomization method.
 The spatial random field is represented by a stochastic Fourier integral

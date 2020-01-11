@@ -6,8 +6,6 @@ class, which allows you to easily define arbitrary covariance models by
 yourself. The resulting models provide a bunch of nice features to explore the
 covariance models.
 
-Theoretical Backgound
----------------------
 
 A covariance model is used to characterize the
 `semi-variogram <https://en.wikipedia.org/wiki/Variogram#Semivariogram>`_,
