@@ -1,13 +1,18 @@
 """
-Unstructured SRF Export
-=======================
+Using an Unstructured Grid
+--------------------------
+
+For many applications, the random fields are needed on an unstructured grid.
+Normally, such a grid would be read in, but we can simply generate one and
+then create a random field at those coordinates.
 """
 import numpy as np
 import matplotlib.pyplot as pt
 from gstools import SRF, Exponential
 from gstools.random import MasterRNG
 
-# creating our own unstructured grid
+###############################################################################
+# Creating our own unstructured grid
 seed = MasterRNG(19970221)
 rng = np.random.RandomState(seed())
 x = rng.randint(0, 100, size=10000)
@@ -22,6 +27,11 @@ srf.vtk_export("field")
 # Or create a PyVista dataset
 # mesh = srf.to_pyvista()
 
+###############################################################################
 pt.tricontourf(x, y, field.T)
 pt.axes().set_aspect("equal")
 pt.show()
+
+###############################################################################
+# Comparing this image to the previous one, you can see that be using the same
+# seed, the same field can be computed on different grids.
