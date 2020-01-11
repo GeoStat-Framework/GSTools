@@ -303,7 +303,10 @@ class Krige(Field):
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self.get_krige_mat()
-        self._krige_trend = self.trend_function(*self._krige_pos)
+        if self.trend_function is no_trend:
+            self._krige_trend = 0.0
+        else:
+            self._krige_trend = self.trend_function(*self._krige_pos)
         self._mean = self.get_mean()
 
     @property
