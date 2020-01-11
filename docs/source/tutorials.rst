@@ -1,3 +1,5 @@
+.. _tutorials:
+
 =================
 GSTools Tutorials
 =================
@@ -5,13 +7,16 @@ GSTools Tutorials
 In the following you will find several Tutorials on how to use GSTools to
 explore its whole beauty and power.
 
-.. toctree::
-   :maxdepth: 1
 
-   tutorial_01_srf.rst
-   tutorial_02_cov.rst
-   tutorial_03_vario.rst
-   tutorial_04_vec_field.rst
-   tutorial_05_kriging.rst
-   tutorial_06_conditioning.rst
-   tutorial_07_transformations.rst
+.. toctree::
+   :includehidden:
+   :maxdepth: 3
+
+   examples/00_intro/index
+   examples/01_random_field/index
+   examples/02_cov_model/index
+   examples/03_variogram/index
+   examples/04_vector_field/index
+   examples/05_kriging/index
+   examples/06_conditioned_fields/index
+   examples/07_transformations/index

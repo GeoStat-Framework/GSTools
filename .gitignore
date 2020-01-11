@@ -108,3 +108,9 @@ info/
 
 # Cython generated C code
 *.c
+
+
+docs/source/examples/
+
+
+*.DS_Store
