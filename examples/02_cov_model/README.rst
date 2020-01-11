@@ -1,3 +1,5 @@
+.. _tutorial_02_cov:
+
 Tutorial 2: The Covariance Model
 ================================
 

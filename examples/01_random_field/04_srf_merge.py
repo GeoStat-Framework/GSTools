@@ -3,8 +3,7 @@ Merging two Fields
 ------------------
 
 We can even generate the same field realisation on different grids. Let's try
-to merge two unstructured rectangular fields. The first field will be generated
-exactly like in example `Using an Unstructured Grid`_:
+to merge two unstructured rectangular fields.
 
 """
 import numpy as np

@@ -1,3 +1,5 @@
+.. _tutorial_05_kriging:
+
 Tutorial 5: Kriging
 ===================
 
@@ -26,7 +28,7 @@ The different kriging approaches provide different ways of calculating :math:`W`
 
 
 The routines for kriging are almost identical to the routines for spatial random fields.
-First you define a covariance model, as described in :doc:`the SRF tutorial</tutorial_02_cov>`,
+First you define a covariance model, as described in :ref:`tutorial_02_cov`,
 then you initialize the kriging class with this model:
 
 .. code-block:: python

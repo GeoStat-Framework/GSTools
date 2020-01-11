@@ -17,8 +17,8 @@ In case of ordinary kriging, the mean of the SRF will be overwritten by the
 estimated mean.
 
 The setup of the spatial random field is the same as described in
-:doc:`the SRF tutorial</tutorial_02_cov>`.
-You just need to add the conditions as described in :doc:`the kriging tutorial</tutorial_05_kriging>`:
+:ref:`tutorial_02_cov`.
+You just need to add the conditions as described in :ref:`tutorial_05_kriging`:
 
 .. code-block:: python
 

@@ -31,10 +31,3 @@ Simply import the transform submodule and apply a transformation to the srf clas
     from gstools import transform as tf
     ...
     tf.normal_to_lognormal(srf)
-
-
-In the following we will start from a simple random field following a Gaussian covariance:
-
-.. image:: pics/07_00_std.png
-   :width: 600px
-   :align: center

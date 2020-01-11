@@ -8,5 +8,5 @@ estimated on structured and unstructured grids.
 
 
 The same `(semi-)variogram <https://en.wikipedia.org/wiki/Variogram#Semivariogram>`_ as
-:doc:`the Covariance Model</tutorial_02_cov>` is being used
+:ref:`tutorial_02_cov` is being used
 by this subpackage.
