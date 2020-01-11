@@ -108,3 +108,8 @@ info/
 
 # Cython generated C code
 *.c
+
+
+docs/source/examples/
+examples/*.vtr
+examples/*.vtu

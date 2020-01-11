@@ -1,3 +1,7 @@
+"""
+Condition Ensemble
+==================
+"""
 import numpy as np
 from gstools import Gaussian, SRF
 import matplotlib.pyplot as plt

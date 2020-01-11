@@ -1,3 +1,7 @@
+"""
+SRF Ensemble
+============
+"""
 import numpy as np
 import matplotlib.pyplot as pt
 from gstools import SRF, Gaussian

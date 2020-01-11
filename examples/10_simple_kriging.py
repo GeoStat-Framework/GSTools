@@ -1,3 +1,7 @@
+"""
+Simple Kriging
+==============
+"""
 import numpy as np
 from gstools import Gaussian, krige
 

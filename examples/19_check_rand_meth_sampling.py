@@ -1,3 +1,7 @@
+"""
+Check Random Sampling
+=====================
+"""
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -30,7 +34,7 @@ def plot_rand_meth_samples(generator):
         z = np.outer(np.ones(np.size(u)), np.cos(v))
         ax.plot_surface(x, y, z, rstride=4, cstride=4, color="b", alpha=0.1)
         ax.scatter(norm[0], norm[1], norm[2])
-        ax.set_aspect("equal")
+        # ax.set_aspect("equal")
     elif generator.model.dim == 2:
         ax = fig.add_subplot(121)
         u = np.linspace(0, 2 * np.pi, 100)

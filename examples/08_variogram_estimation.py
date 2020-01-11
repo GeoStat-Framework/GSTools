@@ -1,3 +1,7 @@
+"""
+Variogram Estimation
+====================
+"""
 import os
 from shutil import rmtree
 import zipfile

@@ -1,3 +1,8 @@
+"""
+TPL Stable
+==========
+"""
+
 import numpy as np
 from gstools import SRF, TPLStable
 

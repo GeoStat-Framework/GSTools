@@ -1,3 +1,7 @@
+"""
+Compare Kriging
+===============
+"""
 import numpy as np
 from gstools import Gaussian, krige
 import matplotlib.pyplot as plt

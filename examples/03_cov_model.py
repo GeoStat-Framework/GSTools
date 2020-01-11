@@ -1,3 +1,8 @@
+"""
+Covariance Model
+================
+"""
+
 from gstools import CovModel
 import numpy as np
 

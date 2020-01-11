@@ -1,3 +1,8 @@
+"""
+Gaussian
+========
+"""
+
 from gstools import SRF, Gaussian
 
 # structured field with a size of 100x100 and a grid-size of 1x1

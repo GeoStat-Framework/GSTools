@@ -1,3 +1,7 @@
+"""
+Vector Field
+============
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from gstools import SRF, Gaussian, Exponential
