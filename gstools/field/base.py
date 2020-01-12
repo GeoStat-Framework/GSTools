@@ -80,7 +80,7 @@ class Field:
         Parameters
         ----------
         mesh : meshio.Mesh or ogs5py.MSH
-            The given meshio or ogs5py mesh
+            The given meshio, ogs5py, or PyVista mesh
         points : :class:`str`, optional
             The points to evaluate the field at.
             Either the "centroids" of the mesh cells
@@ -101,9 +101,10 @@ class Field:
         Notes
         -----
         This will store the field in the given mesh under the given name,
-        if a meshio mesh was given.
+        if a meshio or PyVista mesh was given.
 
         See: https://github.com/nschloe/meshio
+        See: https://github.com/pyvista/pyvista
 
         See: :any:`Field.__call__`
         """
@@ -114,12 +115,33 @@ class Field:
                     self.model.dim, direction
                 )
             )
-        if hasattr(mesh, "centroids_flat"):
+        has_pyvista = False
+        try:
+            import pyvista as pv
+            has_pyvista = True
+        except:
+            pass
+        # convert pyvista mesh
+        if has_pyvista and pv.is_pyvista_dataset(mesh):
+            if points == "centroids":
+                pnts = mesh.cell_centers().points.T[select]
+            else:
+                pnts = mesh.points.T[select]
+            out = self.unstructured(pos=pnts, **kwargs)
+            # Deal with the output
+            if isinstance(out, np.ndarray):
+                mesh[name] = out
+            else:
+                # if multiple values are returned, take the first one
+                mesh[name] = out[0]
+        # convert ogs5py mesh
+        elif hasattr(mesh, "centroids_flat"):
             if points == "centroids":
                 pnts = mesh.centroids_flat.T[select]
             else:
                 pnts = mesh.NODES.T[select]
             out = self.unstructured(pos=pnts, **kwargs)
+        # convert meshio mesh
         else:
             if points == "centroids":
                 # define unique order of cells
