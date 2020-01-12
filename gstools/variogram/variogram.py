@@ -30,7 +30,7 @@ __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
 def vario_estimate_unstructured(
-    pos, field, bin_edges, sampling_size=None, sampling_seed=None
+    pos, field, bin_edges=None, sampling_size=None, sampling_seed=None
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -55,7 +55,8 @@ def vario_estimate_unstructured(
     field : :class:`numpy.ndarray`
         the spatially distributed data
     bin_edges : :class:`numpy.ndarray`
-        the bins on which the variogram will be calculated
+        the bins on which the variogram will be calculated. If ``None``, an
+        automated scheme will be used to generate the bins.
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
@@ -72,8 +73,20 @@ def vario_estimate_unstructured(
     """
     # TODO check_mesh
     field = np.array(field, ndmin=1, dtype=np.double)
-    bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
+
+    if bin_edges is None:
+        # number of bins calculated by Sturges rule
+        n_bins = 2 * np.log2(len(x)) + 1
+        # maximal bin edge as a third of the box diameter
+        d = 2.0
+        diam = ((x.max() - x.min())**d + (y.max() - y.min())**d + (z.max() - z.min())**d)**(1/d)
+        bin_max = diam / 3
+        # resulting bin sizes (quadratic growth)
+        bin_edges = np.linspace(0, bin_max**(1/2), n_bins)**2
+    else:
+        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
+
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
     if sampling_size is not None and sampling_size < len(field):
