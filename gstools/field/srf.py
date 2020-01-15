@@ -89,8 +89,9 @@ class SRF(Field):
         generator="RandMeth",
         **generator_kwargs
     ):
-        super().__init__(model, mean)
+        super().__init__(model)
         # initialize private attributes
+        self._mean = mean
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
@@ -99,10 +100,6 @@ class SRF(Field):
         self._cond_val = None
         self._krige_type = None
         # initialize attributes
-        self.raw_field = None
-        self.krige_field = None
-        self.err_field = None
-        self.krige_var = None
         self.set_generator(generator, **generator_kwargs)
         self.upscaling = upscaling
         if self._value_type is None:
@@ -160,13 +157,13 @@ class SRF(Field):
         y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
 
         # generate the field
-        self.raw_field = self.generator.__call__(x, y, z, mesh_type)
+        self.add_field("raw", self.generator.__call__(x, y, z, mesh_type), self._mean)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:
             mesh_type = mesh_type_old
-            self.raw_field = reshape_field_from_unstruct_to_struct(
-                self.model.dim, self.raw_field, axis_lens
+            self["raw"] = reshape_field_from_unstruct_to_struct(
+                self.model.dim, self["raw"], axis_lens
             )
 
         # apply given conditions to the field
@@ -179,23 +176,23 @@ class SRF(Field):
                 info,
             ) = self.cond_func(self)
             # store everything in the class
-            self.field = cond_field
-            self.krige_field = krige_field
-            self.err_field = err_field
-            self.krige_var = krigevar
-            if "mean" in info:  # ordinary krging estimates mean
-                self.mean = info["mean"]
+            self.add_field("cond", cond_field, default_field=True)
+            self.add_field("krige", krige_field)
+            self.add_field("error", err_field)
+            self.get_data("krige").krige_var = krigevar
+            if "mean" in info:  # ordinary kriging estimates mean
+                self.get_data("cond").mean = info["mean"]
         else:
-            self.field = self.raw_field + self.mean
+            self.add_field("srf", self["raw"] + self.mean)
 
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
-            self.field -= self.mean
-            self.field *= np.sqrt(scaled_var / self.model.sill)
-            self.field += self.mean
+            self["srf"] -= self.mean
+            self["srf"] *= np.sqrt(scaled_var / self.model.sill)
+            self["srf"] += self.mean
 
-        return self.field
+        return self.values
 
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"
@@ -309,7 +306,7 @@ class SRF(Field):
     def __repr__(self):
         """Return String representation."""
         return "SRF(model={0}, mean={1}, generator={2}".format(
-            self.model, self.mean, self.generator
+            self.model, self._mean, self.generator
         )
 
 

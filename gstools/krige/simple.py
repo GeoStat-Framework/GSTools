@@ -117,11 +117,12 @@ class Simple(Field):
             krige_var = reshape_field_from_unstruct_to_struct(
                 self.model.dim, krige_var, axis_lens
             )
-        # calculate the kriging error
-        self.krige_var = self.model.sill - krige_var
         # add the given mean
-        self.field = field + self.mean
-        return self.field, self.krige_var
+        self.add_field("krige", field + self.mean, default_field=True)
+
+        # calculate the kriging error
+        self.field.krige_var = self.model.sill - krige_var
+        return self.field
 
     def _get_cov_mat(self, pos1, pos2):
         return self.model.cov_nugget(

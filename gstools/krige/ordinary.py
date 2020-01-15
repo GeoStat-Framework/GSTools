@@ -121,9 +121,9 @@ class Ordinary(Field):
                 self.model.dim, krige_var, axis_lens
             )
         # save the field
-        self.krige_var = krige_var
-        self.field = field
-        return self.field, self.krige_var
+        self.add_field("krige", field, default_field=True)
+        self.field.krige_var = krige_var
+        return self.field
 
     def _get_krig_mat(self, pos1, pos2):
         size = pos1[0].size

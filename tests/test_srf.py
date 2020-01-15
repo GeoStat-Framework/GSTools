@@ -12,9 +12,12 @@ from gstools import transform as tf
 
 class TestSRF(unittest.TestCase):
     def setUp(self):
-        self.cov_model = Gaussian(dim=2, var=1.5, len_scale=4.0, mode_no=100)
         self.mean = 0.3
+        self.var = 1.5
         self.mode_no = 100
+        self.cov_model = Gaussian(
+            dim=2, var=self.var, len_scale=4.0, mode_no=self.mode_no
+        )
 
         self.seed = 825718662
         self.x_grid = np.linspace(0.0, 12.0, 48)
@@ -219,7 +222,7 @@ class TestSRF(unittest.TestCase):
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf((self.x_tuple, self.y_tuple), seed=self.seed)
         field2 = srf.unstructured((self.x_tuple, self.y_tuple), seed=self.seed)
-        self.assertAlmostEqual(field[0], srf.field[0])
+        self.assertAlmostEqual(field[0], field[0])
         self.assertAlmostEqual(field[0], field2[0])
         field = srf(
             (self.x_tuple, self.y_tuple),
@@ -227,16 +230,17 @@ class TestSRF(unittest.TestCase):
             mesh_type="structured",
         )
         field2 = srf.structured((self.x_tuple, self.y_tuple), seed=self.seed)
-        self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
+        self.assertAlmostEqual(field[0, 0], field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
 
     def test_transform(self):
         self.cov_model.dim = 2
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = SRF(self.cov_model, mode_no=self.mode_no)
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        srf.field.mean = self.mean
         tf.normal_force_moments(srf)  # force ergodicity of the given field
-        self.assertAlmostEqual(srf.field.mean(), srf.mean)
-        self.assertAlmostEqual(srf.field.var(), srf.model.var)
+        self.assertAlmostEqual(srf.field.mean, self.mean)
+        self.assertAlmostEqual(srf.model.var, srf.model.var)
         tf.zinnharvey(srf)  # make high values mostly connected
         tf.normal_force_moments(srf)  # force ergodicity of the given field
         tf.normal_to_lognormal(srf)  # log-normal

@@ -15,6 +15,7 @@ from functools import partial
 
 import numpy as np
 
+from gstools.field.data import FieldData
 from gstools.covmodel.base import CovModel
 from gstools.tools.export import to_vtk, vtk_export
 from gstools.field.tools import _get_select
@@ -22,24 +23,19 @@ from gstools.field.tools import _get_select
 __all__ = ["Field"]
 
 
-class Field:
+class Field(FieldData):
     """A field base class for random and kriging fields ect.
 
     Parameters
     ----------
     model : :any:`CovModel`
         Covariance Model related to the field.
-    mean : :class:`float`, optional
-        Mean value of the field.
     """
 
-    def __init__(self, model, mean=0.0):
+    def __init__(self, model):
         # initialize attributes
-        self.pos = None
-        self.mesh_type = None
-        self.field = None
+        super().__init__(self)
         # initialize private attributes
-        self._mean = mean
         self._model = None
         self.model = model
         self._value_type = None
@@ -300,15 +296,6 @@ class Field:
         return r
 
     @property
-    def mean(self):
-        """:class:`float`: The mean of the field."""
-        return self._mean
-
-    @mean.setter
-    def mean(self, mean):
-        self._mean = float(mean)
-
-    @property
     def model(self):
         """:any:`CovModel`: The covariance model of the field."""
         return self._model
@@ -333,7 +320,7 @@ class Field:
 
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0}, mean={1})".format(self.model, self.mean)
+        return "Field(model={0})".format(self.model)
 
 
 if __name__ == "__main__":  # pragma: no cover

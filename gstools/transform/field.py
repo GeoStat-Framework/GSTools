@@ -49,7 +49,7 @@ def binary(fld, divide=None, upper=None, lower=None):
         Field will be transformed inplace.
     divide : :class:`float`, optional
         The dividing value.
-        Default: ``fld.mean``
+        Default: ``fld.field.mean``
     upper : :class:`float`, optional
         The resulting upper value of the field.
         Default: ``mean + sqrt(fld.model.sill)``
@@ -57,14 +57,14 @@ def binary(fld, divide=None, upper=None, lower=None):
         The resulting lower value of the field.
         Default: ``mean - sqrt(fld.model.sill)``
     """
-    if fld.field is None:
+    if fld.values is None:
         print("binary: no field stored in SRF class.")
     else:
-        divide = fld.mean if divide is None else divide
-        upper = fld.mean + np.sqrt(fld.model.sill) if upper is None else upper
-        lower = fld.mean - np.sqrt(fld.model.sill) if lower is None else lower
-        fld.field[fld.field > divide] = upper
-        fld.field[fld.field <= divide] = lower
+        divide = fld.field.mean if divide is None else divide
+        upper = fld.field.mean + np.sqrt(fld.model.sill) if upper is None else upper
+        lower = fld.field.mean - np.sqrt(fld.model.sill) if lower is None else lower
+        fld.values[fld.values > divide] = upper
+        fld.values[fld.values <= divide] = lower
 
 
 def boxcox(fld, lmbda=1, shift=0):
@@ -90,16 +90,16 @@ def boxcox(fld, lmbda=1, shift=0):
         The field will be shifted by that value before transformation.
         Default: ``0``
     """
-    if fld.field is None:
+    if fld.values is None:
         print("Box-Cox: no field stored in SRF class.")
     else:
-        fld.mean += shift
-        fld.field += shift
+        fld.field.mean += shift
+        fld.field.values += shift
         if np.isclose(lmbda, 0):
             normal_to_lognormal(fld)
-        if np.min(fld.field) < -1 / lmbda:
+        if np.min(fld.values) < -1 / lmbda:
             warn("Box-Cox: Some values will be cut off!")
-        fld.field = (np.maximum(lmbda * fld.field + 1, 0)) ** (1 / lmbda)
+        fld.values = (np.maximum(lmbda * fld.values + 1, 0)) ** (1 / lmbda)
 
 
 def zinnharvey(fld, conn="high"):
@@ -117,10 +117,12 @@ def zinnharvey(fld, conn="high"):
         Desired connectivity. Either "low" or "high".
         Default: "high"
     """
-    if fld.field is None:
+    if fld.values is None:
         print("zinnharvey: no field stored in SRF class.")
     else:
-        fld.field = _zinnharvey(fld.field, conn, fld.mean, fld.model.sill)
+        fld.values = _zinnharvey(
+            fld.values, conn, fld.field.mean, fld.model.sill
+        )
 
 
 def normal_force_moments(fld):
@@ -135,10 +137,12 @@ def normal_force_moments(fld):
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     """
-    if fld.field is None:
+    if fld.values is None:
         print("normal_force_moments: no field stored in SRF class.")
     else:
-        fld.field = _normal_force_moments(fld.field, fld.mean, fld.model.sill)
+        fld.values = _normal_force_moments(
+            fld.values, fld.field.mean, fld.model.sill
+        )
 
 
 def normal_to_lognormal(fld):
@@ -153,10 +157,10 @@ def normal_to_lognormal(fld):
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     """
-    if fld.field is None:
+    if fld.values is None:
         print("normal_to_lognormal: no field stored in SRF class.")
     else:
-        fld.field = _normal_to_lognormal(fld.field)
+        fld.values = _normal_to_lognormal(fld.values)
 
 
 def normal_to_uniform(fld):
@@ -171,10 +175,12 @@ def normal_to_uniform(fld):
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
     """
-    if fld.field is None:
+    if fld.values is None:
         print("normal_to_uniform: no field stored in SRF class.")
     else:
-        fld.field = _normal_to_uniform(fld.field, fld.mean, fld.model.sill)
+        fld.values = _normal_to_uniform(
+            fld.values, fld.field.mean, fld.model.sill
+        )
 
 
 def normal_to_arcsin(fld, a=None, b=None):
@@ -197,15 +203,15 @@ def normal_to_arcsin(fld, a=None, b=None):
         Parameter b of the arcsin distribution (upper bound).
         Default: keep mean and variance
     """
-    if fld.field is None:
+    if fld.values is None:
         print("normal_to_arcsin: no field stored in SRF class.")
     else:
-        a = fld.mean - np.sqrt(2.0 * fld.model.sill) if a is None else a
-        b = fld.mean + np.sqrt(2.0 * fld.model.sill) if b is None else b
-        fld.field = _normal_to_arcsin(
-            fld.field, fld.mean, fld.model.sill, a, b
+        a = fld.field.mean - np.sqrt(2.0 * fld.model.sill) if a is None else a
+        b = fld.field.mean + np.sqrt(2.0 * fld.model.sill) if b is None else b
+        fld.values = _normal_to_arcsin(
+            fld.values, fld.field.mean, fld.model.sill, a, b
         )
-        fld.mean = (a + b) / 2.0
+        fld.field.mean = (a + b) / 2.0
 
 
 def normal_to_uquad(fld, a=None, b=None):
@@ -228,13 +234,23 @@ def normal_to_uquad(fld, a=None, b=None):
         Parameter b of the U-quadratic distribution (upper bound).
         Default: keep mean and variance
     """
-    if fld.field is None:
+    if fld.values is None:
         print("normal_to_uquad: no field stored in SRF class.")
     else:
-        a = fld.mean - np.sqrt(5.0 / 3.0 * fld.model.sill) if a is None else a
-        b = fld.mean + np.sqrt(5.0 / 3.0 * fld.model.sill) if b is None else b
-        fld.field = _normal_to_uquad(fld.field, fld.mean, fld.model.sill, a, b)
-        fld.mean = (a + b) / 2.0
+        a = (
+            fld.field.mean - np.sqrt(5.0 / 3.0 * fld.model.sill)
+            if a is None
+            else a
+        )
+        b = (
+            fld.field.mean + np.sqrt(5.0 / 3.0 * fld.model.sill)
+            if b is None
+            else b
+        )
+        fld.values = _normal_to_uquad(
+            fld.values, fld.field.mean, fld.model.sill, a, b
+        )
+        fld.field.mean = (a + b) / 2.0
 
 
 # low level functions
@@ -442,5 +458,5 @@ def _uniform_to_uquad(field, a=0, b=1):
     y_raw = 3 * field / al + ga
     out = np.zeros_like(y_raw)
     out[y_raw > 0] = y_raw[y_raw > 0] ** (1 / 3)
-    out[y_raw < 0] = -(-y_raw[y_raw < 0]) ** (1 / 3)
+    out[y_raw < 0] = -((-y_raw[y_raw < 0]) ** (1 / 3))
     return out + be
