@@ -22,7 +22,9 @@ class Data:
     """A data class mainly storing the specific values of an individual field.
     """
 
-    def __init__(self, values: np.ndarray, mean: float = 0.0, value_type: str = "scalar"):
+    def __init__(
+        self, values: np.ndarray, mean: float = 0.0, value_type: str = "scalar"
+    ):
         self.values = values
         self.mean = mean
         self.value_type = value_type
