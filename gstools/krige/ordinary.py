@@ -105,11 +105,6 @@ class Ordinary(Field):
         krig_vecs = self._get_vario_mat((c_x, c_y, c_z), (x, y, z), add=True)
         # generate the kriged field
         field, krige_var = krigesum(krig_mat, krig_vecs, cond)
-        # calculate the estimated mean (kriging field at infinity)
-        mean_est = np.concatenate(
-            (np.full_like(self.cond_val, self.model.sill), [1])
-        )
-        self.mean = np.einsum("i,ij,j", cond, krig_mat, mean_est)
 
         # reshape field if we got an unstructured mesh
         if mesh_type_changed:
@@ -122,7 +117,14 @@ class Ordinary(Field):
             )
         # save the field
         self.add_field("krige", field, default_field=True)
+        # calculate the estimated mean (kriging field at infinity)
+        mean_est = np.concatenate(
+            (np.full_like(self.cond_val, self.model.sill), [1])
+        )
+        self.mean = np.einsum("i,ij,j", cond, krig_mat, mean_est)
+
         self.field.krige_var = krige_var
+
         return self.field
 
     def _get_krig_mat(self, pos1, pos2):
