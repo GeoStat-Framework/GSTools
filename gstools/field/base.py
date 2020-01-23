@@ -194,9 +194,9 @@ class Field(FieldData):
         Covariance Model related to the field.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, mean=0.0):
         # initialize attributes
-        super().__init__(self)
+        super().__init__(self, mean=mean)
         # initialize private attributes
         self._model = None
         self.model = model
