@@ -108,9 +108,15 @@ info/
 
 # Cython generated C code
 *.c
+*.cpp
 
 
 docs/source/examples/
 
 
 *.DS_Store
+
+*.zip
+
+*.vtu
+*.vtr
