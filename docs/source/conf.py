@@ -20,8 +20,14 @@
 # NOTE:
 # pip install sphinx_rtd_theme
 # is needed in order to build the documentation
-import os
-import sys
+# import os
+# import sys
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message='Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.',
+)
 
 # local module should not be added to sys path if it's installed on RTFD
 # see: https://stackoverflow.com/a/31882049/6696397
