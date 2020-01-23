@@ -1,4 +1,4 @@
 Miscellaneous
 =============
 
-A few Mmiscellaneous examples
+A few miscellaneous examples
