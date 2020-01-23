@@ -66,6 +66,8 @@ class FieldData:
         # initialize attributes
         self.pos = pos
         self.fields: Dict[str, np.ndarray] = {}
+        if mesh_type != "unstructured" and mesh_type != "structured":
+            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
         self.mesh_type = mesh_type
 
     def add_field(
@@ -77,6 +79,8 @@ class FieldData:
         value_type: str = "scalar",
         default_field: bool = False,
     ):
+        values = np.array(values)
+        self._check_field(values)
         self.fields[name] = Data(values, mean, value_type)
         # set the default_field to the first field added
         if len(self.fields) == 1 or default_field:
@@ -119,3 +123,12 @@ class FieldData:
     @mean.setter
     def mean(self, value):
         self.fields[self.default_field].mean = value
+
+    def _check_field(self, values: np.ndarray):
+        # TODO
+        if self.mesh_type == "unstructured":
+            pass
+        elif self.mesh_type == "structured":
+            pass
+        else:
+            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type)
