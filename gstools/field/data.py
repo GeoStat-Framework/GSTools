@@ -118,4 +118,4 @@ class FieldData:
 
     @mean.setter
     def mean(self, value):
-        self.fields[self.default_field].mean = mean
+        self.fields[self.default_field].mean = value
