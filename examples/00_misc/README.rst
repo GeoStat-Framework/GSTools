@@ -1,4 +1,4 @@
-Introduction
-============
+Miscellaneous
+=============
 
-A few introductory examples
+A few Mmiscellaneous examples

@@ -257,7 +257,7 @@ from sphinx_gallery.sorting import FileNameSortKey
 sphinx_gallery_conf = {
     # path to your examples scripts
     "examples_dirs": [
-        "../../examples/00_intro/",
+        "../../examples/00_misc/",
         "../../examples/01_random_field/",
         "../../examples/02_cov_model/",
         "../../examples/03_variogram/",
@@ -268,7 +268,7 @@ sphinx_gallery_conf = {
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
-        "examples/00_intro/",
+        "examples/00_misc/",
         "examples/01_random_field/",
         "examples/02_cov_model/",
         "examples/03_variogram/",

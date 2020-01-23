@@ -12,7 +12,6 @@ explore its whole beauty and power.
    :includehidden:
    :maxdepth: 1
 
-   examples/00_intro/index
    examples/01_random_field/index
    examples/02_cov_model/index
    examples/03_variogram/index
@@ -20,3 +19,4 @@ explore its whole beauty and power.
    examples/05_kriging/index
    examples/06_conditioned_fields/index
    examples/07_transformations/index
+   examples/00_misc/index
