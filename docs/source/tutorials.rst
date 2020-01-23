@@ -10,7 +10,7 @@ explore its whole beauty and power.
 
 .. toctree::
    :includehidden:
-   :maxdepth: 3
+   :maxdepth: 1
 
    examples/00_intro/index
    examples/01_random_field/index
