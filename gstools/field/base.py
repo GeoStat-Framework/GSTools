@@ -8,19 +8,181 @@ The following classes are provided
 
 .. autosummary::
    Field
+   FieldData
 """
 # pylint: disable=C0103
 
 from functools import partial
+from typing import List, Dict
 
 import numpy as np
 
-from gstools.field.data import FieldData
 from gstools.covmodel.base import CovModel
 from gstools.tools.export import to_vtk, vtk_export
 from gstools.field.tools import _get_select
 
-__all__ = ["Field"]
+__all__ = ["Field", "FieldData"]
+
+
+class Data:
+    """A data class mainly storing the specific values of an individual field.
+
+    Instances of this class are stored in a dictionary owned by FieldBase.
+    The positions on which these field values are defined are also saved in
+    FieldBase.
+    """
+
+    def __init__(
+        self,
+        values: np.ndarray = None,
+        mean: float = 0.0,
+        value_type: str = "scalar",
+    ):
+        self.values = values
+        self.mean = mean
+        self.value_type = value_type
+
+
+class FieldData:
+    """A base class encapsulating field data.
+
+    It holds a position array, which define the spatial locations of the
+    field values.
+    It can hold multiple fields in the :any:`self.fields` dict. This assumes
+    that each field is defined on the same positions.
+    The mesh type must also be specified.
+
+    Parameters
+    ----------
+    pos : :class:`numpy.ndarray`, optional
+        positions of the field values
+    name : :any:`str`, optional
+        key of the field values
+    values : :any:`list`, optional
+        a list of the values of the fields
+    mean : :any:`float`, optional
+        mean of the field
+    value_type : :any:`str`, optional
+        the value type of the default field, can be
+        * scalar
+        * vector
+    mesh_type : :any:`str`, optional
+        the type of mesh on which the field is defined on, can be
+        * unstructured
+        * structured
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> pos = np.random.random((100, 100))
+    >>> z = np.random.random((100, 100))
+    >>> z2 = np.random.random((100, 100))
+    >>> field_data = FieldData(pos)
+    >>> field_data.add_field("test_field1", z)
+    >>> field_data.add_field("test_field2", z2)
+    >>> field_data.set_default_field("test_field2")
+    >>> print(field.values)
+
+    """
+
+    def __init__(
+        self,
+        pos: np.ndarray = None,
+        name: str = "default_field",
+        values: np.ndarray = None,
+        *,
+        mean: float = 0.0,
+        value_type: str = "scalar",
+        mesh_type: str = "unstructured",
+    ):
+        # initialize attributes
+        self.pos = pos
+        self.fields: Dict[str, np.ndarray] = {}
+        self._default_field = "default_field"
+        if mesh_type != "unstructured" and mesh_type != "structured":
+            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
+        self.mesh_type = mesh_type
+        self.add_field(name, values, mean=mean, value_type=value_type)
+
+    def add_field(
+        self,
+        name: str,
+        values: np.ndarray,
+        *,
+        mean: float = 0.0,
+        value_type: str = "scalar",
+        default_field: bool = False,
+    ):
+        values = np.array(values)
+        self._check_field(values)
+        self.fields[name] = Data(values, mean, value_type)
+        # set the default_field to the first field added
+        if len(self.fields) == 1 or default_field:
+            self._default_field = name
+
+    def get_data(self, key):
+        """:class:`Data`: The field data class."""
+        return self.fields[key]
+
+    def __getitem__(self, key):
+        """:any:`numpy.ndarray`: The values of the field."""
+        return self.fields[key].values
+
+    def __setitem__(self, key, value):
+        self.fields[key].values = value
+
+    @property
+    def default_field(self):
+        """:any:`str`: The key of the default field."""
+        return self._default_field
+
+    @default_field.setter
+    def default_field(self, value):
+        self._default_field = value
+
+    @property
+    def field(self):
+        """:any:`Data`: The Data instance of the default field."""
+        return self.fields[self.default_field]
+
+    @property
+    def values(self):
+        """:any:`numpy.ndarray`: The values of the default field."""
+        return self.fields[self.default_field].values
+
+    @values.setter
+    def values(self, values):
+        self.fields[self.default_field].values = values
+
+    @property
+    def value_type(self):
+        """:any:`str`: The value type of the default field."""
+        return self.fields[self.default_field].value_type
+
+    @property
+    def mean(self):
+        """:any:`float`: The mean of the default field."""
+        return self.fields[self.default_field].mean
+
+    @mean.setter
+    def mean(self, value):
+        self.fields[self.default_field].mean = value
+
+    def _check_field(self, values: np.ndarray):
+        """Compare field shape to pos shape.
+
+        Parameters
+        ----------
+        values : :class:`numpy.ndarray`
+            the values of the field to be checked
+        """
+        # TODO
+        if self.mesh_type == "unstructured":
+            pass
+        elif self.mesh_type == "structured":
+            pass
+        else:
+            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
 
 
 class Field(FieldData):
