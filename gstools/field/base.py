@@ -96,7 +96,7 @@ class FieldData:
         mesh_type: str = "unstructured",
     ):
         # initialize attributes
-        self.pos = pos
+        self._pos = pos
         self.fields: Dict[str, np.ndarray] = {}
         self._default_field = "default_field"
         if mesh_type != "unstructured" and mesh_type != "structured":
@@ -130,6 +130,15 @@ class FieldData:
 
     def __setitem__(self, key, value):
         self.fields[key].values = value
+
+    @property
+    def pos(self):
+        """:any:`numpy.ndarray`: The pos. on which the field is defined."""
+        return self._pos
+
+    @pos.setter
+    def pos(self, value):
+        self._pos = value
 
     @property
     def default_field(self):
