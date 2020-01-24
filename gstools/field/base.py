@@ -209,7 +209,6 @@ class Field(FieldData):
         # initialize private attributes
         self._model = None
         self.model = model
-        self._value_type = None
 
     def __call__(*args, **kwargs):
         """Generate the field."""
