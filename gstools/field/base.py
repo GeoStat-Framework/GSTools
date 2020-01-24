@@ -471,11 +471,6 @@ class Field(FieldData):
                 "Field: 'model' is not an instance of 'gstools.CovModel'"
             )
 
-    @property
-    def value_type(self):
-        """:class:`str`: Type of the field values (scalar, vector)."""
-        return self._value_type
-
     def __str__(self):
         """Return String representation."""
         return self.__repr__()
