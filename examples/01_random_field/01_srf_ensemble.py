@@ -8,12 +8,12 @@ a great idea. Let's reuse most of the previous code.
 
 import numpy as np
 import matplotlib.pyplot as pt
-from gstools import SRF, Gaussian
+import gstools as gs
 
 x = y = np.arange(100)
 
-model = Gaussian(dim=2, var=1, len_scale=10)
-srf = SRF(model)
+model = gs.Gaussian(dim=2, var=1, len_scale=10)
+srf = gs.SRF(model)
 
 ###############################################################################
 # This time, we did not provide a seed to :any:`SRF`, as the seeds will used
@@ -33,7 +33,7 @@ for i in range(ens_no):
 fig, ax = pt.subplots(2, 2, sharex=True, sharey=True)
 ax = ax.flatten()
 for i in range(ens_no):
-    ax[i].imshow(field[i].T, origin='lower')
+    ax[i].imshow(field[i].T, origin="lower")
 pt.show()
 
 ###############################################################################
@@ -46,6 +46,7 @@ pt.show()
 
 
 from gstools.random import MasterRNG
+
 seed = MasterRNG(20170519)
 for i in range(ens_no):
     field.append(srf.structured([x, y], seed=seed()))
