@@ -180,21 +180,21 @@ class SRF(Field):
                 info,
             ) = self.cond_func(self)
             # store everything in the class
-            self.add_field("cond", cond_field, default_field=True)
+            self.add_field("default_field", cond_field, default_field=True)
             self.add_field("krige", krige_field)
             self.add_field("error", err_field)
             self.get_data("krige").krige_var = krigevar
             if "mean" in info:  # ordinary kriging estimates mean
                 self.get_data("cond").mean = info["mean"]
         else:
-            self.add_field("srf", self["raw"] + self.mean)
+            self.add_field("default_field", self["raw"] + self.mean)
 
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
-            self["srf"] -= self.mean
-            self["srf"] *= np.sqrt(scaled_var / self.model.sill)
-            self["srf"] += self.mean
+            self.values -= self.mean
+            self.values *= np.sqrt(scaled_var / self.model.sill)
+            self.values += self.mean
 
         return self.values
 
