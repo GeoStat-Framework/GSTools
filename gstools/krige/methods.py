@@ -76,7 +76,6 @@ class Simple(Krige):
             Raw kriging error variance.
         """
         if self.trend_function is no_trend:
-            print("no trend")
             self.field = field + self.mean
         else:
             self.field = (
