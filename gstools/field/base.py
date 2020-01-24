@@ -102,6 +102,11 @@ class FieldData:
         if mesh_type != "unstructured" and mesh_type != "structured":
             raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
         self._mesh_type = mesh_type
+        if value_type != "scalar" and value_type != "vector":
+            raise ValueError(
+                "Unknown field value type, "
+                + "specify 'scalar' or 'vector'."
+            )
         self.add_field(name, values, mean=mean, value_type=value_type)
 
     def add_field(
@@ -142,7 +147,7 @@ class FieldData:
         Warning: setting new positions deletes all previously stored fields.
         """
         self._pos = value
-        self.fields = {}
+        self._reset()
 
     @property
     def default_field(self):
@@ -192,7 +197,12 @@ class FieldData:
         Warning: setting a new mesh type deletes all previously stored fields.
         """
         self._mesh_type = value
-        self.fields = {}
+        self._reset()
+
+    def _reset(self):
+        self._default_field = "field"
+        self._mesh_type = "unstructured"
+        self.add_field(self._default_field, None, mean=0.0, value_type="scalar")
 
     def _check_field(self, values: np.ndarray):
         """Compare field shape to pos shape.
