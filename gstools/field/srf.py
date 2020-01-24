@@ -113,8 +113,6 @@ class SRF(Field):
     ):
         """Generate the spatial random field.
 
-        The field is saved as `self.field` and is also returned.
-
         Parameters
         ----------
         pos : :class:`list`
