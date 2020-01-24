@@ -88,7 +88,7 @@ class FieldData:
     def __init__(
         self,
         pos: np.ndarray = None,
-        name: str = "default_field",
+        name: str = "field",
         values: np.ndarray = None,
         *,
         mean: float = 0.0,
@@ -98,10 +98,10 @@ class FieldData:
         # initialize attributes
         self._pos = pos
         self.fields: Dict[str, np.ndarray] = {}
-        self._default_field = "default_field"
+        self._default_field = "field"
         if mesh_type != "unstructured" and mesh_type != "structured":
             raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
-        self.mesh_type = mesh_type
+        self._mesh_type = mesh_type
         self.add_field(name, values, mean=mean, value_type=value_type)
 
     def add_field(
@@ -138,7 +138,11 @@ class FieldData:
 
     @pos.setter
     def pos(self, value):
+        """
+        Warning: setting new positions deletes all previously stored fields.
+        """
         self._pos = value
+        self.fields = {}
 
     @property
     def default_field(self):
@@ -177,6 +181,19 @@ class FieldData:
     def mean(self, value):
         self.fields[self.default_field].mean = value
 
+    @property
+    def mesh_type(self):
+        """:any:`str`: The mesh type of the fields."""
+        return self._mesh_type
+
+    @mesh_type.setter
+    def mesh_type(self, value):
+        """
+        Warning: setting a new mesh type deletes all previously stored fields.
+        """
+        self._mesh_type = value
+        self.fields = {}
+
     def _check_field(self, values: np.ndarray):
         """Compare field shape to pos shape.
 
@@ -210,7 +227,7 @@ class Field(FieldData):
         self._model = None
         self.model = model
 
-    def __call__(*args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Generate the field."""
         pass
 
