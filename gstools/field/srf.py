@@ -89,9 +89,8 @@ class SRF(Field):
         generator="RandMeth",
         **generator_kwargs
     ):
-        super().__init__(model)
+        super().__init__(model, mean)
         # initialize private attributes
-        self._mean = mean
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
@@ -102,14 +101,14 @@ class SRF(Field):
         # initialize attributes
         self.set_generator(generator, **generator_kwargs)
         self.upscaling = upscaling
-        if self._value_type is None:
-            raise ValueError(
-                "Unknown field value type, "
-                + "specify 'scalar' or 'vector' before calling SRF."
-            )
 
     def __call__(
-        self, pos, seed=np.nan, point_volumes=0.0, mesh_type="unstructured"
+        self,
+        pos,
+        name="field",
+        seed=np.nan,
+        point_volumes=0.0,
+        mesh_type="unstructured",
     ):
         """Generate the spatial random field.
 
@@ -118,6 +117,11 @@ class SRF(Field):
         pos : :class:`list`
             the position tuple, containing main direction and transversal
             directions
+        name : :class:`str`, optional
+            the name of the dictionary key, in which the values will be saved.
+            If this method is called multiple times, the name determines, if
+            the field is overwritten or if it is added to the values dict.
+            Default: "field"
         seed : :class:`int`, optional
             seed for RNG for reseting. Default: keep seed from generator
         point_volumes : :class:`float` or :class:`numpy.ndarray`
@@ -136,8 +140,10 @@ class SRF(Field):
         """
         # internal conversation
         x, y, z = pos2xyz(pos, max_dim=self.model.dim)
+        mean_temp = self.mean
         self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
+        self.mean = mean_temp
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # format the positional arguments of the mesh
@@ -158,7 +164,7 @@ class SRF(Field):
         self.add_field(
                 "raw",
                 self.generator.__call__(x, y, z, mesh_type),
-                mean=self._mean
+                mean=self.mean
             )
 
         # reshape field if we got an unstructured mesh
@@ -178,14 +184,14 @@ class SRF(Field):
                 info,
             ) = self.cond_func(self)
             # store everything in the class
-            self.add_field("default_field", cond_field, default_field=True)
+            self.add_field(name, cond_field, default_field=True)
             self.add_field("krige", krige_field)
             self.add_field("error", err_field)
             self.get_data("krige").krige_var = krigevar
             if "mean" in info:  # ordinary kriging estimates mean
                 self.get_data("cond").mean = info["mean"]
         else:
-            self.add_field("default_field", self["raw"] + self.mean)
+            self.add_field(name, self["raw"] + self.mean)
 
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
@@ -308,7 +314,7 @@ class SRF(Field):
     def __repr__(self):
         """Return String representation."""
         return "SRF(model={0}, mean={1}, generator={2}".format(
-            self.model, self._mean, self.generator
+            self.model, self.mean, self.generator
         )
 
 
