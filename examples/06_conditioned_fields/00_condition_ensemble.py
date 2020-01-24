@@ -7,8 +7,8 @@ to generate an ensemble of conditioned random fields.
 The estimated mean can be accessed by ``srf.mean``.
 """
 import numpy as np
-from gstools import Gaussian, SRF
 import matplotlib.pyplot as plt
+import gstools as gs
 
 # condtions
 cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
@@ -18,15 +18,15 @@ gridx = np.linspace(0.0, 15.0, 151)
 ###############################################################################
 
 # spatial random field class
-model = Gaussian(dim=1, var=0.5, len_scale=2)
-srf = SRF(model)
+model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
+srf = gs.SRF(model)
 srf.set_condition(cond_pos, cond_val, "ordinary")
 
 ###############################################################################
+
 fields = []
 for i in range(100):
-    if i % 10 == 0:
-        print(i)
+    # print(i) if i % 10 == 0 else None
     fields.append(srf(gridx, seed=i))
     label = "Conditioned ensemble" if i == 0 else None
     plt.plot(gridx, fields[i], color="k", alpha=0.1, label=label)
