@@ -63,6 +63,7 @@ def download_herten():
 def generate_transmissivity():
     """Generate a file with a transmissivity field from the HERTEN data."""
     import pyvista as pv
+    import shutil
 
     print("Loading Herten data with pyvista")
     mesh = pv.read(VTK_PATH)
@@ -83,7 +84,7 @@ def generate_transmissivity():
     np.savetxt("grid_dim_origin_spacing.txt", grid)
     # Some cleanup. You can comment out these lines to keep the downloaded data
     os.remove("data.zip")
-    rmtree("Herten-analog")
+    shutil.rmtree("Herten-analog")
 
 
 ###############################################################################
@@ -145,7 +146,6 @@ plt.show()
 
 
 bins = np.linspace(0, 10, 50)
-print("Estimating unstructured variogram")
 bin_center, gamma = gs.vario_estimate_unstructured(
     (x_u, y_u),
     herten_log_trans.reshape(-1),
@@ -209,7 +209,6 @@ herten_trans_skip = herten_log_trans[::10, ::10]
 # With this much smaller data set, we can immediately estimate the variogram in
 # the x- and y-axis
 
-print("Estimating structured variograms")
 gamma_x = gs.vario_estimate_structured(herten_trans_skip, direction="x")
 gamma_y = gs.vario_estimate_structured(herten_trans_skip, direction="y")
 
@@ -279,7 +278,6 @@ print("semivariogram model (in y-dir.):\n", fit_model_y)
 
 # create a spatial random field on the low-resolution grid
 srf = gs.SRF(fit_model, seed=19770928)
-print("Calculating SRF")
 srf.structured([x_s_skip, y_s_skip])
 ax = srf.plot()
 ax.set_aspect("equal")
