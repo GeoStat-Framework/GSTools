@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from gstools import SRF, Stable
+import gstools as gs
 
 
 def norm_rad(vec):
@@ -55,14 +55,15 @@ def plot_rand_meth_samples(generator):
     #    x = np.linspace(0, np.max(rad))
     x = np.linspace(0, 10 / generator.model.integral_scale)
     y = generator.model.spectral_rad_pdf(x)
-    ax.plot(x, y)
+    ax.plot(x, y, label="spectal density")
     sample_in = np.sum(rad <= np.max(x))
     ax.hist(rad[rad <= np.max(x)], bins=sample_in // 50, density=True)
     ax.set_xlim([0, np.max(x)])
     ax.set_title("Radius samples shown {}/{}".format(sample_in, len(rad)))
+    ax.legend()
     fig.show()
 
 
-model = Stable(dim=3, alpha=1.5)
-srf = SRF(model)
+model = gs.Stable(dim=3, alpha=1.5)
+srf = gs.SRF(model, seed=2020)
 plot_rand_meth_samples(srf.generator)

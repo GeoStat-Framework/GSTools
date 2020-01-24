@@ -2,14 +2,13 @@
 TPL Stable
 ----------
 """
-
 import numpy as np
-from gstools import SRF, TPLStable
+import gstools as gs
 
 x = y = np.linspace(0, 100, 100)
-model = TPLStable(
+model = gs.TPLStable(
     dim=2,  # spatial dimension
-    var=1,  # variance (C is calculated internally, so that the variance is actually 1)
+    var=1,  # variance (C is calculated internally, so variance is actually 1)
     len_low=0,  # lower truncation of the power law
     len_scale=10,  # length scale (a.k.a. range), len_up = len_low + len_scale
     nugget=0.1,  # nugget
@@ -18,6 +17,6 @@ model = TPLStable(
     alpha=1.5,  # shape parameter from the stable model
     hurst=0.7,  # hurst coefficient from the power law
 )
-srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
+srf = gs.SRF(model, mean=1.0, seed=19970221)
 srf.structured([x, y])
 srf.plot()
