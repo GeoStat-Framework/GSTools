@@ -17,7 +17,7 @@ print(model.len_scale_vec)
 # As you can see, we defined just one anisotropy-ratio
 # and the second transversal direction was filled up with ``1.``.
 # You can get the length-scales in each direction by
-# the attribute :any:`len_scale_vec`. For full control you can set
+# the attribute :any:`CovModel.len_scale_vec`. For full control you can set
 # a list of anistropy ratios: ``anis=[0.5, 0.4]``.
 #
 # Alternatively you can provide a list of length-scales:
