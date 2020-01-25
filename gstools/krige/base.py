@@ -307,7 +307,7 @@ class Krige(Field):
         if self.trend_function is no_trend:
             self._krige_trend = 0.0
         else:
-            self._krige_trend = self.trend_function(*self._krige_pos)
+            self._krige_trend = self.trend_function(*self.cond_pos)
         self._mean = self.get_mean()
 
     @property
