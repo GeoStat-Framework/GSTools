@@ -16,11 +16,11 @@ In GSTools, we use the following form for an isotropic and stationary field:
 
 .. math::
    \gamma\left(r\right)=
-   \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n
+   \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n
 
 Where:
 
-  - :math:`\mathrm{cor}(r)` is the so called
+  - :math:`\rho(r)` is the so called
     `correlation <https://en.wikipedia.org/wiki/Autocovariance#Normalization>`_
     function depending on the distance :math:`r`
   - :math:`\sigma^2` is the variance
