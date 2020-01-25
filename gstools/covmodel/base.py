@@ -250,7 +250,7 @@ class CovModel(metaclass=InitSubclassMeta):
             """
             return 1.0 - (self.variogram(r) - self.nugget) / self.var
 
-        def cor_from_cor(self, r):
+        def correlation_from_cor(self, r):
             r"""Correlation function (or normalized covariance) of the model.
 
             Given by: :math:`\mathrm{cor}\left(r\right)`
@@ -261,12 +261,21 @@ class CovModel(metaclass=InitSubclassMeta):
             r = np.array(np.abs(r), dtype=np.double)
             return self.cor(r / self.len_scale)
 
+        def cor_from_correlation(self, h):
+            r"""Normalziled correlation function taking a normalized range.
+
+            Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
+            """
+            h = np.array(np.abs(h), dtype=np.double)
+            return self.correlation(h * self.len_scale)
         #######################################################################
 
         abstract = True
         if hasattr(cls, "cor"):
-            cls.correlation = cor_from_cor
+            cls.correlation = correlation_from_cor
             abstract = False
+        else:
+            cls.cor = cor_from_correlation
         if not hasattr(cls, "variogram"):
             cls.variogram = variogram
         else:
