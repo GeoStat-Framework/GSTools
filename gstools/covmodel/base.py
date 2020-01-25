@@ -264,7 +264,7 @@ class CovModel(metaclass=InitSubclassMeta):
         def cor_from_correlation(self, h):
             r"""Normalziled correlation function taking a normalized range.
 
-            Given by: :math:`\rho\left(r/\ell\right) = \rho(r)`
+            Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
             """
             h = np.array(np.abs(h), dtype=np.double)
             return self.correlation(h * self.len_scale)
