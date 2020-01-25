@@ -89,7 +89,7 @@ class Field:
         Returns
         -------
         x : :class:`numpy.ndarray`
-            first components of position vectors
+            first components of unrotated and isotropic position vectors
         y : :class:`numpy.ndarray` or None
             analog to x
         z : :class:`numpy.ndarray` or None
