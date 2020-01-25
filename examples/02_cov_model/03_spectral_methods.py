@@ -34,11 +34,13 @@ model.plot("spectral_density", ax=ax)
 #    The spectral-density is given by the radius of the input phase. But it is
 #    **not** a probability density function for the radius of the phase.
 #    To obtain the pdf for the phase-radius, you can use the methods
-#    :any:`spectral_rad_pdf` or :any:`ln_spectral_rad_pdf` for the logarithm.
+#    :any:`CovModel.spectral_rad_pdf`
+#    or :any:`CovModel.ln_spectral_rad_pdf` for the logarithm.
 #
 #    The user can also provide a cdf (cumulative distribution function) by
 #    defining a method called ``spectral_rad_cdf``
 #    and/or a ppf (percent-point function)
 #    by ``spectral_rad_ppf``.
 #
-#    The attributes :any:`has_cdf` and :any:`has_ppf` will check for that.
+#    The attributes :any:`CovModel.has_cdf`
+#    and :any:`CovModel.has_ppf` will check for that.
