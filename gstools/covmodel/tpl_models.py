@@ -2,7 +2,7 @@
 """
 GStools subpackage providing truncated power law covariance models.
 
-.. currentmodule:: gstools.covmodel.tpl_models
+.. currentmodule:: gstools.covmodel
 
 The following classes and functions are provided
 
@@ -15,7 +15,7 @@ The following classes and functions are provided
 
 import warnings
 import numpy as np
-from gstools.covmodel.base import CovModel
+from gstools.covmodel import CovModel
 from gstools.tools.special import tplstable_cor
 
 __all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]

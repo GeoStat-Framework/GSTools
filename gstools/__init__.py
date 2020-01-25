@@ -102,13 +102,13 @@ Estimate the variogram of a given field
 from gstools._version import __version__
 from gstools import field, variogram, random, covmodel, tools, krige, transform
 from gstools.field import SRF
-from gstools.tools.export import (
+from gstools.tools import (
+    vtk_export,
+    vtk_export_structured,
+    vtk_export_unstructured,
     to_vtk,
     to_vtk_structured,
     to_vtk_unstructured,
-    vtk_export_structured,
-    vtk_export_unstructured,
-    vtk_export,
 )
 from gstools.variogram import (
     vario_estimate_structured,

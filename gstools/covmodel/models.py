@@ -2,7 +2,7 @@
 """
 GStools subpackage providing different covariance models.
 
-.. currentmodule:: gstools.covmodel.models
+.. currentmodule:: gstools.covmodel
 
 The following classes and functions are provided
 
@@ -22,7 +22,7 @@ The following classes and functions are provided
 import warnings
 import numpy as np
 from scipy import special as sps
-from gstools.covmodel.base import CovModel
+from gstools.covmodel import CovModel
 
 __all__ = [
     "Gaussian",
