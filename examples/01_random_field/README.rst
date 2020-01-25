@@ -12,3 +12,6 @@ The spatial random field is represented by a stochastic Fourier integral
 and its discretised modes are evaluated at random frequencies.
 
 GSTools supports arbitrary and non-isotropic covariance models.
+
+Gallery
+-------

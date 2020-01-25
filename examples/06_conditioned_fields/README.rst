@@ -29,3 +29,6 @@ or:
 .. code-block:: python
 
     srf.set_condition(cond_pos, cond_val, "ordinary")
+
+Gallery
+-------

@@ -31,3 +31,6 @@ Simply import the transform submodule and apply a transformation to the srf clas
     from gstools import transform as tf
     ...
     tf.normal_to_lognormal(srf)
+
+Gallery
+-------
