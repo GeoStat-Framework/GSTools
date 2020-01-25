@@ -12,18 +12,24 @@ variogram:
 
   .. math::
       \gamma\left(r\right)=
-      \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n
+      \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n
 
 - ``covariance`` : The (auto-)covariance of the model given by
 
   .. math::
-      C\left(r\right)= \sigma^2\cdot\mathrm{cor}\left(r\right)
+      C\left(r\right)= \sigma^2\cdot\rho\left(r\right)
 
 - ``correlation`` : The (auto-)correlation (or normalized covariance)
   of the model given by
 
   .. math::
-      \mathrm{cor}\left(r\right)
+      \rho\left(r\right)
+
+- ``cor`` : The normalized correlation taking a normalized range given by:
+
+  .. math::
+      \mathrm{cor}\left(\frac{r}{\ell}\right) = \rho\left(r\right)
+
 
 As you can see, it is the easiest way to define a covariance model by giving a
 correlation function as demonstrated in the introductory example.

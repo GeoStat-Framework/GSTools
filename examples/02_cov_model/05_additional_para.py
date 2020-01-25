@@ -6,7 +6,7 @@ Let's pimp our self-defined model ``Gau`` from the introductory example
 by setting the exponent as an additional parameter:
 
 .. math::
-   \mathrm{cor}(r) := \exp\left(-\left(\frac{r}{\ell}\right)^{\alpha}\right)
+   \rho(r) := \exp\left(-\left(\frac{r}{\ell}\right)^{\alpha}\right)
 
 This leads to the so called **stable** covariance model and we can define it by
 """

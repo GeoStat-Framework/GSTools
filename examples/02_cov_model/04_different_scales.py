@@ -12,7 +12,7 @@ Integral scale
 The `integral scale <https://en.wikipedia.org/wiki/Integral_length_scale>`_
 of a covariance model is calculated by:
 
-.. math:: I = \int_0^\infty \mathrm{cor}(r) dr
+.. math:: I = \int_0^\infty \rho(r) dr
 
 You can access it by:
 """
