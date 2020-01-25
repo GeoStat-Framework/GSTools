@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This is the unittest of CovModel class.
+This is the unittest of the kriging module.
 """
 
 import numpy as np
@@ -21,79 +21,99 @@ class TestKrige(unittest.TestCase):
                 [4.7, 3.8, 2.5, 1.74],
             ]
         )
+        # indices for the date in the grid
+        self.data_idx = tuple(np.array(self.data[:, :3] * 10, dtype=int).T)
+        # x, y, z componentes for the conditon position
         self.cond_pos = (self.data[:, 0], self.data[:, 1], self.data[:, 2])
+        # condition values
         self.cond_val = self.data[:, 3]
+        # the arithmetic mean of the conditions
         self.mean = np.mean(self.cond_val)
-        self.grid_x = np.concatenate((self.cond_pos[0], np.linspace(5, 20)))
-        self.grid_y = np.concatenate((self.cond_pos[1], np.linspace(5, 20)))
-        self.grid_z = np.concatenate((self.cond_pos[2], np.linspace(5, 20)))
-        self.pos = (self.grid_x, self.grid_y, self.grid_z)
+        # the grid
+        self.x = self.y = self.z = np.concatenate(
+            (np.linspace(0, 5, 51), [20])
+        )
+        self.pos = (self.x, self.y, self.z)
+        self.grids = [self.x]
+        self.grids.append(np.meshgrid(self.x, self.y, indexing="ij"))
+        self.grids.append(np.meshgrid(self.x, self.y, self.z, indexing="ij"))
+        self.grid_shape = [52] * 3
 
     def test_simple(self):
         for Model in self.cov_models:
-            model = Model(
-                dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
-            )
-            simple = krige.Simple(
-                model, self.cond_pos[0], self.cond_val, self.mean
-            )
-            field_1, __ = simple.unstructured(self.pos[0])
-            field_2, __ = simple.structured(self.pos[0])
-            for i, val in enumerate(self.cond_val):
-                self.assertAlmostEqual(val, field_1[i], places=2)
-                self.assertAlmostEqual(val, field_2[(i,)], places=2)
-            self.assertAlmostEqual(self.mean, field_1[-1], places=2)
-            self.assertAlmostEqual(self.mean, field_2[(-1,)], places=2)
-
-            for dim in self.dims[1:]:
+            for dim in self.dims:
                 model = Model(
                     dim=dim,
-                    var=0.5,
+                    var=2,
                     len_scale=2,
-                    anis=[0.1, 1],
-                    angles=[0.5, 0, 0],
+                    anis=[0.9, 0.8],
+                    angles=[2, 1, 0.5],
                 )
                 simple = krige.Simple(
                     model, self.cond_pos[:dim], self.cond_val, self.mean
                 )
-                field_1, __ = simple.unstructured(self.pos[:dim])
+                field_1, __ = simple.unstructured(self.grids[dim - 1])
+                field_1 = field_1.reshape(self.grid_shape[:dim])
                 field_2, __ = simple.structured(self.pos[:dim])
+                self.assertAlmostEqual(
+                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                )
                 for i, val in enumerate(self.cond_val):
-                    self.assertAlmostEqual(val, field_1[i], places=2)
-                    self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
-                self.assertAlmostEqual(self.mean, field_1[-1], places=2)
+                    self.assertAlmostEqual(
+                        field_1[self.data_idx[:dim]][i], val, places=2
+                    )
                 self.assertAlmostEqual(
                     self.mean, field_2[dim * (-1,)], places=2
                 )
 
     def test_ordinary(self):
         for Model in self.cov_models:
-            model = Model(
-                dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
-            )
-            ordinary = krige.Ordinary(model, self.cond_pos[0], self.cond_val)
-            field_1, __ = ordinary.unstructured(self.pos[0])
-            field_2, __ = ordinary.structured(self.pos[0])
-            for i, val in enumerate(self.cond_val):
-                self.assertAlmostEqual(val, field_1[i], places=2)
-                self.assertAlmostEqual(val, field_2[(i,)], places=2)
-
-            for dim in self.dims[1:]:
+            for dim in self.dims:
                 model = Model(
                     dim=dim,
-                    var=0.5,
-                    len_scale=2,
-                    anis=[0.1, 1],
-                    angles=[0.5, 0, 0],
+                    var=5,
+                    len_scale=10,
+                    anis=[0.9, 0.8],
+                    angles=[2, 1, 0.5],
                 )
                 ordinary = krige.Ordinary(
                     model, self.cond_pos[:dim], self.cond_val
                 )
-                field_1, __ = ordinary.unstructured(self.pos[:dim])
+                field_1, __ = ordinary.unstructured(self.grids[dim - 1])
+                field_1 = field_1.reshape(self.grid_shape[:dim])
                 field_2, __ = ordinary.structured(self.pos[:dim])
+                self.assertAlmostEqual(
+                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                )
                 for i, val in enumerate(self.cond_val):
-                    self.assertAlmostEqual(val, field_1[i], places=2)
-                    self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
+                    self.assertAlmostEqual(
+                        field_1[self.data_idx[:dim]][i], val, places=2
+                    )
+
+    def test_universal(self):
+        for trend in ["linear", "quadratic"]:
+            for Model in self.cov_models:
+                for dim in self.dims:
+                    model = Model(
+                        dim=dim,
+                        var=5,
+                        len_scale=10,
+                        anis=[0.9, 0.8],
+                        angles=[2, 1, 0.5],
+                    )
+                    universal = krige.Universal(
+                        model, self.cond_pos[:dim], self.cond_val, trend
+                    )
+                    field_1, __ = universal.unstructured(self.grids[dim - 1])
+                    field_1 = field_1.reshape(self.grid_shape[:dim])
+                    field_2, __ = universal.structured(self.pos[:dim])
+                    self.assertAlmostEqual(
+                        np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                    )
+                    for i, val in enumerate(self.cond_val):
+                        self.assertAlmostEqual(
+                            field_2[self.data_idx[:dim]][i], val, places=2
+                        )
 
 
 if __name__ == "__main__":
