@@ -41,9 +41,9 @@ Where:
 Provided Covariance Models
 --------------------------
 
-The following standard covariance models are provided by GSTools
+.. currentmodule:: gstools.covmodel
 
-.. currentmodule:: gstools.covmodel.models
+The following standard covariance models are provided by GSTools
 
 .. autosummary::
     Gaussian
@@ -57,8 +57,6 @@ The following standard covariance models are provided by GSTools
     Intersection
 
 As a special feature, we also provide truncated power law (TPL) covariance models
-
-.. currentmodule:: gstools.covmodel.tpl_models
 
 .. autosummary::
     TPLGaussian
