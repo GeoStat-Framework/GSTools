@@ -99,12 +99,13 @@ Estimate the variogram of a given field
    vario_estimate_unstructured
 """
 
-import sys
-
 from gstools._version import __version__
 from gstools import field, variogram, random, covmodel, tools, krige, transform
 from gstools.field import SRF
 from gstools.tools.export import (
+    to_vtk,
+    to_vtk_structured,
+    to_vtk_unstructured,
     vtk_export_structured,
     vtk_export_unstructured,
     vtk_export,
@@ -128,20 +129,6 @@ from gstools.covmodel import (
     TPLExponential,
     TPLStable,
 )
-
-
-PY_VERSION = sys.version_info
-DEPRECATION_STR = (
-    "DEPRECATION: Python {0} will reach the end of is life on "
-    "{1}. Please upgrade your Python as Python {0} "
-    "won't be maintained after that date. A future version of GSTools will "
-    "drop support for Python {0}."
-)
-
-if PY_VERSION[:2] == (2, 7):
-    print(DEPRECATION_STR.format(2.7, "1st January 2020"))
-elif PY_VERSION[:2] == (3, 4):
-    print(DEPRECATION_STR.format(3.4, "18th March 2019"))
 
 
 __all__ = ["__version__"]
