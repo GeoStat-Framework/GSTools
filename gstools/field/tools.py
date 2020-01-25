@@ -185,7 +185,7 @@ def rotate_mesh(dim, angles, x, y, z):
         alpha = angles[0]
         beta = angles[1]
         gamma = angles[2]
-        rot_mat = np.dot(np.dot(r3d_z(alpha), r3d_y(beta)), r3d_x(gamma))
+        rot_mat = np.dot(np.dot(r3d_x(gamma), r3d_y(beta)), r3d_z(alpha))
         pos_tuple = np.vstack((x, y, z))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
         x = pos_tuple[0].reshape(np.shape(x))
