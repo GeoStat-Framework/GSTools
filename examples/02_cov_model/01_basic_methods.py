@@ -8,24 +8,25 @@ methods.
 One of the following functions defines the main characterization of the
 variogram:
 
-- ``variogram`` : The variogram of the model given by
+- :any:`CovModel.variogram` : The variogram of the model given by
 
   .. math::
       \gamma\left(r\right)=
       \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n
 
-- ``covariance`` : The (auto-)covariance of the model given by
+- :any:`CovModel.covariance` : The (auto-)covariance of the model given by
 
   .. math::
       C\left(r\right)= \sigma^2\cdot\rho\left(r\right)
 
-- ``correlation`` : The (auto-)correlation (or normalized covariance)
-  of the model given by
+- :any:`CovModel.correlation` : The (auto-)correlation
+  (or normalized covariance) of the model given by
 
   .. math::
       \rho\left(r\right)
 
-- ``cor`` : The normalized correlation taking a normalized range given by:
+- :any:`CovModel.cor` : The normalized correlation taking a
+  normalized range given by:
 
   .. math::
       \mathrm{cor}\left(\frac{r}{\ell}\right) = \rho\left(r\right)
