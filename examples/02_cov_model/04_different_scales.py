@@ -45,12 +45,24 @@ print("All integral scales:", model.integral_scale_vec)
 
 model = gs.Stable(dim=3, var=2.0, len_scale=10)
 per_scale = model.percentile_scale(0.9)
-print("Percentile scale:", per_scale)
-ax = model.plot()
-ax.axhline(1.8, color="k", linestyle=":", label=r"90% percentile")
-ax.legend()
+int_scale = model.integral_scale
+len_scale = model.len_scale
+print("90% Percentile scale:", per_scale)
+print("Integral scale:", int_scale)
+print("Length scale:", len_scale)
 
 ###############################################################################
 # .. note::
 #
-#    The nugget is neglected by this percentile_scale.
+#    The nugget is neglected by the percentile scale.
+#
+#
+# Comparison
+# ----------
+
+ax = model.plot()
+ax.axhline(1.8, color="k", label=r"90% percentile")
+ax.axvline(per_scale, color="k", linestyle="--", label=r"90% percentile scale")
+ax.axvline(int_scale, color="k", linestyle="-.", label=r"integral scale")
+ax.axvline(len_scale, color="k", linestyle=":", label=r"length scale")
+ax.legend()
