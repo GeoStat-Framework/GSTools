@@ -83,10 +83,10 @@ def exp_int(s, x):
 def tplstable_cor(r, len_scale, hurst, alpha):
     r"""The correlation function of the TPLStable model.
 
-    Given by
+    Given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \frac{2H}{\alpha} \cdot
        E_{1+\frac{2H}{\alpha}}
        \left(\left(\frac{r}{\ell}\right)^{\alpha} \right)
