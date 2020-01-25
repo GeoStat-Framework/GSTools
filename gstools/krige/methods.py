@@ -16,6 +16,8 @@ The following classes are provided
 # pylint: disable=C0103
 import numpy as np
 from scipy.linalg import inv
+from gstools.field.tools import make_anisotropic, rotate_mesh
+from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.krige.base import Krige
 from gstools.krige.tools import eval_func, no_trend
 
@@ -239,6 +241,15 @@ class Universal(Krige):
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
+        # trend function need the anisotropic and rotated positions
+        if not self.model.is_isotropic:
+            x, y, z = pos2xyz(pos, max_dim=self.model.dim)
+            y, z = make_anisotropic(self.model.dim, self.model.anis, y, z)
+            if self.model.do_rotation:
+                x, y, z = rotate_mesh(
+                    self.model.dim, self.model.angles, x, y, z
+                )
+            pos = xyz2pos(x, y, z, max_dim=self.model.dim)
         chunk_pos = list(pos[: self.model.dim])
         for i in range(self.model.dim):
             chunk_pos[i] = chunk_pos[i][slice(*chunk_slice)]
