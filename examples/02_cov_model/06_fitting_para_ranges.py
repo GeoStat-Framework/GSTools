@@ -53,7 +53,7 @@ ax.legend()
 #
 # You can use the following methods to manipulate the used bounds:
 #
-# .. currentmodule:: gstools.covmodel.base
+# .. currentmodule:: gstools.covmodel
 #
 # .. autosummary::
 #    CovModel.default_opt_arg_bounds
