@@ -301,6 +301,7 @@ class Krige(Field):
     def update(self):
         """Update the kriging settings."""
         x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
+        # krige pos are the unrotated and isotropic condition positions
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self.get_krige_mat()
         if self.trend_function is no_trend:
