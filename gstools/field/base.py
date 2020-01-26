@@ -126,7 +126,7 @@ class Field:
 
     def mesh(
         self, mesh, points="centroids", direction="xyz", name="field", **kwargs
-    ):
+    ):  # pragma: no cover
         """Generate a field on a given meshio or ogs5py mesh.
 
         Parameters
