@@ -68,28 +68,29 @@ class TestKrige(unittest.TestCase):
                     )
 
     def test_ordinary(self):
-        for Model in self.cov_models:
-            for dim in self.dims:
-                model = Model(
-                    dim=dim,
-                    var=5,
-                    len_scale=10,
-                    anis=[0.9, 0.8],
-                    angles=[2, 1, 0.5],
-                )
-                ordinary = krige.Ordinary(
-                    model, self.cond_pos[:dim], self.cond_val
-                )
-                field_1, __ = ordinary.unstructured(self.grids[dim - 1])
-                field_1 = field_1.reshape(self.grid_shape[:dim])
-                field_2, __ = ordinary.structured(self.pos[:dim])
-                self.assertAlmostEqual(
-                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
-                )
-                for i, val in enumerate(self.cond_val):
-                    self.assertAlmostEqual(
-                        field_1[self.data_idx[:dim]][i], val, places=2
+        for trend_func in [None, trend]:
+            for Model in self.cov_models:
+                for dim in self.dims:
+                    model = Model(
+                        dim=dim,
+                        var=5,
+                        len_scale=10,
+                        anis=[0.9, 0.8],
+                        angles=[2, 1, 0.5],
                     )
+                    ordinary = krige.Ordinary(
+                        model, self.cond_pos[:dim], self.cond_val, trend_func
+                    )
+                    field_1, __ = ordinary.unstructured(self.grids[dim - 1])
+                    field_1 = field_1.reshape(self.grid_shape[:dim])
+                    field_2, __ = ordinary.structured(self.pos[:dim])
+                    self.assertAlmostEqual(
+                        np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                    )
+                    for i, val in enumerate(self.cond_val):
+                        self.assertAlmostEqual(
+                            field_1[self.data_idx[:dim]][i], val, places=2
+                        )
 
     def test_universal(self):
         # "quad" -> to few conditional points
