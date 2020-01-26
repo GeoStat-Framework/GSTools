@@ -5,7 +5,11 @@ This is the unittest of the kriging module.
 
 import numpy as np
 import unittest
-from gstools import Gaussian, Exponential, Spherical, krige
+from gstools import Gaussian, Exponential, Spherical, krige, SRF
+
+
+def trend(*xyz):
+    return xyz[0]
 
 
 class TestKrige(unittest.TestCase):
@@ -30,14 +34,14 @@ class TestKrige(unittest.TestCase):
         # the arithmetic mean of the conditions
         self.mean = np.mean(self.cond_val)
         # the grid
-        self.x = self.y = self.z = np.concatenate(
-            (np.linspace(0, 5, 51), [20])
-        )
+        self.x = np.linspace(0, 5, 51)
+        self.y = np.linspace(0, 6, 61)
+        self.z = np.linspace(0, 7, 71)
         self.pos = (self.x, self.y, self.z)
         self.grids = [self.x]
         self.grids.append(np.meshgrid(self.x, self.y, indexing="ij"))
         self.grids.append(np.meshgrid(self.x, self.y, self.z, indexing="ij"))
-        self.grid_shape = [52] * 3
+        self.grid_shape = [51, 61, 71]
 
     def test_simple(self):
         for Model in self.cov_models:
@@ -62,9 +66,6 @@ class TestKrige(unittest.TestCase):
                     self.assertAlmostEqual(
                         field_1[self.data_idx[:dim]][i], val, places=2
                     )
-                self.assertAlmostEqual(
-                    self.mean, field_2[dim * (-1,)], places=2
-                )
 
     def test_ordinary(self):
         for Model in self.cov_models:
@@ -91,7 +92,7 @@ class TestKrige(unittest.TestCase):
                     )
 
     def test_universal(self):
-        for trend in ["linear", "quadratic"]:
+        for drift in ["linear", "quadratic"]:
             for Model in self.cov_models:
                 for dim in self.dims:
                     model = Model(
@@ -102,7 +103,7 @@ class TestKrige(unittest.TestCase):
                         angles=[2, 1, 0.5],
                     )
                     universal = krige.Universal(
-                        model, self.cond_pos[:dim], self.cond_val, trend
+                        model, self.cond_pos[:dim], self.cond_val, drift
                     )
                     field_1, __ = universal.unstructured(self.grids[dim - 1])
                     field_1 = field_1.reshape(self.grid_shape[:dim])
@@ -114,6 +115,81 @@ class TestKrige(unittest.TestCase):
                         self.assertAlmostEqual(
                             field_2[self.data_idx[:dim]][i], val, places=2
                         )
+
+    def test_detrended(self):
+
+        for Model in self.cov_models:
+            for dim in self.dims:
+                model = Model(
+                    dim=dim,
+                    var=2,
+                    len_scale=10,
+                    anis=[0.5, 0.2],
+                    angles=[0.4, 0.2, 0.1],
+                )
+                detrended = krige.Detrended(
+                    model, self.cond_pos[:dim], self.cond_val, trend
+                )
+                field_1, __ = detrended.unstructured(self.grids[dim - 1])
+                field_1 = field_1.reshape(self.grid_shape[:dim])
+                field_2, __ = detrended.structured(self.pos[:dim])
+                # detrended.plot()
+                self.assertAlmostEqual(
+                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                )
+                for i, val in enumerate(self.cond_val):
+                    self.assertAlmostEqual(
+                        field_2[self.data_idx[:dim]][i], val, places=2
+                    )
+
+    def test_extdrift(self):
+        ext_drift = []
+        cond_drift = []
+        for i, grid in enumerate(self.grids):
+            dim = i + 1
+            model = Exponential(
+                dim=dim,
+                var=2,
+                len_scale=10,
+                anis=[0.9, 0.8],
+                angles=[2, 1, 0.5],
+            )
+            srf = SRF(model)
+            field = srf(grid)
+            ext_drift.append(field)
+            field = field.reshape(self.grid_shape[:dim])
+            cond_drift.append(field[self.data_idx[:dim]])
+
+        for Model in self.cov_models:
+            for dim in self.dims:
+                model = Model(
+                    dim=dim,
+                    var=2,
+                    len_scale=10,
+                    anis=[0.5, 0.2],
+                    angles=[0.4, 0.2, 0.1],
+                )
+                extdrift = krige.ExtDrift(
+                    model,
+                    self.cond_pos[:dim],
+                    self.cond_val,
+                    cond_drift[dim - 1],
+                )
+                field_1, __ = extdrift.unstructured(
+                    self.grids[dim - 1], ext_drift=ext_drift[dim - 1]
+                )
+                field_1 = field_1.reshape(self.grid_shape[:dim])
+                field_2, __ = extdrift.structured(
+                    self.pos[:dim], ext_drift=ext_drift[dim - 1]
+                )
+                # extdrift.plot()
+                self.assertAlmostEqual(
+                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                )
+                for i, val in enumerate(self.cond_val):
+                    self.assertAlmostEqual(
+                        field_2[self.data_idx[:dim]][i], val, places=2
+                    )
 
 
 if __name__ == "__main__":
