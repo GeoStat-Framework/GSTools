@@ -92,12 +92,12 @@ class TestKrige(unittest.TestCase):
                     )
 
     def test_universal(self):
-        for drift in ["linear", "quadratic"]:
+        for drift in ["linear", 0, 1]:  # "quad" -> to few conditional points
             for Model in self.cov_models:
                 for dim in self.dims:
                     model = Model(
                         dim=dim,
-                        var=5,
+                        var=2,
                         len_scale=10,
                         anis=[0.9, 0.8],
                         angles=[2, 1, 0.5],
