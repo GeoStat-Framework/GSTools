@@ -187,12 +187,13 @@ class Universal(Krige):
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
-    drift_functions : :class:`list` of :any:`callable` or :class:`str`
-        The given functional drift for universal kriging.
-        Either a list of callable functions or one of the following strings:
+    drift_functions :
+    :class:`list` of :any:`callable`, :class:`str` or :class:`int`
+        Either a list of callable functions, an integer representing
+        the polynomial order of the drift or one of the following strings:
 
-            * "linear" : regional linear drift
-            * "quadratic" : regional quadratic drift
+            * "linear" : regional linear drift (equals order=1)
+            * "quadratic" : regional quadratic drift (equals order=2)
 
     trend_function : :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z])

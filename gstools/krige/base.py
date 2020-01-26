@@ -44,11 +44,13 @@ class Krige(Field):
         mean value of the kriging field
     ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
         the external drift values at the given cond. positions (only for EDK)
-    drift_functions : :class:`list` of :any:`callable` or :class:`str`
-        Either a list of callable functions or one of the following strings:
+    drift_functions :
+    :class:`list` of :any:`callable`, :class:`str` or :class:`int`
+        Either a list of callable functions, an integer representing
+        the polynomial order of the drift or one of the following strings:
 
-            * "linear" : regional linear drift
-            * "quadratic" : regional quadratic drift
+            * "linear" : regional linear drift (equals order=1)
+            * "quadratic" : regional quadratic drift (equals order=2)
 
     trend_function : :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z])
@@ -267,12 +269,13 @@ class Krige(Field):
 
         Parameters
         ----------
-        drift_functions : :class:`list` of :any:`callable` or :class:`str`
-            Either a list of callable functions
-            or one of the following strings:
+        drift_functions :
+        :class:`list` of :any:`callable`, :class:`str` or :class:`int`
+            Either a list of callable functions, an integer representing
+            the polynomial order of the drift or one of the following strings:
 
-                * "linear" : regional linear drift
-                * "quadratic" : regional quadratic drift
+                * "linear" : regional linear drift (equals order=1)
+                * "quadratic" : regional quadratic drift (equals order=2)
 
         Raises
         ------
@@ -281,7 +284,7 @@ class Krige(Field):
         """
         if drift_functions is None:
             self._drift_functions = []
-        elif isinstance(drift_functions, str):
+        elif isinstance(drift_functions, (str, int)):
             self._drift_functions = get_drift_functions(
                 self.model.dim, drift_functions
             )
