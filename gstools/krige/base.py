@@ -176,7 +176,7 @@ class Krige(Field):
             ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
             ext_shape = np.shape(ext_drift)
             shape = (self.drift_no, point_no)
-            if ext_shape[0] != self.drift_no:
+            if self.drift_no > 1 and ext_shape[0] != self.drift_no:
                 raise ValueError("Krige: wrong number of external drifts.")
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
