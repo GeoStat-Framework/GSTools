@@ -13,7 +13,7 @@ The following classes and functions are provided
    eval_func
 """
 # pylint: disable=C0103
-
+from itertools import combinations_with_replacement
 import numpy as np
 from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.field.tools import (
@@ -122,61 +122,34 @@ def get_drift_functions(dim, drift_type):
     ----------
     dim : :class:`int`
         Given dimension.
-    drift_type : :class:`str`
-        Drift type: 'linear' or 'quadratic'.
-
-    Raises
-    ------
-    ValueError
-        If given drift_type is unknown.
+    drift_type : :class:`str` or :class:`int`
+        Drift type: 'linear' or 'quadratic' or an integer for the polynomial
+        order of the drift type. (linear equals 1, quadratic equals 2 ...)
 
     Returns
     -------
     :class:`list` of :any:`callable`
         List of drift functions.
     """
-    lin_drift = [_f_x, _f_y, _f_z][:dim]
-    qu1_drift = [_f_xx, _f_yy, _f_zz][:dim]
-    qu2_drift = [] if dim < 2 else [_f_xy]
-    qu3_drift = [] if dim < 3 else [_f_yz, _f_xz]
     if drift_type in ["lin", "linear"]:
-        return lin_drift
-    if drift_type in ["quad", "quadratic"]:
-        return lin_drift + qu1_drift + qu2_drift + qu3_drift
-    raise ValueError("Drift: unknown drift given: '{}'".format(drift_type))
+        drift_type = 1
+    elif drift_type in ["quad", "quadratic"]:
+        drift_type = 2
+    else:
+        drift_type = int(drift_type)
+    drift_functions = []
+    for d in range(drift_type):
+        selects = combinations_with_replacement(range(dim), d + 1)
+        for select in selects:
+            drift_functions.append(_f_factory(select))
+    return drift_functions
 
 
-def _f_x(*pos):
-    return pos[0]
+def _f_factory(select):
+    def f(*pos):
+        res = 1.0
+        for i in select:
+            res *= np.asarray(pos[i])
+        return res
 
-
-def _f_y(*pos):
-    return pos[1]
-
-
-def _f_z(*pos):
-    return pos[2]
-
-
-def _f_xx(*pos):
-    return pos[0] ** 2
-
-
-def _f_yy(*pos):
-    return pos[1] ** 2
-
-
-def _f_zz(*pos):
-    return pos[2] ** 2
-
-
-def _f_xy(*pos):
-    return pos[0] * pos[1]
-
-
-def _f_xz(*pos):
-    return pos[0] * pos[2]
-
-
-def _f_yz(*pos):
-    return pos[1] * pos[2]
+    return f
