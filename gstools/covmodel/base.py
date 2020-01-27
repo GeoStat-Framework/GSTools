@@ -2,7 +2,7 @@
 """
 GStools subpackage providing the base class for covariance models.
 
-.. currentmodule:: gstools.covmodel
+.. currentmodule:: gstools.covmodel.base
 
 The following classes are provided
 

@@ -2,7 +2,7 @@
 """
 GStools subpackage providing truncated power law covariance models.
 
-.. currentmodule:: gstools.covmodel
+.. currentmodule:: gstools.covmodel.tpl_models
 
 The following classes and functions are provided
 
