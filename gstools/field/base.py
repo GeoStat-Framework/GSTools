@@ -72,58 +72,6 @@ class Field:
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
-    def pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
-        """
-        Preprocessing positions and mesh_type.
-
-        Parameters
-        ----------
-        pos : :any:`iterable`
-            the position tuple, containing main direction and transversal
-            directions
-        mesh_type : :class:`str`
-            'structured' / 'unstructured'
-        make_unstruct: :class:`bool`
-            State if mesh_type should be made unstructured.
-
-        Returns
-        -------
-        x : :class:`numpy.ndarray`
-            first components of unrotated and isotropic position vectors
-        y : :class:`numpy.ndarray` or None
-            analog to x
-        z : :class:`numpy.ndarray` or None
-            analog to x
-        pos : :class:`tuple` of :class:`numpy.ndarray`
-            the normalized position tuple
-        mesh_type_gen : :class:`str`
-            'structured' / 'unstructured' for the generator
-        mesh_type_changed : :class:`bool`
-            State if the mesh_type was changed.
-        axis_lens : :class:`tuple` or :any:`None`
-            axis lenghts of the structured mesh if mesh type was changed.
-        """
-        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-        pos = xyz2pos(x, y, z)
-        mesh_type_gen = mesh_type
-        # format the positional arguments of the mesh
-        check_mesh(self.model.dim, x, y, z, mesh_type)
-        mesh_type_changed = False
-        axis_lens = None
-        if (
-            self.model.do_rotation or make_unstruct
-        ) and mesh_type == "structured":
-            mesh_type_changed = True
-            mesh_type_gen = "unstructured"
-            x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                self.model.dim, x, y, z
-            )
-        if self.model.do_rotation:
-            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
-        if not self.model.is_isotropic:
-            y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
-
     def mesh(
         self, mesh, points="centroids", direction="xyz", name="field", **kwargs
     ):  # pragma: no cover
@@ -205,6 +153,58 @@ class Field:
                     field = out[0]
                 mesh.point_data[name] = field
         return out
+
+    def _pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
+        """
+        Preprocessing positions and mesh_type.
+
+        Parameters
+        ----------
+        pos : :any:`iterable`
+            the position tuple, containing main direction and transversal
+            directions
+        mesh_type : :class:`str`
+            'structured' / 'unstructured'
+        make_unstruct: :class:`bool`
+            State if mesh_type should be made unstructured.
+
+        Returns
+        -------
+        x : :class:`numpy.ndarray`
+            first components of unrotated and isotropic position vectors
+        y : :class:`numpy.ndarray` or None
+            analog to x
+        z : :class:`numpy.ndarray` or None
+            analog to x
+        pos : :class:`tuple` of :class:`numpy.ndarray`
+            the normalized position tuple
+        mesh_type_gen : :class:`str`
+            'structured' / 'unstructured' for the generator
+        mesh_type_changed : :class:`bool`
+            State if the mesh_type was changed.
+        axis_lens : :class:`tuple` or :any:`None`
+            axis lenghts of the structured mesh if mesh type was changed.
+        """
+        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
+        pos = xyz2pos(x, y, z)
+        mesh_type_gen = mesh_type
+        # format the positional arguments of the mesh
+        check_mesh(self.model.dim, x, y, z, mesh_type)
+        mesh_type_changed = False
+        axis_lens = None
+        if (
+            self.model.do_rotation or make_unstruct
+        ) and mesh_type == "structured":
+            mesh_type_changed = True
+            mesh_type_gen = "unstructured"
+            x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
+                self.model.dim, x, y, z
+            )
+        if self.model.do_rotation:
+            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
+        if not self.model.is_isotropic:
+            y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
+        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
 
     def _to_vtk_helper(
         self, filename=None, field_select="field", fieldname="field"

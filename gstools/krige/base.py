@@ -44,8 +44,7 @@ class Krige(Field):
         mean value of the kriging field
     ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
         the external drift values at the given cond. positions (only for EDK)
-    drift_functions :
-    :class:`list` of :any:`callable`, :class:`str` or :class:`int`
+    drift_functions : :class:`list` of :any:`callable`, :class:`str` or :class:`int`
         Either a list of callable functions, an integer representing
         the polynomial order of the drift or one of the following strings:
 
@@ -78,12 +77,11 @@ class Krige(Field):
         self._cond_pos = None
         self._cond_val = None
         self._krige_mat = None
-        self._krige_cond = None
         self._krige_pos = None
-        self._krige_trend = None
+        self._cond_trend = None
         self._trend_function = None
         self.trend_function = trend_function
-        self._krige_ext_drift = np.array([])
+        self._cond_ext_drift = np.array([])
         self._drift_functions = []
         self.set_drift_functions(drift_functions)
         self.set_condition(cond_pos, cond_val, ext_drift)
@@ -116,7 +114,7 @@ class Krige(Field):
         """
         self.mesh_type = mesh_type
         # internal conversation
-        x, y, z, self.pos, __, mt_changed, ax_lens = self.pre_pos(
+        x, y, z, self.pos, __, mt_changed, ax_lens = self._pre_pos(
             pos, mesh_type, make_unstruct=True
         )
         point_no = len(x)
@@ -125,17 +123,17 @@ class Krige(Field):
         chunk_no = int(np.ceil(point_no / chunk_size))
         field = np.empty_like(x)
         krige_var = np.empty_like(x)
-        ext_drift = self.pre_ext_drift(point_no, ext_drift)
+        ext_drift = self._pre_ext_drift(point_no, ext_drift)
         # iterate of chunks
         for i in range(chunk_no):
             # get chunk slice for actual chunk
             chunk_slice = (i * chunk_size, min(point_no, (i + 1) * chunk_size))
             c_slice = slice(*chunk_slice)
             # get RHS of the kriging system
-            k_vec = self.get_krige_vecs((x, y, z), chunk_slice, ext_drift)
+            k_vec = self._get_krige_vecs((x, y, z), chunk_slice, ext_drift)
             # generate the raw kriging field and error variance
             field[c_slice], krige_var[c_slice] = krigesum(
-                self.krige_mat, k_vec, self.krige_cond
+                self._krige_mat, k_vec, self._krige_cond
             )
         # reshape field if we got a structured mesh
         if mt_changed:
@@ -145,10 +143,18 @@ class Krige(Field):
             krige_var = reshape_field_from_unstruct_to_struct(
                 self.model.dim, krige_var, ax_lens
             )
-        self.post_field(field, krige_var)
+        self._post_field(field, krige_var)
         return self.field, self.krige_var
 
-    def pre_ext_drift(self, point_no, ext_drift=None, set_cond=False):
+    def _get_krige_mat(self):
+        """Calculate the inverse matrix of the kriging equation."""
+        return None
+
+    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+        """Calculate the RHS of the kriging equation."""
+        return None
+
+    def _pre_ext_drift(self, point_no, ext_drift=None, set_cond=False):
         """
         Preprocessor for external drifts.
 
@@ -185,7 +191,26 @@ class Krige(Field):
             return np.array(ext_drift, dtype=np.double).reshape(shape)
         return np.array([])
 
-    def get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
+    def _post_field(self, field, krige_var):
+        """
+        Postprocessing and saving of kriging field and error variance.
+
+        Parameters
+        ----------
+        field : :class:`numpy.ndarray`
+            Raw kriging field.
+        krige_var : :class:`numpy.ndarray`
+            Raw kriging error variance.
+        """
+        if self.trend_function is no_trend:
+            self.field = field
+        else:
+            self.field = field + eval_func(
+                self.trend_function, self.pos, self.mesh_type
+            )
+        self.krige_var = krige_var
+
+    def _get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
         """
         Calculate pairwise distances.
 
@@ -210,36 +235,9 @@ class Krige(Field):
         pos2_stack = np.column_stack(pos2[: self.model.dim])[p2s, ...]
         return cdist(pos1_stack, pos2_stack)
 
-    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
-        """Calculate the RHS of the kriging equation."""
-        return None
-
-    def get_krige_mat(self):
-        """Calculate the inverse matrix of the kriging equation."""
-        return None
-
     def get_mean(self):
         """Calculate the estimated mean."""
         return self._mean
-
-    def post_field(self, field, krige_var):
-        """
-        Postprocessing and saving of kriging field and error variance.
-
-        Parameters
-        ----------
-        field : :class:`numpy.ndarray`
-            Raw kriging field.
-        krige_var : :class:`numpy.ndarray`
-            Raw kriging error variance.
-        """
-        if self.trend_function is no_trend:
-            self.field = field
-        else:
-            self.field = field + eval_func(
-                self.trend_function, self.pos, self.mesh_type
-            )
-        self.krige_var = krige_var
 
     def set_condition(self, cond_pos, cond_val, ext_drift=None):
         """Set the conditions for kriging.
@@ -258,7 +256,7 @@ class Krige(Field):
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.model.dim
         )
-        self._krige_ext_drift = self.pre_ext_drift(
+        self._cond_ext_drift = self._pre_ext_drift(
             self.cond_no, ext_drift, set_cond=True
         )
         self.update()
@@ -269,8 +267,7 @@ class Krige(Field):
 
         Parameters
         ----------
-        drift_functions :
-        :class:`list` of :any:`callable`, :class:`str` or :class:`int`
+        drift_functions : :class:`list` of :any:`callable`, :class:`str` or :class:`int`
             Either a list of callable functions, an integer representing
             the polynomial order of the drift or one of the following strings:
 
@@ -303,36 +300,26 @@ class Krige(Field):
 
     def update(self):
         """Update the kriging settings."""
-        x, y, z, __, __, __, __ = self.pre_pos(self.cond_pos)
+        x, y, z, __, __, __, __ = self._pre_pos(self.cond_pos)
         # krige pos are the unrotated and isotropic condition positions
         self._krige_pos = (x, y, z)[: self.model.dim]
-        self._krige_mat = self.get_krige_mat()
+        self._krige_mat = self._get_krige_mat()
         if self.trend_function is no_trend:
-            self._krige_trend = 0.0
+            self._cond_trend = 0.0
         else:
-            self._krige_trend = self.trend_function(*self.cond_pos)
+            self._cond_trend = self.trend_function(*self.cond_pos)
         self._mean = self.get_mean()
 
     @property
-    def krige_mat(self):
-        """:class:`numpy.ndarray`: The kriging matrix."""
-        return self._krige_mat
-
-    @property
-    def krige_cond(self):
+    def _krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
         pad_size = self.drift_no + int(self.unbiased)
         return np.pad(
-            self.cond_val - self.krige_trend,
+            self.cond_val - self.cond_trend,
             (0, pad_size),
             mode="constant",
             constant_values=0,
         )
-
-    @property
-    def krige_pos(self):
-        """:class:`numpy.ndarray`: The unrotated and isotopic cond pos."""
-        return self._krige_pos
 
     @property
     def cond_pos(self):
@@ -350,29 +337,24 @@ class Krige(Field):
         return len(self._cond_val)
 
     @property
+    def cond_ext_drift(self):
+        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
+        return self._cond_ext_drift
+
+    @property
     def drift_functions(self):
         """:class:`list` of :any:`callable`: The drift functions."""
         return self._drift_functions
 
     @property
-    def krige_ext_drift(self):
-        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
-        return self._krige_ext_drift
-
-    @property
     def drift_no(self):
         """:class:`int`: Number of drift values per point."""
-        return len(self.drift_functions) + self.krige_ext_drift.shape[0]
+        return len(self.drift_functions) + self.cond_ext_drift.shape[0]
 
     @property
-    def unbiased(self):
-        """:class:`bool`: Whether the kriging is unbiased or not."""
-        return self._unbiased
-
-    @property
-    def krige_trend(self):
+    def cond_trend(self):
         """:class:`numpy.ndarray`: Trend at the conditions."""
-        return self._krige_trend
+        return self._cond_trend
 
     @property
     def trend_function(self):
@@ -386,6 +368,11 @@ class Krige(Field):
         if not callable(trend_function):
             raise ValueError("Detrended kriging: trend function not callable.")
         self._trend_function = trend_function
+
+    @property
+    def unbiased(self):
+        """:class:`bool`: Whether the kriging is unbiased or not."""
+        return self._unbiased
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -136,7 +136,7 @@ class SRF(Field):
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # internal conversation
-        x, y, z, self.pos, mt_gen, mt_changed, ax_lens = self.pre_pos(
+        x, y, z, self.pos, mt_gen, mt_changed, ax_lens = self._pre_pos(
             pos, mesh_type
         )
         # generate the field

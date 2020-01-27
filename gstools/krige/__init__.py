@@ -10,7 +10,6 @@ Kriging Classes
 .. autosummary::
    :toctree: generated
 
-.. autosummary::
    Simple
    Ordinary
    Universal

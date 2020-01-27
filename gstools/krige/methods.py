@@ -56,17 +56,17 @@ class Simple(Krige):
         )
         self._unbiased = False
 
-    def get_krige_mat(self):
+    def _get_krige_mat(self):
         """Calculate the inverse matrix of the kriging equation."""
-        return inv(self.model.cov_nugget(self.get_dists(self.krige_pos)))
+        return inv(self.model.cov_nugget(self._get_dists(self._krige_pos)))
 
-    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         return self.model.cov_nugget(
-            self.get_dists(self.krige_pos, pos, chunk_slice)
+            self._get_dists(self._krige_pos, pos, chunk_slice)
         )
 
-    def post_field(self, field, krige_var):
+    def _post_field(self, field, krige_var):
         """
         Postprocessing and saving of kriging field and error variance.
 
@@ -89,9 +89,9 @@ class Simple(Krige):
         self.krige_var = self.model.sill - krige_var
 
     @property
-    def krige_cond(self):
+    def _krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
-        return self.cond_val - self.mean - self.krige_trend
+        return self.cond_val - self.mean - self.cond_trend
 
     def __repr__(self):
         """Return String representation."""
@@ -127,12 +127,12 @@ class Ordinary(Krige):
             model, cond_pos, cond_val, trend_function=trend_function
         )
 
-    def get_krige_mat(self):
+    def _get_krige_mat(self):
         """Calculate the inverse matrix of the kriging equation."""
         size = self.cond_no + int(self.unbiased)
         res = np.empty((size, size), dtype=np.double)
         res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
-            self.get_dists(self.krige_pos)
+            self._get_dists(self._krige_pos)
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
@@ -140,14 +140,14 @@ class Ordinary(Krige):
             res[self.cond_no, self.cond_no] = 0
         return inv(res)
 
-    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
         chunk_size -= chunk_slice[0]
         size = self.cond_no + int(self.unbiased)
         res = np.empty((size, chunk_size), dtype=np.double)
         res[: self.cond_no, :] = self.model.vario_nugget(
-            self.get_dists(self.krige_pos, pos, chunk_slice)
+            self._get_dists(self._krige_pos, pos, chunk_slice)
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
@@ -158,7 +158,7 @@ class Ordinary(Krige):
         mean_est = np.concatenate(
             (np.full_like(self.cond_val, self.model.sill), [1])
         )
-        return np.einsum("i,ij,j", self.krige_cond, self.krige_mat, mean_est)
+        return np.einsum("i,ij,j", self._krige_cond, self._krige_mat, mean_est)
 
     def __repr__(self):
         """Return String representation."""
@@ -187,8 +187,7 @@ class Universal(Krige):
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
-    drift_functions :
-    :class:`list` of :any:`callable`, :class:`str` or :class:`int`
+    drift_functions : :class:`list` of :any:`callable`, :class:`str` or :class:`int`
         Either a list of callable functions, an integer representing
         the polynomial order of the drift or one of the following strings:
 
@@ -214,12 +213,12 @@ class Universal(Krige):
             trend_function=trend_function,
         )
 
-    def get_krige_mat(self):
+    def _get_krige_mat(self):
         """Calculate the inverse matrix of the kriging equation."""
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, size), dtype=np.double)
         res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
-            self.get_dists(self.krige_pos)
+            self._get_dists(self._krige_pos)
         )
         if self.unbiased:
             res[self.cond_no, : self.cond_no] = 1
@@ -231,14 +230,14 @@ class Universal(Krige):
         res[self.cond_no :, self.cond_no :] = 0
         return inv(res)
 
-    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
         chunk_size -= chunk_slice[0]
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, chunk_size), dtype=np.double)
         res[: self.cond_no, :] = self.model.vario_nugget(
-            self.get_dists(self.krige_pos, pos, chunk_slice)
+            self._get_dists(self._krige_pos, pos, chunk_slice)
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
@@ -306,29 +305,29 @@ class ExtDrift(Krige):
             trend_function=trend_function,
         )
 
-    def get_krige_mat(self):
+    def _get_krige_mat(self):
         """Calculate the inverse matrix of the kriging equation."""
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, size), dtype=np.double)
         res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
-            self.get_dists(self.krige_pos)
+            self._get_dists(self._krige_pos)
         )
         if self.unbiased:
             res[self.cond_no, : self.cond_no] = 1
             res[: self.cond_no, self.cond_no] = 1
-        res[-self.drift_no :, : self.cond_no] = self.krige_ext_drift
-        res[: self.cond_no, -self.drift_no :] = self.krige_ext_drift.T
+        res[-self.drift_no :, : self.cond_no] = self.cond_ext_drift
+        res[: self.cond_no, -self.drift_no :] = self.cond_ext_drift.T
         res[self.cond_no :, self.cond_no :] = 0
         return inv(res)
 
-    def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
         """Calculate the RHS of the kriging equation."""
         chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
         chunk_size -= chunk_slice[0]
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, chunk_size), dtype=np.double)
         res[: self.cond_no, :] = self.model.vario_nugget(
-            self.get_dists(self.krige_pos, pos, chunk_slice)
+            self._get_dists(self._krige_pos, pos, chunk_slice)
         )
         if self.unbiased:
             res[self.cond_no, :] = 1
