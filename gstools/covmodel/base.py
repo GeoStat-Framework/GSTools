@@ -2,7 +2,7 @@
 """
 GStools subpackage providing the base class for covariance models.
 
-.. currentmodule:: gstools.covmodel.base
+.. currentmodule:: gstools.covmodel
 
 The following classes are provided
 
@@ -215,12 +215,12 @@ class CovModel(metaclass=InitSubclassMeta):
 
             * ``model.variogram(r)``
                 :math:`\gamma\left(r\right)=
-                \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+                \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
             * ``model.covariance(r)``
                 :math:`C\left(r\right)=
-                \sigma^2\cdot\mathrm{cor}\left(r\right)`
+                \sigma^2\cdot\rho\left(r\right)`
             * ``model.correlation(r)``
-                :math:`\mathrm{cor}\left(r\right)`
+                :math:`\rho\left(r\right)`
 
         Best practice is to use the ``correlation`` function, or the ``cor``
         function. The latter one takes the dimensionles distance h=r/l.
@@ -231,9 +231,9 @@ class CovModel(metaclass=InitSubclassMeta):
             r"""Isotropic variogram of the model.
 
             Given by: :math:`\gamma\left(r\right)=
-            \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+            \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
 
-            Where :math:`\mathrm{cor}(r)` is the correlation function.
+            Where :math:`\rho(r)` is the correlation function.
             """
             return self.var - self.covariance(r) + self.nugget
 
@@ -241,39 +241,49 @@ class CovModel(metaclass=InitSubclassMeta):
             r"""Covariance of the model.
 
             Given by: :math:`C\left(r\right)=
-            \sigma^2\cdot\mathrm{cor}\left(r\right)`
+            \sigma^2\cdot\rho\left(r\right)`
 
-            Where :math:`\mathrm{cor}(r)` is the correlation function.
+            Where :math:`\rho(r)` is the correlation function.
             """
             return self.var * self.correlation(r)
 
         def correlation(self, r):
             r"""Correlation function (or normalized covariance) of the model.
 
-            Given by: :math:`\mathrm{cor}\left(r\right)`
+            Given by: :math:`\rho\left(r\right)`
 
             It has to be a monotonic decreasing function with
-            :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
+            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
             """
             return 1.0 - (self.variogram(r) - self.nugget) / self.var
 
-        def cor_from_cor(self, r):
+        def correlation_from_cor(self, r):
             r"""Correlation function (or normalized covariance) of the model.
 
-            Given by: :math:`\mathrm{cor}\left(r\right)`
+            Given by: :math:`\rho\left(r\right)`
 
             It has to be a monotonic decreasing function with
-            :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
+            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
             """
             r = np.array(np.abs(r), dtype=np.double)
             return self.cor(r / self.len_scale)
+
+        def cor_from_correlation(self, h):
+            r"""Normalziled correlation function taking a normalized range.
+
+            Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
+            """
+            h = np.array(np.abs(h), dtype=np.double)
+            return self.correlation(h * self.len_scale)
 
         #######################################################################
 
         abstract = True
         if hasattr(cls, "cor"):
-            cls.correlation = cor_from_cor
+            cls.correlation = correlation_from_cor
             abstract = False
+        else:
+            cls.cor = cor_from_correlation
         if not hasattr(cls, "variogram"):
             cls.variogram = variogram
         else:
@@ -343,9 +353,9 @@ class CovModel(metaclass=InitSubclassMeta):
         r"""Covariance of the model respecting the nugget at r=0.
 
         Given by: :math:`C\left(r\right)=
-        \sigma^2\cdot\mathrm{cor}\left(r\right)`
+        \sigma^2\cdot\rho\left(r\right)`
 
-        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        Where :math:`\rho(r)` is the correlation function.
         """
         r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
@@ -358,9 +368,9 @@ class CovModel(metaclass=InitSubclassMeta):
         r"""Isotropic variogram of the model respecting the nugget at r=0.
 
         Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
 
-        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        Where :math:`\rho(r)` is the correlation function.
         """
         r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
@@ -407,9 +417,9 @@ class CovModel(metaclass=InitSubclassMeta):
         r"""Isotropic variogram of the model for pykrige.
 
         Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
 
-        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        Where :math:`\rho(r)` is the correlation function.
         """
         return self.variogram(r)
 

@@ -15,19 +15,16 @@ following
 
 """
 
-
 import numpy as np
-from gstools import SRF, Exponential
+import gstools as gs
 
 x = y = np.arange(100)
-
-model = Exponential(dim=2, var=1, len_scale=[12., 3.], angles=np.pi/8.)
-srf = SRF(model, seed=20170519)
-
+model = gs.Exponential(dim=2, var=1, len_scale=[12.0, 3.0], angles=np.pi / 8)
+srf = gs.SRF(model, seed=20170519)
 srf.structured([x, y])
 srf.plot()
 
 ###############################################################################
 # The anisotropy ratio could also have been set with
 
-model = Exponential(dim=2, var=1, len_scale=12., anis=3./12., angles=np.pi/8.)
+model = gs.Exponential(dim=2, var=1, len_scale=12, anis=0.25, angles=np.pi / 8)

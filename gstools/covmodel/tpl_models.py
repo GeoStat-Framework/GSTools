@@ -2,7 +2,7 @@
 """
 GStools subpackage providing truncated power law covariance models.
 
-.. currentmodule:: gstools.covmodel.tpl_models
+.. currentmodule:: gstools.covmodel
 
 The following classes and functions are provided
 
@@ -21,6 +21,7 @@ from gstools.tools.special import (
     tpl_gau_spec_dens,
     tpl_exp_spec_dens,
 )
+
 
 __all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
 
@@ -165,7 +166,7 @@ class TPLGaussian(CovModel):
         If ``len_low=0`` we have a simple representation:
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            H \cdot
            E_{1+H}
            \left[
@@ -175,7 +176,7 @@ class TPLGaussian(CovModel):
         The general case:
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            H \cdot
            \frac{\ell_{\mathrm{up}}^{2H} \cdot
            E_{1+H}
@@ -338,7 +339,7 @@ class TPLExponential(CovModel):
         If ``len_low=0`` we have a simple representation:
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            H \cdot
            E_{1+H}
            \left[
@@ -348,7 +349,7 @@ class TPLExponential(CovModel):
         The general case:
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            2H \cdot
            \frac{\ell_{\mathrm{up}}^{2H} \cdot
            E_{1+2H}\left[\frac{r}{\ell_{\mathrm{up}}}\right]
@@ -541,7 +542,7 @@ class TPLStable(CovModel):
         If ``len_low=0`` we have a simple representation:
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \frac{2H}{\alpha} \cdot
            E_{1+\frac{2H}{\alpha}}
            \left[
@@ -551,7 +552,7 @@ class TPLStable(CovModel):
         The general case:
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \frac{2H}{\alpha} \cdot
            \frac{\ell_{\mathrm{up}}^{2H} \cdot
            E_{1+\frac{2H}{\alpha}}

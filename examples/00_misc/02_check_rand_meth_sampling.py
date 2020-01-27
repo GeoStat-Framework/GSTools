@@ -5,8 +5,7 @@ Check Random Sampling
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
-from gstools import SRF, Stable
+import gstools as gs
 
 
 def norm_rad(vec):
@@ -34,7 +33,6 @@ def plot_rand_meth_samples(generator):
         z = np.outer(np.ones(np.size(u)), np.cos(v))
         ax.plot_surface(x, y, z, rstride=4, cstride=4, color="b", alpha=0.1)
         ax.scatter(norm[0], norm[1], norm[2])
-        # ax.set_aspect("equal")
     elif generator.model.dim == 2:
         ax = fig.add_subplot(121)
         u = np.linspace(0, 2 * np.pi, 100)
@@ -52,17 +50,17 @@ def plot_rand_meth_samples(generator):
     ax.set_title("Direction sampling")
 
     ax = fig.add_subplot(122)
-    #    x = np.linspace(0, np.max(rad))
     x = np.linspace(0, 10 / generator.model.integral_scale)
     y = generator.model.spectral_rad_pdf(x)
-    ax.plot(x, y)
+    ax.plot(x, y, label="radial spectral density")
     sample_in = np.sum(rad <= np.max(x))
     ax.hist(rad[rad <= np.max(x)], bins=sample_in // 50, density=True)
     ax.set_xlim([0, np.max(x)])
     ax.set_title("Radius samples shown {}/{}".format(sample_in, len(rad)))
+    ax.legend()
     fig.show()
 
 
-model = Stable(dim=3, alpha=1.5)
-srf = SRF(model)
+model = gs.Stable(dim=3, alpha=1.5)
+srf = gs.SRF(model, seed=2020)
 plot_rand_meth_samples(srf.generator)

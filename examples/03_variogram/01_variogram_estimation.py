@@ -8,8 +8,6 @@ will be self-contained and all data gathering and processing will be done in
 this example script.
 
 
-*This example will only work with Python 3.*
-
 The Data
 ^^^^^^^^
 
@@ -27,114 +25,83 @@ Retrieving the Data
 To begin with, we need to download and extract the data. Therefore, we are
 going to use some built-in Python libraries. For simplicity, many values and
 strings will be hardcoded.
+
+You don't have to execute the ``download_herten`` and ``generate_transmissivity``
+functions, since the only produce the ``herten_transmissivity.gz``
+and ``grid_dim_origin_spacing.txt``, which are already present.
 """
 import os
-from shutil import rmtree
-import zipfile
-import urllib.request
 import numpy as np
-import matplotlib.pyplot as pt
-from gstools import (
-    vario_estimate_unstructured,
-    vario_estimate_structured,
-    Exponential,
-)
-from gstools.covmodel.plot import plot_variogram
+import matplotlib.pyplot as plt
+import gstools as gs
+
+VTK_PATH = os.path.join("Herten-analog", "sim-big_1000x1000x140", "sim.vtk")
+
+###############################################################################
 
 
 def download_herten():
-    # download the data, warning: its about 250MB
+    """Download the data, warning: its about 250MB."""
+    import zipfile
+    import urllib.request
+
     print("Downloading Herten data")
     data_filename = "data.zip"
-    data_url = "http://store.pangaea.de/Publications/Bayer_et_al_2015/Herten-analog.zip"
-    urllib.request.urlretrieve(data_url, "data.zip")
-
-    with zipfile.ZipFile(data_filename, "r") as zf:
-        zf.extract(
-            os.path.join("Herten-analog", "sim-big_1000x1000x140", "sim.vtk")
-        )
-
-
-###############################################################################
-# That was that. But we also need a script to convert the data into a format we
-# can use. This script is also kindly provided by the authors. We can download
-# this script in a very similar manner as the data:
-
-def download_scripts():
-    import fileinput
-
-    # download a script for file conversion
-    print("Downloading scripts")
-    tools_filename = "scripts.zip"
-    tool_url = (
-        "http://store.pangaea.de/Publications/Bayer_et_al_2015/tools.zip"
+    data_url = (
+        "http://store.pangaea.de/Publications/"
+        "Bayer_et_al_2015/Herten-analog.zip"
     )
-    urllib.request.urlretrieve(tool_url, tools_filename)
-
-    filename = os.path.join("tools", "vtk2gslib.py")
-
-    with zipfile.ZipFile(tools_filename, "r") as zf:
-        zf.extract(filename)
-
-    with fileinput.FileInput(filename, inplace=True) as fin:
-        for line in fin:
-            print(line.replace("header=-1", "header=None"), end="")
+    urllib.request.urlretrieve(data_url, "data.zip")
+    # extract the "big" simulation
+    with zipfile.ZipFile(data_filename, "r") as zf:
+        zf.extract(VTK_PATH)
 
 
 ###############################################################################
-# These two functions can now be called:
-download_herten()
-download_scripts()
+
+
+def generate_transmissivity():
+    """Generate a file with a transmissivity field from the HERTEN data."""
+    import pyvista as pv
+    import shutil
+
+    print("Loading Herten data with pyvista")
+    mesh = pv.read(VTK_PATH)
+    herten = mesh.point_arrays["facies"].reshape(mesh.dimensions, order="F")
+    # conductivity values per fazies from the supplementary data
+    cond = 1e-4 * np.array(
+        [2.5, 2.3, 0.61, 260, 1300, 950, 0.43, 0.006, 23, 1.4]
+    )
+    # asign the conductivities to the facies
+    herten_cond = cond[herten]
+    # Next, we are going to calculate the transmissivity,
+    # by integrating over the vertical axis
+    herten_trans = np.sum(herten_cond, axis=2) * mesh.spacing[2]
+    # saving some grid informations
+    grid = [mesh.dimensions[:2], mesh.origin[:2], mesh.spacing[:2]]
+    print("Saving the transmissivity field and grid information")
+    np.savetxt("herten_transmissivity.gz", herten_trans)
+    np.savetxt("grid_dim_origin_spacing.txt", grid)
+    # Some cleanup. You can comment out these lines to keep the downloaded data
+    os.remove("data.zip")
+    shutil.rmtree("Herten-analog")
+
 
 ###############################################################################
-# Preprocessing the Data
-# ^^^^^^^^^^^^^^^^^^^^^^
+# Downloading and Preprocessing
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# First of all, we have to convert the data with the script we just downloaded
+# You can uncomment the following two calls, so the data is downloaded
+# and processed again.
 
-
-# import the downloaded conversion script
-from tools.vtk2gslib import vtk2numpy
-
-# load the Herten aquifer with the downloaded vtk2numpy routine
-print("Loading data")
-herten, grid = vtk2numpy(
-    os.path.join("Herten-analog", "sim-big_1000x1000x140", "sim.vtk")
-)
-
-###############################################################################
-# The data only contains facies, but from the supplementary data, we know the
-# hydraulic conductivity values of each facies, which we will simply paste here
-# and assign them to the correct facies
-
-# conductivity values per fazies from the supplementary data
-cond = np.array(
-    [
-        2.50e-04,
-        2.30e-04,
-        6.10e-05,
-        2.60e-02,
-        1.30e-01,
-        9.50e-02,
-        4.30e-05,
-        6.00e-07,
-        2.30e-03,
-        1.40e-04,
-    ]
-)
-
-# asign the conductivities to the facies
-herten_cond = cond[herten]
-
-###############################################################################
-# Next, we are going to calculate the transmissivity, by integrating over the
-# vertical axis
-
-# integrate over the vertical axis, calculate transmissivity
-herten_log_trans = np.log(np.sum(herten_cond, axis=2) * grid["dz"])
+# download_herten()
+# generate_transmissivity()
 
 
 ###############################################################################
+# Analyzing the data
+# ^^^^^^^^^^^^^^^^^^
+#
 # The Herten data provides information about the grid, which was already used in
 # the previous code block. From this information, we can create our own grid on
 # which we can estimate the variogram. As a first step, we are going to estimate
@@ -143,25 +110,21 @@ herten_log_trans = np.log(np.sum(herten_cond, axis=2) * grid["dz"])
 # Therefore, we are going to create an unstructured grid from the given,
 # structured one. For this, we are going to write another small function
 
-def create_unstructured_grid(x_s, y_s):
-    x_u, y_u = np.meshgrid(x_s, y_s)
-    len_unstruct = len(x_s) * len(y_s)
-    x_u = np.reshape(x_u, len_unstruct)
-    y_u = np.reshape(y_u, len_unstruct)
-    return x_u, y_u
+herten_log_trans = np.log(np.loadtxt("herten_transmissivity.gz"))
+dim, origin, spacing = np.loadtxt("grid_dim_origin_spacing.txt")
 
 # create a structured grid on which the data is defined
-x_s = np.arange(grid["ox"], grid["nx"] * grid["dx"], grid["dx"])
-y_s = np.arange(grid["oy"], grid["ny"] * grid["dy"], grid["dy"])
+x_s = np.arange(origin[0], origin[0] + dim[0] * spacing[0], spacing[0])
+y_s = np.arange(origin[1], origin[1] + dim[1] * spacing[1], spacing[1])
+# create the corresponding unstructured grid for the variogram estimation
+x_u, y_u = np.meshgrid(x_s, y_s)
+
 
 ###############################################################################
 # Let's have a look at the transmissivity field of the Herten aquifer
 
-pt.imshow(herten_log_trans.T, origin="lower", aspect="equal")
-pt.show()
-
-# create an unstructured grid for the variogram estimation
-x_u, y_u = create_unstructured_grid(x_s, y_s)
+plt.imshow(herten_log_trans.T, origin="lower", aspect="equal")
+plt.show()
 
 
 ###############################################################################
@@ -183,8 +146,7 @@ x_u, y_u = create_unstructured_grid(x_s, y_s)
 
 
 bins = np.linspace(0, 10, 50)
-print("Estimating unstructured variogram")
-bin_center, gamma = vario_estimate_unstructured(
+bin_center, gamma = gs.vario_estimate_unstructured(
     (x_u, y_u),
     herten_log_trans.reshape(-1),
     bins,
@@ -204,15 +166,15 @@ bin_center, gamma = vario_estimate_unstructured(
 # variogram model. Let's try the :any:`Exponential` model.
 
 # fit an exponential model
-fit_model = Exponential(dim=2)
+fit_model = gs.Exponential(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
 
 ###############################################################################
 # Finally, we can visualise some results. For quickly plotting a covariance
 # model, GSTools provides some helper functions.
 
-pt.plot(bin_center, gamma)
-plot_variogram(fit_model, x_max=bins[-1])
+ax = fit_model.plot(x_max=max(bin_center))
+ax.plot(bin_center, gamma)
 
 
 ###############################################################################
@@ -224,7 +186,6 @@ print(fit_model)
 ###############################################################################
 # With this data, we could start generating new ensembles of the Herten aquifer
 # with the :any:`SRF` class.
-
 
 
 ###############################################################################
@@ -240,17 +201,16 @@ print(fit_model)
 
 # estimate the variogram on a structured grid
 # use only every 10th value, otherwise calculations would take very long
-x_s_skip = x_s[::10]
-y_s_skip = y_s[::10]
+x_s_skip = np.ravel(x_s)[::10]
+y_s_skip = np.ravel(y_s)[::10]
 herten_trans_skip = herten_log_trans[::10, ::10]
 
 ###############################################################################
 # With this much smaller data set, we can immediately estimate the variogram in
 # the x- and y-axis
 
-print("Estimating structured variograms")
-gamma_x = vario_estimate_structured(herten_trans_skip, direction="x")
-gamma_y = vario_estimate_structured(herten_trans_skip, direction="y")
+gamma_x = gs.vario_estimate_structured(herten_trans_skip, direction="x")
+gamma_y = gs.vario_estimate_structured(herten_trans_skip, direction="y")
 
 ###############################################################################
 # With these two estimated variograms, we can start fitting :any:`Exponential`
@@ -259,9 +219,9 @@ gamma_y = vario_estimate_structured(herten_trans_skip, direction="y")
 x_plot = x_s_skip[:21]
 y_plot = y_s_skip[:21]
 # fit an exponential model
-fit_model_x = Exponential(dim=2)
+fit_model_x = gs.Exponential(dim=2)
 fit_model_x.fit_variogram(x_plot, gamma_x[:21], nugget=False)
-fit_model_y = Exponential(dim=2)
+fit_model_y = gs.Exponential(dim=2)
 fit_model_y.fit_variogram(y_plot, gamma_y[:21], nugget=False)
 
 ###############################################################################
@@ -269,8 +229,9 @@ fit_model_y.fit_variogram(y_plot, gamma_y[:21], nugget=False)
 # be plotted together with their respective models, which will be plotted with
 # dashed lines.
 
-line, = pt.plot(bin_center, gamma, label="estimated variogram (isotropic)")
-pt.plot(
+plt.figure()  # new figure
+line, = plt.plot(bin_center, gamma, label="estimated variogram (isotropic)")
+plt.plot(
     bin_center,
     fit_model.variogram(bin_center),
     color=line.get_color(),
@@ -278,8 +239,8 @@ pt.plot(
     label="exp. variogram (isotropic)",
 )
 
-line, = pt.plot(x_plot, gamma_x[:21], label="estimated variogram in x-dir")
-pt.plot(
+line, = plt.plot(x_plot, gamma_x[:21], label="estimated variogram in x-dir")
+plt.plot(
     x_plot,
     fit_model_x.variogram(x_plot),
     color=line.get_color(),
@@ -287,8 +248,8 @@ pt.plot(
     label="exp. variogram in x-dir",
 )
 
-line, = pt.plot(y_plot, gamma_y[:21], label="estimated variogram in y-dir")
-pt.plot(
+line, = plt.plot(y_plot, gamma_y[:21], label="estimated variogram in y-dir")
+plt.plot(
     y_plot,
     fit_model_y.variogram(y_plot),
     color=line.get_color(),
@@ -296,8 +257,8 @@ pt.plot(
     label="exp. variogram in y-dir",
 )
 
-pt.legend()
-pt.show()
+plt.legend()
+plt.show()
 
 ###############################################################################
 # The plot might be a bit cluttered, but at least it is pretty obvious that the
@@ -308,47 +269,18 @@ print("semivariogram model (in x-dir.):\n", fit_model_x)
 print("semivariogram model (in y-dir.):\n", fit_model_y)
 
 
-
 ###############################################################################
 # Creating a Spatial Random Field from the Herten Parameters
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # With all the hard work done, it's straight forward now, to generate new
-# *Herten realisations*
+# *Herten-like realisations*
 
-from gstools import SRF
-
-srf = SRF(fit_model, seed=19770928)
-print("Calculating SRF")
-new_herten = srf((x_s, y_s), mesh_type="structured")
-
-pt.imshow(new_herten.T, origin="lower")
-pt.show()
+# create a spatial random field on the low-resolution grid
+srf = gs.SRF(fit_model, seed=19770928)
+srf.structured([x_s_skip, y_s_skip])
+ax = srf.plot()
+ax.set_aspect("equal")
 
 ###############################################################################
-# That's pretty neat! Executing the code given on this site, will result in a
-# lower resolution of the field, because we overwrote `x_s` and `y_s` for the
-# directional variogram estimation. In the example script, this is not the case
-# and you will get a high resolution field.
-
-
-###############################################################################
-# And Now for Some Cleanup
-# ^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# In case you want all the downloaded data and scripts to be deleted, use
-# following commands
-
-# comment all in case you want to keep the data for playing around with it
-os.remove("data.zip")
-os.remove("scripts.zip")
-rmtree("Herten-analog")
-rmtree("tools")
-
-
-###############################################################################
-# And in case you want to play around a little bit more with the data, you can
-# comment out the function calls ``download_herten()`` and
-# ``download_scripts()``, after they where called at least once and also comment
-# out the cleanup. This way, the data will not be downloaded with every script
-# execution.
+# That's pretty neat!

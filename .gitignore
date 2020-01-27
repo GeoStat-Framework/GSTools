@@ -111,7 +111,9 @@ info/
 *.cpp
 
 
+# generated docs
 docs/source/examples/
+docs/source/generated/
 
 
 *.DS_Store

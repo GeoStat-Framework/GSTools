@@ -44,3 +44,6 @@ The resulting field instance ``krig`` has the same methods as the :any:`SRF` cla
 You can call it to evaluate the kriged field at different points,
 you can plot the latest field or you can export the field and so on.
 Have a look at the documentation of :any:`Simple` and :any:`Ordinary`.
+
+Gallery
+-------
