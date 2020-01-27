@@ -17,8 +17,8 @@ y = rng.randint(0, 100, size=10000)
 
 model = gs.Exponential(dim=2, var=1, len_scale=[12, 3], angles=np.pi / 8)
 srf = gs.SRF(model, seed=20170519)
-field = srf((x, y))
-ax = srf.plot()
+field1 = srf((x, y))
+srf.plot()
 ###############################################################################
 # But now we extend the field on the right hand side by creating a new
 # unstructured grid and calculating a field with the same parameters and the
@@ -31,7 +31,8 @@ x2 = rng.randint(99, 150, size=10000)
 y2 = rng.randint(20, 80, size=10000)
 
 field2 = srf((x2, y2))
-ax.tricontourf(x2, y2, field2.T)
+ax = srf.plot()
+ax.tricontourf(x, y, field1.T, levels=256)
 ax.set_aspect("equal")
 
 ###############################################################################
