@@ -98,7 +98,6 @@ This is an example of how to generate a 2 dimensional spatial random field with 
 
 ```python
 import gstools as gs
-import matplotlib.pyplot as plt
 # structured field with a size 100x100 and a grid-size of 1x1
 x = y = range(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
@@ -113,7 +112,6 @@ srf.plot()
 A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/) or [PyVista](https://docs.pyvista.org) in Python:
 
 ```python
-import matplotlib.pyplot as pt
 import gstools as gs
 # structured field with a size 100x100x100 and a grid-size of 1x1x1
 x = y = z = range(100)
@@ -248,7 +246,6 @@ spatial vector fields can be generated.
 
 ```python
 import numpy as np
-import matplotlib.pyplot as plt
 import gstools as gs
 x = np.arange(100)
 y = np.arange(100)
