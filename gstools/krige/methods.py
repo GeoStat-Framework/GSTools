@@ -57,7 +57,7 @@ class Simple(Krige):
         self._unbiased = False
 
     def get_krige_mat(self):
-        """Update the kriging model settings."""
+        """Calculate the inverse matrix of the kriging equation."""
         return inv(self.model.cov_nugget(self.get_dists(self.krige_pos)))
 
     def get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
@@ -128,7 +128,7 @@ class Ordinary(Krige):
         )
 
     def get_krige_mat(self):
-        """Update the kriging model settings."""
+        """Calculate the inverse matrix of the kriging equation."""
         size = self.cond_no + int(self.unbiased)
         res = np.empty((size, size), dtype=np.double)
         res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
@@ -215,7 +215,7 @@ class Universal(Krige):
         )
 
     def get_krige_mat(self):
-        """Update the kriging model settings."""
+        """Calculate the inverse matrix of the kriging equation."""
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, size), dtype=np.double)
         res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
@@ -307,7 +307,7 @@ class ExtDrift(Krige):
         )
 
     def get_krige_mat(self):
-        """Update the kriging model settings."""
+        """Calculate the inverse matrix of the kriging equation."""
         size = self.cond_no + int(self.unbiased) + self.drift_no
         res = np.empty((size, size), dtype=np.double)
         res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(

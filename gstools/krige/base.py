@@ -215,7 +215,7 @@ class Krige(Field):
         return None
 
     def get_krige_mat(self):
-        """Calculate the LHS of the kriging equation."""
+        """Calculate the inverse matrix of the kriging equation."""
         return None
 
     def get_mean(self):
