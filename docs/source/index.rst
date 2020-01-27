@@ -118,7 +118,6 @@ with a :any:`Gaussian` covariance model.
 
 .. code-block:: python
 
-    import matplotlib.pyplot as plt
     import gstools as gs
     # structured field with a size 100x100 and a grid-size of 1x1
     x = y = range(100)
@@ -138,7 +137,6 @@ A similar example but for a three dimensional field is exported to a
 
 .. code-block:: python
 
-    import matplotlib.pyplot as pt
     import gstools as gs
     # structured field with a size 100x100x100 and a grid-size of 1x1x1
     x = y = z = range(100)
@@ -196,7 +194,6 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
 .. code-block:: python
 
     import numpy as np
-    import matplotlib.pyplot as plt
     import gstools as gs
     x = y = np.linspace(0, 100, 100)
     model = gs.TPLStable(
@@ -350,7 +347,6 @@ Example
 .. code-block:: python
 
    import numpy as np
-   import matplotlib.pyplot as plt
    import gstools as gs
    x = np.arange(100)
    y = np.arange(100)
