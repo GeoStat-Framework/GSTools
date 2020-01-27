@@ -61,10 +61,10 @@ class TestCovModel(unittest.TestCase):
 
         class User(CovModel):
             def cor(self, h):
-                return np.exp(-h**2)
+                return np.exp(-h ** 2)
 
         user = User(len_scale=2)
-        self.assertAlmostEqual(user.correlation(1), np.exp(- 0.25))
+        self.assertAlmostEqual(user.correlation(1), np.exp(-0.25))
 
         for Model in self.cov_models:
             for dim in self.dims:
