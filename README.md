@@ -97,12 +97,12 @@ The core of this library is the generation of spatial random fields. These field
 This is an example of how to generate a 2 dimensional spatial random field with a gaussian covariance model.
 
 ```python
-from gstools import SRF, Gaussian
+import gstools as gs
 import matplotlib.pyplot as plt
 # structured field with a size 100x100 and a grid-size of 1x1
 x = y = range(100)
-model = Gaussian(dim=2, var=1, len_scale=10)
-srf = SRF(model)
+model = gs.Gaussian(dim=2, var=1, len_scale=10)
+srf = gs.SRF(model)
 srf((x, y), mesh_type='structured')
 srf.plot()
 ```
@@ -113,12 +113,12 @@ srf.plot()
 A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/) or [PyVista](https://docs.pyvista.org) in Python:
 
 ```python
-from gstools import SRF, Gaussian
 import matplotlib.pyplot as pt
+import gstools as gs
 # structured field with a size 100x100x100 and a grid-size of 1x1x1
 x = y = z = range(100)
-model = Gaussian(dim=3, var=0.6, len_scale=20)
-srf = SRF(model)
+model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
+srf = gs.SRF(model)
 srf((x, y, z), mesh_type='structured')
 srf.vtk_export('3d_field') # Save to a VTK file for ParaView
 
@@ -144,18 +144,18 @@ model again.
 
 ```python
 import numpy as np
-from gstools import SRF, Exponential, Stable, vario_estimate_unstructured
+import gstools as gs
 # generate a synthetic field with an exponential model
 x = np.random.RandomState(19970221).rand(1000) * 100.
 y = np.random.RandomState(20011012).rand(1000) * 100.
-model = Exponential(dim=2, var=2, len_scale=8)
-srf = SRF(model, mean=0, seed=19970221)
+model = gs.Exponential(dim=2, var=2, len_scale=8)
+srf = gs.SRF(model, mean=0, seed=19970221)
 field = srf((x, y))
 # estimate the variogram of the field with 40 bins
 bins = np.arange(40)
-bin_center, gamma = vario_estimate_unstructured((x, y), field, bins)
+bin_center, gamma = gs.vario_estimate_unstructured((x, y), field, bins)
 # fit the variogram with a stable model. (no nugget fitted)
-fit_model = Stable(dim=2)
+fit_model = gs.Stable(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
 # output
 ax = fit_model.plot(x_max=40)
@@ -184,8 +184,8 @@ For better visualization, we will condition a 1d field to a few "measurements", 
 
 ```python
 import numpy as np
-from gstools import Gaussian, SRF
 import matplotlib.pyplot as plt
+import gstools as gs
 
 # conditions
 cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
@@ -194,8 +194,8 @@ cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 gridx = np.linspace(0.0, 15.0, 151)
 
 # spatial random field class
-model = Gaussian(dim=1, var=0.5, len_scale=2)
-srf = SRF(model)
+model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
+srf = gs.SRF(model)
 srf.set_condition(cond_pos, cond_val, "ordinary")
 
 # generate the ensemble of field realizations
@@ -223,10 +223,10 @@ Here we re-implement the Gaussian covariance model by defining just a
 [correlation][cor_link] function, which takes a non-dimensional distance ``h = r/l``:
 
 ```python
-from gstools import CovModel
 import numpy as np
+import gstools as gs
 # use CovModel as the base-class
-class Gau(CovModel):
+class Gau(gs.CovModel):
     def cor(self, h):
         return np.exp(-h**2)
 ```
@@ -249,11 +249,11 @@ spatial vector fields can be generated.
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
-from gstools import SRF, Gaussian
+import gstools as gs
 x = np.arange(100)
 y = np.arange(100)
-model = Gaussian(dim=2, var=1, len_scale=10)
-srf = SRF(model, generator='VectorField')
+model = gs.Gaussian(dim=2, var=1, len_scale=10)
+srf = gs.SRF(model, generator='VectorField')
 srf((x, y), mesh_type='structured', seed=19841203)
 srf.plot()
 ```
@@ -275,10 +275,10 @@ a handy [VTK][vtk_link] export routine using the `.vtk_export()` or you could
 create a VTK/PyVista dataset for use in Python with to `.to_pyvista()` method:
 
 ```python
-from gstools import SRF, Gaussian
+import gstools as gs
 x = y = range(100)
-model = Gaussian(dim=2, var=1, len_scale=10)
-srf = SRF(model)
+model = gs.Gaussian(dim=2, var=1, len_scale=10)
+srf = gs.SRF(model)
 srf((x, y), mesh_type='structured')
 srf.vtk_export("field") # Saves to a VTK file
 mesh = srf.to_pyvista() # Create a VTK/PyVista dataset in memory
@@ -287,6 +287,10 @@ mesh.plot()
 
 Which gives a RectilinearGrid VTK file ``field.vtr`` or creates a PyVista mesh
 in memory for immediate 3D plotting in Python.
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/pyvista_export.png" alt="pyvista export" width="600px"/>
+</p>
 
 
 ## Requirements:
@@ -311,7 +315,7 @@ You can contact us via <info@geostat-framework.org>.
 
 ## License
 
-[LGPLv3][license_link] © 2018-2019
+[LGPLv3][license_link] © 2018-2020
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_link]: https://docs.conda.io/en/latest/miniconda.html
