@@ -323,7 +323,10 @@ class Krige(Field):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
         pad_size = self.drift_no + int(self.unbiased)
         return np.pad(
-            self.cond_val - self.krige_trend, (0, pad_size), constant_values=0
+            self.cond_val - self.krige_trend,
+            (0, pad_size),
+            mode="constant",
+            constant_values=0,
         )
 
     @property
