@@ -225,7 +225,7 @@ class CovModel(metaclass=InitSubclassMeta):
         Best practice is to use the ``correlation`` function, or the ``cor``
         function. The latter one takes the dimensionles distance h=r/l.
         """
-        # overrid one of these ################################################
+        # override one of these ###############################################
 
         def variogram(self, r):
             r"""Isotropic variogram of the model.
@@ -871,7 +871,7 @@ class CovModel(metaclass=InitSubclassMeta):
                         + str(val)
                     )
 
-    ### bounds  properties ####################################################
+    ### bounds properties #####################################################
 
     @property
     def var_bounds(self):
@@ -1126,8 +1126,6 @@ class CovModel(metaclass=InitSubclassMeta):
         if self.dim is not None:
             self._sft = SFT(ndim=self.dim, **self.hankel_kw)
 
-    ### properties ############################################################
-
     @property
     def dist_func(self):
         """:class:`tuple` of :any:`callable`: pdf, cdf and ppf.
@@ -1224,8 +1222,6 @@ class CovModel(metaclass=InitSubclassMeta):
     def is_isotropic(self):
         """:any:`bool`: State if a model is isotropic."""
         return np.all(np.isclose(self.anis, 1.0))
-
-    ### magic methods #########################################################
 
     def __eq__(self, other):
         """Compare CovModels."""
