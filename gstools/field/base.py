@@ -183,7 +183,7 @@ class Field:
         mesh_type_changed : :class:`bool`
             State if the mesh_type was changed.
         axis_lens : :class:`tuple` or :any:`None`
-            axis lenghts of the structured mesh if mesh type was changed.
+            axis lengths of the structured mesh if mesh type was changed.
         """
         x, y, z = pos2xyz(pos, max_dim=self.model.dim)
         pos = xyz2pos(x, y, z)
