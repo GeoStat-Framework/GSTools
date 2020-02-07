@@ -65,10 +65,10 @@ def eval_func(func, pos, mesh_type="structured"):
     """
     x, y, z, dim = pos2xyz(pos, calc_dim=True)
     if mesh_type == "structured":
-        x, y, z, ax_lens = reshape_axis_from_struct_to_unstruct(dim, x, y, z)
+        x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(dim, x, y, z)
     res = func(*[x, y, z][:dim])
     if mesh_type == "structured":
-        res = reshape_field_from_unstruct_to_struct(dim, res, ax_lens)
+        res = reshape_field_from_unstruct_to_struct(dim, res, axis_lens)
     return res
 
 

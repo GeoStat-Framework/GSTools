@@ -105,6 +105,10 @@ class Krige(Field):
             'structured' / 'unstructured'
         ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
             the external drift values at the given positions (only for EDK)
+        chunk_size : :class:`int`, optional
+            Chunk size to cut down the size of the kriging system to prevent
+            memory errors.
+            Default: None
 
         Returns
         -------
@@ -115,7 +119,7 @@ class Krige(Field):
         """
         self.mesh_type = mesh_type
         # internal conversation
-        x, y, z, self.pos, __, mt_changed, ax_lens = self._pre_pos(
+        x, y, z, self.pos, __, mt_changed, axis_lens = self._pre_pos(
             pos, mesh_type, make_unstruct=True
         )
         point_no = len(x)
@@ -139,10 +143,10 @@ class Krige(Field):
         # reshape field if we got a structured mesh
         if mt_changed:
             field = reshape_field_from_unstruct_to_struct(
-                self.model.dim, field, ax_lens
+                self.model.dim, field, axis_lens
             )
             krige_var = reshape_field_from_unstruct_to_struct(
-                self.model.dim, krige_var, ax_lens
+                self.model.dim, krige_var, axis_lens
             )
         self._post_field(field, krige_var)
         return self.field, self.krige_var

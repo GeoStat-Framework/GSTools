@@ -136,7 +136,7 @@ class SRF(Field):
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # internal conversation
-        x, y, z, self.pos, mt_gen, mt_changed, ax_lens = self._pre_pos(
+        x, y, z, self.pos, mt_gen, mt_changed, axis_lens = self._pre_pos(
             pos, mesh_type
         )
         # generate the field
@@ -144,7 +144,7 @@ class SRF(Field):
         # reshape field if we got an unstructured mesh
         if mt_changed:
             self.raw_field = reshape_field_from_unstruct_to_struct(
-                self.model.dim, self.raw_field, ax_lens
+                self.model.dim, self.raw_field, axis_lens
             )
         # apply given conditions to the field
         if self.condition:
