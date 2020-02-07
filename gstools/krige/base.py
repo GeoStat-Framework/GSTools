@@ -83,7 +83,8 @@ class Krige(Field):
         self.trend_function = trend_function
         self._cond_ext_drift = np.array([])
         self._drift_functions = []
-        self.set_drift_functions(drift_functions)
+        if drift_functions is not None:
+            self.set_drift_functions(drift_functions)
         self.set_condition(cond_pos, cond_val, ext_drift)
 
     def __call__(
@@ -146,11 +147,13 @@ class Krige(Field):
         self._post_field(field, krige_var)
         return self.field, self.krige_var
 
-    def _get_krige_mat(self):
+    def _get_krige_mat(self):  # pragma: no cover
         """Calculate the inverse matrix of the kriging equation."""
         return None
 
-    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
+    def _get_krige_vecs(
+        self, pos, chunk_slice=(0, None), ext_drift=None
+    ):  # pragma: no cover
         """Calculate the RHS of the kriging equation."""
         return None
 
@@ -189,6 +192,8 @@ class Krige(Field):
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
             return np.array(ext_drift, dtype=np.double).reshape(shape)
+        elif not set_cond and self._cond_ext_drift.size > 0:
+            raise ValueError("Krige: wrong number of ext. drift values.")
         return np.array([])
 
     def _post_field(self, field, krige_var):
