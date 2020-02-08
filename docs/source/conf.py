@@ -178,7 +178,9 @@ html_sidebars = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "GeoStatToolsdoc"
-
+# logos for the page
+html_logo = "pics/gstools_150.png"
+html_favicon = "pics/gstools.ico"
 
 # -- Options for LaTeX output ---------------------------------------------
 # latex_engine = 'lualatex'

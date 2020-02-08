@@ -2,7 +2,7 @@
 """
 GStools subpackage providing different covariance models.
 
-.. currentmodule:: gstools.covmodel
+.. currentmodule:: gstools.covmodel.models
 
 The following classes and functions are provided
 
@@ -100,9 +100,7 @@ class Gaussian(CovModel):
 
     def _has_ppf(self):
         # since the ppf is not analytical for dim=3, we have to state that
-        if self.dim == 3:
-            return False
-        return True
+        return False if self.dim == 3 else True
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
@@ -183,9 +181,7 @@ class Exponential(CovModel):
 
     def _has_ppf(self):
         # since the ppf is not analytical for dim=3, we have to state that
-        if self.dim == 3:
-            return False
-        return True
+        return False if self.dim == 3 else True
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_scale

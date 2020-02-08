@@ -12,9 +12,7 @@ from gstools.field.generator import IncomprRandMeth
 
 class TestIncomprRandMeth(unittest.TestCase):
     def setUp(self):
-        self.cov_model_2d = Gaussian(
-            dim=2, var=1.5, len_scale=2.5, mode_no=100
-        )
+        self.cov_model_2d = Gaussian(dim=2, var=1.5, len_scale=2.5)
         self.cov_model_3d = copy.deepcopy(self.cov_model_2d)
         self.cov_model_3d.dim = 3
         self.seed = 19031977
@@ -76,7 +74,7 @@ class TestIncomprRandMeth(unittest.TestCase):
                     k += 1
 
     def test_assertions(self):
-        cov_model_1d = Gaussian(dim=1, var=1.5, len_scale=2.5, mode_no=100)
+        cov_model_1d = Gaussian(dim=1, var=1.5, len_scale=2.5)
         self.assertRaises(ValueError, IncomprRandMeth, cov_model_1d)
 
 

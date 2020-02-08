@@ -2,7 +2,7 @@
 """
 GStools subpackage providing the base class for covariance models.
 
-.. currentmodule:: gstools.covmodel
+.. currentmodule:: gstools.covmodel.base
 
 The following classes are provided
 
@@ -61,15 +61,22 @@ class CovModel(metaclass=InitSubclassMeta):
         If a single value is given, the same length-scale will be used for
         every direction. If multiple values (for main and transversal
         directions) are given, `anis` will be
-        recalculated accordingly.
+        recalculated accordingly. If only two values are given in 3D,
+        the latter one will be used for both transversal directions.
         Default: ``1.0``
     nugget : :class:`float`, optional
         nugget of the model. Default: ``0.0``
     anis : :class:`float` or :class:`list`, optional
-        anisotropy ratios in the transversal directions [y, z].
+        anisotropy ratios in the transversal directions [e_y, e_z].
+
+            * e_y = l_y / l_x
+            * e_z = l_z / l_x
+
+        If only one value is given in 3D, e_y will be set to 1.
+        This value will be ignored, if multiple len_scales are given.
         Default: ``1.0``
     angles : :class:`float` or :class:`list`, optional
-        angles of rotation:
+        angles of rotation (given in rad):
 
             * in 2D: given as rotation around z-axis
             * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
@@ -218,7 +225,7 @@ class CovModel(metaclass=InitSubclassMeta):
         Best practice is to use the ``correlation`` function, or the ``cor``
         function. The latter one takes the dimensionles distance h=r/l.
         """
-        # overrid one of these ################################################
+        # override one of these ###############################################
 
         def variogram(self, r):
             r"""Isotropic variogram of the model.
@@ -326,7 +333,8 @@ class CovModel(metaclass=InitSubclassMeta):
         x, y, z = pos2xyz(pos, max_dim=self.dim)
         if self.do_rotation:
             x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
-        y, z = make_isotropic(self.dim, self.anis, y, z)
+        if not self.is_isotropic:
+            y, z = make_isotropic(self.dim, self.anis, y, z)
         return np.linalg.norm((x, y, z)[: self.dim], axis=0)
 
     def vario_spatial(self, pos):
@@ -638,11 +646,8 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def ln_spectral_rad_pdf(self, r):
         """Log radial spectral density of the model."""
-        spec = np.array(self.spectral_rad_pdf(r))
-        spec_gz = np.logical_not(np.isclose(spec, 0))
-        res = np.full_like(spec, -np.inf, dtype=np.double)
-        res[spec_gz] = np.log(spec[spec_gz])
-        return res
+        with np.errstate(divide="ignore"):
+            return np.log(self.spectral_rad_pdf(r))
 
     def _has_cdf(self):
         """State if a cdf is defined with 'spectral_rad_cdf'."""
@@ -866,7 +871,7 @@ class CovModel(metaclass=InitSubclassMeta):
                         + str(val)
                     )
 
-    ### bounds  properties ####################################################
+    ### bounds properties #####################################################
 
     @property
     def var_bounds(self):
@@ -1121,8 +1126,6 @@ class CovModel(metaclass=InitSubclassMeta):
         if self.dim is not None:
             self._sft = SFT(ndim=self.dim, **self.hankel_kw)
 
-    ### properties ############################################################
-
     @property
     def dist_func(self):
         """:class:`tuple` of :any:`callable`: pdf, cdf and ppf.
@@ -1211,9 +1214,14 @@ class CovModel(metaclass=InitSubclassMeta):
     @property
     def do_rotation(self):
         """:any:`bool`: State if a rotation is performed."""
-        return not np.all(np.isclose(self.angles, 0.0))
+        return (
+            not np.all(np.isclose(self.angles, 0.0)) and not self.is_isotropic
+        )
 
-    ### magic methods #########################################################
+    @property
+    def is_isotropic(self):
+        """:any:`bool`: State if a model is isotropic."""
+        return np.all(np.isclose(self.anis, 1.0))
 
     def __eq__(self, other):
         """Compare CovModels."""
