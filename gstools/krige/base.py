@@ -295,7 +295,7 @@ class Krige(Field):
                 self.model.dim, drift_functions
             )
         else:
-            if isinstance(drift_functions, collections.Iterator):
+            if isinstance(drift_functions, collections.abc.Iterator):
                 drift_functions = list(drift_functions)
             # check for a single content thats not a string
             try:
