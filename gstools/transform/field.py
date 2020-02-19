@@ -8,6 +8,7 @@ The following functions are provided
 
 .. autosummary::
    binary
+   discrete
    boxcox
    zinnharvey
    normal_force_moments
@@ -26,6 +27,7 @@ from scipy.special import erf, erfinv
 
 __all__ = [
     "binary",
+    "discrete",
     "boxcox",
     "zinnharvey",
     "normal_force_moments",
@@ -65,6 +67,56 @@ def binary(fld, divide=None, upper=None, lower=None):
         lower = fld.mean - np.sqrt(fld.model.sill) if lower is None else lower
         fld.field[fld.field > divide] = upper
         fld.field[fld.field <= divide] = lower
+
+
+def discrete(fld, values, thresholds=None):
+    """
+    Discrete transformation.
+
+    After this transformation, the field has only `len(values)` discrete
+    values.
+
+    Parameters
+    ----------
+    fld : :any:`Field`
+        Spatial Random Field class containing a generated field.
+        Field will be transformed inplace.
+    values : :any:`np.ndarray`
+        The discrete values the field will take
+    thresholds : :class:`numpy.ndarray`, optional
+        the thresholds, where the value classes are separated
+        Default: mean of the neighbouring values
+    """
+    if fld.field is None:
+        print("discrete: no field stored in SRF class.")
+    else:
+        if thresholds is None:
+            # just in case, sort the values
+            values = np.sort(values)
+            thresholds = (values[1:] + values[:-1]) / 2
+        else:
+            if len(values) != len(thresholds) + 1:
+                raise ValueError(
+                    "discrete transformation: len(values) != len(thresholds) + 1"
+                )
+            values = np.array(values)
+            thresholds = np.array(thresholds)
+            for i in range(len(thresholds)):
+                if not (values[i] <= thresholds[i] < values[i + 1]):
+                    raise ValueError(
+                        "discrete transformation: thresholds must lie between values"
+                    )
+
+        # handle edge cases
+        fld.field[fld.field <= thresholds[0]] = values[0]
+        fld.field[fld.field > thresholds[-1]] = values[-1]
+
+        for i in range(len(values[:-2])):
+            fld.field[
+                np.logical_and(
+                    thresholds[i] <= fld.field, fld.field < thresholds[i + 1]
+                )
+            ] = values[i + 1]
 
 
 def boxcox(fld, lmbda=1, shift=0):
