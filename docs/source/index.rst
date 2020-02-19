@@ -83,13 +83,13 @@ Tutorials and Examples
 The documentation also includes some `tutorials <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html>`_,
 showing the most important use cases of GSTools, which are
 
-- `Random Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html>`_
-- `The Covariance Model <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html>`_
-- `Variogram Estimation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html>`_
-- `Random Vector Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html>`_
-- `Kriging <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html>`_
-- `Conditioned random field generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html>`_
-- `Field transformations <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html>`_
+- `Random Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/01_random_field/index.html>`_
+- `The Covariance Model <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/02_cov_model/index.html>`_
+- `Variogram Estimation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/03_variogram/index.html>`_
+- `Random Vector Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/04_vector_field/index.html>`_
+- `Kriging <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/05_kriging/index.html>`_
+- `Conditioned random field generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/06_conditioned_fields/index.html>`_
+- `Field transformations <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/examples/07_transformations/index.html>`_
 
 Some more examples are provided in the examples folder.
 
@@ -307,7 +307,7 @@ generate 100 realizations and plot them:
 User defined covariance models
 ==============================
 
-One of the core-features of GSTools is the powerfull
+One of the core-features of GSTools is the powerful
 :any:`CovModel`
 class, which allows to easy define covariance models by the user.
 
