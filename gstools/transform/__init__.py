@@ -9,6 +9,7 @@ Field-Transformations
 
 .. autosummary::
    binary
+   discrete
    boxcox
    zinnharvey
    normal_force_moments
@@ -22,6 +23,7 @@ Field-Transformations
 
 from gstools.transform.field import (
     binary,
+    discrete,
     boxcox,
     zinnharvey,
     normal_force_moments,
@@ -33,6 +35,7 @@ from gstools.transform.field import (
 
 __all__ = [
     "binary",
+    "discrete",
     "boxcox",
     "zinnharvey",
     "normal_force_moments",
