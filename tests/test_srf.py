@@ -250,6 +250,13 @@ class TestSRF(unittest.TestCase):
         tf.binary(srf)
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
         tf.boxcox(srf)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        values = np.linspace(np.min(srf.field), np.max(srf.field), 3)
+        tf.discrete(srf, values)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        values = [-1, 0, 1]
+        thresholds = [-0.9, 0.1]
+        tf.discrete(srf, values, thresholds)
 
     def test_incomprrandmeth(self):
         self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0)
