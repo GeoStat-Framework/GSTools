@@ -12,6 +12,7 @@ common transformations:
 
 .. autosummary::
    binary
+   discrete
    boxcox
    zinnharvey
    normal_force_moments
