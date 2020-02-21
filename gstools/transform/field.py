@@ -69,7 +69,7 @@ def binary(fld, divide=None, upper=None, lower=None):
         fld.field[fld.field <= divide] = lower
 
 
-def discrete(fld, values, thresholds=None):
+def discrete(fld, values, thresholds="arithmetic"):
     """
     Discrete transformation.
 
@@ -83,17 +83,25 @@ def discrete(fld, values, thresholds=None):
         Field will be transformed inplace.
     values : :any:`np.ndarray`
         The discrete values the field will take
-    thresholds : :class:`numpy.ndarray`, optional
+    thresholds : :class:`str` or :any:`np.ndarray`, optional
         the thresholds, where the value classes are separated
-        Default: mean of the neighbouring values
+        possible values are:
+        * "arithmetic": the mean of the 2 neighbouring values
+        * "equal" (not implemented yet)
+        * an array of explicitly given thresholds
+        Default: "arithmetic"
     """
     if fld.field is None:
         print("discrete: no field stored in SRF class.")
     else:
-        if thresholds is None:
+        if thresholds == "arithmetic":
             # just in case, sort the values
             values = np.sort(values)
             thresholds = (values[1:] + values[:-1]) / 2
+        elif thresholds == "equal":
+            raise NotImplementedError(
+                "Equally distributed thresholds are not implemented yet"
+            )
         else:
             if len(values) != len(thresholds) + 1:
                 raise ValueError(
