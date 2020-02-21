@@ -101,11 +101,6 @@ def discrete(fld, values, thresholds=None):
                 )
             values = np.array(values)
             thresholds = np.array(thresholds)
-            for i in range(len(thresholds)):
-                if not (values[i] <= thresholds[i] < values[i + 1]):
-                    raise ValueError(
-                        "discrete transformation: thresholds must lie between values"
-                    )
 
         # handle edge cases
         fld.field[fld.field <= thresholds[0]] = values[0]
