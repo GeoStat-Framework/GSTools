@@ -442,5 +442,5 @@ def _uniform_to_uquad(field, a=0, b=1):
     y_raw = 3 * field / al + ga
     out = np.zeros_like(y_raw)
     out[y_raw > 0] = y_raw[y_raw > 0] ** (1 / 3)
-    out[y_raw < 0] = -(-y_raw[y_raw < 0]) ** (1 / 3)
+    out[y_raw < 0] = -((-y_raw[y_raw < 0]) ** (1 / 3))
     return out + be
