@@ -267,9 +267,8 @@ class TestSRF(unittest.TestCase):
 
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
         values = [-1, 0, 0.5, 1]
-        self.assertRaises(
-            NotImplementedError, tf.discrete, srf, values, thresholds="equal"
-        )
+        tf.discrete(srf, values, thresholds="equal")
+        np.testing.assert_array_equal(np.unique(srf.field), values)
 
     def test_incomprrandmeth(self):
         self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0)
