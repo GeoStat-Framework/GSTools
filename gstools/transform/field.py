@@ -65,8 +65,7 @@ def binary(fld, divide=None, upper=None, lower=None):
         divide = fld.mean if divide is None else divide
         upper = fld.mean + np.sqrt(fld.model.sill) if upper is None else upper
         lower = fld.mean - np.sqrt(fld.model.sill) if lower is None else lower
-        fld.field[fld.field > divide] = upper
-        fld.field[fld.field <= divide] = lower
+        discrete(fld, [lower, upper], thresholds=[divide])
 
 
 def discrete(fld, values, thresholds="arithmetic"):
@@ -99,27 +98,39 @@ def discrete(fld, values, thresholds="arithmetic"):
             values = np.sort(values)
             thresholds = (values[1:] + values[:-1]) / 2
         elif thresholds == "equal":
-            raise NotImplementedError(
-                "Equally distributed thresholds are not implemented yet"
-            )
+            values = np.array(values)
+            n = len(values)
+            p = np.arange(1, n) / n  # n-1 equal subdivisions of [0, 1]
+            rescale = np.sqrt(fld.model.sill * 2)
+            # use quantile of the normal distribution to get equal ratios
+            thresholds = fld.mean + rescale * erfinv(2 * p - 1)
         else:
             if len(values) != len(thresholds) + 1:
                 raise ValueError(
-                    "discrete transformation: len(values) != len(thresholds) + 1"
+                    "discrete transformation: "
+                    + "len(values) != len(thresholds) + 1"
                 )
             values = np.array(values)
             thresholds = np.array(thresholds)
-
+        # check thresholds
+        if not np.all(thresholds[:-1] < thresholds[1:]):
+            raise ValueError(
+                "discrete transformation: "
+                + "thresholds need to be ascending."
+            )
+        # use a separate result so the intermediate results are not affected
+        result = np.empty_like(fld.field)
         # handle edge cases
-        fld.field[fld.field <= thresholds[0]] = values[0]
-        fld.field[fld.field > thresholds[-1]] = values[-1]
-
-        for i in range(len(values[:-2])):
-            fld.field[
+        result[fld.field <= thresholds[0]] = values[0]
+        result[fld.field > thresholds[-1]] = values[-1]
+        for i, value in enumerate(values[1:-1]):
+            result[
                 np.logical_and(
-                    thresholds[i] <= fld.field, fld.field < thresholds[i + 1]
+                    thresholds[i] < fld.field, fld.field <= thresholds[i + 1]
                 )
-            ] = values[i + 1]
+            ] = value
+        # overwrite the field
+        fld.field = result
 
 
 def boxcox(fld, lmbda=1, shift=0):
@@ -324,12 +335,12 @@ def _zinnharvey(field, conn="high", mean=None, var=None):
         mean = np.mean(field)
     if var is None:
         var = np.var(field)
-    field = np.abs((field - mean) / var)
+    field = np.abs((field - mean) / np.sqrt(var))
     field = 2 * erf(field / np.sqrt(2)) - 1
     field = np.sqrt(2) * erfinv(field)
     if conn == "high":
         field = -field
-    return field * var + mean
+    return field * np.sqrt(var) + mean
 
 
 def _normal_force_moments(field, mean=0, var=1):
