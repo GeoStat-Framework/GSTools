@@ -86,7 +86,7 @@ def discrete(fld, values, thresholds="arithmetic"):
         the thresholds, where the value classes are separated
         possible values are:
         * "arithmetic": the mean of the 2 neighbouring values
-        * "equal" (not implemented yet)
+        * "equal": devide the field into equal parts
         * an array of explicitly given thresholds
         Default: "arithmetic"
     """
