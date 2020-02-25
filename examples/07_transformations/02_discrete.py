@@ -16,8 +16,8 @@ model = gs.Gaussian(dim=2, var=1, len_scale=5)
 srf = gs.SRF(model, seed=20170519)
 
 # create 5 equidistanly spaced values, thresholds are the arithmetic means
-discrete_values = np.linspace(np.min(srf.field), np.max(srf.field), 5)
 srf.structured([x, y])
+discrete_values = np.linspace(np.min(srf.field), np.max(srf.field), 5)
 gs.transform.discrete(srf, discrete_values)
 srf.plot()
 
