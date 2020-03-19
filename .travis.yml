@@ -1,5 +1,8 @@
 language: python
 
+git:
+  depth: false
+
 matrix:
   include:
     - name: "sdist and coverage"
