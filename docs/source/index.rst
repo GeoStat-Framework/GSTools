@@ -48,7 +48,7 @@ To get the latest development version you can install it directly from GitHub:
 
 .. code-block:: none
 
-    pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
+    pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
@@ -66,8 +66,8 @@ Or for the development version:
 
 .. code-block:: none
 
-    pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
-    pip install -I --no-deps --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
+    pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
+    pip install -I --no-deps --global-option="--openmp" git+git://github.com/GeoStat-Framework/GSTools.git@develop
 
 The flags :code:`-I --no-deps` force pip to reinstall gstools but not the dependencies.
 
