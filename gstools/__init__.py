@@ -99,7 +99,6 @@ Estimate the variogram of a given field
    vario_estimate_unstructured
 """
 
-from gstools._version import __version__
 from gstools import field, variogram, random, covmodel, tools, krige, transform
 from gstools.field import SRF
 from gstools.tools import (
@@ -130,6 +129,11 @@ from gstools.covmodel import (
     TPLStable,
 )
 
+try:
+    from gstools._version import __version__
+except ModuleNotFoundError:  # pragma: nocover
+    # package is not installed
+    __version__ = "0.0.0.dev0"
 
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
