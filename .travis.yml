@@ -31,7 +31,6 @@ notifications:
 jobs:
   include:
     - name: "sdist and coverage"
-      sudo: required
       language: python
       python: 3.8
       services: docker
