@@ -1,95 +1,8 @@
 language: python
 
+# setuptools-scm needs all tags in order to obtain a proper version
 git:
   depth: false
-
-matrix:
-  include:
-    - name: "sdist and coverage"
-      sudo: required
-      language: python
-      python: 3.6
-      services: docker
-      env: OMP_NUM_THREADS=4
-      script:
-        - python -m pip install -U setuptools pytest-cov coveralls
-        - python -m pip install -U numpy==1.17.3 cython==0.29.14
-        - python -m pip install -r requirements.txt
-        - python setup.py sdist -d dist
-        - python setup.py --openmp build_ext --inplace
-        - python -m pytest --cov gstools --cov-report term-missing -v tests/
-        - python -m coveralls
-
-    - name: "Linux py35"
-      sudo: required
-      language: python
-      python: 3.6
-      services: docker
-      env: CIBW_BUILD="cp35-*"
-    - name: "Linux py36"
-      sudo: required
-      language: python
-      python: 3.6
-      services: docker
-      env: CIBW_BUILD="cp36-*"
-    - name: "Linux py37"
-      sudo: required
-      language: python
-      python: 3.6
-      services: docker
-      env: CIBW_BUILD="cp37-*"
-    - name: "Linux py38"
-      sudo: required
-      language: python
-      python: 3.6
-      services: docker
-      env: CIBW_BUILD="cp38-*"
-
-    - name: "MacOS py35"
-      os: osx
-      language: generic
-      env: CIBW_BUILD="cp35-*"
-    - name: "MacOS py36"
-      os: osx
-      language: generic
-      env: CIBW_BUILD="cp36-*"
-    - name: "MacOS py37"
-      os: osx
-      language: generic
-      env: CIBW_BUILD="cp37-*"
-    - name: "MacOS py38"
-      os: osx
-      language: generic
-      env: CIBW_BUILD="cp38-*"
-
-    - name: "Win py35"
-      os: windows
-      language: shell
-      before_install: choco install python3 --version 3.6.8 --no-progress -y
-      env:
-        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
-        - CIBW_BUILD="cp35-*"
-    - name: "Win py36"
-      os: windows
-      language: shell
-      before_install: choco install python3 --version 3.6.8 --no-progress -y
-      env:
-        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
-        - CIBW_BUILD="cp36-*"
-    - name: "Win py37"
-      os: windows
-      language: shell
-      before_install: choco install python3 --version 3.6.8 --no-progress -y
-      env:
-        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
-        - CIBW_BUILD="cp37-*"
-    - name: "Win py38"
-      os: windows
-      language: shell
-      before_install: choco install python3 --version 3.6.8 --no-progress -y
-      env:
-        - PATH=/c/Python36:/c/Python36/Scripts:$PATH
-        - CIBW_BUILD="cp38-*"
 
 env:
   global:
@@ -114,3 +27,87 @@ notifications:
   email:
     recipients:
       - info@geostat-framework.org
+
+jobs:
+  include:
+    - name: "sdist and coverage"
+      sudo: required
+      language: python
+      python: 3.8
+      services: docker
+      env: OMP_NUM_THREADS=4
+      script:
+        - python -m pip install -U setuptools pytest-cov coveralls
+        - python -m pip install -U numpy==1.17.3 cython==0.29.14
+        - python -m pip install -r requirements.txt
+        - python setup.py sdist -d dist
+        - python setup.py --openmp build_ext --inplace
+        - python -m pytest --cov gstools --cov-report term-missing -v tests/
+        - python -m coveralls
+
+    - name: "Linux py35"
+      language: python
+      python: 3.8
+      services: docker
+      env: CIBW_BUILD="cp35-*"
+    - name: "Linux py36"
+      language: python
+      python: 3.8
+      services: docker
+      env: CIBW_BUILD="cp36-*"
+    - name: "Linux py37"
+      language: python
+      python: 3.8
+      services: docker
+      env: CIBW_BUILD="cp37-*"
+    - name: "Linux py38"
+      language: python
+      python: 3.8
+      services: docker
+      env: CIBW_BUILD="cp38-*"
+
+    - name: "MacOS py35"
+      os: osx
+      language: generic
+      env: CIBW_BUILD="cp35-*"
+    - name: "MacOS py36"
+      os: osx
+      language: generic
+      env: CIBW_BUILD="cp36-*"
+    - name: "MacOS py37"
+      os: osx
+      language: generic
+      env: CIBW_BUILD="cp37-*"
+    - name: "MacOS py38"
+      os: osx
+      language: generic
+      env: CIBW_BUILD="cp38-*"
+
+    - name: "Win py35"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      env:
+        - PATH=/c/Python38:/c/Python38/Scripts:$PATH
+        - CIBW_BUILD="cp35-*"
+    - name: "Win py36"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      env:
+        - PATH=/c/Python38:/c/Python38/Scripts:$PATH
+        - CIBW_BUILD="cp36-*"
+    - name: "Win py37"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      env:
+        - PATH=/c/Python38:/c/Python38/Scripts:$PATH
+        - CIBW_BUILD="cp37-*"
+    - name: "Win py38"
+      os: windows
+      language: shell
+      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      env:
+        - PATH=/c/Python38:/c/Python38/Scripts:$PATH
+        - CIBW_BUILD="cp38-*"
