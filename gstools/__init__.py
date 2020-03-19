@@ -133,7 +133,7 @@ try:
     from gstools._version import __version__
 except ModuleNotFoundError:  # pragma: nocover
     # package is not installed
-    __version__ = "0.0.0.dev0"
+    pass
 
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
