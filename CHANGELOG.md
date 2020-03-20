@@ -16,6 +16,8 @@ All notable changes to **GSTools** will be documented in this file.
   - External Drift Kriging
   - Detrended Kriging
 - a new transformation function for discrete fields has been added #70
+- reworked tutorial section in the documentation #63
+- pyvista interface #29
 
 ### Changes
 - Python versions 2.7 and 3.4 are no longer supported #40 #43
