@@ -1,4 +1,0 @@
-pytest-cov>=2.8.0
-pytest>=5.3.0
--r requirements_setup.txt
--r requirements.txt

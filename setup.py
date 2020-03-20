@@ -196,8 +196,8 @@ with open(os.path.join(HERE, "requirements.txt"), encoding="utf-8") as f:
     REQ = f.read().splitlines()
 with open(os.path.join(HERE, "requirements_setup.txt"), encoding="utf-8") as f:
     REQ_SETUP = f.read().splitlines()
-with open(os.path.join(HERE, "requirements_dev.txt"), encoding="utf-8") as f:
-    REQ_DEV = f.read().splitlines()
+with open(os.path.join(HERE, "requirements_test.txt"), encoding="utf-8") as f:
+    REQ_DEV = f.read().splitlines() + REQ_SETUP
 
 DOCLINE = __doc__.split("\n")[0]
 CLASSIFIERS = [
