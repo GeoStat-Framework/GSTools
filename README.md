@@ -81,8 +81,9 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Kriging][tut5_link]
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
+- [Miscellaneous examples][tut0_link]
 
-Some more examples are provided in the examples folder.
+The associated python scripts are provided in the `examples` folder.
 
 
 ## Spatial Random Field Generation
@@ -322,17 +323,18 @@ You can contact us via <info@geostat-framework.org>.
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
 [winpy_link]: https://winpython.github.io/
 [license_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
-[cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
+[cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/generated/gstools.covmodel.CovModel.html#gstools.covmodel.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
-[doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/
-[doc_install_link]: https://gstools.readthedocs.io/en/stable/#pip
-[tut_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html
-[tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html
-[tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html
-[tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html
-[tut4_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html
-[tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html
-[tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html
-[tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html
+[doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/
+[doc_install_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/#pip
+[tut_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/tutorials.html
+[tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/01_random_field/index.html
+[tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/02_cov_model/index.html
+[tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/03_variogram/index.html
+[tut4_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/04_vector_field/index.html
+[tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/05_kriging/index.html
+[tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/06_conditioned_fields/index.html
+[tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
+[tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
