@@ -77,7 +77,9 @@ Citation
 
 At the moment you can cite the Zenodo code publication of GSTools:
 
-| *Sebastian Müller, & Lennart Schüler. (2019, October 1). GeoStat-Framework/GSTools: Reverberating Red (Version v1.1.0). Zenodo. http://doi.org/10.5281/zenodo.3468230*
+| *Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628*
+
+If you want to cite a specific version, have a look at the Zenodo site.
 
 A publication for the GeoStat-Framework is in preperation.
 
@@ -85,16 +87,17 @@ A publication for the GeoStat-Framework is in preperation.
 Tutorials and Examples
 ======================
 
-The documentation also includes some `tutorials <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html>`_,
+The documentation also includes some `tutorials <tutorials.html>`__,
 showing the most important use cases of GSTools, which are
 
-- `Random Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html>`_
-- `The Covariance Model <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html>`_
-- `Variogram Estimation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html>`_
-- `Random Vector Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html>`_
-- `Kriging <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html>`_
-- `Conditioned random field generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html>`_
-- `Field transformations <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html>`_
+- `Random Field Generation <examples/01_random_field/index.html>`__
+- `The Covariance Model <examples/02_cov_model/index.html>`__
+- `Variogram Estimation <examples/03_variogram/index.html>`__
+- `Random Vector Field Generation <examples/04_vector_field/index.html>`__
+- `Kriging <examples/05_kriging/index.html>`__
+- `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
+- `Field transformations <examples/07_transformations/index.html>`__
+- `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.
 
@@ -149,69 +152,6 @@ A similar example but for a three dimensional field is exported to a
     mesh.threshold_percent(0.5).plot()
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
-   :width: 400px
-   :align: center
-
-
-Truncated Power Law Model
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-GSTools also implements truncated power law variograms, which can be represented as a
-superposition of scale dependant modes in form of standard variograms, which are truncated by
-a lower- :math:`\ell_{\mathrm{low}}` and an upper length-scale :math:`\ell_{\mathrm{up}}`.
-
-This example shows the truncated power law (:any:`TPLStable`) based on the
-:any:`Stable` covariance model and is given by
-
-.. math::
-   \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
-   \intop_{\ell_{\mathrm{low}}}^{\ell_{\mathrm{up}}}
-   \gamma(r,\lambda) \frac{\rm d \lambda}{\lambda}
-
-with `Stable` modes on each scale:
-
-.. math::
-   \gamma(r,\lambda) &=
-   \sigma^2(\lambda)\cdot\left(1-
-   \exp\left[- \left(\frac{r}{\lambda}\right)^{\alpha}\right]
-   \right)\\
-   \sigma^2(\lambda) &= C\cdot\lambda^{2H}
-
-which gives Gaussian modes for ``alpha=2`` or Exponential modes for ``alpha=1``.
-
-For :math:`\ell_{\mathrm{low}}=0` this results in:
-
-.. math::
-   \gamma_{\ell_{\mathrm{up}}}(r) &=
-   \sigma^2_{\ell_{\mathrm{up}}}\cdot\left(1-
-   \frac{2H}{\alpha} \cdot
-   E_{1+\frac{2H}{\alpha}}
-   \left[\left(\frac{r}{\ell_{\mathrm{up}}}\right)^{\alpha}\right]
-   \right) \\
-   \sigma^2_{\ell_{\mathrm{up}}} &=
-   C\cdot\frac{\ell_{\mathrm{up}}^{2H}}{2H}
-
-.. code-block:: python
-
-    import numpy as np
-    import gstools as gs
-    x = y = np.linspace(0, 100, 100)
-    model = gs.TPLStable(
-        dim=2,           # spatial dimension
-        var=1,           # variance (C calculated internally, so that `var` is 1)
-        len_low=0,       # lower truncation of the power law
-        len_scale=10,    # length scale (a.k.a. range), len_up = len_low + len_scale
-        nugget=0.1,      # nugget
-        anis=0.5,        # anisotropy between main direction and transversal ones
-        angles=np.pi/4,  # rotation angles
-        alpha=1.5,       # shape parameter from the stable model
-        hurst=0.7,       # hurst coefficient from the power law
-    )
-    srf = gs.SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-    srf((x, y), mesh_type='structured')
-    srf.plot()
-
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/tplstable_field.png
    :width: 400px
    :align: center
 
@@ -309,7 +249,7 @@ generate 100 realizations and plot them:
 User defined covariance models
 ==============================
 
-One of the core-features of GSTools is the powerfull
+One of the core-features of GSTools is the powerful
 :any:`CovModel`
 class, which allows to easy define covariance models by the user.
 
@@ -393,10 +333,9 @@ Requirements
 
 - `Numpy >= 1.14.5 <http://www.numpy.org>`_
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
-- `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
+- `hankel >= 1.0.2 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
-- `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
-- `six <https://github.com/benjaminp/six>`_
+- `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
 
 
 Optional
@@ -409,4 +348,4 @@ Optional
 License
 =======
 
-`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018-2020
+`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_

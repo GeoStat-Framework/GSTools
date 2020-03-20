@@ -5,7 +5,7 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/gstools.svg)](https://anaconda.org/conda-forge/gstools)
 [![Build Status](https://travis-ci.org/GeoStat-Framework/GSTools.svg?branch=master)](https://travis-ci.org/GeoStat-Framework/GSTools)
 [![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=master)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://geostat-framework.readthedocs.io/projects/gstools/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/gstools/badge/?version=stable)](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/?badge=stable)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
@@ -58,7 +58,9 @@ To install the latest development version via pip, see the
 
 At the moment you can cite the Zenodo code publication of GSTools:
 
-> Sebastian Müller, & Lennart Schüler. (2019, October 1). GeoStat-Framework/GSTools: Reverberating Red (Version v1.1.0). Zenodo. http://doi.org/10.5281/zenodo.3468230
+> Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628
+
+If you want to cite a specific version, have a look at the Zenodo site.
 
 A publication for the GeoStat-Framework is in preperation.
 
@@ -79,8 +81,9 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Kriging][tut5_link]
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
+- [Miscellaneous examples][tut0_link]
 
-Some more examples are provided in the examples folder.
+The associated python scripts are provided in the `examples` folder.
 
 
 ## Spatial Random Field Generation
@@ -294,10 +297,9 @@ in memory for immediate 3D plotting in Python.
 
 - [NumPy >= 1.14.5](https://www.numpy.org)
 - [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
-- [hankel >= 0.3.6](https://github.com/steven-murray/hankel)
+- [hankel >= 1.0.2](https://github.com/steven-murray/hankel)
 - [emcee >= 3.0.0](https://github.com/dfm/emcee)
-- [pyevtk](https://bitbucket.org/pauloh/pyevtk)
-- [six](https://github.com/benjaminp/six)
+- [pyevtk >= 1.1.1](https://github.com/pyscience-projects/pyevtk)
 
 ### Optional
 
@@ -321,17 +323,18 @@ You can contact us via <info@geostat-framework.org>.
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
 [winpy_link]: https://winpython.github.io/
 [license_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
-[cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/covmodel.base.html#gstools.covmodel.base.CovModel
+[cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/generated/gstools.covmodel.CovModel.html#gstools.covmodel.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
-[doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/
-[doc_install_link]: https://gstools.readthedocs.io/en/stable/#pip
-[tut_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html
-[tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html
-[tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html
-[tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html
-[tut4_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html
-[tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html
-[tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html
-[tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html
+[doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/
+[doc_install_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/#pip
+[tut_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/tutorials.html
+[tut1_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/01_random_field/index.html
+[tut2_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/02_cov_model/index.html
+[tut3_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/03_variogram/index.html
+[tut4_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/04_vector_field/index.html
+[tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/05_kriging/index.html
+[tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/06_conditioned_fields/index.html
+[tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
+[tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/

@@ -22,11 +22,13 @@
 # is needed in order to build the documentation
 # import os
 # import sys
+import datetime
 import warnings
+
 warnings.filterwarnings(
     "ignore",
     category=UserWarning,
-    message='Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.',
+    message="Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.",
 )
 
 # local module should not be added to sys path if it's installed on RTFD
@@ -65,7 +67,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",  # parameters look better than with numpydoc only
     "numpydoc",
-    'sphinx_gallery.gen_gallery',
+    "sphinx_gallery.gen_gallery",
 ]
 
 # autosummaries from source-files
@@ -102,8 +104,9 @@ source_suffix = ".rst"
 master_doc = "contents"
 
 # General information about the project.
+curr_year = datetime.datetime.now().year
 project = "GSTools"
-copyright = "2018 - 2019, Lennart Schueler, Sebastian Mueller"
+copyright = "2018 - {}, Lennart Schueler, Sebastian Mueller".format(curr_year)
 author = "Lennart Schueler, Sebastian Mueller"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -256,7 +259,6 @@ intersphinx_mapping = {
     "hankel": ("https://hankel.readthedocs.io/en/latest/", None),
     "emcee": ("https://emcee.readthedocs.io/en/latest/", None),
 }
-
 
 
 # -- Sphinx Gallery Options
