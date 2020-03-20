@@ -1,10 +1,8 @@
-#!python
-#cython: language_level=2
+#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 # -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
 """
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
@@ -18,14 +16,11 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_unstruct(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:,:] pos
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:,:] pos
     ):
     cdef int i, j, d, X_len, N
     cdef double phase
@@ -46,16 +41,13 @@ def summate_unstruct(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
-    double[:] y=None,
-    double[:] z=None,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
+    const double[:] y=None,
+    const double[:] z=None,
 ):
     if y == None and z == None:
         return summate_struct_1d(cov_samples, z_1, z_2, x)
@@ -64,14 +56,11 @@ def summate_struct(
     else:
         return summate_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct_1d(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
     ):
 
     cdef int i, j, X_len, N
@@ -89,15 +78,12 @@ def summate_struct_1d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct_2d(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
-    double[:] y,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
+    const double[:] y,
     ):
     cdef int i, j, k, X_len, Y_len, N
     cdef double phase
@@ -116,16 +102,13 @@ def summate_struct_2d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_struct_3d(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
-    double[:] y,
-    double[:] z,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
     ):
     cdef int i, j, k, l, X_len, Y_len, Z_len, N
     cdef double phase
@@ -150,10 +133,7 @@ def summate_struct_3d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef (double) abs_square(double[:] vec) nogil:
+cdef (double) abs_square(const double[:] vec) nogil:
     cdef int i
     cdef double r = 0.
 
@@ -162,14 +142,11 @@ cdef (double) abs_square(double[:] vec) nogil:
 
     return r
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_unstruct(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:,:] pos
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:,:] pos
     ):
     cdef int i, j, d, X_len, N
     cdef double phase
@@ -198,31 +175,25 @@ def summate_incompr_unstruct(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_struct(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
-    double[:] y=None,
-    double[:] z=None,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
+    const double[:] y=None,
+    const double[:] z=None,
 ):
     if z == None:
         return summate_incompr_struct_2d(cov_samples, z_1, z_2, x, y)
     else:
         return summate_incompr_struct_3d(cov_samples, z_1, z_2, x, y, z)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_struct_2d(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
-    double[:] y,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
+    const double[:] y,
     ):
     cdef int i, j, k, d, X_len, Y_len, N
     cdef double phase
@@ -250,16 +221,13 @@ def summate_incompr_struct_2d(
 
     return np.asarray(summed_modes)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def summate_incompr_struct_3d(
-    double[:,:] cov_samples,
-    double[:] z_1,
-    double[:] z_2,
-    double[:] x,
-    double[:] y,
-    double[:] z,
+    const double[:,:] cov_samples,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
     ):
     cdef int i, j, k, l, d, X_len, Y_len, Z_len, N
     cdef double phase

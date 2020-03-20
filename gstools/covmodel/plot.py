@@ -18,7 +18,6 @@ The following classes and functions are provided
    plot_spectral_rad_pdf
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 import numpy as np
 
 import gstools
@@ -62,6 +61,7 @@ def plot_vario_spatial(
 ):  # pragma: no cover
     """Plot spatial variogram of a given CovModel."""
     field = gstools.field.base.Field(model)
+    field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.integral_scale
     field.mesh_type = "structured"
@@ -79,6 +79,7 @@ def plot_cov_spatial(
 ):  # pragma: no cover
     """Plot spatial covariance of a given CovModel."""
     field = gstools.field.base.Field(model)
+    field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.integral_scale
     field.mesh_type = "structured"
@@ -96,6 +97,7 @@ def plot_cor_spatial(
 ):  # pragma: no cover
     """Plot spatial correlation of a given CovModel."""
     field = gstools.field.base.Field(model)
+    field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.integral_scale
     field.mesh_type = "structured"

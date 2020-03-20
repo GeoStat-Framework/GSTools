@@ -63,6 +63,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/output.txt
 
 # PyBuilder
 target/
@@ -108,3 +109,17 @@ info/
 
 # Cython generated C code
 *.c
+*.cpp
+
+
+# generated docs
+docs/source/examples/
+docs/source/generated/
+
+
+*.DS_Store
+
+*.zip
+
+*.vtu
+*.vtr

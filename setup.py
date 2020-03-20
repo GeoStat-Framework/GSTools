@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-from __future__ import division, absolute_import, print_function
-import sys, os, codecs, re, tempfile, glob, subprocess, shutil
+import sys
+import os
+import glob
+import tempfile
+import subprocess
 
 from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
@@ -9,30 +12,10 @@ from distutils.sysconfig import customize_compiler
 
 from setuptools import setup, find_packages, Distribution, Extension
 from Cython.Build import cythonize
-import numpy
+import numpy as np
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-
-
-# version finder ##############################################################
-
-
-def read(*file_paths):
-    """Read file data."""
-    with codecs.open(os.path.join(HERE, *file_paths), "r") as file_in:
-        return file_in.read()
-
-
-def find_version(*file_paths):
-    """Find version without importing module."""
-    version_file = read(*file_paths)
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
-    )
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
 
 
 # openmp finder ###############################################################
@@ -40,20 +23,6 @@ def find_version(*file_paths):
 # which can be found at:
 # https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
 
-
-# TemporaryDirectory not avialable in python2
-class _TemporaryDirectory(object):
-    def __enter__(self):
-        self.dir_name = tempfile.mkdtemp()
-        return self.dir_name
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        shutil.rmtree(self.dir_name)
-
-
-TemporaryDirectory = getattr(
-    tempfile, "TemporaryDirectory", _TemporaryDirectory
-)
 
 CCODE = """
 #include <omp.h>
@@ -101,7 +70,7 @@ def check_openmp_support():
     ccompiler = new_compiler()
     customize_compiler(ccompiler)
 
-    with TemporaryDirectory() as tmp_dir:
+    with tempfile.TemporaryDirectory() as tmp_dir:
         try:
             os.chdir(tmp_dir)
             # Write test program
@@ -186,7 +155,7 @@ CY_MODULES.append(
     Extension(
         "gstools.field.summator",
         [os.path.join("gstools", "field", "summator.pyx")],
-        include_dirs=[numpy.get_include()],
+        include_dirs=[np.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
     )
@@ -195,7 +164,8 @@ CY_MODULES.append(
     Extension(
         "gstools.variogram.estimator",
         [os.path.join("gstools", "variogram", "estimator.pyx")],
-        include_dirs=[numpy.get_include()],
+        language="c++",
+        include_dirs=[np.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
     )
@@ -204,7 +174,7 @@ CY_MODULES.append(
     Extension(
         "gstools.krige.krigesum",
         [os.path.join("gstools", "krige", "krigesum.pyx")],
-        include_dirs=[numpy.get_include()],
+        include_dirs=[np.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
     )
@@ -218,16 +188,24 @@ EXT_MODULES = cythonize(CY_MODULES)  # annotate=True
 for ext_m in EXT_MODULES:
     ext_m.cython_directives = {"embedsignature": True}
 
-
 # setup #######################################################################
 
+with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
+    README = f.read()
+with open(os.path.join(HERE, "requirements.txt"), encoding="utf-8") as f:
+    REQ = f.read().splitlines()
+with open(os.path.join(HERE, "requirements_setup.txt"), encoding="utf-8") as f:
+    REQ_SETUP = f.read().splitlines()
+with open(os.path.join(HERE, "requirements_test.txt"), encoding="utf-8") as f:
+    REQ_TEST = f.read().splitlines()
+with open(
+    os.path.join(HERE, "docs", "requirements_doc.txt"), encoding="utf-8"
+) as f:
+    REQ_DOC = f.read().splitlines()
 
-# version import not possible due to cython
-# see: https://packaging.python.org/guides/single-sourcing-package-version/
-VERSION = find_version("gstools", "_version.py")
+REQ_DEV = REQ_SETUP + REQ_TEST + REQ_DOC
+
 DOCLINE = __doc__.split("\n")[0]
-README = read("README.md")
-
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -237,20 +215,23 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "Operating System :: Unix",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
     "Topic :: Utilities",
 ]
 
 setup(
     name="gstools",
-    version=VERSION,
-    maintainer="Lennart Schueler, Sebastian Mueller",
-    maintainer_email="info@geostat-framework.org",
     description=DOCLINE,
     long_description=README,
     long_description_content_type="text/markdown",
+    maintainer="Lennart Schueler, Sebastian Mueller",
+    maintainer_email="info@geostat-framework.org",
     author="Lennart Schueler, Sebastian Mueller",
     author_email="info@geostat-framework.org",
     url="https://github.com/GeoStat-Framework/GSTools",
@@ -258,18 +239,24 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
-    setup_requires=["numpy>=1.14.5", "cython>=0.28.3", "setuptools>=41.0.1"],
-    install_requires=[
-        "numpy>=1.14.5",
-        "scipy>=1.1.0",
-        "hankel>=0.3.6",
-        "emcee>=3.0.0",
-        "pyevtk",
-        "six",
-    ],
-    extras_require={"plotting": ["pyvista", "matplotlib"]},
+    python_requires=">=3.5",
+    use_scm_version={
+        "relative_to": __file__,
+        "write_to": "gstools/_version.py",
+        "write_to_template": "__version__ = '{version}'",
+        "local_scheme": "no-local-version",
+        "fallback_version": "0.0.0.dev0",
+    },
+    setup_requires=REQ_SETUP,
+    install_requires=REQ,
+    extras_require={
+        "plotting": ["pyvista", "matplotlib"],
+        "doc": REQ_DOC,
+        "test": REQ_TEST,
+        "dev": REQ_DEV,
+    },
     packages=find_packages(exclude=["tests*", "docs*"]),
     ext_modules=EXT_MODULES,
-    include_dirs=[numpy.get_include()],
+    include_dirs=[np.get_include()],
     distclass=MPDistribution,
 )

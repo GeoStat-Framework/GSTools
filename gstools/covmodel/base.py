@@ -10,9 +10,9 @@ The following classes are provided
    CovModel
 """
 # pylint: disable=C0103, R0201
-from __future__ import print_function, division, absolute_import
 
-import six
+import warnings
+import copy
 import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import curve_fit, root
@@ -31,17 +31,17 @@ from gstools.covmodel import plot
 __all__ = ["CovModel"]
 
 # default arguments for hankel.SymmetricFourierTransform
-HANKEL_DEFAULT = {
-    "a": -1,  # should only be changed, if you know exactly what
-    "b": 1,  # you do or if you are crazy
-    "N": 1000,
-    "h": 0.001,
-}
+HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
+
+
+class AttributeWarning(UserWarning):
+    pass
+
 
 # The CovModel Base-Class #####################################################
 
 
-class CovModel(six.with_metaclass(InitSubclassMeta)):
+class CovModel(metaclass=InitSubclassMeta):
     r"""Base class for the GSTools covariance models.
 
     Parameters
@@ -56,15 +56,22 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         If a single value is given, the same length-scale will be used for
         every direction. If multiple values (for main and transversal
         directions) are given, `anis` will be
-        recalculated accordingly.
+        recalculated accordingly. If only two values are given in 3D,
+        the latter one will be used for both transversal directions.
         Default: ``1.0``
     nugget : :class:`float`, optional
         nugget of the model. Default: ``0.0``
     anis : :class:`float` or :class:`list`, optional
-        anisotropy ratios in the transversal directions [y, z].
+        anisotropy ratios in the transversal directions [e_y, e_z].
+
+            * e_y = l_y / l_x
+            * e_z = l_z / l_x
+
+        If only one value is given in 3D, e_y will be set to 1.
+        This value will be ignored, if multiple len_scales are given.
         Default: ``1.0``
     angles : :class:`float` or :class:`list`, optional
-        angles of rotation:
+        angles of rotation (given in rad):
 
             * in 2D: given as rotation around z-axis
             * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
@@ -137,6 +144,13 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                     + "' has a 'bad' name, since it is already present in "
                     + "the class. It could not be added to the model"
                 )
+            if opt_name not in self.default_opt_arg().keys():
+                warnings.warn(
+                    "The given optional argument '{}' ".format(opt_name)
+                    + "is unknown or has at least no defined standard value. "
+                    + "Or you made a Typo... hehe.",
+                    AttributeWarning,
+                )
             # Magic happens here
             setattr(self, opt_name, opt_arg[opt_name])
 
@@ -196,25 +210,25 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
             * ``model.variogram(r)``
                 :math:`\gamma\left(r\right)=
-                \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+                \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
             * ``model.covariance(r)``
                 :math:`C\left(r\right)=
-                \sigma^2\cdot\mathrm{cor}\left(r\right)`
+                \sigma^2\cdot\rho\left(r\right)`
             * ``model.correlation(r)``
-                :math:`\mathrm{cor}\left(r\right)`
+                :math:`\rho\left(r\right)`
 
         Best practice is to use the ``correlation`` function, or the ``cor``
         function. The latter one takes the dimensionles distance h=r/l.
         """
-        # overrid one of these ################################################
+        # override one of these ###############################################
 
         def variogram(self, r):
             r"""Isotropic variogram of the model.
 
             Given by: :math:`\gamma\left(r\right)=
-            \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+            \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
 
-            Where :math:`\mathrm{cor}(r)` is the correlation function.
+            Where :math:`\rho(r)` is the correlation function.
             """
             return self.var - self.covariance(r) + self.nugget
 
@@ -222,39 +236,49 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             r"""Covariance of the model.
 
             Given by: :math:`C\left(r\right)=
-            \sigma^2\cdot\mathrm{cor}\left(r\right)`
+            \sigma^2\cdot\rho\left(r\right)`
 
-            Where :math:`\mathrm{cor}(r)` is the correlation function.
+            Where :math:`\rho(r)` is the correlation function.
             """
             return self.var * self.correlation(r)
 
         def correlation(self, r):
             r"""Correlation function (or normalized covariance) of the model.
 
-            Given by: :math:`\mathrm{cor}\left(r\right)`
+            Given by: :math:`\rho\left(r\right)`
 
             It has to be a monotonic decreasing function with
-            :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
+            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
             """
             return 1.0 - (self.variogram(r) - self.nugget) / self.var
 
-        def cor_from_cor(self, r):
+        def correlation_from_cor(self, r):
             r"""Correlation function (or normalized covariance) of the model.
 
-            Given by: :math:`\mathrm{cor}\left(r\right)`
+            Given by: :math:`\rho\left(r\right)`
 
             It has to be a monotonic decreasing function with
-            :math:`\mathrm{cor}(0)=1` and :math:`\mathrm{cor}(\infty)=0`.
+            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
             """
             r = np.array(np.abs(r), dtype=np.double)
             return self.cor(r / self.len_scale)
+
+        def cor_from_correlation(self, h):
+            r"""Normalziled correlation function taking a normalized range.
+
+            Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
+            """
+            h = np.array(np.abs(h), dtype=np.double)
+            return self.correlation(h * self.len_scale)
 
         #######################################################################
 
         abstract = True
         if hasattr(cls, "cor"):
-            cls.correlation = cor_from_cor
+            cls.correlation = correlation_from_cor
             abstract = False
+        else:
+            cls.cor = cor_from_correlation
         if not hasattr(cls, "variogram"):
             cls.variogram = variogram
         else:
@@ -304,7 +328,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         x, y, z = pos2xyz(pos, max_dim=self.dim)
         if self.do_rotation:
             x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
-        y, z = make_isotropic(self.dim, self.anis, y, z)
+        if not self.is_isotropic:
+            y, z = make_isotropic(self.dim, self.anis, y, z)
         return np.linalg.norm((x, y, z)[: self.dim], axis=0)
 
     def vario_spatial(self, pos):
@@ -323,9 +348,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         r"""Covariance of the model respecting the nugget at r=0.
 
         Given by: :math:`C\left(r\right)=
-        \sigma^2\cdot\mathrm{cor}\left(r\right)`
+        \sigma^2\cdot\rho\left(r\right)`
 
-        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        Where :math:`\rho(r)` is the correlation function.
         """
         r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
@@ -338,9 +363,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         r"""Isotropic variogram of the model respecting the nugget at r=0.
 
         Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
 
-        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        Where :math:`\rho(r)` is the correlation function.
         """
         r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
@@ -387,9 +412,9 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
         r"""Isotropic variogram of the model for pykrige.
 
         Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\mathrm{cor}\left(r\right)\right)+n`
+        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
 
-        Where :math:`\mathrm{cor}(r)` is the correlation function.
+        Where :math:`\rho(r)` is the correlation function.
         """
         return self.variogram(r)
 
@@ -577,24 +602,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
             Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
         k = np.array(np.abs(k), dtype=np.double)
-        if self.dim > 1:
-            res = self._sft.transform(self.correlation, k, ret_err=False)
-        else:
-            k_gz = np.logical_not(np.isclose(k, 0))
-            res = np.empty_like(k, dtype=np.double)
-            res[k_gz] = self._sft.transform(
-                self.correlation, k[k_gz], ret_err=False
-            )
-            # this is a hack for k=0, we calculate by hand
-            fac = (
-                np.sqrt(
-                    np.abs(self.hankel_kw["b"])
-                    / (2 * np.pi) ** (1 - self.hankel_kw["a"])
-                )
-                * 2
-            )
-            res[np.logical_not(k_gz)] = self.integral_scale * fac
-        return res
+        return self._sft.transform(self.correlation, k, ret_err=False)
 
     def spectral_rad_pdf(self, r):
         """Radial spectral density of the model."""
@@ -616,11 +624,8 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     def ln_spectral_rad_pdf(self, r):
         """Log radial spectral density of the model."""
-        spec = np.array(self.spectral_rad_pdf(r))
-        spec_gz = np.logical_not(np.isclose(spec, 0))
-        res = np.full_like(spec, -np.inf, dtype=np.double)
-        res[spec_gz] = np.log(spec[spec_gz])
-        return res
+        with np.errstate(divide="ignore"):
+            return np.log(self.spectral_rad_pdf(r))
 
     def _has_cdf(self):
         """State if a cdf is defined with 'spectral_rad_cdf'."""
@@ -844,7 +849,7 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
                         + str(val)
                     )
 
-    ### bounds  properties ####################################################
+    ### bounds properties #####################################################
 
     @property
     def var_bounds(self):
@@ -1092,11 +1097,12 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
 
     @hankel_kw.setter
     def hankel_kw(self, hankel_kw):
-        self._hankel_kw = HANKEL_DEFAULT if hankel_kw is None else hankel_kw
+        if self._hankel_kw is None or hankel_kw is None:
+            self._hankel_kw = copy.copy(HANKEL_DEFAULT)
+        if hankel_kw is not None:
+            self._hankel_kw.update(hankel_kw)
         if self.dim is not None:
             self._sft = SFT(ndim=self.dim, **self.hankel_kw)
-
-    ### properties ############################################################
 
     @property
     def dist_func(self):
@@ -1186,9 +1192,14 @@ class CovModel(six.with_metaclass(InitSubclassMeta)):
     @property
     def do_rotation(self):
         """:any:`bool`: State if a rotation is performed."""
-        return not np.all(np.isclose(self.angles, 0.0))
+        return (
+            not np.all(np.isclose(self.angles, 0.0)) and not self.is_isotropic
+        )
 
-    ### magic methods #########################################################
+    @property
+    def is_isotropic(self):
+        """:any:`bool`: State if a model is isotropic."""
+        return np.all(np.isclose(self.anis, 1.0))
 
     def __eq__(self, other):
         """Compare CovModels."""

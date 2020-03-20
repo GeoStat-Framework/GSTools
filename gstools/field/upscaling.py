@@ -10,7 +10,6 @@ The following functions are provided
    var_coarse_graining
    var_no_scaling
 """
-from __future__ import print_function, division, absolute_import
 
 import warnings
 import numpy as np

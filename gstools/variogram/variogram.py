@@ -11,26 +11,35 @@ The following functions are provided
    vario_estimate_structured
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 
 from gstools.tools.geometric import pos2xyz
-from gstools.variogram.estimator import (
-    unstructured,
-    structured_3d,
-    structured_2d,
-    structured_1d,
-    ma_structured_3d,
-    ma_structured_2d,
-    ma_structured_1d,
-)
+from gstools.variogram.estimator import unstructured, structured, ma_structured
 
 __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
+def _set_estimator(estimator):
+    """Translate the verbose Python estimator identifier to single char"""
+    if estimator.lower() == "matheron":
+        cython_estimator = "m"
+    elif estimator.lower() == "cressie":
+        cython_estimator = "c"
+    else:
+        raise ValueError(
+            "Unknown variogram estimator function " + str(estimator)
+        )
+    return cython_estimator
+
+
 def vario_estimate_unstructured(
-    pos, field, bin_edges, sampling_size=None, sampling_seed=None
+    pos,
+    field,
+    bin_edges,
+    sampling_size=None,
+    sampling_seed=None,
+    estimator="matheron",
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -38,10 +47,20 @@ def vario_estimate_unstructured(
     The algorithm calculates following equation:
 
     .. math::
-       \gamma(r_k) = \frac{1}{2 N} \sum_{i=1}^N (z(\mathbf x_i) -
-       z(\mathbf x_i'))^2, \; \mathrm{ with}
+       \gamma(r_k) = \frac{1}{2 N(r_k)} \sum_{i=1}^{N(r_k)} (z(\mathbf x_i) -
+       z(\mathbf x_i'))^2 \; ,
 
-       r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+
+    Or if the estimator "cressie" was chosen:
+
+    .. math::
+       \gamma(r_k) = \frac{\left(\frac{1}{N(r_k)} \sum_{i=1}^{N(r_k)}
+       \left|z(\mathbf x_i) - z(\mathbf x_i')\right|^{0.5}\right)^4}
+       {0.457 + 0.494 / N(r_k) + 0.045 / N^2(r_k)} \; ,
+
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+    The Cressie estimator is more robust to outliers.
 
     Notes
     -----
@@ -64,6 +83,13 @@ def vario_estimate_unstructured(
     sampling_seed : :class:`int` or :any:`None`, optional
         seed for samples if sampling_size is given.
         Default: :any:`None`
+    estimator : :class:`str`, optional
+        the estimator function, possible choices:
+
+            * "matheron": the standard method of moments of Matheron
+            * "cressie": an estimator more robust to outliers
+
+        Default: "matheron"
 
     Returns
     -------
@@ -87,20 +113,37 @@ def vario_estimate_unstructured(
         if dim > 2:
             z = z[sampled_idx]
 
-    return bin_centres, unstructured(field, bin_edges, x, y, z)
+    cython_estimator = _set_estimator(estimator)
+
+    return (
+        bin_centres,
+        unstructured(
+            field, bin_edges, x, y, z, estimator_type=cython_estimator
+        ),
+    )
 
 
-def vario_estimate_structured(field, direction="x"):
+def vario_estimate_structured(field, direction="x", estimator="matheron"):
     r"""Estimates the variogram on a regular grid.
 
     The indices of the given direction are used for the bins.
     The algorithm calculates following equation:
 
     .. math::
-       \gamma(r_k) = \frac{1}{2 N} \sum_{i=1}^N (z(\mathbf x_i) -
-       z(\mathbf x_i'))^2, \; \mathrm{ with}
+       \gamma(r_k) = \frac{1}{2 N(r_k)} \sum_{i=1}^{N(r_k)} (z(\mathbf x_i) -
+       z(\mathbf x_i'))^2 \; ,
 
-       r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+
+    Or if the estimator "cressie" was chosen:
+
+    .. math::
+       \gamma(r_k) = \frac{\left(\frac{1}{N(r_k)} \sum_{i=1}^{N(r_k)}
+       \left|z(\mathbf x_i) - z(\mathbf x_i')\right|^{0.5}\right)^4}
+       {0.457 + 0.494 / N(r_k) + 0.045 / N^2(r_k)} \; ,
+
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+    The Cressie estimator is more robust to outliers.
 
     Warnings
     --------
@@ -116,6 +159,13 @@ def vario_estimate_structured(field, direction="x"):
         the spatially distributed data
     direction : :class:`str`
         the axis over which the variogram will be estimated (x, y, z)
+    estimator : :class:`str`, optional
+        the estimator function, possible choices:
+
+            * "mathoron": the standard method of moments of Matheron
+            * "cressie": an estimator more robust to outliers
+
+        Default: "matheron"
 
     Returns
     -------
@@ -130,7 +180,6 @@ def vario_estimate_structured(field, direction="x"):
         mask = None
         field = np.array(field, ndmin=1, dtype=np.double)
         masked = False
-    shape = field.shape
 
     if direction == "x":
         axis_to_swap = 0
@@ -145,19 +194,17 @@ def vario_estimate_structured(field, direction="x"):
     if masked:
         mask = mask.swapaxes(0, axis_to_swap)
 
-    if len(shape) == 3:
-        if mask is None:
-            gamma = structured_3d(field)
-        else:
-            gamma = ma_structured_3d(field, mask)
-    elif len(shape) == 2:
-        if mask is None:
-            gamma = structured_2d(field)
-        else:
-            gamma = ma_structured_2d(field, mask)
+    cython_estimator = _set_estimator(estimator)
+
+    # fill up the field with empty dimensions up to a number of 3
+    for i in range(3 - len(field.shape)):
+        field = field[..., np.newaxis]
+    if masked:
+        for i in range(3 - len(mask.shape)):
+            mask = mask[..., np.newaxis]
+
+    if mask is None:
+        gamma = structured(field, cython_estimator)
     else:
-        if mask is None:
-            gamma = structured_1d(np.array(field, ndmin=1, dtype=np.double))
-        else:
-            gamma = ma_structured_1d(field, mask)
+        gamma = ma_structured(field, mask, cython_estimator)
     return gamma

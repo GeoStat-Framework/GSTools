@@ -2,8 +2,7 @@
 """
 This is the unittest of CovModel class.
 """
-from __future__ import division, absolute_import, print_function
-
+import numpy as np
 import unittest
 from gstools import (
     CovModel,
@@ -59,6 +58,13 @@ class TestCovModel(unittest.TestCase):
     def test_creation(self):
         with self.assertRaises(TypeError):
             CovModel()
+
+        class User(CovModel):
+            def cor(self, h):
+                return np.exp(-h ** 2)
+
+        user = User(len_scale=2)
+        self.assertAlmostEqual(user.correlation(1), np.exp(-0.25))
 
         for Model in self.cov_models:
             for dim in self.dims:

@@ -1,0 +1,49 @@
+{
+    "license": "LGPL-3.0+",
+    "contributors": [
+        {
+            "type": "Other",
+            "name": "Bane Sullivan"
+        },
+        {
+            "orcid": "0000-0002-2547-8102",
+            "affiliation": "Helmholtz Centre for Environmental Research - UFZ",
+            "type": "ResearchGroup",
+            "name": "Falk He\u00dfe"
+        },
+        {
+            "orcid": "0000-0002-8783-6198",
+            "affiliation": "Hydrogeology Group, Department of Earth Science, Utrecht University, Netherlands",
+            "type": "ResearchGroup",
+            "name": "Alraune Zech"
+        },
+        {
+            "orcid": "0000-0002-7798-7080",
+            "affiliation": "Helmholtz Centre for Environmental Research - UFZ",
+            "type": "Supervisor",
+            "name": "Sabine Attinger"
+        }
+    ],
+    "language": "eng",
+    "keywords": [
+        "geostatistics",
+        "kriging",
+        "random fields",
+        "covariance models",
+        "variogram",
+        "Python",
+        "GeoStat-Framework"
+    ],
+    "creators": [
+        {
+            "orcid": "0000-0001-9060-4008",
+            "affiliation": "Helmholtz Centre for Environmental Research - UFZ",
+            "name": "Sebastian M\u00fcller"
+        },
+        {
+            "orcid": "0000-0001-9362-1372",
+            "affiliation": "Helmholtz Centre for Environmental Research - UFZ",
+            "name": "Lennart Sch\u00fcler"
+        }
+    ]
+}

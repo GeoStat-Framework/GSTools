@@ -1,22 +1,11 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This is a unittest of the variogram module.
 """
-from __future__ import division, absolute_import, print_function
 
-import sys
 import unittest
 import numpy as np
 from gstools import vario_estimate_unstructured
-
-PY3 = sys.version_info[0] == 3
-# in python3 "long" was replaced with "int"
-# https://docs.python.org/3.3/whatsnew/3.0.html#integers
-if PY3:
-    LONGTYPE = int
-else:
-    LONGTYPE = long
 
 
 class TestVariogramUnstructured(unittest.TestCase):
@@ -40,13 +29,6 @@ class TestVariogramUnstructured(unittest.TestCase):
         bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
-    def test_longs(self):
-        x = np.arange(1, 5, 1, dtype=LONGTYPE)
-        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
-        bins = np.arange(1, 11, 1, dtype=LONGTYPE)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
-        self.assertAlmostEqual(gamma[0], 50.0, places=4)
-
     def test_np_int(self):
         x = np.arange(1, 5, 1, dtype=np.int)
         z = np.array((10, 20, 30, 40), dtype=np.int)
@@ -65,13 +47,13 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[0], 0.4917, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
-        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
+        z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=int)
         bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
-        z = np.array((10, 20, 30, 40), dtype=LONGTYPE)
+        z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=np.double)
         bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)

@@ -2,33 +2,30 @@
 """
 GStools subpackage providing a set of handy covariance models.
 
+.. currentmodule:: gstools.covmodel
+
 Subpackages
 ^^^^^^^^^^^
 
-.. currentmodule:: gstools.covmodel
-
 .. autosummary::
-    base
-    models
-    tpl_models
     plot
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
 Class to construct user defined covariance models
 
-.. currentmodule:: gstools.covmodel.base
-
 .. autosummary::
+   :toctree: generated
+
    CovModel
 
 Covariance Models
 ^^^^^^^^^^^^^^^^^
 Standard Covariance Models
 
-.. currentmodule:: gstools.covmodel.models
-
 .. autosummary::
+   :toctree: generated
+
    Gaussian
    Exponential
    Matern
@@ -41,14 +38,13 @@ Standard Covariance Models
 
 Truncated Power Law Covariance Models
 
-.. currentmodule:: gstools.covmodel.tpl_models
-
 .. autosummary::
+   :toctree: generated
+
    TPLGaussian
    TPLExponential
    TPLStable
 """
-from __future__ import absolute_import
 
 from gstools.covmodel.base import CovModel
 from gstools.covmodel.models import (

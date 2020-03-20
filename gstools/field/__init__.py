@@ -20,7 +20,6 @@ Spatial Random Field
 
 ----
 """
-from __future__ import absolute_import
 
 from gstools.field.srf import SRF
 

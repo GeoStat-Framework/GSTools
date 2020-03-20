@@ -2,7 +2,6 @@
 """
 This is the unittest of the RNG class.
 """
-from __future__ import division, absolute_import, print_function
 
 import unittest
 import numpy as np

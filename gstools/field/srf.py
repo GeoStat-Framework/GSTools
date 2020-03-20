@@ -10,19 +10,11 @@ The following classes are provided
    SRF
 """
 # pylint: disable=C0103
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 from gstools.field.generator import RandMeth, IncomprRandMeth
-from gstools.field.tools import (
-    check_mesh,
-    make_isotropic,
-    unrotate_mesh,
-    reshape_axis_from_struct_to_unstruct,
-    reshape_field_from_unstruct_to_struct,
-)
+from gstools.field.tools import reshape_field_from_unstruct_to_struct
 from gstools.field.base import Field
-from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 from gstools.field.condition import ordinary, simple
 from gstools.krige.tools import set_condition
@@ -90,7 +82,7 @@ class SRF(Field):
         generator="RandMeth",
         **generator_kwargs
     ):
-        super(SRF, self).__init__(model, mean)
+        super().__init__(model, mean)
         # initialize private attributes
         self._generator = None
         self._upscaling = None
@@ -140,36 +132,20 @@ class SRF(Field):
         field : :class:`numpy.ndarray`
             the SRF
         """
-        # internal conversation
-        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-        self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
-        # format the positional arguments of the mesh
-        check_mesh(self.model.dim, x, y, z, mesh_type)
-        mesh_type_changed = False
-        if self.model.do_rotation:
-            if mesh_type == "structured":
-                mesh_type_changed = True
-                mesh_type_old = mesh_type
-                mesh_type = "unstructured"
-                x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                    self.model.dim, x, y, z
-                )
-            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
-        y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-
+        # internal conversation
+        x, y, z, self.pos, mt_gen, mt_changed, axis_lens = self._pre_pos(
+            pos, mesh_type
+        )
         # generate the field
-        self.raw_field = self.generator.__call__(x, y, z, mesh_type)
-
+        self.raw_field = self.generator.__call__(x, y, z, mt_gen)
         # reshape field if we got an unstructured mesh
-        if mesh_type_changed:
-            mesh_type = mesh_type_old
+        if mt_changed:
             self.raw_field = reshape_field_from_unstruct_to_struct(
                 self.model.dim, self.raw_field, axis_lens
             )
-
         # apply given conditions to the field
         if self.condition:
             (
@@ -188,14 +164,12 @@ class SRF(Field):
                 self.mean = info["mean"]
         else:
             self.field = self.raw_field + self.mean
-
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
             self.field -= self.mean
             self.field *= np.sqrt(scaled_var / self.model.sill)
             self.field += self.mean
-
         return self.field
 
     def set_condition(

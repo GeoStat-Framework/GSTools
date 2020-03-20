@@ -14,7 +14,6 @@ The following functions are provided
    xyz2pos
 """
 # pylint: disable=C0103
-from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
@@ -150,7 +149,7 @@ def xyz2pos(x, y=None, z=None, dtype=None, max_dim=3):
 
     Returns
     -------
-    pos : :class:`numpy.ndarray`
+    pos : :class:`tuple` of :class:`numpy.ndarray`
         the position tuple
     """
     if y is None and z is not None:

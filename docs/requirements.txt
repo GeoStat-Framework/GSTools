@@ -1,5 +1,3 @@
-# required for readthedocs.org
-cython>=0.28.3
-numpydoc
-# https://stackoverflow.com/a/11704396/6696397
+-r requirements_doc.txt
+-r ../requirements_setup.txt
 -r ../requirements.txt

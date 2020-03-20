@@ -3,13 +3,30 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
-## [Unreleased]
+## [1.2.0] - Volatile Violet - 2020-03-20
 
 ### Enhancements
+- different variogram estimator functions can now be used #51
+- the TPLGaussian and TPLExponential now have analytical spectra #67
+- added property ``is_isotropic`` to CovModel #67
+- reworked the whole krige sub-module to provide multiple kriging methods #67
+  - Simple
+  - Ordinary
+  - Universal
+  - External Drift Kriging
+  - Detrended Kriging
+- a new transformation function for discrete fields has been added #70
+- reworked tutorial section in the documentation #63
+- pyvista interface #29
 
 ### Changes
+- Python versions 2.7 and 3.4 are no longer supported #40 #43
+- CovModel: in 3D the input of anisotropy is now treated slightly different: #67
+  - single given anisotropy value [e] is converted to [1, e] (it was [e, e] before)
+  - two given length-scales [l_1, l_2] are converted to [l_1, l_2, l_2] (it was [l_1, l_2, l_1] before)
 
 ### Bugfixes
+- a race condition in the structured variogram estimation has been fixed #51
 
 
 ## [1.1.1] - Reverberating Red - 2019-11-08
@@ -97,7 +114,8 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.0.0...v1.0.1

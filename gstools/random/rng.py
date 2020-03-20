@@ -10,7 +10,6 @@ The following classes are provided
    RNG
 """
 # pylint: disable=no-member
-from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import numpy.random as rand
@@ -21,7 +20,7 @@ from gstools.random.tools import MasterRNG, dist_gen
 __all__ = ["RNG"]
 
 
-class RNG(object):
+class RNG:
     """
     A random number generator for different distributions and multiple streams.
 
