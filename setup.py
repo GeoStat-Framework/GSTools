@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-import sys, os, codecs, re, tempfile, glob, subprocess
+import sys
+import os
+import glob
+import tempfile
+import subprocess
 
 from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
@@ -8,24 +12,10 @@ from distutils.sysconfig import customize_compiler
 
 from setuptools import setup, find_packages, Distribution, Extension
 from Cython.Build import cythonize
-import numpy
+import numpy as np
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-
-
-# helper ######################################################################
-
-
-def local_scheme(version):
-    """Truncate local version (eg. +xyz of 1.0.1.dev1+xyz) for Test PyPI."""
-    return ""
-
-
-def read(*file_paths):
-    """Read file data."""
-    with codecs.open(os.path.join(HERE, *file_paths), "r") as file_in:
-        return file_in.read()
 
 
 # openmp finder ###############################################################
@@ -165,7 +155,7 @@ CY_MODULES.append(
     Extension(
         "gstools.field.summator",
         [os.path.join("gstools", "field", "summator.pyx")],
-        include_dirs=[numpy.get_include()],
+        include_dirs=[np.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
     )
@@ -175,7 +165,7 @@ CY_MODULES.append(
         "gstools.variogram.estimator",
         [os.path.join("gstools", "variogram", "estimator.pyx")],
         language="c++",
-        include_dirs=[numpy.get_include()],
+        include_dirs=[np.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
     )
@@ -184,7 +174,7 @@ CY_MODULES.append(
     Extension(
         "gstools.krige.krigesum",
         [os.path.join("gstools", "krige", "krigesum.pyx")],
-        include_dirs=[numpy.get_include()],
+        include_dirs=[np.get_include()],
         extra_compile_args=FLAGS,
         extra_link_args=FLAGS,
     )
@@ -198,13 +188,18 @@ EXT_MODULES = cythonize(CY_MODULES)  # annotate=True
 for ext_m in EXT_MODULES:
     ext_m.cython_directives = {"embedsignature": True}
 
-
 # setup #######################################################################
 
+with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
+    README = f.read()
+with open(os.path.join(HERE, "requirements.txt"), encoding="utf-8") as f:
+    REQ = f.read().splitlines()
+with open(os.path.join(HERE, "requirements_setup.txt"), encoding="utf-8") as f:
+    REQ_SETUP = f.read().splitlines()
+with open(os.path.join(HERE, "requirements_dev.txt"), encoding="utf-8") as f:
+    REQ_DEV = f.read().splitlines()
 
 DOCLINE = __doc__.split("\n")[0]
-README = read("README.md")
-
 CLASSIFIERS = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -226,11 +221,11 @@ CLASSIFIERS = [
 
 setup(
     name="gstools",
-    maintainer="Lennart Schueler, Sebastian Mueller",
-    maintainer_email="info@geostat-framework.org",
     description=DOCLINE,
     long_description=README,
     long_description_content_type="text/markdown",
+    maintainer="Lennart Schueler, Sebastian Mueller",
+    maintainer_email="info@geostat-framework.org",
     author="Lennart Schueler, Sebastian Mueller",
     author_email="info@geostat-framework.org",
     url="https://github.com/GeoStat-Framework/GSTools",
@@ -240,29 +235,17 @@ setup(
     include_package_data=True,
     python_requires=">=3.5",
     use_scm_version={
-        "root": ".",
         "relative_to": __file__,
         "write_to": "gstools/_version.py",
         "write_to_template": "__version__ = '{version}'",
-        "local_scheme": local_scheme,
+        "local_scheme": "no-local-version",
         "fallback_version": "0.0.0.dev0",
     },
-    setup_requires=[
-        "setuptools_scm",
-        "numpy>=1.14.5",
-        "cython>=0.28.3",
-        "setuptools>=41.0.1",
-    ],
-    install_requires=[
-        "numpy>=1.14.5",
-        "scipy>=1.1.0",
-        "hankel>=0.3.6",
-        "emcee>=3.0.0",
-        "pyevtk",
-    ],
-    extras_require={"plotting": ["pyvista", "matplotlib"]},
+    setup_requires=REQ_SETUP,
+    install_requires=REQ,
+    extras_require={"plotting": ["pyvista", "matplotlib"], "dev": REQ_DEV},
     packages=find_packages(exclude=["tests*", "docs*"]),
     ext_modules=EXT_MODULES,
-    include_dirs=[numpy.get_include()],
+    include_dirs=[np.get_include()],
     distclass=MPDistribution,
 )

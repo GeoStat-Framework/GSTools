@@ -1,0 +1,5 @@
+# required for readthedocs.org
+numpydoc
+sphinx-gallery
+matplotlib
+pykrige
