@@ -87,16 +87,17 @@ A publication for the GeoStat-Framework is in preperation.
 Tutorials and Examples
 ======================
 
-The documentation also includes some `tutorials <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html>`_,
+The documentation also includes some `tutorials <tutorials.html>`__,
 showing the most important use cases of GSTools, which are
 
-- `Random Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html>`_
-- `The Covariance Model <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html>`_
-- `Variogram Estimation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html>`_
-- `Random Vector Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html>`_
-- `Kriging <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html>`_
-- `Conditioned random field generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html>`_
-- `Field transformations <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html>`_
+- `Random Field Generation <examples/01_random_field/index.html>`__
+- `The Covariance Model <examples/02_cov_model/index.html>`__
+- `Variogram Estimation <examples/03_variogram/index.html>`__
+- `Random Vector Field Generation <examples/04_vector_field/index.html>`__
+- `Kriging <examples/05_kriging/index.html>`__
+- `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
+- `Field transformations <examples/07_transformations/index.html>`__
+- `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.
 
