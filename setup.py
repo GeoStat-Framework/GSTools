@@ -197,7 +197,13 @@ with open(os.path.join(HERE, "requirements.txt"), encoding="utf-8") as f:
 with open(os.path.join(HERE, "requirements_setup.txt"), encoding="utf-8") as f:
     REQ_SETUP = f.read().splitlines()
 with open(os.path.join(HERE, "requirements_test.txt"), encoding="utf-8") as f:
-    REQ_DEV = f.read().splitlines() + REQ_SETUP
+    REQ_TEST = f.read().splitlines()
+with open(
+    os.path.join(HERE, "docs", "requirements_docs.txt"), encoding="utf-8"
+) as f:
+    REQ_DOC = f.read().splitlines()
+
+REQ_DEV = REQ_SETUP + REQ_TEST + REQ_DOC
 
 DOCLINE = __doc__.split("\n")[0]
 CLASSIFIERS = [
@@ -243,7 +249,12 @@ setup(
     },
     setup_requires=REQ_SETUP,
     install_requires=REQ,
-    extras_require={"plotting": ["pyvista", "matplotlib"], "dev": REQ_DEV},
+    extras_require={
+        "plotting": ["pyvista", "matplotlib"],
+        "doc": REQ_DOC,
+        "test": REQ_TEST,
+        "dev": REQ_DEV,
+    },
     packages=find_packages(exclude=["tests*", "docs*"]),
     ext_modules=EXT_MODULES,
     include_dirs=[np.get_include()],
