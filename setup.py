@@ -14,24 +14,18 @@ import numpy
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-# version finder ##############################################################
+# helper ######################################################################
+
+
+def local_scheme(version):
+    """Truncate local version (eg. +xyz of 1.0.1.dev1+xyz) for Test PyPI."""
+    return ""
 
 
 def read(*file_paths):
     """Read file data."""
     with codecs.open(os.path.join(HERE, *file_paths), "r") as file_in:
         return file_in.read()
-
-
-def find_version(*file_paths):
-    """Find version without importing module."""
-    version_file = read(*file_paths)
-    version_match = re.search(
-        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M
-    )
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
 
 
 # openmp finder ###############################################################
@@ -208,9 +202,6 @@ for ext_m in EXT_MODULES:
 # setup #######################################################################
 
 
-# version import not possible due to cython
-# see: https://packaging.python.org/guides/single-sourcing-package-version/
-VERSION = find_version("gstools", "_version.py")
 DOCLINE = __doc__.split("\n")[0]
 README = read("README.md")
 
@@ -235,7 +226,6 @@ CLASSIFIERS = [
 
 setup(
     name="gstools",
-    version=VERSION,
     maintainer="Lennart Schueler, Sebastian Mueller",
     maintainer_email="info@geostat-framework.org",
     description=DOCLINE,
@@ -249,7 +239,20 @@ setup(
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     include_package_data=True,
     python_requires=">=3.5",
-    setup_requires=["numpy>=1.14.5", "cython>=0.28.3", "setuptools>=41.0.1"],
+    use_scm_version={
+        "root": ".",
+        "relative_to": __file__,
+        "write_to": "gstools/_version.py",
+        "write_to_template": "__version__ = '{version}'",
+        "local_scheme": local_scheme,
+        "fallback_version": "0.0.0.dev0",
+    },
+    setup_requires=[
+        "setuptools_scm",
+        "numpy>=1.14.5",
+        "cython>=0.28.3",
+        "setuptools>=41.0.1",
+    ],
     install_requires=[
         "numpy>=1.14.5",
         "scipy>=1.1.0",
