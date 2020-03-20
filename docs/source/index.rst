@@ -348,4 +348,4 @@ Optional
 License
 =======
 
-`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018-2020
+`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_
