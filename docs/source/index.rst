@@ -249,7 +249,7 @@ generate 100 realizations and plot them:
 User defined covariance models
 ==============================
 
-One of the core-features of GSTools is the powerfull
+One of the core-features of GSTools is the powerful
 :any:`CovModel`
 class, which allows to easy define covariance models by the user.
 
