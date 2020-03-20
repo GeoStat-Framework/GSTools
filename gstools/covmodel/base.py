@@ -31,12 +31,7 @@ from gstools.covmodel import plot
 __all__ = ["CovModel"]
 
 # default arguments for hankel.SymmetricFourierTransform
-HANKEL_DEFAULT = {
-    "a": -1,  # should only be changed, if you know exactly what
-    "b": 1,  # you do or if you are crazy
-    "N": 200,
-    "h": 0.001,
-}
+HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
 
 
 class AttributeWarning(UserWarning):
@@ -607,24 +602,7 @@ class CovModel(metaclass=InitSubclassMeta):
             Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
         k = np.array(np.abs(k), dtype=np.double)
-        if self.dim > 1:
-            res = self._sft.transform(self.correlation, k, ret_err=False)
-        else:
-            k_gz = np.logical_not(np.isclose(k, 0))
-            res = np.empty_like(k, dtype=np.double)
-            res[k_gz] = self._sft.transform(
-                self.correlation, k[k_gz], ret_err=False
-            )
-            # this is a hack for k=0, we calculate by hand
-            fac = (
-                np.sqrt(
-                    np.abs(self.hankel_kw["b"])
-                    / (2 * np.pi) ** (1 - self.hankel_kw["a"])
-                )
-                * 2
-            )
-            res[np.logical_not(k_gz)] = self.integral_scale * fac
-        return res
+        return self._sft.transform(self.correlation, k, ret_err=False)
 
     def spectral_rad_pdf(self, r):
         """Radial spectral density of the model."""
