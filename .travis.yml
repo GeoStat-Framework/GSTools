@@ -12,7 +12,7 @@ env:
     - CIBW_TEST_COMMAND="python -m pytest -v {project}/tests"
 
 script:
-  - python -m pip install cibuildwheel==1.0.0
+  - python -m pip install cibuildwheel==1.3.0
   - python -m cibuildwheel --output-dir dist
 
 after_success:
@@ -85,28 +85,28 @@ jobs:
     - name: "Win py35"
       os: windows
       language: shell
-      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      before_install: choco install python3 --version 3.8.2 --no-progress -y
       env:
         - PATH=/c/Python38:/c/Python38/Scripts:$PATH
         - CIBW_BUILD="cp35-*"
     - name: "Win py36"
       os: windows
       language: shell
-      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      before_install: choco install python3 --version 3.8.2 --no-progress -y
       env:
         - PATH=/c/Python38:/c/Python38/Scripts:$PATH
         - CIBW_BUILD="cp36-*"
     - name: "Win py37"
       os: windows
       language: shell
-      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      before_install: choco install python3 --version 3.8.2 --no-progress -y
       env:
         - PATH=/c/Python38:/c/Python38/Scripts:$PATH
         - CIBW_BUILD="cp37-*"
     - name: "Win py38"
       os: windows
       language: shell
-      before_install: choco install python3 --version 3.8.0 --no-progress -y
+      before_install: choco install python3 --version 3.8.2 --no-progress -y
       env:
         - PATH=/c/Python38:/c/Python38/Scripts:$PATH
         - CIBW_BUILD="cp38-*"
