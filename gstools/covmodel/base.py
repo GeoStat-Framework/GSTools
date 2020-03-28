@@ -502,7 +502,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Should be given as a dictionary.
         """
-        return {}
+        res = {}
+        for opt in self.opt_arg:
+            res[opt] = 0.0
+        return res
 
     def default_opt_arg_bounds(self):
         """Provide default boundaries for optional arguments."""
@@ -648,7 +651,7 @@ class CovModel(metaclass=InitSubclassMeta):
         y_data : :class:`numpy.ndarray`
             The messured variogram
         maxfev : int, optional
-            The maximum number of calls to the function in scipy curvefit.
+            The maximum number of calls to the function in scipys curve_fit.
             Default: 1000
         **para_deselect
             You can deselect the parameters to be fitted, by setting
