@@ -20,7 +20,7 @@ field = srf((x, y))
 
 bins = np.arange(40)
 bin_center, gamma = gs.vario_estimate_unstructured((x, y), field, bins)
-plt.plot(bin_center, gamma, label="data")
+plt.scatter(bin_center, gamma, label="data")
 ax = plt.gca()
 
 ###############################################################################
@@ -43,13 +43,9 @@ scores = {}
 
 for model in models:
     fit_model = models[model](dim=2)
-    para, pcov = fit_model.fit_variogram(bin_center, gamma)
+    para, pcov, r2 = fit_model.fit_variogram(bin_center, gamma, return_r2=True)
     fit_model.plot(x_max=40, ax=ax)
-    # calculate r2 score
-    residuals = gamma - fit_model.variogram(bin_center)
-    ss_res = np.sum(residuals ** 2)
-    ss_tot = np.sum((gamma - np.mean(gamma)) ** 2)
-    scores[model] = 1 - (ss_res / ss_tot)
+    scores[model] = r2
 
 ###############################################################################
 # Create a ranking based on the score and determine the best models
