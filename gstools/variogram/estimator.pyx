@@ -77,7 +77,7 @@ cdef inline void normalization_cressie(
         if counts[i] == 0:
             counts[i] = 1
         variogram[i] = (
-            (1./counts[i] * variogram[i])**4 /
+            0.5 * (1./counts[i] * variogram[i])**4 /
             (0.457 + 0.494 / counts[i] + 0.045 / counts[i]**2)
         )
 
