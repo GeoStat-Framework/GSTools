@@ -51,7 +51,7 @@ class TestVariogramstructured(unittest.TestCase):
     def test_cressie_1d(self):
         z = [41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3]
         gamma = variogram.vario_estimate_structured(z, estimator="cressie")
-        self.assertAlmostEqual(gamma[1], 1.546, places=3)
+        self.assertAlmostEqual(gamma[1], 1.546 / 2.0, places=3)
 
     def test_1d(self):
         # literature values
@@ -169,8 +169,7 @@ class TestVariogramstructured(unittest.TestCase):
             field, direction="y", estimator="cressie"
         )
 
-        # TODO figure out what is going on here
-        var = 0.177
+        var = 1.0 / 12.0
         self.assertAlmostEqual(gamma_x[0], 0.0, places=1)
         self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=1)
         self.assertAlmostEqual(gamma_y[0], 0.0, places=1)
