@@ -127,8 +127,17 @@ class CovModel(metaclass=InitSubclassMeta):
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
         # optional arguments for the variogram-model
+        self._opt_arg = []
         # look up the defaults for the optional arguments (defined by the user)
         default = self.default_opt_arg()
+        for opt_name in opt_arg:
+            if opt_name not in default:
+                warnings.warn(
+                    "The given optional argument '{}' ".format(opt_name)
+                    + "is unknown or has at least no defined standard value. "
+                    + "Or you made a Typo... hehe.",
+                    AttributeWarning,
+                )
         # add the default vaules if not specified
         for def_arg in default:
             if def_arg not in opt_arg:
@@ -143,13 +152,6 @@ class CovModel(metaclass=InitSubclassMeta):
                     + opt_name
                     + "' has a 'bad' name, since it is already present in "
                     + "the class. It could not be added to the model"
-                )
-            if opt_name not in self.default_opt_arg().keys():
-                warnings.warn(
-                    "The given optional argument '{}' ".format(opt_name)
-                    + "is unknown or has at least no defined standard value. "
-                    + "Or you made a Typo... hehe.",
-                    AttributeWarning,
                 )
             # Magic happens here
             setattr(self, opt_name, opt_arg[opt_name])
