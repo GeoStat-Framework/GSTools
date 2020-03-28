@@ -250,6 +250,14 @@ class Rational(CovModel):
             1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
         )
 
+    def calc_integral_scale(self):  # noqa: D102
+        return (
+            self.len_scale
+            * np.sqrt(np.pi * self.alpha * 0.5)
+            * sps.gamma(self.alpha - 0.5)
+            / sps.gamma(self.alpha)
+        )
+
 
 # Stable Model ################################################################
 
@@ -324,6 +332,9 @@ class Stable(CovModel):
         """
         r = np.array(np.abs(r), dtype=np.double)
         return np.exp(-np.power(r / self.len_scale, self.alpha))
+
+    def calc_integral_scale(self):  # noqa: D102
+        return self.len_scale * sps.gamma(1.0 + 1.0 / self.alpha)
 
 
 # Matérn Model ################################################################
