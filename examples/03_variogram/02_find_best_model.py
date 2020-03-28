@@ -20,8 +20,6 @@ field = srf((x, y))
 
 bins = np.arange(40)
 bin_center, gamma = gs.vario_estimate_unstructured((x, y), field, bins)
-plt.scatter(bin_center, gamma, label="data")
-ax = plt.gca()
 
 ###############################################################################
 # Define a set of models to test.
@@ -41,6 +39,11 @@ scores = {}
 ###############################################################################
 # Iterate over all models, fit their variogram and calculate the r2 score.
 
+# plot the estimated variogram
+plt.scatter(bin_center, gamma, label="data")
+ax = plt.gca()
+
+# fit all models to the estimated variogram
 for model in models:
     fit_model = models[model](dim=2)
     para, pcov, r2 = fit_model.fit_variogram(bin_center, gamma, return_r2=True)
