@@ -15,7 +15,7 @@ import warnings
 import copy
 import numpy as np
 from scipy.integrate import quad as integral
-from scipy.optimize import curve_fit, root
+from scipy.optimize import root
 from hankel import SymmetricFourierTransform as SFT
 from gstools.field.tools import make_isotropic, unrotate_mesh
 from gstools.tools.geometric import pos2xyz
@@ -27,6 +27,7 @@ from gstools.covmodel.tools import (
     check_bounds,
 )
 from gstools.covmodel import plot
+from gstools.covmodel.fit import fit_variogram
 
 __all__ = ["CovModel"]
 
@@ -642,7 +643,19 @@ class CovModel(metaclass=InitSubclassMeta):
 
     ### fitting routine #######################################################
 
-    def fit_variogram(self, x_data, y_data, maxfev=1000, **para_deselect):
+    def fit_variogram(
+        self,
+        x_data,
+        y_data,
+        init_guess="default",
+        weights=None,
+        method="trf",
+        loss="soft_l1",
+        max_eval=None,
+        return_r2=False,
+        curve_fit_kwargs=None,
+        **para_deselect
+    ):
         """
         Fiting the isotropic variogram-model to given data.
 
@@ -652,13 +665,67 @@ class CovModel(metaclass=InitSubclassMeta):
             The radii of the meassured variogram.
         y_data : :class:`numpy.ndarray`
             The messured variogram
-        maxfev : int, optional
-            The maximum number of calls to the function in scipys curve_fit.
-            Default: 1000
+        init_guess : :class:`str` or :class:`dict`, optional
+            Initial guess for the estimation. Either:
+
+                * "default": using the default values of the covariance model
+                * "current": using the current values of the covariance model
+                * dict(name: val): specified value for each parameter by name
+
+            Default: "default"
+        weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`, optional
+            Weights applied to each point in the estimation. Either:
+
+                * 'inv': inverse distance ``1 / (x_data + 1)``
+                * list: weights given per bin
+                * callable: function applied to x_data
+
+            If callable, it must take a 1-d ndarray.
+            Then ``weights = f(x_data)``.
+            Default: None
+        method : {'trf', 'dogbox'}, optional
+            Algorithm to perform minimization.
+
+                * 'trf' : Trust Region Reflective algorithm,
+                  particularly suitable for large sparse problems with bounds.
+                  Generally robust method.
+                * 'dogbox' : dogleg algorithm with rectangular trust regions,
+                  typical use case is small problems with bounds.
+                  Not recommended for problems with rank-deficient Jacobian.
+
+            Default: 'trf'
+        loss : :class:`str` or :class:`callable`, optional
+            Determines the loss function in scipys curve_fit.
+            The following keyword values are allowed:
+
+                * 'linear' (default) : ``rho(z) = z``. Gives a standard
+                  least-squares problem.
+                * 'soft_l1' : ``rho(z) = 2 * ((1 + z)**0.5 - 1)``. The smooth
+                  approximation of l1 (absolute value) loss. Usually a good
+                  choice for robust least squares.
+                * 'huber' : ``rho(z) = z if z <= 1 else 2*z**0.5 - 1``. Works
+                  similarly to 'soft_l1'.
+                * 'cauchy' : ``rho(z) = ln(1 + z)``. Severely weakens outliers
+                  influence, but may cause difficulties in optimization process.
+                * 'arctan' : ``rho(z) = arctan(z)``. Limits a maximum loss on
+                  a single residual, has properties similar to 'cauchy'.
+
+            If callable, it must take a 1-d ndarray ``z=f**2`` and return an
+            array_like with shape (3, m) where row 0 contains function values,
+            row 1 contains first derivatives and row 2 contains second
+            derivatives. Default: 'soft_l1'
+        max_eval : :class:`int` or :any:`None`, optional
+            Maximum number of function evaluations before the termination.
+            If None (default), the value is chosen automatically: 100 * n.
+        return_r2 : :class:`bool`, optional
+            Whether to return the r2 score of the estimation.
+            Default: False
+        curve_fit_kwargs : :class:`dict`, optional
+            Other keyword arguments passed to scipys curve_fit. Default: None
         **para_deselect
             You can deselect the parameters to be fitted, by setting
-            them "False" as keywords. By default, all parameters are
-            fitted.
+            them "False" using their names as keywords.
+            By default, all parameters are fitted.
 
         Returns
         -------
@@ -666,7 +733,11 @@ class CovModel(metaclass=InitSubclassMeta):
             Dictonary with the fitted parameter values
         pcov : :class:`numpy.ndarray`
             The estimated covariance of `popt` from
-            :any:`scipy.optimize.curve_fit`
+            :any:`scipy.optimize.curve_fit`.
+            To compute one standard deviation errors
+            on the parameters use ``perr = np.sqrt(np.diag(pcov))``.
+        r2_score : :class:`float`, optional
+            r2 score of the curve fitting results. Only if return_r2 is True.
 
         Notes
         -----
@@ -675,93 +746,19 @@ class CovModel(metaclass=InitSubclassMeta):
 
         The fitted parameters will be instantly set in the model.
         """
-        # select all parameters to be fitted
-        para = {"var": True, "len_scale": True, "nugget": True}
-        for opt in self.opt_arg:
-            para[opt] = True
-        # deselect unwanted parameters
-        para.update(para_deselect)
-
-        # we need arg1, otherwise curve_fit throws an error (bug?!)
-        def curve(x, arg1, *args):
-            """Adapted Variogram function."""
-            args = (arg1,) + args
-            para_skip = 0
-            opt_skip = 0
-            if para["var"]:
-                var_tmp = args[para_skip]
-                para_skip += 1
-            if para["len_scale"]:
-                self.len_scale = args[para_skip]
-                para_skip += 1
-            if para["nugget"]:
-                self.nugget = args[para_skip]
-                para_skip += 1
-            for opt in self.opt_arg:
-                if para[opt]:
-                    setattr(self, opt, args[para_skip + opt_skip])
-                    opt_skip += 1
-            # set var at last because of var_factor (other parameter needed)
-            if para["var"]:
-                self.var = var_tmp
-            return self.variogram(x)
-
-        # set the lower/upper boundaries for the variogram-parameters
-        low_bounds = []
-        top_bounds = []
-        if para["var"]:
-            low_bounds.append(self.var_bounds[0])
-            top_bounds.append(self.var_bounds[1])
-        if para["len_scale"]:
-            low_bounds.append(self.len_scale_bounds[0])
-            top_bounds.append(self.len_scale_bounds[1])
-        if para["nugget"]:
-            low_bounds.append(self.nugget_bounds[0])
-            top_bounds.append(self.nugget_bounds[1])
-        for opt in self.opt_arg:
-            if para[opt]:
-                low_bounds.append(self.opt_arg_bounds[opt][0])
-                top_bounds.append(self.opt_arg_bounds[opt][1])
-        # fit the variogram
-        popt, pcov = curve_fit(
-            curve,
-            x_data,
-            y_data,
-            bounds=(low_bounds, top_bounds),
-            maxfev=maxfev,
+        return fit_variogram(
+            model=self,
+            x_data=x_data,
+            y_data=y_data,
+            init_guess=init_guess,
+            weights=weights,
+            method=method,
+            loss=loss,
+            max_eval=max_eval,
+            return_r2=return_r2,
+            curve_fit_kwargs=curve_fit_kwargs,
+            **para_deselect
         )
-        fit_para = {}
-        para_skip = 0
-        opt_skip = 0
-        if para["var"]:
-            var_tmp = popt[para_skip]
-            fit_para["var"] = popt[para_skip]
-            para_skip += 1
-        else:
-            fit_para["var"] = self.var
-        if para["len_scale"]:
-            self.len_scale = popt[para_skip]
-            fit_para["len_scale"] = popt[para_skip]
-            para_skip += 1
-        else:
-            fit_para["len_scale"] = self.len_scale
-        if para["nugget"]:
-            self.nugget = popt[para_skip]
-            fit_para["nugget"] = popt[para_skip]
-            para_skip += 1
-        else:
-            fit_para["nugget"] = self.nugget
-        for opt in self.opt_arg:
-            if para[opt]:
-                setattr(self, opt, popt[para_skip + opt_skip])
-                fit_para[opt] = popt[para_skip + opt_skip]
-                opt_skip += 1
-            else:
-                fit_para[opt] = getattr(self, opt)
-        # set var at last because of var_factor (other parameter needed)
-        if para["var"]:
-            self.var = var_tmp
-        return fit_para, pcov
 
     ### bounds setting and checks #############################################
 

@@ -66,7 +66,7 @@ class Gaussian(CovModel):
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (self.len_scale / np.pi) ** self.dim * np.exp(
-            -(k * self.len_scale) ** 2 / np.pi
+            -((k * self.len_scale) ** 2) / np.pi
         )
 
     def spectral_rad_cdf(self, r):
@@ -75,12 +75,12 @@ class Gaussian(CovModel):
         if self.dim == 1:
             return sps.erf(self.len_scale * r / np.sqrt(np.pi))
         if self.dim == 2:
-            return 1.0 - np.exp(-(r * self.len_scale) ** 2 / np.pi)
+            return 1.0 - np.exp(-((r * self.len_scale) ** 2) / np.pi)
         if self.dim == 3:
             return sps.erf(
                 self.len_scale * r / np.sqrt(np.pi)
             ) - 2 * r * self.len_scale / np.pi * np.exp(
-                -(r * self.len_scale) ** 2 / np.pi
+                -((r * self.len_scale) ** 2) / np.pi
             )
         return None
 
@@ -410,7 +410,7 @@ class Matern(CovModel):
         r = np.array(np.abs(r), dtype=np.double)
         # for nu > 20 we just use the gaussian model
         if self.nu > 20.0:
-            return np.exp(-(r / self.len_scale) ** 2 / 4)
+            return np.exp(-((r / self.len_scale) ** 2) / 4)
         # calculate by log-transformation to prevent numerical errors
         r_gz = r[r > 0.0]
         res = np.ones_like(r)
@@ -432,7 +432,7 @@ class Matern(CovModel):
         if self.nu > 20.0:
             return (
                 (self.len_scale / np.sqrt(np.pi)) ** self.dim
-                * np.exp(-(k * self.len_scale) ** 2)
+                * np.exp(-((k * self.len_scale) ** 2))
                 * (
                     1
                     + (
