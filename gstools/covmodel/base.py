@@ -25,6 +25,7 @@ from gstools.covmodel.tools import (
     set_len_anis,
     set_angles,
     check_bounds,
+    check_arg_in_bounds,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -812,44 +813,39 @@ class CovModel(metaclass=InitSubclassMeta):
         for arg in self.arg_bounds:
             bnd = list(self.arg_bounds[arg])
             val = getattr(self, arg)
-            if len(bnd) == 2:
-                bnd.append("cc")  # use closed intervals by default
-            if bnd[2][0] == "c":
-                if val < bnd[0]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be >= "
-                        + str(bnd[0])
-                        + ", got: "
-                        + str(val)
-                    )
-            else:
-                if val <= bnd[0]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be > "
-                        + str(bnd[0])
-                        + ", got: "
-                        + str(val)
-                    )
-            if bnd[2][1] == "c":
-                if val > bnd[1]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be <= "
-                        + str(bnd[1])
-                        + ", got: "
-                        + str(val)
-                    )
-            else:
-                if val >= bnd[1]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be < "
-                        + str(bnd[1])
-                        + ", got: "
-                        + str(val)
-                    )
+            error_case = check_arg_in_bounds(self, arg)
+            if error_case == 1:
+                raise ValueError(
+                    str(arg)
+                    + " needs to be >= "
+                    + str(bnd[0])
+                    + ", got: "
+                    + str(val)
+                )
+            if error_case == 2:
+                raise ValueError(
+                    str(arg)
+                    + " needs to be > "
+                    + str(bnd[0])
+                    + ", got: "
+                    + str(val)
+                )
+            if error_case == 3:
+                raise ValueError(
+                    str(arg)
+                    + " needs to be <= "
+                    + str(bnd[1])
+                    + ", got: "
+                    + str(val)
+                )
+            if error_case == 4:
+                raise ValueError(
+                    str(arg)
+                    + " needs to be < "
+                    + str(bnd[1])
+                    + ", got: "
+                    + str(val)
+                )
 
     ### bounds properties #####################################################
 
