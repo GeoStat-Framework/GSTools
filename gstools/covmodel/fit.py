@@ -150,7 +150,7 @@ def fit_variogram(
     sill = None if (isinstance(sill, bool) and sill) else sill
     if sill is not None:
         sill = model.sill if isinstance(sill, bool) else float(sill)
-        fit_sill = True
+        constrain_sill = True
         sill_low = model.arg_bounds["var"][0] + model.arg_bounds["nugget"][0]
         sill_up = model.arg_bounds["var"][1] + model.arg_bounds["nugget"][1]
         if not (sill_low <= sill <= sill_up):
@@ -184,7 +184,7 @@ def fit_variogram(
             # nugget = sill - var
             para_deselect["nugget"] = False
     else:
-        fit_sill = False
+        constrain_sill = False
 
     # select all parameters to be fitted
     para = {par: True for par in DEFAULT_PARA}
@@ -236,7 +236,7 @@ def fit_variogram(
         opt_skip = 0
         if para["var"]:
             var_tmp = args[para_skip]
-            if fit_sill:
+            if constrain_sill:
                 nugget_tmp = sill - var_tmp
                 # punishment, if resulting nugget out of range for fixed sill
                 if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
@@ -266,7 +266,7 @@ def fit_variogram(
     for par in DEFAULT_PARA:
         if para[par]:
             low_bounds.append(model.arg_bounds[par][0])
-            if par == "var" and fit_sill:  # var <= sill in this case
+            if par == "var" and constrain_sill:  # var <= sill in this case
                 top_bounds.append(sill)
             else:
                 top_bounds.append(model.arg_bounds[par][1])
