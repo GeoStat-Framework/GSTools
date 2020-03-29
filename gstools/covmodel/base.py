@@ -618,11 +618,11 @@ class CovModel(metaclass=InitSubclassMeta):
             r_gz = np.logical_not(np.isclose(r, 0))
             # to prevent numerical errors, we just calculate where r>0
             res = np.zeros_like(r, dtype=np.double)
-            res[r_gz] = rad_fac(self.dim, r[r_gz]) * self.spectral_density(
-                r[r_gz]
+            res[r_gz] = rad_fac(self.dim, r[r_gz]) * np.abs(
+                self.spectral_density(r[r_gz])
             )
         else:
-            res = rad_fac(self.dim, r) * self.spectral_density(r)
+            res = rad_fac(self.dim, r) * np.abs(self.spectral_density(r))
         # prevent numerical errors in hankel for small r values (set 0)
         res[np.logical_not(np.isfinite(res))] = 0.0
         # prevent numerical errors in hankel for big r (set non-negative)
