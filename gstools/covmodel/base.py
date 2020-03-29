@@ -648,6 +648,7 @@ class CovModel(metaclass=InitSubclassMeta):
         self,
         x_data,
         y_data,
+        sill=None,
         init_guess="default",
         weights=None,
         method="trf",
@@ -655,7 +656,7 @@ class CovModel(metaclass=InitSubclassMeta):
         max_eval=None,
         return_r2=False,
         curve_fit_kwargs=None,
-        **para_deselect
+        **para_select
     ):
         """
         Fiting the isotropic variogram-model to given data.
@@ -666,6 +667,23 @@ class CovModel(metaclass=InitSubclassMeta):
             The radii of the meassured variogram.
         y_data : :class:`numpy.ndarray`
             The messured variogram
+        sill : :class:`float` or :class:`bool`, optional
+            Here you can provide a fixed sill for the variogram.
+            It needs to be in a fitting range for the var and nugget bounds.
+            If variance or nugget are not selected for estimation,
+            the nugget will be recalculated to fulfill:
+
+                * sill = var + nugget
+                * if the variance is bigger than the sill,
+                  nugget will bet set to its lower bound
+                  and the variance will be set to the fitting partial sill.
+
+            If variance is deselected, it needs to be less than the sill,
+            otherwise a ValueError comes up. Same for nugget.
+            If sill=False, it will be deslected from estimation
+            and set to the current sill of the model.
+            Then, the procedure above is applied.
+            Default: None
         init_guess : :class:`str` or :class:`dict`, optional
             Initial guess for the estimation. Either:
 
@@ -723,9 +741,12 @@ class CovModel(metaclass=InitSubclassMeta):
             Default: False
         curve_fit_kwargs : :class:`dict`, optional
             Other keyword arguments passed to scipys curve_fit. Default: None
-        **para_deselect
-            You can deselect the parameters to be fitted, by setting
+        **para_select
+            You can deselect parameters from fitting, by setting
             them "False" using their names as keywords.
+            You could also pass fixed values for each parameter.
+            Then these values will be applied and the involved parameters wont
+            be fitted.
             By default, all parameters are fitted.
 
         Returns
@@ -751,6 +772,7 @@ class CovModel(metaclass=InitSubclassMeta):
             model=self,
             x_data=x_data,
             y_data=y_data,
+            sill=sill,
             init_guess=init_guess,
             weights=weights,
             method=method,
@@ -758,7 +780,7 @@ class CovModel(metaclass=InitSubclassMeta):
             max_eval=max_eval,
             return_r2=return_r2,
             curve_fit_kwargs=curve_fit_kwargs,
-            **para_deselect
+            **para_select
         )
 
     ### bounds setting and checks #############################################

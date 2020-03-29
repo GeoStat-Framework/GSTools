@@ -34,7 +34,7 @@ def fit_variogram(
     max_eval=None,
     return_r2=False,
     curve_fit_kwargs=None,
-    **para_deselect
+    **para_select
 ):
     """
     Fiting the isotropic variogram-model to given data.
@@ -119,9 +119,12 @@ def fit_variogram(
         Default: False
     curve_fit_kwargs : :class:`dict`, optional
         Other keyword arguments passed to scipys curve_fit. Default: None
-    **para_deselect
-        You can deselect the parameters to be fitted, by setting
+    **para_select
+        You can deselect parameters from fitting, by setting
         them "False" using their names as keywords.
+        You could also pass fixed values for each parameter.
+        Then these values will be applied and the involved parameters wont
+        be fitted.
         By default, all parameters are fitted.
 
     Returns
@@ -143,8 +146,25 @@ def fit_variogram(
 
     The fitted parameters will be instantly set in the model.
     """
-    # preprocess deselected (only those that are setted to False)
-    para_deselect = {k: bool(v) for k, v in para_deselect.items() if not v}
+    # preprocess selected parameters
+    var_last = False
+    for par in para_select:
+        if par not in model.arg_bounds:
+            raise ValueError(
+                "fit: unknow parameter in selection: {}".format(par)
+            )
+        if not isinstance(para_select[par], bool):
+            if par == "var":
+                var_last = True
+                var_tmp = float(para_select[par])
+            else:
+                setattr(model, par, float(para_select[par]))
+            para_select[par] = False
+    # set variance last due to possible recalculations
+    if var_last:
+        model.var = var_tmp
+    # remove those that were set to True
+    para_select = {k: v for k, v in para_select.items() if not v}
 
     # handling the sill
     sill = None if (isinstance(sill, bool) and sill) else sill
@@ -155,34 +175,34 @@ def fit_variogram(
         sill_up = model.arg_bounds["var"][1] + model.arg_bounds["nugget"][1]
         if not (sill_low <= sill <= sill_up):
             raise ValueError("fit: sill out of bounds.")
-        if "var" in para_deselect and "nugget" in para_deselect:
+        if "var" in para_select and "nugget" in para_select:
             if model.var > sill:
                 model.nugget = model.arg_bounds["nugget"][0]
                 model.var = sill - model.nugget
             else:
                 model.nugget = sill - model.var
-        elif "var" in para_deselect:
+        elif "var" in para_select:
             if model.var > sill:
                 raise ValueError(
                     "fit: if sill is fixed and variance deselected, "
                     + "the set variance should be less than the given sill."
                 )
             else:
-                para_deselect["nugget"] = False
+                para_select["nugget"] = False
                 model.nugget = sill - model.var
-        elif "nugget" in para_deselect:
+        elif "nugget" in para_select:
             if model.nugget > sill:
                 raise ValueError(
                     "fit: if sill is fixed and nugget deselected, "
                     + "the set nugget should be less than the given sill."
                 )
             else:
-                para_deselect["var"] = False
+                para_select["var"] = False
                 model.var = sill - model.nugget
         else:
             # deselect the nugget, to recalculate it accordingly
             # nugget = sill - var
-            para_deselect["nugget"] = False
+            para_select["nugget"] = False
     else:
         constrain_sill = False
 
@@ -190,7 +210,7 @@ def fit_variogram(
     para = {par: True for par in DEFAULT_PARA}
     para.update({opt: True for opt in model.opt_arg})
     # deselect unwanted parameters
-    para.update(para_deselect)
+    para.update(para_select)
 
     # check curve_fit kwargs
     if curve_fit_kwargs is None:
