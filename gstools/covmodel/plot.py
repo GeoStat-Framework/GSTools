@@ -63,7 +63,7 @@ def plot_vario_spatial(
     field = gstools.field.base.Field(model)
     field._value_type = "scalar"
     if x_max is None:
-        x_max = 3 * model.integral_scale
+        x_max = 3 * model.len_scale
     field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
     pos = [x_s] * model.dim
@@ -81,7 +81,7 @@ def plot_cov_spatial(
     field = gstools.field.base.Field(model)
     field._value_type = "scalar"
     if x_max is None:
-        x_max = 3 * model.integral_scale
+        x_max = 3 * model.len_scale
     field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
     pos = [x_s] * model.dim
@@ -99,7 +99,7 @@ def plot_cor_spatial(
     field = gstools.field.base.Field(model)
     field._value_type = "scalar"
     if x_max is None:
-        x_max = 3 * model.integral_scale
+        x_max = 3 * model.len_scale
     field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
     pos = [x_s] * model.dim
@@ -116,7 +116,7 @@ def plot_variogram(
     """Plot variogram of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.integral_scale
+        x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(x_s, model.variogram(x_s), label=model.name + " variogram")
     ax.legend()
@@ -130,7 +130,7 @@ def plot_covariance(
     """Plot covariance of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.integral_scale
+        x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(x_s, model.covariance(x_s), label=model.name + " covariance")
     ax.legend()
@@ -144,7 +144,7 @@ def plot_correlation(
     """Plot correlation function of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.integral_scale
+        x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(x_s, model.correlation(x_s), label=model.name + " correlation")
     ax.legend()
@@ -158,7 +158,7 @@ def plot_spectrum(
     """Plot specturm of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 / model.integral_scale
+        x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(
         x_s,
@@ -176,7 +176,7 @@ def plot_spectral_density(
     """Plot spectral density of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 / model.integral_scale
+        x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(
         x_s,
@@ -194,7 +194,7 @@ def plot_spectral_rad_pdf(
     """Plot radial spectral pdf of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 / model.integral_scale
+        x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
     ax.plot(
         x_s,
