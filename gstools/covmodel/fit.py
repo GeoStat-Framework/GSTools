@@ -13,6 +13,7 @@ The following classes and functions are provided
 # pylint: disable=C0103
 import numpy as np
 from scipy.optimize import curve_fit
+from gstools.covmodel.tools import check_arg_in_bounds
 
 
 __all__ = ["fit_variogram"]
@@ -25,6 +26,7 @@ def fit_variogram(
     model,
     x_data,
     y_data,
+    sill=None,
     init_guess="default",
     weights=None,
     method="trf",
@@ -45,6 +47,23 @@ def fit_variogram(
         The radii of the meassured variogram.
     y_data : :class:`numpy.ndarray`
         The messured variogram
+    sill : :class:`float` or :class:`bool`, optional
+        Here you can provide a fixed sill for the variogram.
+        It needs to be in a fitting range for the var and nugget bounds.
+        If variance or nugget are not selected for estimation,
+        the nugget will be recalculated to fulfill:
+
+            * sill = var + nugget
+            * if the variance is bigger than the sill,
+              nugget will bet set to its lower bound
+              and the variance will be set to the fitting partial sill.
+
+        If variance is deselected, it needs to be less than the sill,
+        otherwise a ValueError comes up. Same for nugget.
+        If sill=False, it will be deslected from estimation
+        and set to the current sill of the model.
+        Then, the procedure above is applied.
+        Default: None
     init_guess : :class:`str` or :class:`dict`, optional
         Initial guess for the estimation. Either:
 
@@ -124,6 +143,49 @@ def fit_variogram(
 
     The fitted parameters will be instantly set in the model.
     """
+    # preprocess deselected (only those that are setted to False)
+    para_deselect = {k: bool(v) for k, v in para_deselect.items() if not v}
+
+    # handling the sill
+    sill = None if (isinstance(sill, bool) and sill) else sill
+    if sill is not None:
+        sill = model.sill if isinstance(sill, bool) else float(sill)
+        fit_sill = True
+        sill_low = model.arg_bounds["var"][0] + model.arg_bounds["nugget"][0]
+        sill_up = model.arg_bounds["var"][1] + model.arg_bounds["nugget"][1]
+        if not (sill_low <= sill <= sill_up):
+            raise ValueError("fit: sill out of bounds.")
+        if "var" in para_deselect and "nugget" in para_deselect:
+            if model.var > sill:
+                model.nugget = model.arg_bounds["nugget"][0]
+                model.var = sill - model.nugget
+            else:
+                model.nugget = sill - model.var
+        elif "var" in para_deselect:
+            if model.var > sill:
+                raise ValueError(
+                    "fit: if sill is fixed and variance deselected, "
+                    + "the set variance should be less than the given sill."
+                )
+            else:
+                para_deselect["nugget"] = False
+                model.nugget = sill - model.var
+        elif "nugget" in para_deselect:
+            if model.nugget > sill:
+                raise ValueError(
+                    "fit: if sill is fixed and nugget deselected, "
+                    + "the set nugget should be less than the given sill."
+                )
+            else:
+                para_deselect["var"] = False
+                model.var = sill - model.nugget
+        else:
+            # deselect the nugget, to recalculate it accordingly
+            # nugget = sill - var
+            para_deselect["nugget"] = False
+    else:
+        fit_sill = False
+
     # select all parameters to be fitted
     para = {par: True for par in DEFAULT_PARA}
     para.update({opt: True for opt in model.opt_arg})
@@ -174,6 +236,13 @@ def fit_variogram(
         opt_skip = 0
         if para["var"]:
             var_tmp = args[para_skip]
+            if fit_sill:
+                nugget_tmp = sill - var_tmp
+                # punishment, if resulting nugget out of range for fixed sill
+                if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
+                    return np.inf
+                # nugget estimation deselected in this case
+                model.nugget = nugget_tmp
             para_skip += 1
         if para["len_scale"]:
             model.len_scale = args[para_skip]
@@ -197,7 +266,10 @@ def fit_variogram(
     for par in DEFAULT_PARA:
         if para[par]:
             low_bounds.append(model.arg_bounds[par][0])
-            top_bounds.append(model.arg_bounds[par][1])
+            if par == "var" and fit_sill:  # var <= sill in this case
+                top_bounds.append(sill)
+            else:
+                top_bounds.append(model.arg_bounds[par][1])
             init_guess_list.append(init_guess[par])
     for opt in model.opt_arg:
         if para[opt]:
