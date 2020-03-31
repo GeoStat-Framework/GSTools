@@ -8,12 +8,12 @@ The following classes are provided
 
 .. autosummary::
    Field
-   FieldData
+   Mesh
 """
 # pylint: disable=C0103
 
 from functools import partial
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import numpy as np
 
@@ -21,34 +21,30 @@ from gstools.covmodel.base import CovModel
 from gstools.tools.export import to_vtk, vtk_export
 from gstools.field.tools import _get_select
 
-__all__ = ["Field", "FieldData"]
+__all__ = ["Field", "Mesh"]
 
 
-class Data:
-    """A data class mainly storing the specific values of an individual field.
-
-    Instances of this class are stored in a dictionary owned by FieldBase.
-    The positions on which these field values are defined are also saved in
-    FieldBase.
-    """
-
-    def __init__(
-        self,
-        values: np.ndarray = None,
-        mean: float = 0.0,
-        value_type: str = "scalar",
-    ):
-        self.values = values
-        self.mean = mean
-        self.value_type = value_type
+def value_type(mesh_type, shape):
+    """Determine the value type ("scalar" or "vector")"""
+    r = "scalar"
+    if mesh_type == "unstructured":
+        # TODO is this the right place for doing these checks?!
+        if len(shape) == 2 and 2 <= shape[0] <= 3:
+            r = "vector"
+    else:
+        # for very small (2-3 points) meshes, this could break
+        # a 100% solution would require dim. information.
+        if len(shape) == shape[0] + 1:
+            r = "vector"
+    return r
 
 
-class FieldData:
+class Mesh:
     """A base class encapsulating field data.
 
     It holds a position array, which define the spatial locations of the
     field values.
-    It can hold multiple fields in the :any:`self.fields` dict. This assumes
+    It can hold multiple fields in the :any:`self.point_data` dict. This assumes
     that each field is defined on the same positions.
     The mesh type must also be specified.
 
@@ -60,12 +56,6 @@ class FieldData:
         key of the field values
     values : :any:`list`, optional
         a list of the values of the fields
-    mean : :any:`float`, optional
-        mean of the field
-    value_type : :any:`str`, optional
-        the value type of the default field, can be
-        * scalar
-        * vector
     mesh_type : :any:`str`, optional
         the type of mesh on which the field is defined on, can be
         * unstructured
@@ -74,137 +64,148 @@ class FieldData:
     Examples
     --------
     >>> import numpy as np
-    >>> pos = np.random.random((100, 100))
-    >>> z = np.random.random((100, 100))
-    >>> z2 = np.random.random((100, 100))
-    >>> field_data = FieldData(pos)
-    >>> field_data.add_field("test_field1", z)
-    >>> field_data.add_field("test_field2", z2)
-    >>> field_data.set_default_field("test_field2")
-    >>> print(field.values)
+    >>> from gstools import Mesh
+    >>> pos = np.linspace(0., 100., 40)
+    >>> z = np.random.random(40)
+    >>> z2 = np.random.random(40)
+    >>> mesh = Mesh((pos,))
+    >>> mesh.add_field(z, "test_field1")
+    >>> mesh.add_field(z2, "test_field2")
+    >>> mesh.set_default_field("test_field2")
+    >>> print(mesh.values)
 
     """
 
     def __init__(
         self,
-        pos: np.ndarray = None,
+        pos=None,
         name: str = "field",
         values: np.ndarray = None,
         *,
-        mean: float = 0.0,
-        value_type: str = "scalar",
         mesh_type: str = "unstructured",
-    ):
-        # initialize attributes
+    ) -> None:
+        # mesh_type needs a special setter, therefore, `set_field_data` is not
+        # used here
+        self.mesh_type = mesh_type
+
+        # the pos/ points of the mesh
         self._pos = pos
-        self.fields: Dict[str, np.ndarray] = {}
-        self._default_field = "field"
-        if mesh_type != "unstructured" and mesh_type != "structured":
-            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
-        self._mesh_type = mesh_type
-        if value_type != "scalar" and value_type != "vector":
-            raise ValueError(
-                "Unknown field value type, "
-                + "specify 'scalar' or 'vector'."
-            )
-        self.add_field(name, values, mean=mean, value_type=value_type)
+
+        # data stored at each pos/ point, the "fields"
+        if values is not None:
+            self.point_data: Dict[str, np.ndarray] = {name: values}
+        else:
+            self.point_data: Dict[str, np.ndarray] = {}
+
+        # data valid for the global field
+        self.field_data = {}
+
+        self.set_field_data("default_field", name)
+
+        self.field_data["mesh_type"] = mesh_type
+
+    def set_field_data(self, name: str, value) -> None:
+        """Add an attribute to this instance and add it the `field_data`
+
+        This helper method is used to create attributes for easy access
+        while using this class, but it also adds an entry to the dictionary
+        `field_data`, which is used for exporting the data.
+        """
+        setattr(self, name, value)
+        self.field_data[name] = value
 
     def add_field(
         self,
-        name: str,
         values: np.ndarray,
+        name: str = "field",
         *,
-        mean: float = 0.0,
-        value_type: str = "scalar",
-        default_field: bool = False,
-    ):
+        is_default_field: bool = False,
+    ) -> None:
+        """Add a field (point data) to the mesh
+
+        .. note::
+            If no field has existed before calling this method,
+            the given field will be set to the default field.
+
+        .. warning::
+            If point data with the same `name` already exists, it will be
+            overwritten.
+
+        Parameters
+        ----------
+        values : :class:`numpy.ndarray`
+            the point data, has to be the same shape as the mesh
+        name : :class:`str`, optional
+            the name of the point data
+        is_default_field : :class:`bool`, optional
+            is this the default field of the mesh?
+
+        """
         values = np.array(values)
-        self._check_field(values)
-        self.fields[name] = Data(values, mean, value_type)
+        self._check_point_data(values)
+        self.point_data[name] = values
         # set the default_field to the first field added
-        if len(self.fields) == 1 or default_field:
-            self._default_field = name
+        if len(self.point_data) == 1 or is_default_field:
+            self.set_field_data("default_field", name)
 
-    def get_data(self, key):
-        """:class:`Data`: The field data class."""
-        return self.fields[key]
-
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> np.ndarray:
         """:any:`numpy.ndarray`: The values of the field."""
-        return self.fields[key].values
+        return self.point_data[key]
 
-    def __setitem__(self, key, value):
-        self.fields[key].values = value
+    def __setitem__(self, key: str, value):
+        self.point_data[key] = value
 
     @property
-    def pos(self):
+    def pos(self) -> Tuple[np.ndarray]:
         """:any:`numpy.ndarray`: The pos. on which the field is defined."""
         return self._pos
 
     @pos.setter
-    def pos(self, value):
+    def pos(self, value: Tuple[np.ndarray]):
         """
         Warning: setting new positions deletes all previously stored fields.
         """
+        self.point_data = {self.default_field: None}
         self._pos = value
-        self._reset()
 
     @property
-    def default_field(self):
-        """:any:`str`: The key of the default field."""
-        return self._default_field
+    def field(self) -> np.ndarray:
+        """:class:`numpy.ndarray`: The point data of the default field."""
+        return self.point_data[self.default_field]
 
-    @default_field.setter
-    def default_field(self, value):
-        self._default_field = value
-
-    @property
-    def field(self):
-        """:any:`Data`: The Data instance of the default field."""
-        return self.fields[self.default_field]
+    @field.setter
+    def field(self, values: np.ndarray):
+        self._check_point_data(values)
+        self.point_data[self.default_field] = values
 
     @property
-    def values(self):
-        """:any:`numpy.ndarray`: The values of the default field."""
-        return self.fields[self.default_field].values
-
-    @values.setter
-    def values(self, values):
-        self.fields[self.default_field].values = values
-
-    @property
-    def value_type(self):
+    def value_type(self, field="field") -> str:
         """:any:`str`: The value type of the default field."""
-        return self.fields[self.default_field].value_type
+        if self.point_data[field] is None:
+            r = None
+        else:
+            r = value_type(self.mesh_type, self.point_data[field].shape)
+        return r
 
     @property
-    def mean(self):
-        """:any:`float`: The mean of the default field."""
-        return self.fields[self.default_field].mean
-
-    @mean.setter
-    def mean(self, value):
-        self.fields[self.default_field].mean = value
-
-    @property
-    def mesh_type(self):
+    def mesh_type(self) -> str:
         """:any:`str`: The mesh type of the fields."""
         return self._mesh_type
 
     @mesh_type.setter
-    def mesh_type(self, value):
+    def mesh_type(self, value: str):
         """
         Warning: setting a new mesh type deletes all previously stored fields.
         """
+        self._check_mesh_type(value)
+        self.point_data = {}
         self._mesh_type = value
-        self._reset()
 
-    def _reset(self):
-        self._default_field = "field"
-        self._mesh_type = "unstructured"
-        self.add_field(self._default_field, None, mean=0.0, value_type="scalar")
+    def _check_mesh_type(self, mesh_type: str) -> None:
+        if mesh_type != "unstructured" and mesh_type != "structured":
+            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
 
-    def _check_field(self, values: np.ndarray):
+    def _check_point_data(self, values: np.ndarray):
         """Compare field shape to pos shape.
 
         Parameters
@@ -212,17 +213,55 @@ class FieldData:
         values : :class:`numpy.ndarray`
             the values of the field to be checked
         """
-        # TODO
+        err = True
         if self.mesh_type == "unstructured":
-            pass
-        elif self.mesh_type == "structured":
-            pass
+            # scalar
+            if len(values.shape) == 1:
+                if values.shape[0] == len(self.pos[0]):
+                    err = False
+            # vector
+            elif len(values.shape) == 2:
+                if (
+                    values.shape[1] == len(self.pos[0])
+                    and 2 <= values.shape[0] <= 3
+                ):
+                    err = False
+            if err:
+                raise ValueError(
+                    "Wrong field shape: {0} does not match mesh shape ({1},)".format(
+                        values.shape, len(self.pos[0])
+                    )
+                )
         else:
-            raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
+            # scalar
+            if len(values.shape) == len(self.pos):
+                if all(
+                    [
+                        values.shape[i] == len(self.pos[i])
+                        for i in range(len(self.pos))
+                    ]
+                ):
+                    err = False
+            # vector
+            elif len(values.shape) == len(self.pos) + 1:
+                if all(
+                    [
+                        values.shape[i + 1] == len(self.pos[i])
+                        for i in range(len(self.pos))
+                    ]
+                ) and values.shape[0] == len(self.pos):
+                    err = False
+            if err:
+                raise ValueError(
+                    "Wrong field shape: {0} does not match mesh shape [0/2/3]{1}".format(
+                        list(values.shape),
+                        [len(self.pos[i]) for i in range(len(self.pos))],
+                    )
+                )
 
 
-class Field(FieldData):
-    """A field base class for random and kriging fields ect.
+class Field(Mesh):
+    """A field base class for random and kriging fields, etc.
 
     Parameters
     ----------
@@ -230,9 +269,23 @@ class Field(FieldData):
         Covariance Model related to the field.
     """
 
-    def __init__(self, model, mean=0.0):
+    def __init__(
+        self,
+        model,
+        *,
+        pos=None,
+        name: str = "field",
+        values: np.ndarray = None,
+        mesh_type: str = "unstructured",
+    ) -> None:
         # initialize attributes
-        super().__init__(self, mean=mean)
+        super().__init__(
+            self,
+            pos=pos,
+            name=name,
+            values=values,
+            mesh_type=mesh_type
+        )
         # initialize private attributes
         self._model = None
         self.model = model
