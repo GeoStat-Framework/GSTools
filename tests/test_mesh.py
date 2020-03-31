@@ -58,7 +58,7 @@ class Mesh:
         values: np.ndarray,
         name: str = "field",
         *,
-        default_field: bool = False,
+        is_default_field: bool = False,
     ) -> None:
         """Add a field (point data) to the mesh
 
@@ -76,7 +76,7 @@ class Mesh:
             the point data, has to be the same shape as the mesh
         name : :class:`str`, optional
             the name of the point data
-        default_field : :class:`bool`, optional
+        is_default_field : :class:`bool`, optional
             is this the default field of the mesh?
 
         """
@@ -85,7 +85,7 @@ class Mesh:
         self._check_point_data(values)
         self.point_data[name] = values
         # set the default_field to the first field added
-        if len(self.point_data) == 1 or default_field:
+        if len(self.point_data) == 1 or is_default_field:
             self._default_field = name
 
     def __getitem__(self, key: str) -> np.ndarray:
@@ -317,7 +317,7 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(self.m1_grid["2nd"].all(), new_field.all())
         # overwrite default field
         newer_field = 100.0 * self.f1_grid
-        self.m1_grid.add_field(newer_field, name="3rd", default_field=True)
+        self.m1_grid.add_field(newer_field, name="3rd", is_default_field=True)
         self.assertEqual(self.m1_grid.field.all(), newer_field.all())
 
     def test_point_data_check(self):
