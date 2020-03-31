@@ -114,10 +114,6 @@ class Mesh:
         """
         Warning: setting new positions deletes all previously stored fields.
         """
-        # TODO what is the best way to handle different fields?
-        # * delete all except for default field
-        # * delete them all
-        # * only delete the values, not the keys
         self.point_data = {self.default_field: None}
         self._pos = value
 
