@@ -96,6 +96,15 @@ class Mesh:
         self.point_data[key] = value
 
     @property
+    def default_field(self) -> str:
+        """:class:`str`: the name of the default field."""
+        return self._default_field
+
+    @default_field.setter
+    def default_field(self, value: str):
+        self._default_field = value
+
+    @property
     def pos(self) -> Tuple[np.ndarray]:
         """:any:`numpy.ndarray`: The pos. on which the field is defined."""
         return self._pos
