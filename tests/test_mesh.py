@@ -133,6 +133,7 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(self.m1_grid.default_field, "test_field1")
         self.m1_grid.default_field = "test_field2"
         self.assertEqual(self.m1_grid.default_field, "test_field2")
+        self.assertEqual(self.m1_grid.field[5], self.m1_grid["test_field2"][5])
 
     def test_point_data_check(self):
         self.assertRaises(ValueError, self.m1_tuple.add_field, self.f1_grid)

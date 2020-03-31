@@ -72,7 +72,7 @@ class Mesh:
     >>> mesh.add_field(z, "test_field1")
     >>> mesh.add_field(z2, "test_field2")
     >>> mesh.set_default_field("test_field2")
-    >>> print(mesh.values)
+    >>> print(mesh.field)
 
     """
 
