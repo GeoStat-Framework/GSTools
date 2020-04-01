@@ -11,13 +11,22 @@ The following functions are provided
    exp_int
    inc_beta
    tplstable_cor
+   tpl_exp_spec_dens
+   tpl_gau_spec_dens
 """
 # pylint: disable=C0103, E1101
 
 import numpy as np
 from scipy import special as sps
 
-__all__ = ["inc_gamma", "exp_int", "inc_beta", "tplstable_cor"]
+__all__ = [
+    "inc_gamma",
+    "exp_int",
+    "inc_beta",
+    "tplstable_cor",
+    "tpl_exp_spec_dens",
+    "tpl_gau_spec_dens",
+]
 
 
 # special functions ###########################################################
@@ -80,13 +89,30 @@ def exp_int(s, x):
     return res
 
 
+def inc_beta(a, b, x):
+    r"""The incomplete Beta function.
+
+    Given by: :math:`B(a,b;\,x) = \int_0^x t^{a-1}\,(1-t)^{b-1}\,dt`
+
+    Parameters
+    ----------
+    a : :class:`float`
+        first exponent in the integral
+    b : :class:`float`
+        second exponent in the integral
+    x : :class:`numpy.ndarray`
+        input values
+    """
+    return sps.betainc(a, b, x) * sps.beta(a, b)
+
+
 def tplstable_cor(r, len_scale, hurst, alpha):
     r"""The correlation function of the TPLStable model.
 
-    Given by
+    Given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \frac{2H}{\alpha} \cdot
        E_{1+\frac{2H}{\alpha}}
        \left(\left(\frac{r}{\ell}\right)^{\alpha} \right)
@@ -112,18 +138,82 @@ def tplstable_cor(r, len_scale, hurst, alpha):
     return res
 
 
-def inc_beta(a, b, x):
-    r"""The incomplete Beta function.
-
-    Given by: :math:`B(a,b;\,x) = \int_0^x t^{a-1}\,(1-t)^{b-1}\,dt`
+def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
+    r"""
+    Spectal density of the TPLExponential covariance model.
 
     Parameters
     ----------
-    a : :class:`float`
-        first exponent in the integral
-    b : :class:`float`
-        second exponent in the integral
-    x : :class:`numpy.ndarray`
-        input values
+    k : :class:`float`
+        Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
+    dim : :class:`int`
+        Dimension of the model.
+    len_scale : :class:`float`
+        Length scale of the model.
+    hurst : :class:`float`
+        Hurst coefficient of the power law.
+    len_low : :class:`float`, optional
+        The lower length scale truncation of the model.
+        Default: 0.0
+
+    Returns
+    -------
+    :class:`float`
+        spectal density of the TPLExponential model
     """
-    return sps.betainc(a, b, x) * sps.beta(a, b)
+    if np.isclose(len_low, 0.0):
+        k = np.array(k, dtype=np.double)
+        z = (k * len_scale) ** 2
+        a = hurst + dim / 2.0
+        b = hurst + 0.5
+        c = hurst + dim / 2.0 + 1.0
+        d = dim / 2.0 + 0.5
+        fac = len_scale ** dim * hurst * sps.gamma(d) / (np.pi ** d * a)
+        return fac / (1.0 + z) ** a * sps.hyp2f1(a, b, c, z / (1.0 + z))
+    fac_up = (len_scale + len_low) ** (2 * hurst)
+    spec_up = tpl_exp_spec_dens(k, dim, len_scale + len_low, hurst)
+    fac_low = len_low ** (2 * hurst)
+    spec_low = tpl_exp_spec_dens(k, dim, len_low, hurst)
+    return (fac_up * spec_up - fac_low * spec_low) / (fac_up - fac_low)
+
+
+def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
+    r"""
+    Spectal density of the TPLGaussian covariance model.
+
+    Parameters
+    ----------
+    k : :class:`float`
+        Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
+    dim : :class:`int`
+        Dimension of the model.
+    len_scale : :class:`float`
+        Length scale of the model.
+    hurst : :class:`float`
+        Hurst coefficient of the power law.
+    len_low : :class:`float`, optional
+        The lower length scale truncation of the model.
+        Default: 0.0
+
+    Returns
+    -------
+    :class:`float`
+        spectal density of the TPLExponential model
+    """
+    if np.isclose(len_low, 0.0):
+        k = np.array(k, dtype=np.double)
+        z = np.array((k * len_scale / 2.0) ** 2)
+        res = np.empty_like(z)
+        z_gz = z > 0.1  # greater zero
+        z_nz = np.logical_not(z_gz)  # near zero
+        a = hurst + dim / 2.0
+        fac = (len_scale / 2.0) ** dim * hurst / np.pi ** (dim / 2.0)
+        res[z_gz] = fac * (sps.gamma(a) - inc_gamma(a, z[z_gz])) / z[z_gz] ** a
+        # first order approximation for z near zero
+        res[z_nz] = fac * (1.0 / a - z[z_nz] / (a + 1.0))
+        return res
+    fac_up = (len_scale + len_low) ** (2 * hurst)
+    spec_up = tpl_gau_spec_dens(k, dim, len_scale + len_low, hurst)
+    fac_low = len_low ** (2 * hurst)
+    spec_low = tpl_gau_spec_dens(k, dim, len_low, hurst)
+    return (fac_up * spec_up - fac_low * spec_low) / (fac_up - fac_low)

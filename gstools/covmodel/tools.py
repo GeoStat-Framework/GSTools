@@ -110,7 +110,15 @@ def set_len_anis(dim, len_scale, anis):
 
     Notes
     -----
-    If ``len_scale`` is given as list, ``anis`` will be recalculated.
+    If ``len_scale`` is given by at least two values,
+    ``anis`` will be recalculated.
+
+    If ``len_scale`` is given as list with to few values, the latter value will
+    be used for the remaining dimensions. (e.g. [l_1, l_2] in 3D is equal to
+    [l_1, l_2, l_2])
+
+    If to few ``anis`` values are given, the first dimensions will be filled
+    up with 1. (eg. anis=[e] in 3D is equal to anis=[1, e])
     """
     ls_tmp = np.atleast_1d(len_scale)[:dim]
     # use just one length scale (x-direction)
@@ -122,22 +130,14 @@ def set_len_anis(dim, len_scale, anis):
             # fill up the anisotropies with ones, such that len()==dim-1
             out_anis = np.pad(
                 out_anis,
-                (0, dim - len(out_anis) - 1),
+                (dim - len(out_anis) - 1, 0),
                 "constant",
                 constant_values=1.0,
             )
-    elif dim == 1:
-        # there is no anisotropy in 1 dimension
-        out_anis = np.empty(0)
     else:
         # fill up length-scales with main len_scale, such that len()==dim
         if len(ls_tmp) < dim:
-            ls_tmp = np.pad(
-                ls_tmp,
-                (0, dim - len(ls_tmp)),
-                "constant",
-                constant_values=out_len_scale,
-            )
+            ls_tmp = np.pad(ls_tmp, (0, dim - len(ls_tmp)), "edge")
         # if multiple length-scales are given, calculate the anisotropies
         out_anis = np.zeros(dim - 1, dtype=np.double)
         for i in range(1, dim):

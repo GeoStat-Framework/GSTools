@@ -15,11 +15,7 @@ The following functions are provided
 import numpy as np
 
 from gstools.tools.geometric import pos2xyz
-from gstools.variogram.estimator import (
-    unstructured,
-    structured,
-    ma_structured,
-)
+from gstools.variogram.estimator import unstructured, structured, ma_structured
 
 __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
@@ -31,7 +27,9 @@ def _set_estimator(estimator):
     elif estimator.lower() == "cressie":
         cython_estimator = "c"
     else:
-        raise ValueError("Unknown variogram estimator function " + str(estimator))
+        raise ValueError(
+            "Unknown variogram estimator function " + str(estimator)
+        )
     return cython_estimator
 
 
@@ -88,7 +86,7 @@ def vario_estimate_unstructured(
     estimator : :class:`str`, optional
         the estimator function, possible choices:
 
-            * "mathoron": the standard method of moments of Matheron
+            * "matheron": the standard method of moments of Matheron
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
@@ -117,13 +115,11 @@ def vario_estimate_unstructured(
 
     cython_estimator = _set_estimator(estimator)
 
-    return bin_centres, unstructured(
-        field,
-        bin_edges,
-        x,
-        y,
-        z,
-        estimator_type=cython_estimator
+    return (
+        bin_centres,
+        unstructured(
+            field, bin_edges, x, y, z, estimator_type=cython_estimator
+        ),
     )
 
 

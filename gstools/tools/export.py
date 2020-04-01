@@ -7,12 +7,12 @@ GStools subpackage providing export routines.
 The following functions are provided
 
 .. autosummary::
-   to_vtk_structured
+   vtk_export
    vtk_export_structured
-   to_vtk_unstructured
    vtk_export_unstructured
    to_vtk
-   vtk_export
+   to_vtk_structured
+   to_vtk_unstructured
 """
 # pylint: disable=C0103, E1101
 

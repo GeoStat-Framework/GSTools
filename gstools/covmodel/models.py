@@ -22,7 +22,7 @@ The following classes and functions are provided
 import warnings
 import numpy as np
 from scipy import special as sps
-from gstools.covmodel.base import CovModel
+from gstools.covmodel import CovModel
 
 __all__ = [
     "Gaussian",
@@ -48,7 +48,7 @@ class Gaussian(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
 
     """
@@ -57,7 +57,7 @@ class Gaussian(CovModel):
         r"""Gaussian correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \exp\left(- \frac{\pi}{4}\cdot \left(\frac{r}{\ell}\right)^2\right)
         """
         r = np.array(np.abs(r), dtype=np.double)
@@ -100,9 +100,7 @@ class Gaussian(CovModel):
 
     def _has_ppf(self):
         # since the ppf is not analytical for dim=3, we have to state that
-        if self.dim == 3:
-            return False
-        return True
+        return False if self.dim == 3 else True
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
@@ -119,7 +117,7 @@ class Exponential(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \exp\left(- \frac{r}{\ell} \right)
 
     """
@@ -128,7 +126,7 @@ class Exponential(CovModel):
         r"""Exponential correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \exp\left(- \frac{r}{\ell} \right)
         """
         r = np.array(np.abs(r), dtype=np.double)
@@ -183,9 +181,7 @@ class Exponential(CovModel):
 
     def _has_ppf(self):
         # since the ppf is not analytical for dim=3, we have to state that
-        if self.dim == 3:
-            return False
-        return True
+        return False if self.dim == 3 else True
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
@@ -202,7 +198,7 @@ class Rational(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \left(1 + \frac{1}{2\alpha} \cdot
        \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
 
@@ -245,7 +241,7 @@ class Rational(CovModel):
         r"""Rational correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \left(1 + \frac{1}{2\alpha} \cdot
            \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
         """
@@ -266,7 +262,7 @@ class Stable(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
 
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
@@ -323,7 +319,7 @@ class Stable(CovModel):
         r"""Stable correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
         """
         r = np.array(np.abs(r), dtype=np.double)
@@ -341,7 +337,7 @@ class Matern(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
        \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
        \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
@@ -355,7 +351,7 @@ class Matern(CovModel):
     case:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \exp\left(- \frac{1}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
 
     Other Parameters
@@ -395,7 +391,7 @@ class Matern(CovModel):
         r"""Matérn correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
            \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
            \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
@@ -464,7 +460,7 @@ class Linear(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \begin{cases}
        1-\frac{r}{\ell}
        & r<\ell\\
@@ -477,7 +473,7 @@ class Linear(CovModel):
         r"""Linear correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \begin{cases}
            1-\frac{r}{\ell}
            & r<\ell\\
@@ -507,7 +503,7 @@ class Circular(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \begin{cases}
        \frac{2}{\pi}\cdot\left(
        \cos^{-1}\left(\frac{r}{\ell}\right) -
@@ -523,7 +519,7 @@ class Circular(CovModel):
         r"""Circular correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \begin{cases}
            \frac{2}{\pi}\cdot\left(
            \cos^{-1}\left(\frac{r}{\ell}\right) -
@@ -566,7 +562,7 @@ class Spherical(CovModel):
     This model is given by the following correlation function:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \begin{cases}
        1-\frac{3}{2}\cdot\frac{r}{\ell} +
        \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
@@ -580,7 +576,7 @@ class Spherical(CovModel):
         r"""Spherical correlation function.
 
         .. math::
-           \mathrm{cor}(r) =
+           \rho(r) =
            \begin{cases}
            1-\frac{3}{2}\cdot\frac{r}{\ell} +
            \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
@@ -618,7 +614,7 @@ class Intersection(CovModel):
     In 1D:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \begin{cases}
        1-\frac{r}{\ell}
        & r<\ell\\
@@ -628,7 +624,7 @@ class Intersection(CovModel):
     In 2D:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \begin{cases}
        \frac{2}{\pi}\cdot\left(
        \cos^{-1}\left(\frac{r}{\ell}\right) -
@@ -641,7 +637,7 @@ class Intersection(CovModel):
     In 3D:
 
     .. math::
-       \mathrm{cor}(r) =
+       \rho(r) =
        \begin{cases}
        1-\frac{3}{2}\cdot\frac{r}{\ell} +
        \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}

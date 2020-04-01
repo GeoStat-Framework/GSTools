@@ -48,7 +48,7 @@ To get the latest development version you can install it directly from GitHub:
 
 .. code-block:: none
 
-    pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
+    pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
@@ -66,8 +66,8 @@ Or for the development version:
 
 .. code-block:: none
 
-    pip install https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
-    pip install -I --no-deps --global-option="--openmp" https://github.com/GeoStat-Framework/GSTools/archive/develop.zip
+    pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
+    pip install -I --no-deps --global-option="--openmp" git+git://github.com/GeoStat-Framework/GSTools.git@develop
 
 The flags :code:`-I --no-deps` force pip to reinstall gstools but not the dependencies.
 
@@ -77,7 +77,9 @@ Citation
 
 At the moment you can cite the Zenodo code publication of GSTools:
 
-| *Sebastian Müller, & Lennart Schüler. (2019, October 1). GeoStat-Framework/GSTools: Reverberating Red (Version v1.1.0). Zenodo. http://doi.org/10.5281/zenodo.3468230*
+| *Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628*
+
+If you want to cite a specific version, have a look at the Zenodo site.
 
 A publication for the GeoStat-Framework is in preperation.
 
@@ -85,16 +87,17 @@ A publication for the GeoStat-Framework is in preperation.
 Tutorials and Examples
 ======================
 
-The documentation also includes some `tutorials <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorials.html>`_,
+The documentation also includes some `tutorials <tutorials.html>`__,
 showing the most important use cases of GSTools, which are
 
-- `Random Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_01_srf.html>`_
-- `The Covariance Model <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_02_cov.html>`_
-- `Variogram Estimation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_03_vario.html>`_
-- `Random Vector Field Generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_04_vec_field.html>`_
-- `Kriging <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_05_kriging.html>`_
-- `Conditioned random field generation <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_06_conditioning.html>`_
-- `Field transformations <https://geostat-framework.readthedocs.io/projects/gstools/en/latest/tutorial_07_transformations.html>`_
+- `Random Field Generation <examples/01_random_field/index.html>`__
+- `The Covariance Model <examples/02_cov_model/index.html>`__
+- `Variogram Estimation <examples/03_variogram/index.html>`__
+- `Random Vector Field Generation <examples/04_vector_field/index.html>`__
+- `Kriging <examples/05_kriging/index.html>`__
+- `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
+- `Field transformations <examples/07_transformations/index.html>`__
+- `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.
 
@@ -118,12 +121,11 @@ with a :any:`Gaussian` covariance model.
 
 .. code-block:: python
 
-    from gstools import SRF, Gaussian
-    import matplotlib.pyplot as plt
+    import gstools as gs
     # structured field with a size 100x100 and a grid-size of 1x1
     x = y = range(100)
-    model = Gaussian(dim=2, var=1, len_scale=10)
-    srf = SRF(model)
+    model = gs.Gaussian(dim=2, var=1, len_scale=10)
+    srf = gs.SRF(model)
     srf((x, y), mesh_type='structured')
     srf.plot()
 
@@ -138,12 +140,11 @@ A similar example but for a three dimensional field is exported to a
 
 .. code-block:: python
 
-    from gstools import SRF, Gaussian
-    import matplotlib.pyplot as pt
+    import gstools as gs
     # structured field with a size 100x100x100 and a grid-size of 1x1x1
     x = y = z = range(100)
-    model = Gaussian(dim=3, var=0.6, len_scale=20)
-    srf = SRF(model)
+    model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
+    srf = gs.SRF(model)
     srf((x, y, z), mesh_type='structured')
     srf.vtk_export('3d_field') # Save to a VTK file for ParaView
 
@@ -151,70 +152,6 @@ A similar example but for a three dimensional field is exported to a
     mesh.threshold_percent(0.5).plot()
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
-   :width: 400px
-   :align: center
-
-
-Truncated Power Law Model
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-GSTools also implements truncated power law variograms, which can be represented as a
-superposition of scale dependant modes in form of standard variograms, which are truncated by
-a lower- :math:`\ell_{\mathrm{low}}` and an upper length-scale :math:`\ell_{\mathrm{up}}`.
-
-This example shows the truncated power law (:any:`TPLStable`) based on the
-:any:`Stable` covariance model and is given by
-
-.. math::
-   \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
-   \intop_{\ell_{\mathrm{low}}}^{\ell_{\mathrm{up}}}
-   \gamma(r,\lambda) \frac{\rm d \lambda}{\lambda}
-
-with `Stable` modes on each scale:
-
-.. math::
-   \gamma(r,\lambda) &=
-   \sigma^2(\lambda)\cdot\left(1-
-   \exp\left[- \left(\frac{r}{\lambda}\right)^{\alpha}\right]
-   \right)\\
-   \sigma^2(\lambda) &= C\cdot\lambda^{2H}
-
-which gives Gaussian modes for ``alpha=2`` or Exponential modes for ``alpha=1``.
-
-For :math:`\ell_{\mathrm{low}}=0` this results in:
-
-.. math::
-   \gamma_{\ell_{\mathrm{up}}}(r) &=
-   \sigma^2_{\ell_{\mathrm{up}}}\cdot\left(1-
-   \frac{2H}{\alpha} \cdot
-   E_{1+\frac{2H}{\alpha}}
-   \left[\left(\frac{r}{\ell_{\mathrm{up}}}\right)^{\alpha}\right]
-   \right) \\
-   \sigma^2_{\ell_{\mathrm{up}}} &=
-   C\cdot\frac{\ell_{\mathrm{up}}^{2H}}{2H}
-
-.. code-block:: python
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from gstools import SRF, TPLStable
-    x = y = np.linspace(0, 100, 100)
-    model = TPLStable(
-        dim=2,           # spatial dimension
-        var=1,           # variance (C calculated internally, so that `var` is 1)
-        len_low=0,       # lower truncation of the power law
-        len_scale=10,    # length scale (a.k.a. range), len_up = len_low + len_scale
-        nugget=0.1,      # nugget
-        anis=0.5,        # anisotropy between main direction and transversal ones
-        angles=np.pi/4,  # rotation angles
-        alpha=1.5,       # shape parameter from the stable model
-        hurst=0.7,       # hurst coefficient from the power law
-    )
-    srf = SRF(model, mean=1, mode_no=1000, seed=19970221, verbose=True)
-    srf((x, y), mesh_type='structured')
-    srf.plot()
-
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/tplstable_field.png
    :width: 400px
    :align: center
 
@@ -236,18 +173,18 @@ model again.
 .. code-block:: python
 
     import numpy as np
-    from gstools import SRF, Exponential, Stable, vario_estimate_unstructured
+    import gstools as gs
     # generate a synthetic field with an exponential model
     x = np.random.RandomState(19970221).rand(1000) * 100.
     y = np.random.RandomState(20011012).rand(1000) * 100.
-    model = Exponential(dim=2, var=2, len_scale=8)
-    srf = SRF(model, mean=0, seed=19970221)
+    model = gs.Exponential(dim=2, var=2, len_scale=8)
+    srf = gs.SRF(model, mean=0, seed=19970221)
     field = srf((x, y))
     # estimate the variogram of the field with 40 bins
     bins = np.arange(40)
-    bin_center, gamma = vario_estimate_unstructured((x, y), field, bins)
+    bin_center, gamma = gs.vario_estimate_unstructured((x, y), field, bins)
     # fit the variogram with a stable model. (no nugget fitted)
-    fit_model = Stable(dim=2)
+    fit_model = gs.Stable(dim=2)
     fit_model.fit_variogram(bin_center, gamma, nugget=False)
     # output
     ax = fit_model.plot(x_max=40)
@@ -282,8 +219,8 @@ generate 100 realizations and plot them:
 .. code-block:: python
 
     import numpy as np
-    from gstools import Gaussian, SRF
     import matplotlib.pyplot as plt
+    import gstools as gs
 
     # conditions
     cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
@@ -292,8 +229,8 @@ generate 100 realizations and plot them:
     gridx = np.linspace(0.0, 15.0, 151)
 
     # spatial random field class
-    model = Gaussian(dim=1, var=0.5, len_scale=2)
-    srf = SRF(model)
+    model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
+    srf = gs.SRF(model)
     srf.set_condition(cond_pos, cond_val, "ordinary")
 
     # generate the ensemble of field realizations
@@ -312,7 +249,7 @@ generate 100 realizations and plot them:
 User defined covariance models
 ==============================
 
-One of the core-features of GSTools is the powerfull
+One of the core-features of GSTools is the powerful
 :any:`CovModel`
 class, which allows to easy define covariance models by the user.
 
@@ -326,10 +263,10 @@ which takes a non-dimensional distance :class:`h = r/l`
 
 .. code-block:: python
 
-    from gstools import CovModel
     import numpy as np
+    import gstools as gs
     # use CovModel as the base-class
-    class Gau(CovModel):
+    class Gau(gs.CovModel):
         def cor(self, h):
             return np.exp(-h**2)
 
@@ -350,12 +287,11 @@ Example
 .. code-block:: python
 
    import numpy as np
-   import matplotlib.pyplot as plt
-   from gstools import SRF, Gaussian
+   import gstools as gs
    x = np.arange(100)
    y = np.arange(100)
-   model = Gaussian(dim=2, var=1, len_scale=10)
-   srf = SRF(model, generator='VectorField')
+   model = gs.Gaussian(dim=2, var=1, len_scale=10)
+   srf = gs.SRF(model, generator='VectorField')
    srf((x, y), mesh_type='structured', seed=19841203)
    srf.plot()
 
@@ -375,10 +311,10 @@ create a VTK/PyVista dataset for use in Python with to :class:`.to_pyvista()` me
 
 .. code-block:: python
 
-    from gstools import SRF, Gaussian
+    import gstools as gs
     x = y = range(100)
-    model = Gaussian(dim=2, var=1, len_scale=10)
-    srf = SRF(model)
+    model = gs.Gaussian(dim=2, var=1, len_scale=10)
+    srf = gs.SRF(model)
     srf((x, y), mesh_type='structured')
     srf.vtk_export("field") # Saves to a VTK file
     mesh = srf.to_pyvista() # Create a VTK/PyVista dataset in memory
@@ -387,16 +323,19 @@ create a VTK/PyVista dataset for use in Python with to :class:`.to_pyvista()` me
 Which gives a RectilinearGrid VTK file :file:`field.vtr` or creates a PyVista mesh
 in memory for immediate 3D plotting in Python.
 
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/pyvista_export.png
+   :width: 600px
+   :align: center
+
 
 Requirements
 ============
 
 - `Numpy >= 1.14.5 <http://www.numpy.org>`_
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
-- `hankel >= 0.3.6 <https://github.com/steven-murray/hankel>`_
+- `hankel >= 1.0.2 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
-- `pyevtk <https://bitbucket.org/pauloh/pyevtk>`_
-- `six <https://github.com/benjaminp/six>`_
+- `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
 
 
 Optional
@@ -409,4 +348,4 @@ Optional
 License
 =======
 
-`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_ © 2018-2019
+`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_

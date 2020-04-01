@@ -12,7 +12,9 @@ The following classes and functions are provided
    reshape_input_axis_from_struct
    check_mesh
    make_isotropic
+   make_anisotropic
    unrotate_mesh
+   rotate_mesh
    reshape_axis_from_struct_to_unstruct
    reshape_field_from_unstruct_to_struct
 """
@@ -27,7 +29,9 @@ __all__ = [
     "reshape_input_axis_from_struct",
     "check_mesh",
     "make_isotropic",
+    "make_anisotropic",
     "unrotate_mesh",
+    "rotate_mesh",
     "reshape_axis_from_struct_to_unstruct",
     "reshape_field_from_unstruct_to_struct",
 ]
@@ -118,6 +122,17 @@ def make_isotropic(dim, anis, y, z):
     return None
 
 
+def make_anisotropic(dim, anis, y, z):
+    """Re-stretch given axes."""
+    if dim == 1:
+        return y, z
+    if dim == 2:
+        return y * anis[0], z
+    if dim == 3:
+        return y * anis[0], z * anis[1]
+    return None
+
+
 def unrotate_mesh(dim, angles, x, y, z):
     """Rotate axes in order to implement rotation.
 
@@ -140,6 +155,37 @@ def unrotate_mesh(dim, angles, x, y, z):
         beta = -angles[1]
         gamma = -angles[2]
         rot_mat = np.dot(np.dot(r3d_z(alpha), r3d_y(beta)), r3d_x(gamma))
+        pos_tuple = np.vstack((x, y, z))
+        pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
+        x = pos_tuple[0].reshape(np.shape(x))
+        y = pos_tuple[1].reshape(np.shape(y))
+        z = pos_tuple[2].reshape(np.shape(z))
+        return x, y, z
+    return None
+
+
+def rotate_mesh(dim, angles, x, y, z):
+    """Rotate axes.
+
+    for 3d: yaw, pitch, and roll angles are alpha, beta, and gamma,
+    of intrinsic rotation rotation whose Tait-Bryan angles are
+    alpha, beta, gamma about axes x, y, z.
+    """
+    if dim == 1:
+        return x, y, z
+    if dim == 2:
+        # extract 2d rotation matrix
+        rot_mat = r3d_z(angles[0])[0:2, 0:2]
+        pos_tuple = np.vstack((x, y))
+        pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 2)
+        x = pos_tuple[0].reshape(np.shape(x))
+        y = pos_tuple[1].reshape(np.shape(y))
+        return x, y, z
+    if dim == 3:
+        alpha = angles[0]
+        beta = angles[1]
+        gamma = angles[2]
+        rot_mat = np.dot(np.dot(r3d_x(gamma), r3d_y(beta)), r3d_z(alpha))
         pos_tuple = np.vstack((x, y, z))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
         x = pos_tuple[0].reshape(np.shape(x))

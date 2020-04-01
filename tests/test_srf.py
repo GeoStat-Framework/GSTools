@@ -12,12 +12,9 @@ from gstools import transform as tf
 
 class TestSRF(unittest.TestCase):
     def setUp(self):
+        self.cov_model = Gaussian(dim=2, var=1.5, len_scale=4.0)
         self.mean = 0.3
-        self.var = 1.5
         self.mode_no = 100
-        self.cov_model = Gaussian(
-            dim=2, var=self.var, len_scale=4.0, mode_no=self.mode_no
-        )
 
         self.seed = 825718662
         self.x_grid = np.linspace(0.0, 12.0, 48)
@@ -158,7 +155,7 @@ class TestSRF(unittest.TestCase):
 
     def test_rotation_unstruct_3d(self):
         self.cov_model = Gaussian(
-            dim=3, var=1.5, len_scale=4.0, anis=(0.25, 0.5), mode_no=100
+            dim=3, var=1.5, len_scale=4.0, anis=(0.25, 0.5)
         )
         x_len = len(self.x_grid_c)
         y_len = len(self.y_grid_c)
@@ -222,7 +219,7 @@ class TestSRF(unittest.TestCase):
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf((self.x_tuple, self.y_tuple), seed=self.seed)
         field2 = srf.unstructured((self.x_tuple, self.y_tuple), seed=self.seed)
-        self.assertAlmostEqual(field[0], field[0])
+        self.assertAlmostEqual(field[0], srf.field[0])
         self.assertAlmostEqual(field[0], field2[0])
         field = srf(
             (self.x_tuple, self.y_tuple),
@@ -230,17 +227,16 @@ class TestSRF(unittest.TestCase):
             mesh_type="structured",
         )
         field2 = srf.structured((self.x_tuple, self.y_tuple), seed=self.seed)
-        self.assertAlmostEqual(field[0, 0], field[0, 0])
+        self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
 
     def test_transform(self):
         self.cov_model.dim = 2
-        srf = SRF(self.cov_model, mode_no=self.mode_no)
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        srf.field.mean = self.mean
         tf.normal_force_moments(srf)  # force ergodicity of the given field
-        self.assertAlmostEqual(srf.field.mean, self.mean)
-        self.assertAlmostEqual(srf.model.var, srf.model.var)
+        self.assertAlmostEqual(srf.field.mean(), srf.mean)
+        self.assertAlmostEqual(srf.field.var(), srf.model.var)
         tf.zinnharvey(srf)  # make high values mostly connected
         tf.normal_force_moments(srf)  # force ergodicity of the given field
         tf.normal_to_lognormal(srf)  # log-normal
@@ -254,9 +250,28 @@ class TestSRF(unittest.TestCase):
         tf.binary(srf)
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
         tf.boxcox(srf)
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        values = np.linspace(np.min(srf.field), np.max(srf.field), 3)
+        tf.discrete(srf, values)
+
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        values = [-1, 0, 1]
+        thresholds = [-0.9, 0.1]
+        tf.discrete(srf, values, thresholds)
+        np.testing.assert_array_equal(np.unique(srf.field), [-1, 0, 1])
+
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        values = [-1, 0, 1]
+        tf.discrete(srf, values, thresholds="arithmetic")
+        np.testing.assert_array_equal(np.unique(srf.field), [-1.0, 0.0, 1.0])
+
+        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
+        values = [-1, 0, 0.5, 1]
+        tf.discrete(srf, values, thresholds="equal")
+        np.testing.assert_array_equal(np.unique(srf.field), values)
 
     def test_incomprrandmeth(self):
-        self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0, mode_no=100)
+        self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0)
         srf = SRF(
             self.cov_model,
             mean=self.mean,

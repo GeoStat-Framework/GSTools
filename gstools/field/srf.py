@@ -13,15 +13,8 @@ The following classes are provided
 
 import numpy as np
 from gstools.field.generator import RandMeth, IncomprRandMeth
-from gstools.field.tools import (
-    check_mesh,
-    make_isotropic,
-    unrotate_mesh,
-    reshape_axis_from_struct_to_unstruct,
-    reshape_field_from_unstruct_to_struct,
-)
+from gstools.field.tools import reshape_field_from_unstruct_to_struct
 from gstools.field.base import Field
-from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 from gstools.field.condition import ordinary, simple
 from gstools.krige.tools import set_condition
@@ -99,6 +92,10 @@ class SRF(Field):
         self._cond_val = None
         self._krige_type = None
         # initialize attributes
+        self.raw_field = None
+        self.krige_field = None
+        self.err_field = None
+        self.krige_var = None
         self.set_generator(generator, **generator_kwargs)
         self.upscaling = upscaling
 

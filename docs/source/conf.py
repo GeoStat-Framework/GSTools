@@ -20,8 +20,16 @@
 # NOTE:
 # pip install sphinx_rtd_theme
 # is needed in order to build the documentation
-import os
-import sys
+# import os
+# import sys
+import datetime
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message="Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.",
+)
 
 # local module should not be added to sys path if it's installed on RTFD
 # see: https://stackoverflow.com/a/31882049/6696397
@@ -59,6 +67,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",  # parameters look better than with numpydoc only
     "numpydoc",
+    "sphinx_gallery.gen_gallery",
 ]
 
 # autosummaries from source-files
@@ -95,8 +104,9 @@ source_suffix = ".rst"
 master_doc = "contents"
 
 # General information about the project.
+curr_year = datetime.datetime.now().year
 project = "GSTools"
-copyright = "2018 - 2019, Lennart Schueler, Sebastian Mueller"
+copyright = "2018 - {}, Lennart Schueler, Sebastian Mueller".format(curr_year)
 author = "Lennart Schueler, Sebastian Mueller"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -171,7 +181,9 @@ html_sidebars = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "GeoStatToolsdoc"
-
+# logos for the page
+html_logo = "pics/gstools_150.png"
+html_favicon = "pics/gstools.ico"
 
 # -- Options for LaTeX output ---------------------------------------------
 # latex_engine = 'lualatex'
@@ -246,4 +258,49 @@ intersphinx_mapping = {
     "Sphinx": ("http://www.sphinx-doc.org/en/stable/", None),
     "hankel": ("https://hankel.readthedocs.io/en/latest/", None),
     "emcee": ("https://emcee.readthedocs.io/en/latest/", None),
+}
+
+
+# -- Sphinx Gallery Options
+from sphinx_gallery.sorting import FileNameSortKey
+
+sphinx_gallery_conf = {
+    # only show "print" output as output
+    "capture_repr": (),
+    # path to your examples scripts
+    "examples_dirs": [
+        "../../examples/00_misc/",
+        "../../examples/01_random_field/",
+        "../../examples/02_cov_model/",
+        "../../examples/03_variogram/",
+        "../../examples/04_vector_field/",
+        "../../examples/05_kriging/",
+        "../../examples/06_conditioned_fields/",
+        "../../examples/07_transformations/",
+    ],
+    # path where to save gallery generated examples
+    "gallery_dirs": [
+        "examples/00_misc/",
+        "examples/01_random_field/",
+        "examples/02_cov_model/",
+        "examples/03_variogram/",
+        "examples/04_vector_field/",
+        "examples/05_kriging/",
+        "examples/06_conditioned_fields/",
+        "examples/07_transformations/",
+    ],
+    # Pattern to search for example files
+    "filename_pattern": r"\.py",
+    # Remove the "Download all examples" button from the top level gallery
+    "download_all_examples": False,
+    # Sort gallery example by file name instead of number of lines (default)
+    "within_subsection_order": FileNameSortKey,
+    # directory where function granular galleries are stored
+    "backreferences_dir": None,
+    # Modules for which function level galleries are created.  In
+    "doc_module": "gstools",
+    # "image_scrapers": ('pyvista', 'matplotlib'),
+    # "first_notebook_cell": ("%matplotlib inline\n"
+    #                         "from pyvista import set_plot_theme\n"
+    #                         "set_plot_theme('document')"),
 }

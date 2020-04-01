@@ -19,7 +19,14 @@ import numpy as np
 
 from gstools.covmodel.base import CovModel
 from gstools.tools.export import to_vtk, vtk_export
-from gstools.field.tools import _get_select
+from gstools.field.tools import (
+    _get_select,
+    check_mesh,
+    make_isotropic,
+    unrotate_mesh,
+    reshape_axis_from_struct_to_unstruct,
+)
+from gstools.tools.geometric import pos2xyz, xyz2pos
 
 __all__ = ["Field", "Mesh"]
 
@@ -277,6 +284,7 @@ class Field(Mesh):
         name: str = "field",
         values: np.ndarray = None,
         mesh_type: str = "unstructured",
+        mean: float = 0.0,
     ) -> None:
         # initialize attributes
         super().__init__(
@@ -289,6 +297,7 @@ class Field(Mesh):
         # initialize private attributes
         self._model = None
         self.model = model
+        self.mean = mean
 
     def __call__(self, *args, **kwargs):
         """Generate the field."""
@@ -391,6 +400,58 @@ class Field(Mesh):
                     field = out[0]
                 mesh.point_data[name] = field
         return out
+
+    def _pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
+        """
+        Preprocessing positions and mesh_type.
+
+        Parameters
+        ----------
+        pos : :any:`iterable`
+            the position tuple, containing main direction and transversal
+            directions
+        mesh_type : :class:`str`
+            'structured' / 'unstructured'
+        make_unstruct: :class:`bool`
+            State if mesh_type should be made unstructured.
+
+        Returns
+        -------
+        x : :class:`numpy.ndarray`
+            first components of unrotated and isotropic position vectors
+        y : :class:`numpy.ndarray` or None
+            analog to x
+        z : :class:`numpy.ndarray` or None
+            analog to x
+        pos : :class:`tuple` of :class:`numpy.ndarray`
+            the normalized position tuple
+        mesh_type_gen : :class:`str`
+            'structured' / 'unstructured' for the generator
+        mesh_type_changed : :class:`bool`
+            State if the mesh_type was changed.
+        axis_lens : :class:`tuple` or :any:`None`
+            axis lengths of the structured mesh if mesh type was changed.
+        """
+        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
+        pos = xyz2pos(x, y, z)
+        mesh_type_gen = mesh_type
+        # format the positional arguments of the mesh
+        check_mesh(self.model.dim, x, y, z, mesh_type)
+        mesh_type_changed = False
+        axis_lens = None
+        if (
+            self.model.do_rotation or make_unstruct
+        ) and mesh_type == "structured":
+            mesh_type_changed = True
+            mesh_type_gen = "unstructured"
+            x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
+                self.model.dim, x, y, z
+            )
+        if self.model.do_rotation:
+            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
+        if not self.model.is_isotropic:
+            y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
+        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
 
     def _to_vtk_helper(
         self, filename=None, field_select="field", fieldname="field"
@@ -544,6 +605,15 @@ class Field(Mesh):
             )
 
         return r
+
+    @property
+    def mean(self):
+        """:class:`float`: The mean of the field."""
+        return self._mean
+
+    @mean.setter
+    def mean(self, mean):
+        self._mean = float(mean)
 
     @property
     def model(self):
