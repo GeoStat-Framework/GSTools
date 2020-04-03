@@ -288,7 +288,6 @@ class Field(Mesh):
     ) -> None:
         # initialize attributes
         super().__init__(
-            self,
             pos=pos,
             name=name,
             values=values,

@@ -82,7 +82,7 @@ class SRF(Field):
         generator="RandMeth",
         **generator_kwargs
     ):
-        super().__init__(model, mean)
+        super().__init__(model, mean=mean)
         # initialize private attributes
         self._generator = None
         self._upscaling = None
