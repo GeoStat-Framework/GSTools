@@ -1,6 +1,6 @@
 """
-discrete fields
--------------
+Discrete fields
+---------------
 
 Here we transform a field to a discrete field with values.
 If we do not give thresholds, the pairwise means of the given
