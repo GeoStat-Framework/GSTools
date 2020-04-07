@@ -13,7 +13,6 @@ The following classes are provided
 # pylint: disable=C0103
 
 from functools import partial
-from typing import List, Dict, Tuple
 
 import numpy as np
 
@@ -84,13 +83,8 @@ class Mesh:
     """
 
     def __init__(
-        self,
-        pos=None,
-        name: str = "field",
-        values: np.ndarray = None,
-        *,
-        mesh_type: str = "unstructured",
-    ) -> None:
+        self, pos=None, name="field", values=None, *, mesh_type="unstructured",
+    ):
         # mesh_type needs a special setter, therefore, `set_field_data` is not
         # used here
         self.mesh_type = mesh_type
@@ -100,9 +94,9 @@ class Mesh:
 
         # data stored at each pos/ point, the "fields"
         if values is not None:
-            self.point_data: Dict[str, np.ndarray] = {name: values}
+            self.point_data = {name: values}
         else:
-            self.point_data: Dict[str, np.ndarray] = {}
+            self.point_data = {}
 
         # data valid for the global field
         self.field_data = {}
@@ -111,7 +105,7 @@ class Mesh:
 
         self.field_data["mesh_type"] = mesh_type
 
-    def set_field_data(self, name: str, value) -> None:
+    def set_field_data(self, name, value):
         """Add an attribute to this instance and add it the `field_data`
 
         This helper method is used to create attributes for easy access
@@ -122,12 +116,8 @@ class Mesh:
         self.field_data[name] = value
 
     def add_field(
-        self,
-        values: np.ndarray,
-        name: str = "field",
-        *,
-        is_default_field: bool = False,
-    ) -> None:
+        self, values, name="field", *, is_default_field=False,
+    ):
         """Add a field (point data) to the mesh
 
         .. note::
@@ -155,20 +145,20 @@ class Mesh:
         if len(self.point_data) == 1 or is_default_field:
             self.set_field_data("default_field", name)
 
-    def __getitem__(self, key: str) -> np.ndarray:
+    def __getitem__(self, key):
         """:any:`numpy.ndarray`: The values of the field."""
         return self.point_data[key]
 
-    def __setitem__(self, key: str, value):
+    def __setitem__(self, key, value):
         self.point_data[key] = value
 
     @property
-    def pos(self) -> Tuple[np.ndarray]:
+    def pos(self):
         """:any:`numpy.ndarray`: The pos. on which the field is defined."""
         return self._pos
 
     @pos.setter
-    def pos(self, value: Tuple[np.ndarray]):
+    def pos(self, value):
         """
         Warning: setting new positions deletes all previously stored fields.
         """
@@ -176,17 +166,17 @@ class Mesh:
         self._pos = value
 
     @property
-    def field(self) -> np.ndarray:
+    def field(self):
         """:class:`numpy.ndarray`: The point data of the default field."""
         return self.point_data[self.default_field]
 
     @field.setter
-    def field(self, values: np.ndarray):
+    def field(self, values):
         self._check_point_data(values)
         self.point_data[self.default_field] = values
 
     @property
-    def value_type(self, field="field") -> str:
+    def value_type(self, field="field"):
         """:any:`str`: The value type of the default field."""
         if field in self.point_data:
             r = value_type(self.mesh_type, self.point_data[field].shape)
@@ -195,12 +185,12 @@ class Mesh:
         return r
 
     @property
-    def mesh_type(self) -> str:
+    def mesh_type(self):
         """:any:`str`: The mesh type of the fields."""
         return self._mesh_type
 
     @mesh_type.setter
-    def mesh_type(self, value: str):
+    def mesh_type(self, value):
         """
         Warning: setting a new mesh type deletes all previously stored fields.
         """
@@ -208,11 +198,11 @@ class Mesh:
         self.point_data = {}
         self._mesh_type = value
 
-    def _check_mesh_type(self, mesh_type: str) -> None:
+    def _check_mesh_type(self, mesh_type):
         if mesh_type != "unstructured" and mesh_type != "structured":
             raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
 
-    def _check_point_data(self, values: np.ndarray):
+    def _check_point_data(self, values):
         """Compare field shape to pos shape.
 
         Parameters
@@ -281,17 +271,14 @@ class Field(Mesh):
         model,
         *,
         pos=None,
-        name: str = "field",
-        values: np.ndarray = None,
-        mesh_type: str = "unstructured",
-        mean: float = 0.0,
-    ) -> None:
+        name="field",
+        values=None,
+        mesh_type="unstructured",
+        mean=0.0,
+    ):
         # initialize attributes
         super().__init__(
-            pos=pos,
-            name=name,
-            values=values,
-            mesh_type=mesh_type
+            pos=pos, name=name, values=values, mesh_type=mesh_type
         )
         # initialize private attributes
         self._model = None
