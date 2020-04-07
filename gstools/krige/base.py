@@ -69,7 +69,7 @@ class Krige(Field):
         drift_functions=None,
         trend_function=None,
     ):
-        super().__init__(model, mean)
+        super().__init__(model, mean=mean)
         self.krige_var = None
         # initialize private attributes
         self._unbiased = True
