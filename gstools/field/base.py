@@ -83,7 +83,7 @@ class Mesh:
     """
 
     def __init__(
-        self, pos=None, name="field", values=None, *, mesh_type="unstructured",
+        self, pos=None, name="field", values=None, mesh_type="unstructured",
     ):
         # mesh_type needs a special setter, therefore, `set_field_data` is not
         # used here
@@ -116,7 +116,7 @@ class Mesh:
         self.field_data[name] = value
 
     def add_field(
-        self, values, name="field", *, is_default_field=False,
+        self, values, name="field", is_default_field=False,
     ):
         """Add a field (point data) to the mesh
 
