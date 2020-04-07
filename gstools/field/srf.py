@@ -98,27 +98,24 @@ class SRF(Field):
         self.krige_var = None
         self.set_generator(generator, **generator_kwargs)
         self.upscaling = upscaling
+        if self._value_type is None:
+            raise ValueError(
+                "Unknown field value type, "
+                + "specify 'scalar' or 'vector' before calling SRF."
+            )
 
     def __call__(
-        self,
-        pos,
-        name="field",
-        seed=np.nan,
-        point_volumes=0.0,
-        mesh_type="unstructured",
+        self, pos, seed=np.nan, point_volumes=0.0, mesh_type="unstructured"
     ):
         """Generate the spatial random field.
+
+        The field is saved as `self.field` and is also returned.
 
         Parameters
         ----------
         pos : :class:`list`
             the position tuple, containing main direction and transversal
             directions
-        name : :class:`str`, optional
-            the name of the dictionary key, in which the values will be saved.
-            If this method is called multiple times, the name determines, if
-            the field is overwritten or if it is added to the values dict.
-            Default: "field"
         seed : :class:`int`, optional
             seed for RNG for reseting. Default: keep seed from generator
         point_volumes : :class:`float` or :class:`numpy.ndarray`
@@ -135,42 +132,20 @@ class SRF(Field):
         field : :class:`numpy.ndarray`
             the SRF
         """
-        # internal conversation
-        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-        mean_temp = self.mean
-        self.pos = xyz2pos(x, y, z)
         self.mesh_type = mesh_type
-        self.mean = mean_temp
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
-        # format the positional arguments of the mesh
-        check_mesh(self.model.dim, x, y, z, mesh_type)
-        mesh_type_changed = False
-        if self.model.do_rotation:
-            if mesh_type == "structured":
-                mesh_type_changed = True
-                mesh_type_old = mesh_type
-                mesh_type = "unstructured"
-                x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                    self.model.dim, x, y, z
-                )
-            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
-        y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-
+        # internal conversation
+        x, y, z, self.pos, mt_gen, mt_changed, axis_lens = self._pre_pos(
+            pos, mesh_type
+        )
         # generate the field
-        self.add_field(
-                "raw",
-                self.generator.__call__(x, y, z, mesh_type),
-                mean=self.mean
-            )
-
+        self.raw_field = self.generator.__call__(x, y, z, mt_gen)
         # reshape field if we got an unstructured mesh
-        if mesh_type_changed:
-            mesh_type = mesh_type_old
-            self["raw"] = reshape_field_from_unstruct_to_struct(
-                self.model.dim, self["raw"], axis_lens
+        if mt_changed:
+            self.raw_field = reshape_field_from_unstruct_to_struct(
+                self.model.dim, self.raw_field, axis_lens
             )
-
         # apply given conditions to the field
         if self.condition:
             (
@@ -181,23 +156,21 @@ class SRF(Field):
                 info,
             ) = self.cond_func(self)
             # store everything in the class
-            self.add_field(name, cond_field, default_field=True)
-            self.add_field("krige", krige_field)
-            self.add_field("error", err_field)
-            self.get_data("krige").krige_var = krigevar
-            if "mean" in info:  # ordinary kriging estimates mean
-                self.get_data("cond").mean = info["mean"]
+            self.field = cond_field
+            self.krige_field = krige_field
+            self.err_field = err_field
+            self.krige_var = krigevar
+            if "mean" in info:  # ordinary krging estimates mean
+                self.mean = info["mean"]
         else:
-            self.add_field(name, self["raw"] + self.mean)
-
+            self.field = self.raw_field + self.mean
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
-            self.values -= self.mean
-            self.values *= np.sqrt(scaled_var / self.model.sill)
-            self.values += self.mean
-
-        return self.values
+            self.field -= self.mean
+            self.field *= np.sqrt(scaled_var / self.model.sill)
+            self.field += self.mean
+        return self.field
 
     def set_condition(
         self, cond_pos=None, cond_val=None, krige_type="ordinary"
