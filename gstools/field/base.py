@@ -269,7 +269,6 @@ class Field(Mesh):
     def __init__(
         self,
         model,
-        *,
         pos=None,
         name="field",
         values=None,
