@@ -51,7 +51,7 @@ def _vtk_structured_helper(pos, fields):
         z = np.array([0])
     # need fortran order in VTK
     for field in fields:
-        fields[field] = fields[field].values.reshape(-1, order="F")
+        fields[field] = fields[field].reshape(-1, order="F")
         if len(fields[field]) != len(x) * len(y) * len(z):
             raise ValueError(
                 "gstools.vtk_export_structured: "
@@ -119,7 +119,7 @@ def _vtk_unstructured_helper(pos, fields):
     if z is None:
         z = np.zeros_like(x)
     for field in fields:
-        fields[field] = fields[field].values.reshape(-1)
+        fields[field] = fields[field].reshape(-1)
         if (
             len(fields[field]) != len(x)
             or len(fields[field]) != len(y)
