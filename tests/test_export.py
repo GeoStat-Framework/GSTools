@@ -12,7 +12,6 @@ from gstools.random import MasterRNG
 HAS_PYVISTA = False
 try:
     import pyvista as pv
-
     HAS_PYVISTA = True
 except ImportError:
     pass

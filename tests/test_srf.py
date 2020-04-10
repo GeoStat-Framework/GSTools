@@ -9,6 +9,13 @@ import numpy as np
 from gstools import SRF, Gaussian
 from gstools import transform as tf
 
+HAS_PYVISTA = False
+try:
+    import pyvista as pv
+    HAS_PYVISTA = True
+except ImportError:
+    pass
+
 
 class TestSRF(unittest.TestCase):
     def setUp(self):
@@ -229,6 +236,23 @@ class TestSRF(unittest.TestCase):
         field2 = srf.structured((self.x_tuple, self.y_tuple), seed=self.seed)
         self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
+
+
+    @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed")
+    def test_mesh_pyvista(self):
+        """Test the `.mesh` call with various PyVista meshes."""
+        # Create model
+        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        # Get the field the normal way for comparison
+        field = srf((self.x_tuple, self.y_tuple, self.z_tuple), seed=self.seed)
+        # Create mesh space with PyVista
+        pv_mesh = pv.PolyData(np.c_[self.x_tuple, self.y_tuple, self.z_tuple])
+        # Run the helper
+        _ = srf.mesh(pv_mesh, seed=self.seed, points="centroids")
+        self.assertTrue(np.allclose(field, pv_mesh["field"]))
+        # points="centroids"
+        _ = srf.mesh(pv_mesh, seed=self.seed, points="points")
+        self.assertTrue(np.allclose(field, pv_mesh["field"]))
 
     def test_transform(self):
         self.cov_model.dim = 2
