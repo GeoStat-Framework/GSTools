@@ -80,9 +80,9 @@ def discrete(fld, values, thresholds="arithmetic"):
     fld : :any:`Field`
         Spatial Random Field class containing a generated field.
         Field will be transformed inplace.
-    values : :any:`np.ndarray`
+    values : :any:`numpy.ndarray`
         The discrete values the field will take
-    thresholds : :class:`str` or :any:`np.ndarray`, optional
+    thresholds : :class:`str` or :any:`numpy.ndarray`, optional
         the thresholds, where the value classes are separated
         possible values are:
         * "arithmetic": the mean of the 2 neighbouring values

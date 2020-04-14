@@ -163,7 +163,7 @@ def summate_incompr_unstruct(
 
     cdef double[:,:] summed_modes = np.zeros((dim, X_len), dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(N):
             k_2 = abs_square(cov_samples[:,j])
             phase = 0.
@@ -210,7 +210,7 @@ def summate_incompr_struct_2d(
 
     cdef double[:,:,:] summed_modes = np.zeros((dim, X_len, Y_len), dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(Y_len):
             for k in range(N):
                 k_2 = abs_square(cov_samples[:,k])
@@ -245,7 +245,7 @@ def summate_incompr_struct_3d(
 
     cdef double[:,:,:,:] summed_modes = np.zeros((dim, X_len, Y_len, Z_len), dtype=DTYPE)
 
-    for i in prange(X_len, nogil=True):
+    for i in range(X_len):
         for j in range(Y_len):
             for k in range(Z_len):
                 for l in range(N):

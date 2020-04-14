@@ -21,7 +21,7 @@ __all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
 
 
 def _set_estimator(estimator):
-    """Translate the verbose Python estimator identifier to single char"""
+    """Translate the verbose Python estimator identifier to single char."""
     if estimator.lower() == "matheron":
         cython_estimator = "m"
     elif estimator.lower() == "cressie":
@@ -50,16 +50,18 @@ def vario_estimate_unstructured(
        \gamma(r_k) = \frac{1}{2 N(r_k)} \sum_{i=1}^{N(r_k)} (z(\mathbf x_i) -
        z(\mathbf x_i'))^2 \; ,
 
-    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
+    being the bins.
 
     Or if the estimator "cressie" was chosen:
 
     .. math::
-       \gamma(r_k) = \frac{\left(\frac{1}{N(r_k)} \sum_{i=1}^{N(r_k)}
+       \gamma(r_k) = \frac{\frac{1}{2}\left(\frac{1}{N(r_k)}\sum_{i=1}^{N(r_k)}
        \left|z(\mathbf x_i) - z(\mathbf x_i')\right|^{0.5}\right)^4}
        {0.457 + 0.494 / N(r_k) + 0.045 / N^2(r_k)} \; ,
 
-    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
+    being the bins.
     The Cressie estimator is more robust to outliers.
 
     Notes
@@ -133,16 +135,18 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
        \gamma(r_k) = \frac{1}{2 N(r_k)} \sum_{i=1}^{N(r_k)} (z(\mathbf x_i) -
        z(\mathbf x_i'))^2 \; ,
 
-    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
+    being the bins.
 
     Or if the estimator "cressie" was chosen:
 
     .. math::
-       \gamma(r_k) = \frac{\left(\frac{1}{N(r_k)} \sum_{i=1}^{N(r_k)}
+       \gamma(r_k) = \frac{\frac{1}{2}\left(\frac{1}{N(r_k)}\sum_{i=1}^{N(r_k)}
        \left|z(\mathbf x_i) - z(\mathbf x_i')\right|^{0.5}\right)^4}
        {0.457 + 0.494 / N(r_k) + 0.045 / N^2(r_k)} \; ,
 
-    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}` being the bins.
+    with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
+    being the bins.
     The Cressie estimator is more robust to outliers.
 
     Warnings
