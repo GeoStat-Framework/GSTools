@@ -2,6 +2,14 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.2.1] - Volatile Violet - 2020-04-14
+
+### Bugfixes
+- `ModuleNotFoundError` is not present in py35
+- Fixing Cressie-Bug #76
+- Adding analytical formula for integral scales of rational and stable model
+- remove prange from IncomprRandMeth summators to prevent errors on Win and macOS
+
 
 ## [1.2.0] - Volatile Violet - 2020-03-20
 
@@ -114,7 +122,8 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.0.1...v1.1.0
