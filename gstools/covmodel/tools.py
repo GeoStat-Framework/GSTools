@@ -10,17 +10,27 @@ The following classes and functions are provided
    InitSubclassMeta
    rad_fac
    set_len_anis
+   set_angles
+   no_of_angles
+   rot_planes
    check_bounds
-   inc_gamma
-   exp_int
-   inc_beta
+   check_arg_in_bounds
 """
 
 # pylint: disable=C0103
 import numpy as np
 from scipy import special as sps
 
-__all__ = ["InitSubclassMeta", "rad_fac", "set_len_anis", "check_bounds"]
+__all__ = [
+    "InitSubclassMeta",
+    "rad_fac",
+    "set_len_anis",
+    "set_angles",
+    "no_of_angles",
+    "rot_planes",
+    "check_bounds",
+    "check_arg_in_bounds",
+]
 
 
 # __init_subclass__ hack ######################################################
@@ -135,7 +145,7 @@ def set_len_anis(dim, len_scale, anis):
                 constant_values=1.0,
             )
     else:
-        # fill up length-scales with main len_scale, such that len()==dim
+        # fill up length-scales with the latter len_scale, such that len()==dim
         if len(ls_tmp) < dim:
             ls_tmp = np.pad(ls_tmp, (0, dim - len(ls_tmp)), "edge")
         # if multiple length-scales are given, calculate the anisotropies
@@ -157,39 +167,62 @@ def set_angles(dim, angles):
     Parameters
     ----------
     dim : :class:`int`
-        spatial dimension (anything different from 1 and 2 is interpreted as 3)
-    angles : :class:`float`/list
+        spatial dimension
+    angles : :class:`float` or :class:`list`
         the angles of the SRF
 
     Returns
     -------
     angles : :class:`float`
         the angles fitting to the dimension
+
+    Notes
+    -----
+        If too few angles are given, they are filled up with `0`.
     """
-    if dim == 1:
-        # no rotation in 1D
-        out_angles = np.empty(0)
-    elif dim == 2:
-        # one rotation axis in 2D
-        out_angles = np.atleast_1d(angles)[:1]
-        # fill up the rotation angle array with zeros
-        out_angles = np.pad(
-            out_angles,
-            (0, 1 - len(out_angles)),
-            "constant",
-            constant_values=0.0,
-        )
-    else:
-        # three rotation axis in 3D
-        out_angles = np.atleast_1d(angles)[:3]
-        # fill up the rotation angle array with zeros
-        out_angles = np.pad(
-            out_angles,
-            (0, 3 - len(out_angles)),
-            "constant",
-            constant_values=0.0,
-        )
+    out_angles = np.atleast_1d(angles)[: no_of_angles(dim)]
+    # fill up the rotation angle array with zeros
+    out_angles = np.pad(
+        out_angles,
+        (0, no_of_angles(dim) - len(out_angles)),
+        "constant",
+        constant_values=0.0,
+    )
     return out_angles
+
+
+def no_of_angles(dim):
+    """
+    Calculate number of rotation angles depending on the dimension.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+
+    Returns
+    -------
+    :class:`int`
+        Number of angles.
+    """
+    return (dim * (dim - 1)) // 2
+
+
+def rot_planes(dim):
+    """
+    Get all 2D sub-planes for rotation.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+
+    Returns
+    -------
+    :class:`list`
+        All 2D sub-planes for rotation.
+    """
+    return [(i, j) for i in range(dim - 1) for j in range(i + 1, dim)]
 
 
 def check_bounds(bounds):
