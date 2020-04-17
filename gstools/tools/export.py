@@ -16,6 +16,7 @@ The following functions are provided
 """
 # pylint: disable=C0103, E1101
 
+import warnings
 import numpy as np
 from pyevtk.hl import gridToVTK, pointsToVTK
 
@@ -39,7 +40,7 @@ __all__ = [
 # export routines #############################################################
 
 
-def _vtk_structured_helper(pos, fields):
+def _vtk_structured_reshape(pos, fields):
     """An internal helper to extract what is needed for the vtk rectilinear grid
     """
     if not isinstance(fields, dict):
@@ -79,7 +80,11 @@ def to_vtk_structured(pos, fields):  # pragma: no cover
         A PyVista rectilinear grid of the structured field data. Data arrays
         live on the point data of this PyVista dataset.
     """
-    x, y, z, fields = _vtk_structured_helper(pos=pos, fields=fields)
+    warnings.warn(
+        "Export routines are deprecated, use Mesh export methods instead",
+        DeprecationWarning
+    )
+    x, y, z, fields = _vtk_structured_reshape(pos=pos, fields=fields)
     try:
         import pyvista as pv
 
@@ -106,11 +111,15 @@ def vtk_export_structured(filename, pos, fields):  # pragma: no cover
         Either a single numpy array as returned by SRF,
         or a dictionary of fields with theirs names as keys.
     """
-    x, y, z, fields = _vtk_structured_helper(pos=pos, fields=fields)
+    warnings.warn(
+        "Export routines are deprecated, use Mesh export methods instead",
+        DeprecationWarning
+    )
+    x, y, z, fields = _vtk_structured_reshape(pos=pos, fields=fields)
     return gridToVTK(filename, x, y, z, pointData=fields)
 
 
-def _vtk_unstructured_helper(pos, fields):
+def _vtk_unstructured_reshape(pos, fields):
     if not isinstance(fields, dict):
         fields = {"field": fields}
     x, y, z = pos2xyz(pos)
@@ -152,7 +161,11 @@ def to_vtk_unstructured(pos, fields):  # pragma: no cover
         live on the point data of this PyVista dataset. This is essentially
         a point cloud with no topology.
     """
-    x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
+    warnings.warn(
+        "Export routines are deprecated, use Mesh export methods instead",
+        DeprecationWarning
+    )
+    x, y, z, fields = _vtk_unstructured_reshape(pos=pos, fields=fields)
     try:
         import pyvista as pv
 
@@ -179,7 +192,11 @@ def vtk_export_unstructured(filename, pos, fields):  # pragma: no cover
         Either a single numpy array as returned by SRF,
         or a dictionary of fields with theirs names as keys.
     """
-    x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
+    warnings.warn(
+        "Export routines are deprecated, use Mesh export methods instead",
+        DeprecationWarning
+    )
+    x, y, z, fields = _vtk_unstructured_reshape(pos=pos, fields=fields)
     return pointsToVTK(filename, x, y, z, data=fields)
 
 
