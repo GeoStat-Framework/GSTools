@@ -198,25 +198,24 @@ class Mesh:
         self.point_data = {}
         self._mesh_type = value
 
-    def _to_vtk_helper(
-        self, filename=None, field_select="field", fieldname="field"
+    def _vtk_naming_helper(
+        self, field_select="field", fieldname="field"
     ):  # pragma: no cover
-        """Create a VTK/PyVista grid of the field or save it as a VTK file.
-
-        This is an internal helper that will handle saving or creating objects
+        """Prepare the field names for export.
 
         Parameters
         ----------
-        filename : :class:`str`
-            Filename of the file to be saved, including the path. Note that an
-            ending (.vtr or .vtu) will be added to the name. If ``None`` is
-            passed, a PyVista dataset of the appropriate type will be returned.
         field_select : :class:`str`, optional
             Field that should be stored. Can be:
             "field", "raw_field", "krige_field", "err_field" or "krige_var".
             Default: "field"
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
+
+        Returns
+        -------
+        fields : :class:`dict`
+            a dictionary containing the fields to be exported
         """
         if self.value_type is None:
             raise ValueError(
@@ -235,12 +234,7 @@ class Mesh:
                 fields = {}
                 for i in range(self.model.dim):
                     fields[fieldname + suf[i]] = field[i]
-                if filename is None:
-                    return to_vtk(self.pos, fields, self.mesh_type)
-                else:
-                    return vtk_export(
-                        filename, self.pos, fields, self.mesh_type
-                    )
+                return fields
         elif self.value_type == "scalar":
             if hasattr(self, field_select):
                 field = getattr(self, field_select)
@@ -249,12 +243,7 @@ class Mesh:
             if not (
                 self.pos is None or field is None or self.mesh_type is None
             ):
-                if filename is None:
-                    return to_vtk(self.pos, {fieldname: field}, self.mesh_type)
-                else:
-                    return vtk_export(
-                        filename, self.pos, {fieldname: field}, self.mesh_type
-                    )
+                return {fieldname: field}
             else:
                 print(
                     "Field.to_vtk: No "
@@ -280,9 +269,11 @@ class Mesh:
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        grid = self._to_vtk_helper(
-            filename=None, field_select=field_select, fieldname=fieldname
+        field_names = self._vtk_naming_helper(
+            field_select=field_select, fieldname=fieldname
         )
+
+        grid = to_vtk(self.pos, field_names, self.mesh_type)
         return grid
 
     def vtk_export(
@@ -303,10 +294,11 @@ class Mesh:
             Name of the field in the VTK file. Default: "field"
         """
         if not isinstance(filename, str):
-            raise TypeError("Please use a string filename.")
-        return self._to_vtk_helper(
-            filename=filename, field_select=field_select, fieldname=fieldname
+            raise TypeError("Please use a string as a filename.")
+        field_names = self._vtk_naming_helper(
+            field_select=field_select, fieldname=fieldname
         )
+        return vtk_export(filename, self.pos, field_names, self.mesh_type)
 
     def _check_mesh_type(self, mesh_type):
         if mesh_type != "unstructured" and mesh_type != "structured":
