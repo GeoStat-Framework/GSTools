@@ -198,6 +198,116 @@ class Mesh:
         self.point_data = {}
         self._mesh_type = value
 
+    def _to_vtk_helper(
+        self, filename=None, field_select="field", fieldname="field"
+    ):  # pragma: no cover
+        """Create a VTK/PyVista grid of the field or save it as a VTK file.
+
+        This is an internal helper that will handle saving or creating objects
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtr or .vtu) will be added to the name. If ``None`` is
+            passed, a PyVista dataset of the appropriate type will be returned.
+        field_select : :class:`str`, optional
+            Field that should be stored. Can be:
+            "field", "raw_field", "krige_field", "err_field" or "krige_var".
+            Default: "field"
+        fieldname : :class:`str`, optional
+            Name of the field in the VTK file. Default: "field"
+        """
+        if self.value_type is None:
+            raise ValueError(
+                "Field value type not set! "
+                + "Specify 'scalar' or 'vector' before plotting."
+            )
+        elif self.value_type == "vector":
+            if hasattr(self, field_select):
+                field = getattr(self, field_select)
+            else:
+                field = None
+            if not (
+                self.pos is None or field is None or self.mesh_type is None
+            ):
+                suf = ["_X", "_Y", "_Z"]
+                fields = {}
+                for i in range(self.model.dim):
+                    fields[fieldname + suf[i]] = field[i]
+                if filename is None:
+                    return to_vtk(self.pos, fields, self.mesh_type)
+                else:
+                    return vtk_export(
+                        filename, self.pos, fields, self.mesh_type
+                    )
+        elif self.value_type == "scalar":
+            if hasattr(self, field_select):
+                field = getattr(self, field_select)
+            else:
+                field = None
+            if not (
+                self.pos is None or field is None or self.mesh_type is None
+            ):
+                if filename is None:
+                    return to_vtk(self.pos, {fieldname: field}, self.mesh_type)
+                else:
+                    return vtk_export(
+                        filename, self.pos, {fieldname: field}, self.mesh_type
+                    )
+            else:
+                print(
+                    "Field.to_vtk: No "
+                    + field_select
+                    + " stored in the class."
+                )
+        else:
+            raise ValueError(
+                "Unknown field value type: {}".format(self.value_type)
+            )
+
+    def to_pyvista(
+        self, field_select="field", fieldname="field"
+    ):  # pragma: no cover
+        """Create a VTK/PyVista grid of the stored field.
+
+        Parameters
+        ----------
+        field_select : :class:`str`, optional
+            Field that should be stored. Can be:
+            "field", "raw_field", "krige_field", "err_field" or "krige_var".
+            Default: "field"
+        fieldname : :class:`str`, optional
+            Name of the field in the VTK file. Default: "field"
+        """
+        grid = self._to_vtk_helper(
+            filename=None, field_select=field_select, fieldname=fieldname
+        )
+        return grid
+
+    def vtk_export(
+        self, filename, field_select="field", fieldname="field"
+    ):  # pragma: no cover
+        """Export the stored field to vtk.
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtr or .vtu) will be added to the name.
+        field_select : :class:`str`, optional
+            Field that should be stored. Can be:
+            "field", "raw_field", "krige_field", "err_field" or "krige_var".
+            Default: "field"
+        fieldname : :class:`str`, optional
+            Name of the field in the VTK file. Default: "field"
+        """
+        if not isinstance(filename, str):
+            raise TypeError("Please use a string filename.")
+        return self._to_vtk_helper(
+            filename=filename, field_select=field_select, fieldname=fieldname
+        )
+
     def _check_mesh_type(self, mesh_type):
         if mesh_type != "unstructured" and mesh_type != "structured":
             raise ValueError("Unknown 'mesh_type': {}".format(mesh_type))
@@ -437,116 +547,6 @@ class Field(Mesh):
         if not self.model.is_isotropic:
             y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
         return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
-
-    def _to_vtk_helper(
-        self, filename=None, field_select="field", fieldname="field"
-    ):  # pragma: no cover
-        """Create a VTK/PyVista grid of the field or save it as a VTK file.
-
-        This is an internal helper that will handle saving or creating objects
-
-        Parameters
-        ----------
-        filename : :class:`str`
-            Filename of the file to be saved, including the path. Note that an
-            ending (.vtr or .vtu) will be added to the name. If ``None`` is
-            passed, a PyVista dataset of the appropriate type will be returned.
-        field_select : :class:`str`, optional
-            Field that should be stored. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
-            Default: "field"
-        fieldname : :class:`str`, optional
-            Name of the field in the VTK file. Default: "field"
-        """
-        if self.value_type is None:
-            raise ValueError(
-                "Field value type not set! "
-                + "Specify 'scalar' or 'vector' before plotting."
-            )
-        elif self.value_type == "vector":
-            if hasattr(self, field_select):
-                field = getattr(self, field_select)
-            else:
-                field = None
-            if not (
-                self.pos is None or field is None or self.mesh_type is None
-            ):
-                suf = ["_X", "_Y", "_Z"]
-                fields = {}
-                for i in range(self.model.dim):
-                    fields[fieldname + suf[i]] = field[i]
-                if filename is None:
-                    return to_vtk(self.pos, fields, self.mesh_type)
-                else:
-                    return vtk_export(
-                        filename, self.pos, fields, self.mesh_type
-                    )
-        elif self.value_type == "scalar":
-            if hasattr(self, field_select):
-                field = getattr(self, field_select)
-            else:
-                field = None
-            if not (
-                self.pos is None or field is None or self.mesh_type is None
-            ):
-                if filename is None:
-                    return to_vtk(self.pos, {fieldname: field}, self.mesh_type)
-                else:
-                    return vtk_export(
-                        filename, self.pos, {fieldname: field}, self.mesh_type
-                    )
-            else:
-                print(
-                    "Field.to_vtk: No "
-                    + field_select
-                    + " stored in the class."
-                )
-        else:
-            raise ValueError(
-                "Unknown field value type: {}".format(self.value_type)
-            )
-
-    def to_pyvista(
-        self, field_select="field", fieldname="field"
-    ):  # pragma: no cover
-        """Create a VTK/PyVista grid of the stored field.
-
-        Parameters
-        ----------
-        field_select : :class:`str`, optional
-            Field that should be stored. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
-            Default: "field"
-        fieldname : :class:`str`, optional
-            Name of the field in the VTK file. Default: "field"
-        """
-        grid = self._to_vtk_helper(
-            filename=None, field_select=field_select, fieldname=fieldname
-        )
-        return grid
-
-    def vtk_export(
-        self, filename, field_select="field", fieldname="field"
-    ):  # pragma: no cover
-        """Export the stored field to vtk.
-
-        Parameters
-        ----------
-        filename : :class:`str`
-            Filename of the file to be saved, including the path. Note that an
-            ending (.vtr or .vtu) will be added to the name.
-        field_select : :class:`str`, optional
-            Field that should be stored. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
-            Default: "field"
-        fieldname : :class:`str`, optional
-            Name of the field in the VTK file. Default: "field"
-        """
-        if not isinstance(filename, str):
-            raise TypeError("Please use a string filename.")
-        return self._to_vtk_helper(
-            filename=filename, field_select=field_select, fieldname=fieldname
-        )
 
     def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
         """
