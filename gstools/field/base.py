@@ -16,8 +16,9 @@ from functools import partial
 
 import numpy as np
 
+from pyevtk.hl import gridToVTK, pointsToVTK
+
 from gstools.covmodel.base import CovModel
-from gstools.tools.export import to_vtk, vtk_export
 from gstools.field.tools import (
     _get_select,
     check_mesh,
@@ -85,6 +86,8 @@ class Mesh:
     def __init__(
         self, pos=None, name="field", values=None, mesh_type="unstructured",
     ):
+        self._vtk_export_fct = self._vtk_export_unstructured
+        self._to_vtk_fct = self._to_vtk_unstructured
         # mesh_type needs a special setter, therefore, `set_field_data` is not
         # used here
         self.mesh_type = mesh_type
@@ -195,6 +198,12 @@ class Mesh:
         Warning: setting a new mesh type deletes all previously stored fields.
         """
         self._check_mesh_type(value)
+        if value == "structured":
+            self._vtk_export_fct = self._vtk_export_structured
+            self._to_vtk_fct = self._to_vtk_structured
+        else:
+            self._vtk_export_fct = self._vtk_export_unstructured
+            self._to_vtk_fct = self._to_vtk_unstructured
         self.point_data = {}
         self._mesh_type = value
 
@@ -273,7 +282,7 @@ class Mesh:
             field_select=field_select, fieldname=fieldname
         )
 
-        grid = to_vtk(self.pos, field_names, self.mesh_type)
+        grid = self._to_vtk_fct(field_names)
         return grid
 
     def vtk_export(
@@ -298,7 +307,136 @@ class Mesh:
         field_names = self._vtk_naming_helper(
             field_select=field_select, fieldname=fieldname
         )
-        return vtk_export(filename, self.pos, field_names, self.mesh_type)
+        return self._vtk_export_fct(filename, field_names)
+
+    def _vtk_export_structured(self, filename, fields):
+        """Export a field to vtk structured rectilinear grid file.
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtr) will be added to the name.
+        fields : :class:`dict` or :class:`numpy.ndarray`
+            Structured fields to be saved.
+            Either a single numpy array as returned by SRF,
+            or a dictionary of fields with theirs names as keys.
+        """
+        x, y, z, fields = self._vtk_structured_reshape(fields=fields)
+        return gridToVTK(filename, x, y, z, pointData=fields)
+
+    def _vtk_export_unstructured(self, filename, fields):
+        """Export a field to vtk unstructured grid file.
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path. Note that an
+            ending (.vtu) will be added to the name.
+        fields : :class:`dict` or :class:`numpy.ndarray`
+            Unstructured fields to be saved.
+            Either a single numpy array as returned by SRF,
+            or a dictionary of fields with theirs names as keys.
+        """
+        x, y, z, fields = self._vtk_unstructured_reshape(fields=fields)
+        return pointsToVTK(filename, x, y, z, data=fields)
+
+    def _to_vtk_structured(self, fields):  # pragma: no cover
+        """Create a vtk structured rectilinear grid from a field.
+
+        Parameters
+        ----------
+        pos : :class:`list`
+            the position tuple, containing main direction and transversal
+            directions
+        fields : :class:`dict` or :class:`numpy.ndarray`
+            Structured fields to be saved.
+            Either a single numpy array as returned by SRF,
+            or a dictionary of fields with theirs names as keys.
+
+        Returns
+        -------
+        :class:`pyvista.RectilinearGrid`
+            A PyVista rectilinear grid of the structured field data. Data arrays
+            live on the point data of this PyVista dataset.
+        """
+        x, y, z, fields = self._vtk_structured_reshape(fields=fields)
+        try:
+            import pyvista as pv
+
+            grid = pv.RectilinearGrid(x, y, z)
+            grid.point_arrays.update(fields)
+        except ImportError:
+            raise ImportError("Please install PyVista to create VTK datasets.")
+        return grid
+
+    def _to_vtk_unstructured(self, fields):
+        """Export a field to vtk structured rectilinear grid file.
+
+        Parameters
+        ----------
+        fields : :class:`dict` or :class:`numpy.ndarray`
+            Unstructured fields to be saved.
+            Either a single numpy array as returned by SRF,
+            or a dictionary of fields with theirs names as keys.
+
+        Returns
+        -------
+        :class:`pyvista.UnstructuredGrid`
+            A PyVista unstructured grid of the unstructured field data. Data arrays
+            live on the point data of this PyVista dataset. This is essentially
+            a point cloud with no topology.
+        """
+        x, y, z, fields = self._vtk_unstructured_reshape(fields=fields)
+        try:
+            import pyvista as pv
+
+            grid = pv.PolyData(np.c_[x, y, z]).cast_to_unstructured_grid()
+            grid.point_arrays.update(fields)
+        except ImportError:
+            raise ImportError("Please install PyVista to create VTK datasets.")
+        return grid
+
+    def _vtk_structured_reshape(self, fields):
+        """An internal helper to extract what is needed for the vtk rectilinear grid
+        """
+        if not isinstance(fields, dict):
+            fields = {"field": fields}
+        x, y, z = pos2xyz(self.pos)
+        if y is None:
+            y = np.array([0])
+        if z is None:
+            z = np.array([0])
+        # need fortran order in VTK
+        for field in fields:
+            fields[field] = fields[field].reshape(-1, order="F")
+            if len(fields[field]) != len(x) * len(y) * len(z):
+                raise ValueError(
+                    "gstools.vtk_export_structured: "
+                    "field shape doesn't match the given mesh"
+                )
+        return x, y, z, fields
+
+    def _vtk_unstructured_reshape(self, fields):
+        if not isinstance(fields, dict):
+            fields = {"field": fields}
+        x, y, z = pos2xyz(self.pos)
+        if y is None:
+            y = np.zeros_like(x)
+        if z is None:
+            z = np.zeros_like(x)
+        for field in fields:
+            fields[field] = fields[field].reshape(-1)
+            if (
+                len(fields[field]) != len(x)
+                or len(fields[field]) != len(y)
+                or len(fields[field]) != len(z)
+            ):
+                raise ValueError(
+                    "gstools.vtk_export_unstructured: "
+                    "field shape doesn't match the given mesh"
+                )
+        return x, y, z, fields
 
     def _check_mesh_type(self, mesh_type):
         if mesh_type != "unstructured" and mesh_type != "structured":
