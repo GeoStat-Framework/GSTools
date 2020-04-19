@@ -127,6 +127,28 @@ class TestCovModel(unittest.TestCase):
                 model = Model(dim=dim)
                 model.fit_variogram(self.gamma_x, self.gamma_y, nugget=False)
                 self.assertAlmostEqual(model.nugget, 0.0)
+                model = Model(dim=dim)
+                model.fit_variogram(self.gamma_x, self.gamma_y, sill=2)
+                self.assertAlmostEqual(model.nugget + model.var, 2.0)
+                model = Model(dim=dim)
+                model.fit_variogram(
+                    self.gamma_x, self.gamma_y, sill=2, nugget=False
+                )
+                self.assertAlmostEqual(model.var, 2.0)
+                model = Model(dim=dim)
+                model.fit_variogram(
+                    self.gamma_x, self.gamma_y, sill=2, nugget=1
+                )
+                self.assertAlmostEqual(model.var, 1)
+                model = Model(dim=dim)
+                ret = model.fit_variogram(
+                    self.gamma_x,
+                    self.gamma_y,
+                    loss="linear",
+                    return_r2=True,
+                    weights="inv",
+                )
+                self.assertEqual(len(ret), 3)
 
 
 if __name__ == "__main__":
