@@ -26,6 +26,7 @@ from gstools.covmodel.tools import (
     set_angles,
     check_bounds,
     check_arg_in_bounds,
+    default_arg_from_bounds,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -165,7 +166,7 @@ class CovModel(metaclass=InitSubclassMeta):
         self._opt_arg_bounds = {}
         bounds = self.default_arg_bounds()
         bounds.update(self.default_opt_arg_bounds())
-        self.set_arg_bounds(**bounds)
+        self.set_arg_bounds(check_args=False, **bounds)
 
         # prepare dim setting
         self._dim = None
@@ -797,11 +798,16 @@ class CovModel(metaclass=InitSubclassMeta):
         }
         return res
 
-    def set_arg_bounds(self, **kwargs):
+    def set_arg_bounds(self, check_args=True, **kwargs):
         r"""Set bounds for the parameters of the model.
 
         Parameters
         ----------
+        check_args : bool, optional
+            Whether to check if the arguments need to resetted to be in the
+            given bounds. In case, a propper default value will be determined
+            from the given bounds.
+            Default: True
         **kwargs
             Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
             and a list of 2 or 3 values as value:
@@ -812,22 +818,35 @@ class CovModel(metaclass=InitSubclassMeta):
             <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
             to define if the bounds are open ("o") or closed ("c").
         """
-        for opt in kwargs:
-            if opt in self.opt_arg:
-                if not check_bounds(kwargs[opt]):
-                    raise ValueError(
-                        "Given bounds for '"
-                        + opt
-                        + "' are not valid, got: "
-                        + str(kwargs[opt])
+        # if variance needs to be resetted, do this at last
+        var_bnds = []
+        for arg in kwargs:
+            if not check_bounds(kwargs[arg]):
+                raise ValueError(
+                    "Given bounds for '{0}' are not valid, got: {1}".format(
+                        arg, kwargs[arg]
                     )
-                self._opt_arg_bounds[opt] = kwargs[opt]
-            if opt == "var":
-                self.var_bounds = kwargs[opt]
-            if opt == "len_scale":
-                self.len_scale_bounds = kwargs[opt]
-            if opt == "nugget":
-                self.nugget_bounds = kwargs[opt]
+                )
+            if arg in self.opt_arg:
+                self._opt_arg_bounds[arg] = kwargs[arg]
+            elif arg == "var":
+                var_bnds = kwargs[arg]
+                continue
+            elif arg == "len_scale":
+                self.len_scale_bounds = kwargs[arg]
+            elif arg == "nugget":
+                self.nugget_bounds = kwargs[arg]
+            else:
+                raise ValueError(
+                    "set_arg_bounds: unknown argument '{}'".format(arg)
+                )
+            if check_args and check_arg_in_bounds(self, arg) > 0:
+                setattr(self, arg, default_arg_from_bounds(kwargs[arg]))
+        # set var last like allways
+        if var_bnds:
+            self.var_bounds = var_bnds
+            if check_args and check_arg_in_bounds(self, "var") > 0:
+                self.var = default_arg_from_bounds(var_bnds)
 
     def check_arg_bounds(self):
         """Check arguments to be within the given bounds."""
@@ -838,35 +857,19 @@ class CovModel(metaclass=InitSubclassMeta):
             error_case = check_arg_in_bounds(self, arg)
             if error_case == 1:
                 raise ValueError(
-                    str(arg)
-                    + " needs to be >= "
-                    + str(bnd[0])
-                    + ", got: "
-                    + str(val)
+                    "{0} needs to be >= {1}, got: {2}".format(arg, bnd[0], val)
                 )
             if error_case == 2:
                 raise ValueError(
-                    str(arg)
-                    + " needs to be > "
-                    + str(bnd[0])
-                    + ", got: "
-                    + str(val)
+                    "{0} needs to be > {1}, got: {2}".format(arg, bnd[0], val)
                 )
             if error_case == 3:
                 raise ValueError(
-                    str(arg)
-                    + " needs to be <= "
-                    + str(bnd[1])
-                    + ", got: "
-                    + str(val)
+                    "{0} needs to be <= {1}, got: {2}".format(arg, bnd[1], val)
                 )
             if error_case == 4:
                 raise ValueError(
-                    str(arg)
-                    + " needs to be < "
-                    + str(bnd[1])
-                    + ", got: "
-                    + str(val)
+                    "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
                 )
 
     ### bounds properties #####################################################

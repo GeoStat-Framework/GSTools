@@ -13,7 +13,7 @@ The following classes and functions are provided
 # pylint: disable=C0103
 import numpy as np
 from scipy.optimize import curve_fit
-from gstools.covmodel.tools import check_arg_in_bounds
+from gstools.covmodel.tools import check_arg_in_bounds, default_arg_from_bounds
 
 
 __all__ = ["fit_variogram"]
@@ -209,7 +209,7 @@ def fit_variogram(
     # select all parameters to be fitted
     para = {par: True for par in DEFAULT_PARA}
     para.update({opt: True for opt in model.opt_arg})
-    # deselect unwanted parameters
+    # now deselect unwanted parameters
     para.update(para_select)
 
     # check curve_fit kwargs
@@ -217,20 +217,6 @@ def fit_variogram(
         curve_fit_kwargs = {}
     curve_fit_kwargs["loss"] = loss
     curve_fit_kwargs["max_nfev"] = max_eval
-
-    # check init values
-    if init_guess == "default":
-        init_guess = {par: 1.0 for par in DEFAULT_PARA}
-        init_guess.update(model.default_opt_arg())
-    if init_guess == "current":
-        init_guess = {par: getattr(model, par) for par in DEFAULT_PARA}
-        init_guess.update({opt: getattr(model, opt) for opt in model.opt_arg})
-    # remove deselected parameters from inital guess list and check
-    for par, select in para.items():
-        if not select:
-            init_guess.pop(par, None)
-        elif par not in init_guess:
-            raise ValueError("fit: missing initial guess for " + par)
 
     # check method
     if method not in ["trf", "dogbox"]:
@@ -260,7 +246,7 @@ def fit_variogram(
                 nugget_tmp = sill - var_tmp
                 # punishment, if resulting nugget out of range for fixed sill
                 if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
-                    return np.inf
+                    return np.full_like(x, np.inf)
                 # nugget estimation deselected in this case
                 model.nugget = nugget_tmp
             para_skip += 1
@@ -290,12 +276,26 @@ def fit_variogram(
                 top_bounds.append(sill)
             else:
                 top_bounds.append(model.arg_bounds[par][1])
-            init_guess_list.append(init_guess[par])
+            init_guess_list.append(
+                _init_guess(
+                    bounds=model.arg_bounds[par],
+                    current=getattr(model, par),
+                    default=1.0,
+                    typ=init_guess,
+                )
+            )
     for opt in model.opt_arg:
         if para[opt]:
             low_bounds.append(model.arg_bounds[opt][0])
             top_bounds.append(model.arg_bounds[opt][1])
-            init_guess_list.append(init_guess[opt])
+            init_guess_list.append(
+                _init_guess(
+                    bounds=model.arg_bounds[opt],
+                    current=getattr(model, opt),
+                    default=model.default_opt_arg()[opt],
+                    typ=init_guess,
+                )
+            )
 
     # set the remaining kwargs for curve_fit
     curve_fit_kwargs["bounds"] = (low_bounds, top_bounds)
@@ -340,7 +340,17 @@ def fit_variogram(
     return fit_para, pcov
 
 
-def logistic_weights(p=0.1, mean=0.7):
+def _init_guess(bounds, current, default, typ):
+    if typ == "default":
+        if bounds[0] < default < bounds[1]:
+            return default
+        return default_arg_from_bounds(bounds)
+    elif typ == "current":
+        return current
+    raise ValueError("CovModel.fit: unkwon init_guess type: '{}'".format(typ))
+
+
+def logistic_weights(p=0.1, mean=0.7):  # pragma: nocover
     """
     Return a logistic weights function.
 

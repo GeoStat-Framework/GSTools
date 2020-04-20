@@ -15,6 +15,7 @@ The following classes and functions are provided
    rot_planes
    check_bounds
    check_arg_in_bounds
+   default_arg_from_bounds
 """
 
 # pylint: disable=C0103
@@ -30,6 +31,7 @@ __all__ = [
     "rot_planes",
     "check_bounds",
     "check_arg_in_bounds",
+    "default_arg_from_bounds",
 ]
 
 
@@ -274,3 +276,26 @@ def check_arg_in_bounds(model, arg, val=None):
         if val >= bnd[1]:
             error_case = 4
     return error_case
+
+
+def default_arg_from_bounds(bounds):
+    """
+    Determine a default value from given bounds.
+
+    Parameters
+    ----------
+    bounds : list
+        bounds for the value.
+
+    Returns
+    -------
+    float
+        Default value in the given bounds.
+    """
+    if bounds[0] > -np.inf and bounds[1] < np.inf:
+        return (bounds[0] + bounds[1]) / 2.0
+    if bounds[0] > -np.inf:
+        return bounds[0] + 1.0
+    if bounds[1] < np.inf:
+        return bounds[1] - 1.0
+    return 0.0
