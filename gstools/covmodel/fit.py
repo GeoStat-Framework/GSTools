@@ -278,7 +278,7 @@ def fit_variogram(
                 top_bounds.append(model.arg_bounds[par][1])
             init_guess_list.append(
                 _init_guess(
-                    bounds=model.arg_bounds[par],
+                    bounds=[low_bounds[-1], top_bounds[-1]],
                     current=getattr(model, par),
                     default=1.0,
                     typ=init_guess,
@@ -290,7 +290,7 @@ def fit_variogram(
             top_bounds.append(model.arg_bounds[opt][1])
             init_guess_list.append(
                 _init_guess(
-                    bounds=model.arg_bounds[opt],
+                    bounds=[low_bounds[-1], top_bounds[-1]],
                     current=getattr(model, opt),
                     default=model.default_opt_arg()[opt],
                     typ=init_guess,
