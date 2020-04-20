@@ -166,7 +166,7 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     estimator : :class:`str`, optional
         the estimator function, possible choices:
 
-            * "mathoron": the standard method of moments of Matheron
+            * "matheron": the standard method of moments of Matheron
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
