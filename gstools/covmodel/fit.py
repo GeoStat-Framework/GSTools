@@ -350,7 +350,7 @@ def _init_guess(bounds, current, default, typ):
     raise ValueError("CovModel.fit: unkwon init_guess type: '{}'".format(typ))
 
 
-def logistic_weights(p=0.1, mean=0.7):  # pragma: nocover
+def logistic_weights(p=0.1, mean=0.7):  # pragma: no cover
     """
     Return a logistic weights function.
 
