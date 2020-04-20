@@ -173,7 +173,7 @@ def fit_variogram(
         constrain_sill = True
         sill_low = model.arg_bounds["var"][0] + model.arg_bounds["nugget"][0]
         sill_up = model.arg_bounds["var"][1] + model.arg_bounds["nugget"][1]
-        if not (sill_low <= sill <= sill_up):
+        if not sill_low <= sill <= sill_up:
             raise ValueError("fit: sill out of bounds.")
         if "var" in para_select and "nugget" in para_select:
             if model.var > sill:
@@ -187,18 +187,16 @@ def fit_variogram(
                     "fit: if sill is fixed and variance deselected, "
                     + "the set variance should be less than the given sill."
                 )
-            else:
-                para_select["nugget"] = False
-                model.nugget = sill - model.var
+            para_select["nugget"] = False
+            model.nugget = sill - model.var
         elif "nugget" in para_select:
             if model.nugget > sill:
                 raise ValueError(
                     "fit: if sill is fixed and nugget deselected, "
                     + "the set nugget should be less than the given sill."
                 )
-            else:
-                para_select["var"] = False
-                model.var = sill - model.nugget
+            para_select["var"] = False
+            model.var = sill - model.nugget
         else:
             # deselect the nugget, to recalculate it accordingly
             # nugget = sill - var
@@ -345,7 +343,7 @@ def _init_guess(bounds, current, default, typ):
         if bounds[0] < default < bounds[1]:
             return default
         return default_arg_from_bounds(bounds)
-    elif typ == "current":
+    if typ == "current":
         return current
     raise ValueError("CovModel.fit: unkwon init_guess type: '{}'".format(typ))
 
