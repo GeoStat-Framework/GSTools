@@ -98,9 +98,11 @@ class Gaussian(CovModel):
             return np.sqrt(np.pi) / self.len_scale * np.sqrt(-np.log(1.0 - u))
         return None
 
+    def _has_cdf(self):
+        return self.dim in [1, 2, 3]
+
     def _has_ppf(self):
-        # since the ppf is not analytical for dim=3, we have to state that
-        return False if self.dim == 3 else True
+        return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
@@ -179,9 +181,11 @@ class Exponential(CovModel):
             return np.sqrt(u_power - 1.0) / self.len_scale
         return None
 
+    def _has_cdf(self):
+        return self.dim in [1, 2, 3]
+
     def _has_ppf(self):
-        # since the ppf is not analytical for dim=3, we have to state that
-        return False if self.dim == 3 else True
+        return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_scale
@@ -645,7 +649,7 @@ class Intersection(CovModel):
        0 & r\geq\ell
        \end{cases}
 
-    In 3D:
+    In >=3D:
 
     .. math::
        \rho(r) =
@@ -659,6 +663,43 @@ class Intersection(CovModel):
     """
 
     def correlation(self, r):  # noqa: D102
+        r"""
+        Intersection correlation function.
+
+        In 1D:
+
+        .. math::
+           \rho(r) =
+           \begin{cases}
+           1-\frac{r}{\ell}
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+
+        In 2D:
+
+        .. math::
+           \rho(r) =
+           \begin{cases}
+           \frac{2}{\pi}\cdot\left(
+           \cos^{-1}\left(\frac{r}{\ell}\right) -
+           \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
+           \right)
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+
+        In >=3D:
+
+        .. math::
+           \rho(r) =
+           \begin{cases}
+           1-\frac{3}{2}\cdot\frac{r}{\ell} +
+           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
+           & r<\ell\\
+           0 & r\geq\ell
+           \end{cases}
+        """
         r = np.array(np.abs(r), dtype=np.double)
         res = np.zeros_like(r)
         r_ll = r < self.len_scale
