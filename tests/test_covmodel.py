@@ -14,6 +14,7 @@ from gstools import (
     Linear,
     Circular,
     Spherical,
+    Intersection,
     TPLGaussian,
     TPLExponential,
     TPLStable,
@@ -31,6 +32,7 @@ class TestCovModel(unittest.TestCase):
             Linear,
             Circular,
             Spherical,
+            Intersection,
             TPLGaussian,
             TPLExponential,
             TPLStable,
@@ -44,6 +46,7 @@ class TestCovModel(unittest.TestCase):
             Linear,
             Circular,
             Spherical,
+            Intersection,
         ]
         self.dims = range(1, 4)
         self.lens = [[10, 5, 2]]
@@ -120,6 +123,12 @@ class TestCovModel(unittest.TestCase):
                             if model.has_ppf:
                                 model.spectral_rad_ppf([0.0, 0.99])
                             model.pykrige_kwargs
+                            # check arg bound setting
+                            model.set_arg_bounds(
+                                var=[2, np.inf], nugget=[1, 2]
+                            )
+                            self.assertAlmostEqual(model.var, 3)
+                            self.assertAlmostEqual(model.nugget, 1.5)
 
     def test_fitting(self):
         for Model in self.std_cov_models:
