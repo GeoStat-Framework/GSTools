@@ -379,7 +379,7 @@ class Detrended(Simple):
         )
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     import doctest
 
     doctest.testmod()

@@ -502,7 +502,7 @@ def _set_dtype(x, y=None, z=None, dtype=np.double):
     return x, y, z
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     import doctest
 
     doctest.testmod()
