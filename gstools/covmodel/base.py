@@ -15,7 +15,7 @@ import warnings
 import copy
 import numpy as np
 from scipy.integrate import quad as integral
-from scipy.optimize import curve_fit, root
+from scipy.optimize import root
 from hankel import SymmetricFourierTransform as SFT
 from gstools.field.tools import make_isotropic, unrotate_mesh
 from gstools.tools.geometric import pos2xyz
@@ -25,8 +25,11 @@ from gstools.covmodel.tools import (
     set_len_anis,
     set_angles,
     check_bounds,
+    check_arg_in_bounds,
+    default_arg_from_bounds,
 )
 from gstools.covmodel import plot
+from gstools.covmodel.fit import fit_variogram
 
 __all__ = ["CovModel"]
 
@@ -127,8 +130,17 @@ class CovModel(metaclass=InitSubclassMeta):
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
         # optional arguments for the variogram-model
+        self._opt_arg = []
         # look up the defaults for the optional arguments (defined by the user)
         default = self.default_opt_arg()
+        for opt_name in opt_arg:
+            if opt_name not in default:
+                warnings.warn(
+                    "The given optional argument '{}' ".format(opt_name)
+                    + "is unknown or has at least no defined standard value. "
+                    + "Or you made a Typo... hehe.",
+                    AttributeWarning,
+                )
         # add the default vaules if not specified
         for def_arg in default:
             if def_arg not in opt_arg:
@@ -144,13 +156,6 @@ class CovModel(metaclass=InitSubclassMeta):
                     + "' has a 'bad' name, since it is already present in "
                     + "the class. It could not be added to the model"
                 )
-            if opt_name not in self.default_opt_arg().keys():
-                warnings.warn(
-                    "The given optional argument '{}' ".format(opt_name)
-                    + "is unknown or has at least no defined standard value. "
-                    + "Or you made a Typo... hehe.",
-                    AttributeWarning,
-                )
             # Magic happens here
             setattr(self, opt_name, opt_arg[opt_name])
 
@@ -161,7 +166,7 @@ class CovModel(metaclass=InitSubclassMeta):
         self._opt_arg_bounds = {}
         bounds = self.default_arg_bounds()
         bounds.update(self.default_opt_arg_bounds())
-        self.set_arg_bounds(**bounds)
+        self.set_arg_bounds(check_args=False, **bounds)
 
         # prepare dim setting
         self._dim = None
@@ -502,7 +507,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Should be given as a dictionary.
         """
-        return {}
+        res = {}
+        for opt in self.opt_arg:
+            res[opt] = 0.0
+        return res
 
     def default_opt_arg_bounds(self):
         """Provide default boundaries for optional arguments."""
@@ -611,11 +619,11 @@ class CovModel(metaclass=InitSubclassMeta):
             r_gz = np.logical_not(np.isclose(r, 0))
             # to prevent numerical errors, we just calculate where r>0
             res = np.zeros_like(r, dtype=np.double)
-            res[r_gz] = rad_fac(self.dim, r[r_gz]) * self.spectral_density(
-                r[r_gz]
+            res[r_gz] = rad_fac(self.dim, r[r_gz]) * np.abs(
+                self.spectral_density(r[r_gz])
             )
         else:
-            res = rad_fac(self.dim, r) * self.spectral_density(r)
+            res = rad_fac(self.dim, r) * np.abs(self.spectral_density(r))
         # prevent numerical errors in hankel for small r values (set 0)
         res[np.logical_not(np.isfinite(res))] = 0.0
         # prevent numerical errors in hankel for big r (set non-negative)
@@ -637,7 +645,20 @@ class CovModel(metaclass=InitSubclassMeta):
 
     ### fitting routine #######################################################
 
-    def fit_variogram(self, x_data, y_data, maxfev=1000, **para_deselect):
+    def fit_variogram(
+        self,
+        x_data,
+        y_data,
+        sill=None,
+        init_guess="default",
+        weights=None,
+        method="trf",
+        loss="soft_l1",
+        max_eval=None,
+        return_r2=False,
+        curve_fit_kwargs=None,
+        **para_select
+    ):
         """
         Fiting the isotropic variogram-model to given data.
 
@@ -647,13 +668,87 @@ class CovModel(metaclass=InitSubclassMeta):
             The radii of the meassured variogram.
         y_data : :class:`numpy.ndarray`
             The messured variogram
-        maxfev : int, optional
-            The maximum number of calls to the function in scipy curvefit.
-            Default: 1000
-        **para_deselect
-            You can deselect the parameters to be fitted, by setting
-            them "False" as keywords. By default, all parameters are
-            fitted.
+        sill : :class:`float` or :class:`bool`, optional
+            Here you can provide a fixed sill for the variogram.
+            It needs to be in a fitting range for the var and nugget bounds.
+            If variance or nugget are not selected for estimation,
+            the nugget will be recalculated to fulfill:
+
+                * sill = var + nugget
+                * if the variance is bigger than the sill,
+                  nugget will bet set to its lower bound
+                  and the variance will be set to the fitting partial sill.
+
+            If variance is deselected, it needs to be less than the sill,
+            otherwise a ValueError comes up. Same for nugget.
+            If sill=False, it will be deslected from estimation
+            and set to the current sill of the model.
+            Then, the procedure above is applied.
+            Default: None
+        init_guess : :class:`str` or :class:`dict`, optional
+            Initial guess for the estimation. Either:
+
+                * "default": using the default values of the covariance model
+                * "current": using the current values of the covariance model
+                * dict(name: val): specified value for each parameter by name
+
+            Default: "default"
+        weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`, optional
+            Weights applied to each point in the estimation. Either:
+
+                * 'inv': inverse distance ``1 / (x_data + 1)``
+                * list: weights given per bin
+                * callable: function applied to x_data
+
+            If callable, it must take a 1-d ndarray.
+            Then ``weights = f(x_data)``.
+            Default: None
+        method : {'trf', 'dogbox'}, optional
+            Algorithm to perform minimization.
+
+                * 'trf' : Trust Region Reflective algorithm,
+                  particularly suitable for large sparse problems with bounds.
+                  Generally robust method.
+                * 'dogbox' : dogleg algorithm with rectangular trust regions,
+                  typical use case is small problems with bounds.
+                  Not recommended for problems with rank-deficient Jacobian.
+
+            Default: 'trf'
+        loss : :class:`str` or :class:`callable`, optional
+            Determines the loss function in scipys curve_fit.
+            The following keyword values are allowed:
+
+                * 'linear' (default) : ``rho(z) = z``. Gives a standard
+                  least-squares problem.
+                * 'soft_l1' : ``rho(z) = 2 * ((1 + z)**0.5 - 1)``. The smooth
+                  approximation of l1 (absolute value) loss. Usually a good
+                  choice for robust least squares.
+                * 'huber' : ``rho(z) = z if z <= 1 else 2*z**0.5 - 1``. Works
+                  similarly to 'soft_l1'.
+                * 'cauchy' : ``rho(z) = ln(1 + z)``. Severely weakens outliers
+                  influence, but may cause difficulties in optimization process.
+                * 'arctan' : ``rho(z) = arctan(z)``. Limits a maximum loss on
+                  a single residual, has properties similar to 'cauchy'.
+
+            If callable, it must take a 1-d ndarray ``z=f**2`` and return an
+            array_like with shape (3, m) where row 0 contains function values,
+            row 1 contains first derivatives and row 2 contains second
+            derivatives. Default: 'soft_l1'
+        max_eval : :class:`int` or :any:`None`, optional
+            Maximum number of function evaluations before the termination.
+            If None (default), the value is chosen automatically: 100 * n.
+        return_r2 : :class:`bool`, optional
+            Whether to return the r2 score of the estimation.
+            Default: False
+        curve_fit_kwargs : :class:`dict`, optional
+            Other keyword arguments passed to scipys curve_fit. Default: None
+        **para_select
+            You can deselect parameters from fitting, by setting
+            them "False" using their names as keywords.
+            You could also pass fixed values for each parameter.
+            Then these values will be applied and the involved parameters wont
+            be fitted.
+            By default, all parameters are fitted.
 
         Returns
         -------
@@ -661,7 +756,11 @@ class CovModel(metaclass=InitSubclassMeta):
             Dictonary with the fitted parameter values
         pcov : :class:`numpy.ndarray`
             The estimated covariance of `popt` from
-            :any:`scipy.optimize.curve_fit`
+            :any:`scipy.optimize.curve_fit`.
+            To compute one standard deviation errors
+            on the parameters use ``perr = np.sqrt(np.diag(pcov))``.
+        r2_score : :class:`float`, optional
+            r2 score of the curve fitting results. Only if return_r2 is True.
 
         Notes
         -----
@@ -670,93 +769,20 @@ class CovModel(metaclass=InitSubclassMeta):
 
         The fitted parameters will be instantly set in the model.
         """
-        # select all parameters to be fitted
-        para = {"var": True, "len_scale": True, "nugget": True}
-        for opt in self.opt_arg:
-            para[opt] = True
-        # deselect unwanted parameters
-        para.update(para_deselect)
-
-        # we need arg1, otherwise curve_fit throws an error (bug?!)
-        def curve(x, arg1, *args):
-            """Adapted Variogram function."""
-            args = (arg1,) + args
-            para_skip = 0
-            opt_skip = 0
-            if para["var"]:
-                var_tmp = args[para_skip]
-                para_skip += 1
-            if para["len_scale"]:
-                self.len_scale = args[para_skip]
-                para_skip += 1
-            if para["nugget"]:
-                self.nugget = args[para_skip]
-                para_skip += 1
-            for opt in self.opt_arg:
-                if para[opt]:
-                    setattr(self, opt, args[para_skip + opt_skip])
-                    opt_skip += 1
-            # set var at last because of var_factor (other parameter needed)
-            if para["var"]:
-                self.var = var_tmp
-            return self.variogram(x)
-
-        # set the lower/upper boundaries for the variogram-parameters
-        low_bounds = []
-        top_bounds = []
-        if para["var"]:
-            low_bounds.append(self.var_bounds[0])
-            top_bounds.append(self.var_bounds[1])
-        if para["len_scale"]:
-            low_bounds.append(self.len_scale_bounds[0])
-            top_bounds.append(self.len_scale_bounds[1])
-        if para["nugget"]:
-            low_bounds.append(self.nugget_bounds[0])
-            top_bounds.append(self.nugget_bounds[1])
-        for opt in self.opt_arg:
-            if para[opt]:
-                low_bounds.append(self.opt_arg_bounds[opt][0])
-                top_bounds.append(self.opt_arg_bounds[opt][1])
-        # fit the variogram
-        popt, pcov = curve_fit(
-            curve,
-            x_data,
-            y_data,
-            bounds=(low_bounds, top_bounds),
-            maxfev=maxfev,
+        return fit_variogram(
+            model=self,
+            x_data=x_data,
+            y_data=y_data,
+            sill=sill,
+            init_guess=init_guess,
+            weights=weights,
+            method=method,
+            loss=loss,
+            max_eval=max_eval,
+            return_r2=return_r2,
+            curve_fit_kwargs=curve_fit_kwargs,
+            **para_select
         )
-        fit_para = {}
-        para_skip = 0
-        opt_skip = 0
-        if para["var"]:
-            var_tmp = popt[para_skip]
-            fit_para["var"] = popt[para_skip]
-            para_skip += 1
-        else:
-            fit_para["var"] = self.var
-        if para["len_scale"]:
-            self.len_scale = popt[para_skip]
-            fit_para["len_scale"] = popt[para_skip]
-            para_skip += 1
-        else:
-            fit_para["len_scale"] = self.len_scale
-        if para["nugget"]:
-            self.nugget = popt[para_skip]
-            fit_para["nugget"] = popt[para_skip]
-            para_skip += 1
-        else:
-            fit_para["nugget"] = self.nugget
-        for opt in self.opt_arg:
-            if para[opt]:
-                setattr(self, opt, popt[para_skip + opt_skip])
-                fit_para[opt] = popt[para_skip + opt_skip]
-                opt_skip += 1
-            else:
-                fit_para[opt] = getattr(self, opt)
-        # set var at last because of var_factor (other parameter needed)
-        if para["var"]:
-            self.var = var_tmp
-        return fit_para, pcov
 
     ### bounds setting and checks #############################################
 
@@ -772,11 +798,16 @@ class CovModel(metaclass=InitSubclassMeta):
         }
         return res
 
-    def set_arg_bounds(self, **kwargs):
+    def set_arg_bounds(self, check_args=True, **kwargs):
         r"""Set bounds for the parameters of the model.
 
         Parameters
         ----------
+        check_args : bool, optional
+            Whether to check if the arguments need to resetted to be in the
+            given bounds. In case, a propper default value will be determined
+            from the given bounds.
+            Default: True
         **kwargs
             Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
             and a list of 2 or 3 values as value:
@@ -787,22 +818,35 @@ class CovModel(metaclass=InitSubclassMeta):
             <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
             to define if the bounds are open ("o") or closed ("c").
         """
-        for opt in kwargs:
-            if opt in self.opt_arg:
-                if not check_bounds(kwargs[opt]):
-                    raise ValueError(
-                        "Given bounds for '"
-                        + opt
-                        + "' are not valid, got: "
-                        + str(kwargs[opt])
+        # if variance needs to be resetted, do this at last
+        var_bnds = []
+        for arg in kwargs:
+            if not check_bounds(kwargs[arg]):
+                raise ValueError(
+                    "Given bounds for '{0}' are not valid, got: {1}".format(
+                        arg, kwargs[arg]
                     )
-                self._opt_arg_bounds[opt] = kwargs[opt]
-            if opt == "var":
-                self.var_bounds = kwargs[opt]
-            if opt == "len_scale":
-                self.len_scale_bounds = kwargs[opt]
-            if opt == "nugget":
-                self.nugget_bounds = kwargs[opt]
+                )
+            if arg in self.opt_arg:
+                self._opt_arg_bounds[arg] = kwargs[arg]
+            elif arg == "var":
+                var_bnds = kwargs[arg]
+                continue
+            elif arg == "len_scale":
+                self.len_scale_bounds = kwargs[arg]
+            elif arg == "nugget":
+                self.nugget_bounds = kwargs[arg]
+            else:
+                raise ValueError(
+                    "set_arg_bounds: unknown argument '{}'".format(arg)
+                )
+            if check_args and check_arg_in_bounds(self, arg) > 0:
+                setattr(self, arg, default_arg_from_bounds(kwargs[arg]))
+        # set var last like allways
+        if var_bnds:
+            self.var_bounds = var_bnds
+            if check_args and check_arg_in_bounds(self, "var") > 0:
+                self.var = default_arg_from_bounds(var_bnds)
 
     def check_arg_bounds(self):
         """Check arguments to be within the given bounds."""
@@ -810,44 +854,23 @@ class CovModel(metaclass=InitSubclassMeta):
         for arg in self.arg_bounds:
             bnd = list(self.arg_bounds[arg])
             val = getattr(self, arg)
-            if len(bnd) == 2:
-                bnd.append("cc")  # use closed intervals by default
-            if bnd[2][0] == "c":
-                if val < bnd[0]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be >= "
-                        + str(bnd[0])
-                        + ", got: "
-                        + str(val)
-                    )
-            else:
-                if val <= bnd[0]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be > "
-                        + str(bnd[0])
-                        + ", got: "
-                        + str(val)
-                    )
-            if bnd[2][1] == "c":
-                if val > bnd[1]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be <= "
-                        + str(bnd[1])
-                        + ", got: "
-                        + str(val)
-                    )
-            else:
-                if val >= bnd[1]:
-                    raise ValueError(
-                        str(arg)
-                        + " needs to be < "
-                        + str(bnd[1])
-                        + ", got: "
-                        + str(val)
-                    )
+            error_case = check_arg_in_bounds(self, arg)
+            if error_case == 1:
+                raise ValueError(
+                    "{0} needs to be >= {1}, got: {2}".format(arg, bnd[0], val)
+                )
+            if error_case == 2:
+                raise ValueError(
+                    "{0} needs to be > {1}, got: {2}".format(arg, bnd[0], val)
+                )
+            if error_case == 3:
+                raise ValueError(
+                    "{0} needs to be <= {1}, got: {2}".format(arg, bnd[1], val)
+                )
+            if error_case == 4:
+                raise ValueError(
+                    "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
+                )
 
     ### bounds properties #####################################################
 
@@ -1252,7 +1275,7 @@ class CovModel(metaclass=InitSubclassMeta):
         )
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     import doctest
 
     doctest.testmod()

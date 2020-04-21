@@ -14,6 +14,7 @@ from gstools import (
     Linear,
     Circular,
     Spherical,
+    Intersection,
     TPLGaussian,
     TPLExponential,
     TPLStable,
@@ -31,6 +32,7 @@ class TestCovModel(unittest.TestCase):
             Linear,
             Circular,
             Spherical,
+            Intersection,
             TPLGaussian,
             TPLExponential,
             TPLStable,
@@ -44,6 +46,7 @@ class TestCovModel(unittest.TestCase):
             Linear,
             Circular,
             Spherical,
+            Intersection,
         ]
         self.dims = range(1, 4)
         self.lens = [[10, 5, 2]]
@@ -61,7 +64,7 @@ class TestCovModel(unittest.TestCase):
 
         class User(CovModel):
             def cor(self, h):
-                return np.exp(-h ** 2)
+                return np.exp(-(h ** 2))
 
         user = User(len_scale=2)
         self.assertAlmostEqual(user.correlation(1), np.exp(-0.25))
@@ -120,6 +123,12 @@ class TestCovModel(unittest.TestCase):
                             if model.has_ppf:
                                 model.spectral_rad_ppf([0.0, 0.99])
                             model.pykrige_kwargs
+                            # check arg bound setting
+                            model.set_arg_bounds(
+                                var=[2, np.inf], nugget=[1, 2]
+                            )
+                            self.assertAlmostEqual(model.var, 3)
+                            self.assertAlmostEqual(model.nugget, 1.5)
 
     def test_fitting(self):
         for Model in self.std_cov_models:
@@ -127,6 +136,30 @@ class TestCovModel(unittest.TestCase):
                 model = Model(dim=dim)
                 model.fit_variogram(self.gamma_x, self.gamma_y, nugget=False)
                 self.assertAlmostEqual(model.nugget, 0.0)
+                model = Model(dim=dim)
+                # also check resetting of var when sill is given lower
+                model.fit_variogram(self.gamma_x, self.gamma_y, sill=0.9)
+                self.assertAlmostEqual(model.nugget + model.var, 0.9)
+                model = Model(dim=dim)
+                # more detailed checks
+                model.fit_variogram(
+                    self.gamma_x, self.gamma_y, sill=2, nugget=False
+                )
+                self.assertAlmostEqual(model.var, 2.0)
+                model = Model(dim=dim)
+                model.fit_variogram(
+                    self.gamma_x, self.gamma_y, sill=2, nugget=1
+                )
+                self.assertAlmostEqual(model.var, 1)
+                model = Model(dim=dim)
+                ret = model.fit_variogram(
+                    self.gamma_x,
+                    self.gamma_y,
+                    loss="linear",
+                    return_r2=True,
+                    weights="inv",
+                )
+                self.assertEqual(len(ret), 3)
 
 
 if __name__ == "__main__":

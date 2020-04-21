@@ -188,7 +188,7 @@ class DistPdfCdfPpf(rv_continuous):
         return self.ppf_in(q)
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     import doctest
 
     doctest.testmod()

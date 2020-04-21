@@ -154,9 +154,11 @@ class RNG:
             x[, y[, z]] coordinates on the sphere with shape (dim, size)
         """
         if size is None:  # pragma: no cover
-            coord = np.empty(dim, dtype=np.double)
+            coord = np.empty((dim, 1), dtype=np.double)
         else:
-            coord = np.empty((dim, size), dtype=np.double)
+            coord = np.empty(  # saver conversion of size to resulting shape
+                (dim,) + tuple(np.atleast_1d(size)), dtype=np.double
+            )
         if dim == 1:
             coord[0] = self.random.choice([-1, 1], size=size)
         elif dim == 2:
@@ -169,7 +171,25 @@ class RNG:
             coord[0] = np.sqrt(1.0 - ang2 ** 2) * np.cos(ang1)
             coord[1] = np.sqrt(1.0 - ang2 ** 2) * np.sin(ang1)
             coord[2] = ang2
-        return coord
+        else:  # pragma: no cover
+            # http://corysimon.github.io/articles/uniformdistn-on-sphere/
+            coord = self.random.normal(size=coord.shape)
+            while True:  # loop until all norms are non-zero
+                norm = np.linalg.norm(coord, axis=0)
+                # check for zero norms
+                zero_norms = np.isclose(norm, 0)
+                # exit the loop if all norms are non-zero
+                if not np.any(zero_norms):
+                    break
+                # transpose, since the next transpose reverses axis order
+                zero_samples = zero_norms.T.nonzero()
+                # need to transpose to have dim-axis last
+                new_shape = coord.T[zero_samples].shape
+                # resample the zero norm samples
+                coord.T[zero_samples] = self.random.normal(size=new_shape)
+            # project onto sphere
+            coord = coord / norm
+        return np.reshape(coord, dim) if size is None else coord
 
     @property
     def random(self):
@@ -203,7 +223,7 @@ class RNG:
         return "RNG(seed={})".format(self.seed)
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     import doctest
 
     doctest.testmod()

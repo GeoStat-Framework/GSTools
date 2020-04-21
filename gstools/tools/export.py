@@ -40,8 +40,7 @@ __all__ = [
 
 
 def _vtk_structured_helper(pos, fields):
-    """An internal helper to extract what is needed for the vtk rectilinear grid
-    """
+    """Extract field info for vtk rectilinear grid."""
     if not isinstance(fields, dict):
         fields = {"field": fields}
     x, y, z = pos2xyz(pos)
@@ -80,12 +79,10 @@ def to_vtk_structured(pos, fields):  # pragma: no cover
         live on the point data of this PyVista dataset.
     """
     x, y, z, fields = _vtk_structured_helper(pos=pos, fields=fields)
-    try:
-        import pyvista as pv
-
+    if pv is not None:
         grid = pv.RectilinearGrid(x, y, z)
         grid.point_arrays.update(fields)
-    except ImportError:
+    else:
         raise ImportError("Please install PyVista to create VTK datasets.")
     return grid
 
@@ -153,12 +150,10 @@ def to_vtk_unstructured(pos, fields):  # pragma: no cover
         a point cloud with no topology.
     """
     x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
-    try:
-        import pyvista as pv
-
+    if pv is not None:
         grid = pv.PolyData(np.c_[x, y, z]).cast_to_unstructured_grid()
         grid.point_arrays.update(fields)
-    except ImportError:
+    else:
         raise ImportError("Please install PyVista to create VTK datasets.")
     return grid
 
@@ -235,7 +230,4 @@ def vtk_export(
     """
     if mesh_type == "structured":
         return vtk_export_structured(filename=filename, pos=pos, fields=fields)
-    else:
-        return vtk_export_unstructured(
-            filename=filename, pos=pos, fields=fields
-        )
+    return vtk_export_unstructured(filename=filename, pos=pos, fields=fields)

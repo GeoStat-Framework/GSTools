@@ -230,7 +230,7 @@ fit_model_y.fit_variogram(y_plot, gamma_y[:21], nugget=False)
 # dashed lines.
 
 plt.figure()  # new figure
-line, = plt.plot(bin_center, gamma, label="estimated variogram (isotropic)")
+(line,) = plt.plot(bin_center, gamma, label="estimated variogram (isotropic)")
 plt.plot(
     bin_center,
     fit_model.variogram(bin_center),
@@ -239,7 +239,7 @@ plt.plot(
     label="exp. variogram (isotropic)",
 )
 
-line, = plt.plot(x_plot, gamma_x[:21], label="estimated variogram in x-dir")
+(line,) = plt.plot(x_plot, gamma_x[:21], label="estimated variogram in x-dir")
 plt.plot(
     x_plot,
     fit_model_x.variogram(x_plot),
@@ -248,7 +248,7 @@ plt.plot(
     label="exp. variogram in x-dir",
 )
 
-line, = plt.plot(y_plot, gamma_y[:21], label="estimated variogram in y-dir")
+(line,) = plt.plot(y_plot, gamma_y[:21], label="estimated variogram in y-dir")
 plt.plot(
     y_plot,
     fit_model_y.variogram(y_plot),
