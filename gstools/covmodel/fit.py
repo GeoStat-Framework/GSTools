@@ -147,6 +147,40 @@ def fit_variogram(
     The fitted parameters will be instantly set in the model.
     """
     # preprocess selected parameters
+    para, sill, constrain_sill = _pre_para(model, para_select, sill)
+    # check curve_fit kwargs
+    curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
+    # check method
+    if method not in ["trf", "dogbox"]:
+        raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")
+    # set weights
+    _set_weights(weights, x_data, curve_fit_kwargs)
+    # set the lower/upper boundaries for the variogram-parameters
+    bounds, init_guess_list = _init_curve_fit_para(
+        model, para, init_guess, constrain_sill, sill
+    )
+    # create the fitting curve
+    curve_fit_kwargs["f"] = _get_curve(model, para, constrain_sill, sill)
+    # set the remaining kwargs for curve_fit
+    curve_fit_kwargs["bounds"] = bounds
+    curve_fit_kwargs["p0"] = init_guess_list
+    curve_fit_kwargs["xdata"] = np.array(x_data)
+    curve_fit_kwargs["ydata"] = np.array(y_data)
+    curve_fit_kwargs["loss"] = loss
+    curve_fit_kwargs["max_nfev"] = max_eval
+    curve_fit_kwargs["method"] = method
+    # fit the variogram
+    popt, pcov = curve_fit(**curve_fit_kwargs)
+    # convert the results
+    fit_para = _post_fitting(model, para, popt)
+    # calculate the r2 score if wanted
+    if return_r2:
+        return fit_para, pcov, _r2_score(model, x_data, y_data)
+    return fit_para, pcov
+
+
+def _pre_para(model, para_select, sill):
+    """Preprocess selected parameters."""
     var_last = False
     for par in para_select:
         if par not in model.arg_bounds:
@@ -165,7 +199,6 @@ def fit_variogram(
         model.var = var_tmp
     # remove those that were set to True
     para_select = {k: v for k, v in para_select.items() if not v}
-
     # handling the sill
     sill = None if (isinstance(sill, bool) and sill) else sill
     if sill is not None:
@@ -203,25 +236,15 @@ def fit_variogram(
             para_select["nugget"] = False
     else:
         constrain_sill = False
-
     # select all parameters to be fitted
     para = {par: True for par in DEFAULT_PARA}
     para.update({opt: True for opt in model.opt_arg})
     # now deselect unwanted parameters
     para.update(para_select)
+    return para, sill, constrain_sill
 
-    # check curve_fit kwargs
-    if curve_fit_kwargs is None:
-        curve_fit_kwargs = {}
-    curve_fit_kwargs["loss"] = loss
-    curve_fit_kwargs["max_nfev"] = max_eval
 
-    # check method
-    if method not in ["trf", "dogbox"]:
-        raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")
-    curve_fit_kwargs["method"] = method
-
-    # set weights
+def _set_weights(weights, x_data, curve_fit_kwargs):
     if weights is not None:
         if callable(weights):
             weights = 1.0 / weights(np.array(x_data))
@@ -232,6 +255,9 @@ def fit_variogram(
         curve_fit_kwargs["sigma"] = weights
         curve_fit_kwargs["absolute_sigma"] = True
 
+
+def _get_curve(model, para, constrain_sill, sill):
+    """Create the curve for scipys curve_fit."""
     # we need arg1, otherwise curve_fit throws an error (bug?!)
     def curve(x, arg1, *args):
         """Adapted Variogram function."""
@@ -263,7 +289,11 @@ def fit_variogram(
             model.var = var_tmp
         return model.variogram(x)
 
-    # set the lower/upper boundaries for the variogram-parameters
+    return curve
+
+
+def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill):
+    """Create initial guess and bounds for fitting."""
     low_bounds = []
     top_bounds = []
     init_guess_list = []
@@ -280,6 +310,7 @@ def fit_variogram(
                     current=getattr(model, par),
                     default=1.0,
                     typ=init_guess,
+                    para_name=par,
                 )
             )
     for opt in model.opt_arg:
@@ -292,19 +323,32 @@ def fit_variogram(
                     current=getattr(model, opt),
                     default=model.default_opt_arg()[opt],
                     typ=init_guess,
+                    para_name=opt,
                 )
             )
+    return (low_bounds, top_bounds), init_guess_list
 
-    # set the remaining kwargs for curve_fit
-    curve_fit_kwargs["bounds"] = (low_bounds, top_bounds)
-    curve_fit_kwargs["p0"] = init_guess_list
-    curve_fit_kwargs["f"] = curve
-    curve_fit_kwargs["xdata"] = np.array(x_data)
-    curve_fit_kwargs["ydata"] = np.array(y_data)
 
-    # fit the variogram
-    popt, pcov = curve_fit(**curve_fit_kwargs)
-    # convert the results
+def _init_guess(bounds, current, default, typ, para_name):
+    """Proper determination of initial guess."""
+    if isinstance(typ, dict):
+        if para_name in typ:
+            return typ[para_name]
+        # if we have a dict, all parameters need a given init_guess
+        raise ValueError(
+            "CovModel.fit: missing init guess for: '{}'".format(para_name)
+        )
+    if typ == "default":
+        if bounds[0] < default < bounds[1]:
+            return default
+        return default_arg_from_bounds(bounds)
+    if typ == "current":
+        return current
+    raise ValueError("CovModel.fit: unkwon init_guess: '{}'".format(typ))
+
+
+def _post_fitting(model, para, popt):
+    """Postprocess fitting results and application to model."""
     fit_para = {}
     para_skip = 0
     opt_skip = 0
@@ -328,24 +372,15 @@ def fit_variogram(
     # set var at last because of var_factor (other parameter needed)
     if para["var"]:
         model.var = var_tmp
-    # calculate the r2 score if wanted
-    if return_r2:
-        residuals = y_data - model.variogram(x_data)
-        ss_res = np.sum(residuals ** 2)
-        ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
-        r2_score = 1.0 - (ss_res / ss_tot)
-        return fit_para, pcov, r2_score
-    return fit_para, pcov
+    return fit_para
 
 
-def _init_guess(bounds, current, default, typ):
-    if typ == "default":
-        if bounds[0] < default < bounds[1]:
-            return default
-        return default_arg_from_bounds(bounds)
-    if typ == "current":
-        return current
-    raise ValueError("CovModel.fit: unkwon init_guess type: '{}'".format(typ))
+def _r2_score(model, x_data, y_data):
+    """Calculate the R2 score."""
+    residuals = y_data - model.variogram(x_data)
+    ss_res = np.sum(residuals ** 2)
+    ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
+    return 1.0 - (ss_res / ss_tot)
 
 
 def logistic_weights(p=0.1, mean=0.7):  # pragma: no cover
