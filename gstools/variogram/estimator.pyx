@@ -18,42 +18,18 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-cdef inline double _distance_1d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const int i,
-    const int j
-) nogil:
-    return sqrt((x[i] - x[j]) * (x[i] - x[j]))
-
-cdef inline double _distance_2d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const int i,
-    const int j
-) nogil:
-    return sqrt((x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]))
-
-cdef inline double _distance_3d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const int i,
-    const int j
-) nogil:
-    return sqrt((x[i] - x[j]) * (x[i] - x[j]) +
-                (y[i] - y[j]) * (y[i] - y[j]) +
-                (z[i] - z[j]) * (z[i] - z[j]))
-
+cdef inline double distance(vector[double] pos1, vector[double] pos2) nogil:
+    cdef int i = 0
+    cdef double dist_squared = 0.0
+    for i in range(pos1.size()):
+        dist_squared += ((pos1[i] - pos2[i]) * (pos1[i] - pos2[i]))
+    return sqrt(dist_squared)
 
 cdef inline double estimator_matheron(const double f_diff) nogil:
     return f_diff * f_diff
 
 cdef inline double estimator_cressie(const double f_diff) nogil:
     return sqrt(fabs(f_diff))
-
 ctypedef double (*_estimator_func)(const double) nogil
 
 cdef inline void normalization_matheron(
@@ -112,35 +88,14 @@ ctypedef double (*_dist_func)(
 
 
 def unstructured(
+    const int dim,
     const double[:] f,
     const double[:] bin_edges,
-    const double[:] x,
-    const double[:] y=None,
-    const double[:] z=None,
+    const double[:,:] pos,
     str estimator_type='m'
 ):
-    if x.shape[0] != f.shape[0]:
-        raise ValueError('len(x) = {0} != len(f) = {1} '.
-                         format(x.shape[0], f.shape[0]))
     if bin_edges.shape[0] < 2:
         raise ValueError('len(bin_edges) too small')
-
-    cdef _dist_func distance
-    # 3d
-    if z is not None:
-        if z.shape[0] != f.shape[0]:
-            raise ValueError('len(z) = {0} != len(f) = {1} '.
-                             format(z.shape[0], f.shape[0]))
-        distance = _distance_3d
-    # 2d
-    elif y is not None:
-        if y.shape[0] != f.shape[0]:
-            raise ValueError('len(y) = {0} != len(f) = {1} '.
-                             format(y.shape[0], f.shape[0]))
-        distance = _distance_2d
-    # 1d
-    else:
-        distance = _distance_1d
 
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
@@ -148,17 +103,23 @@ def unstructured(
     )
 
     cdef int i_max = bin_edges.shape[0] - 1
-    cdef int j_max = x.shape[0] - 1
-    cdef int k_max = x.shape[0]
+    cdef int j_max = pos.shape[1] - 1
+    cdef int k_max = pos.shape[1]
 
     cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
     cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
-    cdef int i, j, k
+    cdef vector[double] pos1 = vector[double](dim, 0.0)
+    cdef vector[double] pos2 = vector[double](dim, 0.0)
+    cdef int i, j, k, l
     cdef DTYPE_t dist
-    for i in prange(i_max, nogil=True):
+    #for i in prange(i_max, nogil=True):
+    for i in range(i_max):
         for j in range(j_max):
             for k in range(j+1, k_max):
-                dist = distance(x, y, z, k, j)
+                for l in range(dim):
+                    pos1[l] = pos[l, k]
+                    pos2[l] = pos[l, j]
+                dist = distance(pos1, pos2)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     counts[i] += 1
                     variogram[i] += estimator_func(f[k] - f[j])

@@ -117,10 +117,18 @@ def vario_estimate_unstructured(
 
     cython_estimator = _set_estimator(estimator)
 
+    # quick and dirty assembly of pos
+    if dim == 1:
+        pos = np.atleast_2d(x)
+    elif dim == 2:
+        pos = np.array((x, y))
+    else:
+        pos = np.array((x, y, z))
+
     return (
         bin_centres,
         unstructured(
-            field, bin_edges, x, y, z, estimator_type=cython_estimator
+            dim, field, bin_edges, pos, estimator_type=cython_estimator
         ),
     )
 
