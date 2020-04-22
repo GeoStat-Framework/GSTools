@@ -179,10 +179,12 @@ class Mesh:
         self.point_data[self.default_field] = values
 
     @property
-    def value_type(self, field="field"):
+    def value_type(self):
         """:any:`str`: The value type of the default field."""
-        if field in self.point_data:
-            r = value_type(self.mesh_type, self.point_data[field].shape)
+        if self.default_field in self.point_data:
+            r = value_type(
+                self.mesh_type, self.point_data[self.default_field].shape
+            )
         else:
             r = None
         return r
