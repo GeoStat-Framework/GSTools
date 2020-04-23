@@ -33,6 +33,7 @@ Class for random field generation
 
 .. autosummary::
    SRF
+   Field
    Mesh
 
 Covariance Base-Class
@@ -101,7 +102,7 @@ Estimate the variogram of a given field
 """
 
 from gstools import field, variogram, random, covmodel, tools, krige, transform
-from gstools.field.base import Mesh
+from gstools.field.mesh import Mesh
 from gstools.field import SRF
 from gstools.tools import (
     vtk_export,

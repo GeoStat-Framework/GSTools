@@ -17,12 +17,14 @@ Spatial Random Field
 
 .. autosummary::
    SRF
+   Field
    Mesh
 
 ----
 """
 
-from gstools.field.base import Mesh
+from gstools.field.mesh import Mesh
+from gstools.field.base import Field
 from gstools.field.srf import SRF
 
-__all__ = ["SRF", "Mesh"]
+__all__ = ["SRF", "Field", "Mesh"]
