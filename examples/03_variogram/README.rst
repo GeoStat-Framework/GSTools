@@ -1,3 +1,5 @@
+.. _tutorial_03_variogram:
+
 Tutorial 3: Variogram Estimation
 ================================
 
