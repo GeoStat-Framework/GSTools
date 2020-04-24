@@ -135,12 +135,17 @@ class SRF(Field):
             pos, mesh_type
         )
         # generate the field
-        self.add_field(self.generator.__call__(x, y, z, mt_gen), "raw_field")
+        raw_field = self.generator.__call__(x, y, z, mt_gen)
         # reshape field if we got an unstructured mesh
         if mt_changed:
-            self["raw_field"] = reshape_field_from_unstruct_to_struct(
-                self.model.dim, self["raw_field"], axis_lens
+            self.add_field(
+                reshape_field_from_unstruct_to_struct(
+                    self.model.dim, raw_field, axis_lens
+                ),
+                "raw_field",
             )
+        else:
+            self.add_field(raw_field, "raw_field")
         # apply given conditions to the field
         if self.condition:
             (
