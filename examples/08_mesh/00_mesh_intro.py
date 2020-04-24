@@ -2,7 +2,7 @@
 Example: Using a mesh for GSTools
 ---------------------------------
 
-# TODO write a summery once I'm finished with the example
+This example shows how external data can be analysed with GSTools.
 
 
 Pretending we have some Data
