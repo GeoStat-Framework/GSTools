@@ -80,7 +80,7 @@ class TestMesh(unittest.TestCase):
 
     def test_field_data_setter(self):
         # attribute creation by adding field_data
-        self.m2_tuple.set_field_data("mean", 3.14)
+        self.m2_tuple.set_field_data(3.14, "mean")
         self.assertEqual(self.m2_tuple.field_data["mean"], 3.14)
         self.assertEqual(self.m2_tuple.mean, 3.14)
 

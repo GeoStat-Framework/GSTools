@@ -42,8 +42,8 @@ del(tmp_srf)
 mesh = gs.Mesh(pos=(x, y), values=field)
 
 # We can add meta data too
-mesh.set_field_data("location", "Süderbrarup")
-mesh.set_field_data("date", date(year=2020, month=2, day=28))
+mesh.set_field_data("Süderbrarup", "location")
+mesh.set_field_data(date(year=2020, month=2, day=28), "date")
 
 # This can be conviniently accessed
 print(mesh.location)

@@ -93,11 +93,11 @@ class Mesh:
         # data valid for the global field
         self.field_data = {}
 
-        self.set_field_data("default_field", name)
+        self.set_field_data(name, "default_field")
 
         self.field_data["mesh_type"] = mesh_type
 
-    def set_field_data(self, name, value):
+    def set_field_data(self, value, name):
         """Add an attribute to this instance and add it the `field_data`
 
         This helper method is used to create attributes for easy access
@@ -135,7 +135,7 @@ class Mesh:
         self.point_data[name] = values
         # set the default_field to the first field added
         if len(self.point_data) == 1 or is_default_field:
-            self.set_field_data("default_field", name)
+            self.set_field_data(name, "default_field")
 
     def __getitem__(self, key):
         """:any:`numpy.ndarray`: The values of the field."""
