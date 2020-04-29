@@ -137,6 +137,21 @@ class Mesh:
         if len(self.point_data) == 1 or is_default_field:
             self.set_field_data(name, "default_field")
 
+    def del_field_data(self):
+        """Delete the field data.
+
+        Deleting the field data resets the field data dictionary and deletes
+        the attributes too.
+        """
+        for attr in self.field_data.keys():
+            if attr == "default_field" or attr == "mesh_type":
+                continue
+            try:
+                delattr(self, attr)
+            except AttributeError:
+                pass
+        self.field_data = {"default_field": "field", "mesh_type": self.mesh_type}
+
     def __getitem__(self, key):
         """:any:`numpy.ndarray`: The values of the field."""
         return self.point_data[key]

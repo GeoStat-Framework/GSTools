@@ -135,6 +135,14 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(self.m1_grid.default_field, "test_field2")
         self.assertEqual(self.m1_grid.field[5], self.m1_grid["test_field2"][5])
 
+    def test_reset(self):
+        self.m3_tuple.set_field_data("TestLoc", "location")
+        self.m3_tuple.del_field_data()
+        self.assertEqual(self.m3_tuple.field_data["default_field"], "field")
+        self.assertEqual(self.m3_tuple.field_data["mesh_type"], "unstructured")
+        self.assertEqual(self.m3_tuple.default_field, "field")
+        self.assertEqual(self.m3_tuple.mesh_type, "unstructured")
+
     def test_point_data_check(self):
         self.assertRaises(ValueError, self.m1_tuple.add_field, self.f1_grid)
         self.assertRaises(ValueError, self.m1_tuple.add_field, self.f2_grid)
