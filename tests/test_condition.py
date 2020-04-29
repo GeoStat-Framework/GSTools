@@ -46,7 +46,6 @@ class TestCondition(unittest.TestCase):
             )
             srf = SRF(model, self.mean, seed=19970221)
             srf.set_condition(self.cond_pos[0], self.cond_val, "simple")
-            # TODO should this be possible?!?
             field_1 = srf.unstructured(self.pos[0])
             field_2 = srf.structured(self.pos[0])
             for i, val in enumerate(self.cond_val):

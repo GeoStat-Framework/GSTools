@@ -73,6 +73,19 @@ class TestSRF(unittest.TestCase):
         )
         self.assertEqual(field_unstr.shape, (len(self.x_tuple),))
 
+    def test_ens(self):
+        srf = SRF(
+            self.cov_model,
+            (self.x_tuple, self.y_tuple, self.z_tuple),
+            mean=self.mean,
+            mode_no=self.mode_no,
+        )
+        for i in range(3):
+            name = "ens_{}".format(i+1)
+            srf(name=name)
+            self.assertTrue(name in srf.point_data.keys())
+        self.assertEqual(srf.default_field, "ens_1")
+
     def test_anisotropy_2d(self):
         self.cov_model.dim = 2
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
