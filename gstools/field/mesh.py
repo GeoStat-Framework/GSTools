@@ -460,8 +460,12 @@ class Mesh:
         if self.mesh_type == "unstructured":
             # scalar
             if len(values.shape) == 1:
-                if values.shape[0] == len(self.pos[0]):
-                    err = False
+                try:
+                    if values.shape[0] == len(self.pos[0]):
+                        err = False
+                except TypeError:
+                    if values.shape[0] == len(self.pos):
+                        err = False
             # vector
             elif len(values.shape) == 2:
                 if (
@@ -477,7 +481,10 @@ class Mesh:
                 )
         else:
             # scalar
-            if len(values.shape) == len(self.pos):
+            # 1d case
+            if values.shape[0] == len(self.pos):
+                err = False
+            elif len(values.shape) == len(self.pos):
                 if all(
                     [
                         values.shape[i] == len(self.pos[i])
@@ -496,10 +503,7 @@ class Mesh:
                     err = False
             if err:
                 raise ValueError(
-                    "Wrong field shape: {0} does not match mesh shape [0/2/3]{1}".format(
-                        list(values.shape),
-                        [len(self.pos[i]) for i in range(len(self.pos))],
-                    )
+                    "Wrong field shape, it does not match mesh shape"
                 )
 
 
