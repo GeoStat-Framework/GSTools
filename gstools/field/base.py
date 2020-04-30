@@ -49,7 +49,11 @@ class Field(Mesh):
     ):
         # initialize attributes
         super().__init__(
-            pos=pos, name=name, values=values, mesh_type=mesh_type
+            dim=model.dim,
+            pos=pos,
+            name=name,
+            values=values,
+            mesh_type=mesh_type,
         )
         # initialize private attributes
         self._model = None

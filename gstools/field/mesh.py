@@ -64,7 +64,7 @@ class Mesh:
     >>> pos = np.linspace(0., 100., 40)
     >>> z = np.random.random(40)
     >>> z2 = np.random.random(40)
-    >>> mesh = Mesh((pos,))
+    >>> mesh = Mesh(1, (pos,))
     >>> mesh.add_field(z, "test_field1")
     >>> mesh.add_field(z2, "test_field2")
     >>> mesh.set_default_field("test_field2")
@@ -73,8 +73,9 @@ class Mesh:
     """
 
     def __init__(
-        self, pos=None, name="field", values=None, mesh_type="unstructured",
+        self, dim, pos=None, name="field", values=None, mesh_type="unstructured",
     ):
+        self._dim = dim
         self._vtk_export_fct = self._vtk_export_unstructured
         self._to_vtk_fct = self._to_vtk_unstructured
         # mesh_type needs a special setter, therefore, `set_field_data` is not
@@ -158,6 +159,11 @@ class Mesh:
 
     def __setitem__(self, key, value):
         self.point_data[key] = value
+
+    @property
+    def dim(self):
+        """:any:`int`: The dimension of the mesh."""
+        return self._dim
 
     @property
     def pos(self):

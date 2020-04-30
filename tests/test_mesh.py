@@ -34,14 +34,16 @@ class TestMesh(unittest.TestCase):
         self.f2_tuple = self.x_tuple * self.y_tuple
         self.f3_tuple = self.x_tuple * self.y_tuple * self.z_tuple
 
-        self.m1_grid = Mesh((self.x_grid,), mesh_type="structured")
-        self.m2_grid = Mesh((self.x_grid, self.y_grid), mesh_type="structured")
-        self.m3_grid = Mesh(
-            (self.x_grid, self.y_grid, self.z_grid), mesh_type="structured"
+        self.m1_grid = Mesh(1, (self.x_grid,), mesh_type="structured")
+        self.m2_grid = Mesh(
+            2, (self.x_grid, self.y_grid), mesh_type="structured"
         )
-        self.m1_tuple = Mesh((self.x_tuple,))
-        self.m2_tuple = Mesh((self.x_tuple, self.y_tuple))
-        self.m3_tuple = Mesh((self.x_tuple, self.y_tuple, self.z_tuple))
+        self.m3_grid = Mesh(
+            3, (self.x_grid, self.y_grid, self.z_grid), mesh_type="structured"
+        )
+        self.m1_tuple = Mesh(1, (self.x_tuple,))
+        self.m2_tuple = Mesh(2, (self.x_tuple, self.y_tuple))
+        self.m3_tuple = Mesh(3, (self.x_tuple, self.y_tuple, self.z_tuple))
 
     def test_item_getter_setter(self):
         self.m3_grid.add_field(256.0 * self.f3_grid, name="2nd")
@@ -178,8 +180,8 @@ class TestMesh(unittest.TestCase):
         z_tuple3 = self.rng.uniform(0.0, 10, (3, 100))
         f_tuple3 = np.vstack((x_tuple2, y_tuple2, z_tuple3))
 
-        m2_tuple = Mesh((x_tuple2, y_tuple2))
-        m3_tuple = Mesh((x_tuple3, y_tuple3, z_tuple3))
+        m2_tuple = Mesh(2, (x_tuple2, y_tuple2))
+        m3_tuple = Mesh(3, (x_tuple3, y_tuple3, z_tuple3))
 
         self.assertRaises(ValueError, m2_tuple.add_field, f_tuple3)
         self.assertRaises(ValueError, m3_tuple.add_field, f_tuple2)

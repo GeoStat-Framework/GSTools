@@ -39,7 +39,7 @@ del(tmp_srf)
 # ^^^^^^^^^^^^^^^^^
 #
 # Starting out fresh, we want to feed the mesh with our data
-mesh = gs.Mesh(pos=(x, y), values=field)
+mesh = gs.Mesh(2, pos=(x, y), values=field)
 
 # We can add meta data too
 mesh.set_field_data("Süderbrarup", "location")
