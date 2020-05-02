@@ -171,7 +171,7 @@ def unstructured(
     const double[:] y=None,
     const double[:] z=None,
     const double[:] angles=None,
-    const double angles_tol_rad=0.0872665,
+    const double angles_tol=0.0872665,
     str estimator_type='m'
 ):
     if x.shape[0] != f.shape[0]:
