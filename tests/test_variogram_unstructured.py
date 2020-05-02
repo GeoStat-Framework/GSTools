@@ -217,6 +217,101 @@ class TestVariogramUnstructured(unittest.TestCase):
             ValueError, vario_estimate_unstructured, [x], field_e, bins
         )
 
+    def test_angles(self):
+        x = np.array([
+        -4.86210059, -4.1984934 , -3.9246953 , -3.28490663, -2.16332379,
+        -1.87553275, -1.74125124, -1.27224687, -1.20931578, -0.2413368 ,
+         0.03200921,  1.17099773,  1.53863105,  1.64478688,  2.75252136,
+         3.3556915 ,  3.89828775,  4.21485964,  4.5364357 ,  4.79236969]),
+        field = np.array([
+        -1.10318365, -0.53566629, -0.41789049, -1.06167529,  0.38449961,
+        -0.36550477, -0.98905552, -0.19352766,  0.16264266,  0.26920833,
+         0.05379665,  0.71275006,  0.36651935,  0.17366865,  1.20022343,
+         0.79385446,  0.69456069,  1.0733393 ,  0.71191592,  0.71969766])
+        
+        gamma_exp = np.array([
+        0.14260989, 0.18301197, 0.25855841, 0.29990083, 0.67914526,
+        0.60136535, 0.92875492, 1.46910435, 1.10165104])
+        
+        bins = np.arange(0, 10)
+        
+        y = np.zeros_like(x)
+        
+        # test case 1.)
+        #    all along x axis on x axis
+        
+        bin_centres, gamma = vario_estimate_unstructured(
+            (x, y),
+            field,
+            bins,
+            angles=[0]
+        )
+        
+        for i in range(gamma.size):
+            self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
 
+
+        # test case 2.)
+        #    all along y axis on y axis but calculation for x axis
+            
+        bin_centres, gamma = vario_estimate_unstructured(
+            (y, x),
+            field,
+            bins,
+            angles=[0]
+        )
+        
+        for i in range(gamma.size):
+            self.assertAlmostEqual(0, gamma[i], places=3)
+            
+        # test case 3.)
+        #    all along y axis on y axis and calculation for y axis
+            
+        bin_centres, gamma = vario_estimate_unstructured(
+            (y, x),
+            field,
+            bins,
+            angles=[np.pi/2.]
+        )
+        
+        for i in range(gamma.size):
+            self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
+            
+        # test case 4.)
+        #    data along 45deg axis but calculation for x axis
+            
+        ccos, csin = np.cos(np.pi/4.), np.sin(np.pi/4.)
+        
+        xr = [xx * ccos - yy * csin for xx, yy in zip(x, y)]
+        yr = [xx * csin + yy * ccos for xx, yy in zip(x, y)]
+        
+        bin_centres, gamma = vario_estimate_unstructured(
+            (xr, yr),
+            field,
+            bins,
+            angles=[0]
+        )
+        
+        for i in range(gamma.size):
+            self.assertAlmostEqual(0, gamma[i], places=3)
+            
+        # test case 5.)
+        #    data along 45deg axis and calculation for 45deg
+            
+        ccos, csin = np.cos(np.pi/4.), np.sin(np.pi/4.)
+        
+        xr = [xx * ccos - yy * csin for xx, yy in zip(x, y)]
+        yr = [xx * csin + yy * ccos for xx, yy in zip(x, y)]
+        
+        bin_centres, gamma = vario_estimate_unstructured(
+            (xr, yr),
+            field,
+            bins,
+            angles=[np.pi/4.]
+        )
+        
+        for i in range(gamma.size):
+            self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
+            
 if __name__ == "__main__":
     unittest.main()
