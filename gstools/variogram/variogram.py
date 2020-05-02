@@ -37,6 +37,8 @@ def vario_estimate_unstructured(
     pos,
     field,
     bin_edges,
+    angles=None,
+    angles_tol=0.0872665,
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
@@ -75,6 +77,17 @@ def vario_estimate_unstructured(
         the spatially distributed data
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
+    angles : :class:`numpy.ndarray`
+        the angles of the main axis to calculate the variogram for in radians
+        angle definitions from ISO standard 80000-2:2009 
+        for 1d this parameter will have no effect at all
+        for 2d supply one angle which is azimuth φ (ccw from +x in xy plane)
+        for 3d supply two angles which are inclination θ (cw from +z)
+        and azimuth φ (ccw from +x in xy plane)
+    angles_tol : :float
+        the tolerance around the variogram angle to count a point as being
+        within this direction from another point (the angular tolerance around
+        the directional vector given by angles)
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
@@ -100,7 +113,18 @@ def vario_estimate_unstructured(
     field = np.array(field, ndmin=1, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
+    
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    
+    if angles is not None:
+        angles = np.array(angles, ndmin=1, dtype=np.double)
+        if angles.size == 0:
+            angles = np.append(angles, [0,0,0])
+        elif angles.size == 1:
+            angles = np.append(angles, [0,0])
+        elif angles.size == 2:
+            angles = np.append(angles, [0])
+            
 
     if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.RandomState(sampling_seed).choice(
@@ -118,7 +142,7 @@ def vario_estimate_unstructured(
     return (
         bin_centres,
         unstructured(
-            field, bin_edges, x, y, z, estimator_type=cython_estimator
+            field, bin_edges, x, y, z, angles, angles_tol, estimator_type=cython_estimator
         ),
     )
 
