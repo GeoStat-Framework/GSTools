@@ -84,7 +84,7 @@ def vario_estimate_unstructured(
         for 2d supply one angle which is azimuth φ (ccw from +x in xy plane)
         for 3d supply two angles which are inclination θ (cw from +z)
         and azimuth φ (ccw from +x in xy plane)
-    angles_tol : :float
+    angles_tol : class:`float`
         the tolerance around the variogram angle to count a point as being
         within this direction from another point (the angular tolerance around
         the directional vector given by angles)
