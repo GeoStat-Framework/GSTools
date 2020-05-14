@@ -38,7 +38,7 @@ def vario_estimate_unstructured(
     field,
     bin_edges,
     angles=None,
-    angles_tol=0.0872665,
+    angles_tol=0.436332,
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
@@ -87,7 +87,8 @@ def vario_estimate_unstructured(
     angles_tol : class:`float`
         the tolerance around the variogram angle to count a point as being
         within this direction from another point (the angular tolerance around
-        the directional vector given by angles)
+        the directional vector given by angles) 
+        Default: 25°≈0.436332
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
