@@ -129,6 +129,23 @@ class CovModel(metaclass=InitSubclassMeta):
         if not hasattr(self, "variogram"):
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
+        # prepare dim setting
+        self._dim = None
+        self._hankel_kw = None
+        self._sft = None
+        # prepare parameters (they are checked in dim setting)
+        self._len_scale = None
+        self._anis = None
+        self._angles = None
+        # prepare parameters boundaries
+        self._var_bounds = None
+        self._len_scale_bounds = None
+        self._nugget_bounds = None
+        self._opt_arg_bounds = {}
+        # SFT class will be created within dim.setter but needs hankel_kw
+        self.hankel_kw = hankel_kw
+        self.dim = dim
+
         # optional arguments for the variogram-model
         self._opt_arg = []
         # look up the defaults for the optional arguments (defined by the user)
@@ -160,24 +177,10 @@ class CovModel(metaclass=InitSubclassMeta):
             setattr(self, opt_name, opt_arg[opt_name])
 
         # set standard boundaries for variance, len_scale, nugget and opt_arg
-        self._var_bounds = None
-        self._len_scale_bounds = None
-        self._nugget_bounds = None
-        self._opt_arg_bounds = {}
         bounds = self.default_arg_bounds()
         bounds.update(self.default_opt_arg_bounds())
         self.set_arg_bounds(check_args=False, **bounds)
 
-        # prepare dim setting
-        self._dim = None
-        self._len_scale = None
-        self._anis = None
-        self._angles = None
-        # SFT class will be created within dim.setter but needs hankel_kw
-        self._hankel_kw = None
-        self._sft = None
-        self.hankel_kw = hankel_kw
-        self.dim = dim
         # set parameters
         self._nugget = nugget
         self._angles = set_angles(self.dim, angles)
@@ -1004,6 +1007,7 @@ class CovModel(metaclass=InitSubclassMeta):
             print(self.name + ": using fixed dimension " + str(self.fix_dim()))
             dim = self.fix_dim()
         # set the dimension
+        # TODO: add a routine to check if dimension is valid
         if dim < 1 or dim > 3:
             raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
         self._dim = int(dim)
