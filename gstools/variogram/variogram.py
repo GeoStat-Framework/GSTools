@@ -42,6 +42,7 @@ def vario_estimate_unstructured(
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    return_counts=False
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -104,11 +105,16 @@ def vario_estimate_unstructured(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
-
+    return_counts: class:`bool`, optional
+        if set to true, this function will also return the number of data 
+        points found at each lag distance as a third return value
+        Default: False
     Returns
     -------
     :class:`tuple` of :class:`numpy.ndarray`
-        the estimated variogram and the bin centers
+        1. the bin centers
+        2. the estimated variogram values at bin centers
+        (optional) 3. the number of points found at each bin center (see argument return_counts)
     """
     # TODO check_mesh
     field = np.array(field, ndmin=1, dtype=np.double)
@@ -140,12 +146,21 @@ def vario_estimate_unstructured(
 
     cython_estimator = _set_estimator(estimator)
 
-    return (
-        bin_centres,
-        unstructured(
+    estimates, counts = unstructured(
             field, bin_edges, x, y, z, angles, angles_tol, estimator_type=cython_estimator
-        ),
-    )
+        )
+
+    if return_counts:
+        return (
+            bin_centres,
+            estimates,
+            counts
+        )
+    else:
+        return (
+            bin_centres,
+            estimates
+        )
 
 
 def vario_estimate_structured(field, direction="x", estimator="matheron"):

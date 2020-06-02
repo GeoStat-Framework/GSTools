@@ -234,7 +234,7 @@ def unstructured(
                         variogram[i] += estimator_func(f[k] - f[j])
 
     normalization_func(variogram, counts)
-    return np.asarray(variogram)
+    return np.asarray(variogram), np.asarray(counts)
 
 
 def structured(const double[:,:,:] f, str estimator_type='m'):
