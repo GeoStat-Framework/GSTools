@@ -54,7 +54,7 @@ def ordinary(srf):
     )
     err_field, __ = err_ok(srf.pos, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field
-    info = {"mean": krige_ok.mean}
+    info = {"mean": krige_ok.get_mean()}
     return cond_field, krige_field, err_field, krige_var, info
 
 
