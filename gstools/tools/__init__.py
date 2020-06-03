@@ -19,6 +19,7 @@ Special functions
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   confidence_scaling
    inc_gamma
    exp_int
    inc_beta
@@ -49,6 +50,7 @@ from gstools.tools.export import (
 )
 
 from gstools.tools.special import (
+    confidence_scaling,
     inc_gamma,
     exp_int,
     inc_beta,
@@ -66,6 +68,7 @@ __all__ = [
     "to_vtk",
     "to_vtk_structured",
     "to_vtk_unstructured",
+    "confidence_scaling",
     "inc_gamma",
     "exp_int",
     "inc_beta",
