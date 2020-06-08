@@ -335,29 +335,51 @@ class TestVariogramUnstructured(unittest.TestCase):
             
     def test_angles_2D_xy2xy(self):
 
-        x = self.test_data_rotation_1['x']
-        field = self.test_data_rotation_1['field']
-        gamma_exp = self.test_data_rotation_1['gamma']
-        bins = self.test_data_rotation_1['bins']
-        y = np.zeros_like(x)
+        seed = gs.random.MasterRNG(19970221)
+        rng = np.random.RandomState(seed())
+        rng = np.random
+        x = rng.randint(0, 100, size=3000)
+        y = rng.randint(0, 100, size=3000)
 
-        # test case 5.)
-        #    data along 45deg axis and calculation for 45deg
-            
-        ccos, csin = np.cos(np.pi/4.), np.sin(np.pi/4.)
-        
-        xr = [xx * ccos - yy * csin for xx, yy in zip(x, y)]
-        yr = [xx * csin + yy * ccos for xx, yy in zip(x, y)]
-        
-        bin_centres, gamma = vario_estimate_unstructured(
-            (xr, yr),
-            field,
-            bins,
-            angles=[np.pi/4.]
-        )
-        
-        for i in range(gamma.size):
-            self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
-            
+        model = gs.Exponential(dim=2, var=1, len_scale=[12, 3], angles=np.pi / 8)
+        model_maj = gs.Exponential(dim=1, var=1, len_scale=[12], angles=np.pi / 8)
+        model_min = gs.Exponential(dim=1, var=1, len_scale=[3], angles=np.pi / 8 + np.pi/2)
+
+        srf = gs.SRF(model, seed=20170519)
+        field = srf((x, y))
+
+
+        bins = np.arange(0, 50, 2.5)
+        angle_mask = 22.5
+        angle_tol = 22.5
+
+        bin_centers_maj, gamma_maj = gs.vario_estimate_unstructured(
+                (x, y),
+                field,
+                bins,
+                angles=[np.deg2rad(angle_mask)],
+                angles_tol=np.deg2rad(angle_tol)
+            )
+
+        bin_centers_min, gamma_min = gs.vario_estimate_unstructured(
+                (x, y),
+                field,
+                bins,
+                angles=[np.deg2rad(angle_mask + 90.0)],
+                angles_tol=np.deg2rad(angle_tol)
+            )
+
+        gamma_maj_real = model_maj.variogram(bin_centers_maj)
+        gamma_min_real = model_min.variogram(bin_centers_min)
+
+        # we have no real way of testing values, but we can test some basic properties which definitelly need to be true
+        # test that the major estimate aligns better with major real than minor real
+        self.assertTrue(np.sum((gamma_maj_real - gamma_maj)**2) < np.sum((gamma_min_real - gamma_maj)**2))
+        # test that the minor estimate aligns better with minor real than major real
+        self.assertTrue(np.sum((gamma_min_real - gamma_min)**2) < np.sum((gamma_maj_real - gamma_min)**2))
+        # test that both variograms converge within reasonable closeness (less than 10% rel error) to the actual field variance
+        self.assertTrue((np.mean(gamma_min[-5:]) - np.var(field)) / np.var(field) < 0.1)
+        self.assertTrue((np.mean(gamma_maj[-5:]) - np.var(field)) / np.var(field) < 0.1)
+
 if __name__ == "__main__":
     unittest.main()
