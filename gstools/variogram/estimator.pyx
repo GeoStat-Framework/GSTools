@@ -70,9 +70,26 @@ cdef inline bint _angle_test_2d(
     cdef double dx = x[i] - x[j]
     cdef double dy = y[i] - y[j]
 
+    # azimuth
     cdef double phi = atan2(dy,dx)
     return fabs(phi - angles[0]) <= angles_tol
 
+cdef inline bint _angle_test_3d_ignore_azim(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const double[:] angles,
+    const double angles_tol,
+    const int i,
+    const int j
+) nogil:
+    cdef double dx = x[i] - x[j]
+    cdef double dy = y[i] - y[j]
+    cdef double dz = z[i] - z[j]
+
+    # elevation
+    cdef double theta = atan2(dz,sqrt(dx + dy))
+    return fabs(angles[1] - theta) <= angles_tol
 
 cdef inline bint _angle_test_3d(
     const double[:] x,
@@ -87,9 +104,12 @@ cdef inline bint _angle_test_3d(
     cdef double dy = y[i] - y[j]
     cdef double dz = z[i] - z[j]
 
-    cdef double theta = atan2(dz,sqrt(dx + dy))
+    # azimuth
     cdef double phi = atan2(dy,dx)
-    return fabs(theta - angles[0]) <= angles_tol and fabs(phi - angles[1]) <= angles_tol
+    # elevation
+    cdef double theta = atan2(dz,sqrt(dx + dy))
+
+    return sqrt((angles[0] - phi)**2 + (angles[1] - theta)**2) <= angles_tol
 
 cdef inline double estimator_matheron(const double f_diff) nogil:
     return f_diff * f_diff
@@ -189,7 +209,13 @@ def unstructured(
             raise ValueError('len(z) = {0} != len(f) = {1} '.
                              format(z.shape[0], f.shape[0]))
         distance = _distance_3d
-        angle_test = _angle_test_3d
+
+        # check if elevation is perpendicular to original axis
+        if angles is not None and fabs(angles[1] - 0.5*np.pi) < 1e-12 or fabs(angles[1] - 1.5*np.pi) < 1e-12:
+            # if so it does not matter how we rotated before (at least when dealing with two points)
+            angle_test = _angle_test_3d_ignore_azim
+        else:
+            angle_test = _angle_test_3d
     # 2d
     elif y is not None:
         if y.shape[0] != f.shape[0]:
