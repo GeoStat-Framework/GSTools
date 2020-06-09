@@ -333,7 +333,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         for i in range(gamma.size):
             self.assertAlmostEqual(0, gamma[i], places=3)
             
-    def test_angles_2D_xy2xy(self):
+    def test_angles_2D_estim(self):
 
         seed = gs.random.MasterRNG(19970221)
         rng = np.random.RandomState(seed())
@@ -342,8 +342,8 @@ class TestVariogramUnstructured(unittest.TestCase):
         y = rng.randint(0, 100, size=3000)
 
         model = gs.Exponential(dim=2, var=1, len_scale=[12, 3], angles=np.pi / 8)
-        model_maj = gs.Exponential(dim=1, var=1, len_scale=[12], angles=np.pi / 8)
-        model_min = gs.Exponential(dim=1, var=1, len_scale=[3], angles=np.pi / 8 + np.pi/2)
+        model_maj = gs.Exponential(dim=1, var=1, len_scale=[12])
+        model_min = gs.Exponential(dim=1, var=1, len_scale=[3])
 
         srf = gs.SRF(model, seed=20170519)
         field = srf((x, y))
@@ -380,6 +380,133 @@ class TestVariogramUnstructured(unittest.TestCase):
         # test that both variograms converge within reasonable closeness (less than 10% rel error) to the actual field variance
         self.assertTrue((np.mean(gamma_min[-5:]) - np.var(field)) / np.var(field) < 0.1)
         self.assertTrue((np.mean(gamma_maj[-5:]) - np.var(field)) / np.var(field) < 0.1)
+
+    def test_angles_line_3D(self):
+
+        x = self.test_data_rotation_1['x']
+        field = self.test_data_rotation_1['field']
+        gamma_exp = self.test_data_rotation_1['gamma']
+        bins = self.test_data_rotation_1['bins']            
+
+        def test_xyz(x, y, z, angles, gamma_exp):
+            bin_centres, gamma = vario_estimate_unstructured(
+                (x, y, z),
+                field,
+                bins,
+                angles=angles
+            )
+
+            if np.ndim(gamma_exp) == 0:
+                gamma_exp = np.ones_like(gamma) * gamma_exp
+
+            for i in range(gamma.size):
+                self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
+
+        # all along x axis and calculation for x axis
+        test_xyz(x, np.zeros_like(x), np.zeros_like(x), [0], gamma_exp)
+        # all along y axis and calculation for x axis
+        test_xyz(np.zeros_like(x), x, np.zeros_like(x), [0], 0)
+        # all along z axis and calculation for x axis
+        test_xyz(np.zeros_like(x), np.zeros_like(x), x, [0], 0)
+
+        angles_rot_azim_90 = [np.pi/2]
+        # all along x axis and calculation for y axis
+        test_xyz(x, np.zeros_like(x), np.zeros_like(x), angles_rot_azim_90, 0)
+        # all along y axis and calculation for y axis
+        test_xyz(np.zeros_like(x), x, np.zeros_like(x), angles_rot_azim_90, gamma_exp)
+        # all along z axis and calculation for y axis
+        test_xyz(np.zeros_like(x), np.zeros_like(x), x, angles_rot_azim_90, 0)
+
+        # for elevation it is important to check, that IF elevation is 90° or 270° it does 
+        # not matter how we rotated before, since any rotation around z (in XY plane) 
+        # followed by a rotation around x' (in YZ' plane) by 90° will result in the same
+        # coordinates, (when the structure is two points with zero extend)
+
+        # test with [0, 90]
+        angles_rot_azim_90_elev_90 = [0, np.pi/2]
+        # all along x axis and calculation for z axis
+        test_xyz(x, np.zeros_like(x), np.zeros_like(x), angles_rot_azim_90_elev_90, 0)
+        # all along y axis and calculation for z axis
+        test_xyz(np.zeros_like(x), x, np.zeros_like(x), angles_rot_azim_90_elev_90, 0)
+        # all along z axis and calculation for z axis
+        test_xyz(np.zeros_like(x), np.zeros_like(x), x, angles_rot_azim_90_elev_90, gamma_exp)
+
+        # test with [90, 90]     
+        angles_rot_azim_90_elev_90 = [np.pi/2, np.pi/2]
+        # all along x axis and calculation for z axis
+        test_xyz(x, np.zeros_like(x), np.zeros_like(x), angles_rot_azim_90_elev_90, 0)
+        # all along y axis and calculation for z axis
+        test_xyz(np.zeros_like(x), x, np.zeros_like(x), angles_rot_azim_90_elev_90, 0)
+        # all along z axis and calculation for z axis
+        test_xyz(np.zeros_like(x), np.zeros_like(x), x, angles_rot_azim_90_elev_90, gamma_exp)
+
+    def test_angles_3D_estim(self):
+
+        seed = gs.random.MasterRNG(19970221)
+        rng = np.random.RandomState(seed())
+        rng = np.random
+        x = rng.randint(0, 50, size=1000)
+        y = rng.randint(0, 50, size=1000)
+        z = rng.randint(0, 50, size=1000)
+
+        model = gs.Exponential(dim=3, var=1, len_scale=[10, 5, 2], angles=[np.pi / 8, np.pi / 16])
+        model_maj = gs.Exponential(dim=1, var=1, len_scale=[10])
+        model_min1 = gs.Exponential(dim=1, var=1, len_scale=[5])
+        model_min2 = gs.Exponential(dim=1, var=1, len_scale=[2])
+
+        srf = gs.SRF(model, seed=20170519)
+        field = srf((x, y, z))
+
+        bins = np.arange(0, 25, 5)
+        angle_mask = [np.pi / 8, np.pi / 16]
+        angle_tol = 22.5
+
+        # in x'
+        bin_centers_maj, gamma_maj = gs.vario_estimate_unstructured(
+                (x, y, z),
+                field,
+                bins,
+                angles=[angle_mask[0], angle_mask[1]],
+                angles_tol=np.deg2rad(angle_tol)
+            )
+
+        # in y'
+        bin_centers_min1, gamma_min1 = gs.vario_estimate_unstructured(
+                (x, y, z),
+                field,
+                bins,
+                angles=[angle_mask[0] + 0.5*np.pi, angle_mask[1]],
+                angles_tol=np.deg2rad(angle_tol)
+            )
+
+        # in z'
+        bin_centers_min2, gamma_min2 = gs.vario_estimate_unstructured(
+                (x, y, z),
+                field,
+                bins,
+                angles=[angle_mask[0], angle_mask[1] + 0.5*np.pi],
+                angles_tol=np.deg2rad(angle_tol)
+            )
+
+        gamma_maj_real = model_maj.variogram(bin_centers_maj)
+        gamma_min1_real = model_min1.variogram(bin_centers_min1)
+        gamma_min2_real = model_min2.variogram(bin_centers_min2)
+
+        # we have no real way of testing values, but we can test some basic properties which definitelly need to be true
+        # test that the major estimate aligns better with major real than the minor reals
+        self.assertTrue(np.sum((gamma_maj_real - gamma_maj)**2) < np.sum((gamma_min1_real - gamma_maj)**2))
+        self.assertTrue(np.sum((gamma_maj_real - gamma_maj)**2) < np.sum((gamma_min2_real - gamma_maj)**2))
+        # test that the minor1 estimate aligns better with minor1 real than major real and minor2 real
+        self.assertTrue(np.sum((gamma_min1_real - gamma_min1)**2) < np.sum((gamma_maj_real - gamma_min1)**2))
+        self.assertTrue(np.sum((gamma_min1_real - gamma_min1)**2) < np.sum((gamma_min2_real - gamma_min1)**2))
+        # test that the minor2 estimate aligns better with minor2 real than major real and minor1 real
+        self.assertTrue(np.sum((gamma_min2_real - gamma_min2)**2) < np.sum((gamma_maj_real - gamma_min2)**2))
+        self.assertTrue(np.sum((gamma_min2_real - gamma_min2)**2) < np.sum((gamma_min1_real - gamma_min2)**2))
+        # test that all variograms converge within reasonable closeness (less than 10% rel error) to the actual field variance
+        self.assertTrue((np.mean(gamma_maj[-5:]) - np.var(field)) / np.var(field) < 0.1)
+        self.assertTrue((np.mean(gamma_min1[-5:]) - np.var(field)) / np.var(field) < 0.1)
+        self.assertTrue((np.mean(gamma_min2[-5:]) - np.var(field)) / np.var(field) < 0.1)
+        
 
 if __name__ == "__main__":
     unittest.main()
