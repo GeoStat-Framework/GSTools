@@ -80,7 +80,6 @@ class Krige(Field):
         The measurement error at the conditioning points.
         Either "nugget" to apply the model-nugget, a single value applied to
         all points or an array with individual values for each point.
-        The measurement error has to be <= nugget.
         The "exact=True" variant only works with "cond_err='nugget'".
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
@@ -527,10 +526,6 @@ class Krige(Field):
                         "krige.cond_err: wrong number of measurement errors."
                     )
                 self._cond_err = value
-            if np.any(self._cond_err > self.model.nugget):
-                raise ValueError(
-                    "krige.cond_err: measurement errors need to be <= nugget."
-                )
 
     @property
     def cond_no(self):
