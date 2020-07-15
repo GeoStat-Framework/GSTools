@@ -33,6 +33,9 @@ from gstools.krige.tools import (
 __all__ = ["Krige"]
 
 
+P_INV = {1: spl.pinv, 2: spl.pinv2, 3: spl.pinvh}
+
+
 class Krige(Field):
     """
     A Swiss Army knife for kriging.
@@ -82,9 +85,17 @@ class Krige(Field):
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
         Whether the kriging system is solved with the pseudo inverted
-        kriging matrix. If `True`, this leads to more numerical stability,
-        but can take more time.
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
         Default: True
+    pseudo_inv_type : :class:`int`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `1`: use `pinv` from `scipy` which uses `lstsq`
+            * `2`: use `pinv2` from `scipy` which uses `SVD`
+            * `3`: use `pinvh` from `scipy` which uses eigen-values
+
+        Default: `1`
     """
 
     def __init__(
@@ -100,12 +111,15 @@ class Krige(Field):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
+        pseudo_inv_type=1,
     ):
         super().__init__(model, mean)
         self.krige_var = None
         self._unbiased = bool(unbiased)
         self._exact = bool(exact)
         self._pseudo_inv = bool(pseudo_inv)
+        self._pseudo_inv_type = None
+        self.pseudo_inv_type = pseudo_inv_type
         # initialize private attributes
         self._value_type = "scalar"
         self._cond_pos = None
@@ -233,7 +247,9 @@ class Krige(Field):
         res[self.cond_no :, self.cond_no :] = 0
         # return pseudo-inverted matrix if wanted (numerically more stable)
         if self.pseudo_inv:
-            return spl.pinvh(res)
+            # use the selected method to compute the pseudo-inverse matrix
+            return P_INV[self.pseudo_inv_type](res)
+        # if no pseudo-inverse is wanted, calculate the real inverse
         return spl.inv(res)
 
     def _get_krige_vecs(
@@ -535,6 +551,17 @@ class Krige(Field):
     def pseudo_inv(self):
         """:class:`bool`: Whether pseudo inverse matrix is used."""
         return self._pseudo_inv
+
+    @property
+    def pseudo_inv_type(self):
+        """:class:`int`: Method selector for pseudo inverse calculation."""
+        return self._pseudo_inv_type
+
+    @pseudo_inv_type.setter
+    def pseudo_inv_type(self, val):
+        if val not in [1, 2, 3]:
+            raise ValueError("Krige: pseudo_inv_type needs to be in [1,2,3]")
+        self._pseudo_inv_type = val
 
     @property
     def cond_ext_drift(self):
