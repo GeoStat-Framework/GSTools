@@ -35,6 +35,7 @@ class TestKrige(unittest.TestCase):
         self.cond_pos = (self.data[:, 0], self.data[:, 1], self.data[:, 2])
         # condition values
         self.cond_val = self.data[:, 3]
+        self.cond_err = np.array([0.01, 0.0, 0.1, 0.05, 0])
         # the arithmetic mean of the conditions
         self.mean = np.mean(self.cond_val)
         # the grid
@@ -218,6 +219,31 @@ class TestKrige(unittest.TestCase):
                     self.assertAlmostEqual(
                         field[0], np.mean(self.p_vals), places=2
                     )
+
+    def test_error(self):
+
+        for Model in self.cov_models:
+            for dim in self.dims:
+                model = Model(
+                    dim=dim,
+                    var=5,
+                    len_scale=10,
+                    nugget=0.1,
+                    anis=[0.9, 0.8],
+                    angles=[2, 1, 0.5],
+                )
+                ordinary = krige.Ordinary(
+                    model,
+                    self.cond_pos[:dim],
+                    self.cond_val,
+                    exact=False,
+                    cond_err=self.cond_err,
+                )
+                field, err = ordinary(self.cond_pos[:dim])
+                # when the given measurement error is 0, the kriging-var
+                # should equal the nugget of the model
+                self.assertAlmostEqual(err[1], model.nugget, places=2)
+                self.assertAlmostEqual(err[4], model.nugget, places=2)
 
 
 if __name__ == "__main__":
