@@ -8,9 +8,6 @@ for each point or set the nugget as a constant measurement error everywhere.
 
 In the following we will show the influence of the nugget and
 measurement errors.
-
-Note, that the given measurement errors need to be smaller than the nugget
-of the model.
 """
 
 import numpy as np
@@ -38,7 +35,7 @@ krig = gs.krige.Krige(
     exact=False,
     cond_err=cond_err,
 )
-krig(gridx, only_mean=False)
+krig(gridx)
 
 ###############################################################################
 # Let's plot the data. You can see, that the estimated values differ more from
