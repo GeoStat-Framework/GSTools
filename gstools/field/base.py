@@ -185,7 +185,7 @@ class Field:
         axis_lens : :class:`tuple` or :any:`None`
             axis lengths of the structured mesh if mesh type was changed.
         """
-        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
+        x, y, z = pos2xyz(pos, dtype=np.double, max_dim=self.model.dim)
         pos = xyz2pos(x, y, z)
         mesh_type_gen = mesh_type
         # format the positional arguments of the mesh
