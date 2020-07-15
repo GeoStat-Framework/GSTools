@@ -10,14 +10,14 @@ The resulting system of equations for :math:`W` is given by:
 .. math::
 
    \begin{pmatrix}W\\\mu\end{pmatrix} = \begin{pmatrix}
-   \gamma(x_1,x_1) & \cdots & \gamma(x_1,x_n) &1 \\
+   c(x_1,x_1) & \cdots & c(x_1,x_n) &1 \\
    \vdots & \ddots & \vdots  & \vdots \\
-   \gamma(x_n,x_1) & \cdots & \gamma(x_n,x_n) & 1 \\
+   c(x_n,x_1) & \cdots & c(x_n,x_n) & 1 \\
    1 &\cdots& 1 & 0
    \end{pmatrix}^{-1}
-   \begin{pmatrix}\gamma(x_1,x_0) \\ \vdots \\ \gamma(x_n,x_0) \\ 1\end{pmatrix}
+   \begin{pmatrix}c(x_1,x_0) \\ \vdots \\ c(x_n,x_0) \\ 1\end{pmatrix}
 
-Thereby :math:`\gamma(x_i,x_j)` is the semi-variogram of the given observations
+Thereby :math:`c(x_i,x_j)` is the covariance of the given observations
 and :math:`\mu` is a Lagrange multiplier to minimize the kriging error and estimate the mean.
 
 
