@@ -55,9 +55,17 @@ class Simple(Krige):
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
         Whether the kriging system is solved with the pseudo inverted
-        kriging matrix. If `True`, this leads to more numerical stability,
-        but can take more time.
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
         Default: True
+    pseudo_inv_type : :class:`int`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `1`: use `pinv` from `scipy` which uses `lstsq`
+            * `2`: use `pinv2` from `scipy` which uses `SVD`
+            * `3`: use `pinvh` from `scipy` which uses eigen-values
+
+        Default: `1`
     """
 
     def __init__(
@@ -70,6 +78,7 @@ class Simple(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
+        pseudo_inv_type=1,
     ):
         super().__init__(
             model,
@@ -81,6 +90,7 @@ class Simple(Krige):
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
         )
 
 
@@ -118,9 +128,17 @@ class Ordinary(Krige):
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
         Whether the kriging system is solved with the pseudo inverted
-        kriging matrix. If `True`, this leads to more numerical stability,
-        but can take more time.
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
         Default: True
+    pseudo_inv_type : :class:`int`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `1`: use `pinv` from `scipy` which uses `lstsq`
+            * `2`: use `pinv2` from `scipy` which uses `SVD`
+            * `3`: use `pinvh` from `scipy` which uses eigen-values
+
+        Default: `1`
     """
 
     def __init__(
@@ -132,6 +150,7 @@ class Ordinary(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
+        pseudo_inv_type=1,
     ):
         super().__init__(
             model,
@@ -141,6 +160,7 @@ class Ordinary(Krige):
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
         )
 
 
@@ -191,9 +211,17 @@ class Universal(Krige):
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
         Whether the kriging system is solved with the pseudo inverted
-        kriging matrix. If `True`, this leads to more numerical stability,
-        but can take more time.
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
         Default: True
+    pseudo_inv_type : :class:`int`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `1`: use `pinv` from `scipy` which uses `lstsq`
+            * `2`: use `pinv2` from `scipy` which uses `SVD`
+            * `3`: use `pinvh` from `scipy` which uses eigen-values
+
+        Default: `1`
     """
 
     def __init__(
@@ -206,6 +234,7 @@ class Universal(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
+        pseudo_inv_type=1,
     ):
         super().__init__(
             model,
@@ -216,6 +245,7 @@ class Universal(Krige):
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
         )
 
 
@@ -261,9 +291,17 @@ class ExtDrift(Krige):
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
         Whether the kriging system is solved with the pseudo inverted
-        kriging matrix. If `True`, this leads to more numerical stability,
-        but can take more time.
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
         Default: True
+    pseudo_inv_type : :class:`int`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `1`: use `pinv` from `scipy` which uses `lstsq`
+            * `2`: use `pinv2` from `scipy` which uses `SVD`
+            * `3`: use `pinvh` from `scipy` which uses eigen-values
+
+        Default: `1`
     """
 
     def __init__(
@@ -276,6 +314,7 @@ class ExtDrift(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
+        pseudo_inv_type=1,
     ):
         super().__init__(
             model,
@@ -286,6 +325,7 @@ class ExtDrift(Krige):
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
         )
 
 
@@ -327,9 +367,17 @@ class Detrended(Krige):
         Default: "nugget"
     pseudo_inv : :class:`bool`, optional
         Whether the kriging system is solved with the pseudo inverted
-        kriging matrix. If `True`, this leads to more numerical stability,
-        but can take more time.
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
         Default: True
+    pseudo_inv_type : :class:`int`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `1`: use `pinv` from `scipy` which uses `lstsq`
+            * `2`: use `pinv2` from `scipy` which uses `SVD`
+            * `3`: use `pinvh` from `scipy` which uses eigen-values
+
+        Default: `1`
     """
 
     def __init__(
@@ -341,6 +389,7 @@ class Detrended(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
+        pseudo_inv_type=1,
     ):
         super().__init__(
             model,
@@ -351,6 +400,7 @@ class Detrended(Krige):
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
         )
 
 
