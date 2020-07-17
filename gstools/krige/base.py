@@ -87,13 +87,15 @@ class Krige(Field):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int`, optional
+    pseudo_inv_type : :class:`int` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
             * `1`: use `pinv` from `scipy` which uses `lstsq`
             * `2`: use `pinv2` from `scipy` which uses `SVD`
             * `3`: use `pinvh` from `scipy` which uses eigen-values
 
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
     """
 
@@ -218,6 +220,17 @@ class Krige(Field):
         self._post_field(field, krige_var)
         return self.field, self.krige_var
 
+    def _inv(self, mat):
+        # return pseudo-inverted matrix if wanted (numerically more stable)
+        if self.pseudo_inv:
+            # if the given type is a callable, call it
+            if callable(self.pseudo_inv_type):
+                return self.pseudo_inv_type(mat)
+            # use the selected method to compute the pseudo-inverse matrix
+            return P_INV[self.pseudo_inv_type](mat)
+        # if no pseudo-inverse is wanted, calculate the real inverse
+        return spl.inv(mat)
+
     def _get_krige_mat(self):
         """Calculate the inverse matrix of the kriging equation."""
         res = np.empty((self.krige_size, self.krige_size), dtype=np.double)
@@ -244,12 +257,7 @@ class Krige(Field):
             res[: self.cond_no, ext_size:] = self.cond_ext_drift.T
         # set lower right part of the matrix to 0
         res[self.cond_no :, self.cond_no :] = 0
-        # return pseudo-inverted matrix if wanted (numerically more stable)
-        if self.pseudo_inv:
-            # use the selected method to compute the pseudo-inverse matrix
-            return P_INV[self.pseudo_inv_type](res)
-        # if no pseudo-inverse is wanted, calculate the real inverse
-        return spl.inv(res)
+        return self._inv(res)
 
     def _get_krige_vecs(
         self, pos, chunk_slice=(0, None), ext_drift=None, only_mean=False
@@ -554,7 +562,7 @@ class Krige(Field):
 
     @pseudo_inv_type.setter
     def pseudo_inv_type(self, val):
-        if val not in [1, 2, 3]:
+        if val not in [1, 2, 3] and not callable(val):
             raise ValueError("Krige: pseudo_inv_type needs to be in [1,2,3]")
         self._pseudo_inv_type = val
 
