@@ -46,9 +46,11 @@ the features you want:
   use the pseudo-inverse of the matrix. Then redundant conditional values will automatically
   be averaged.
 
-All mentioned features can be combined within the :any:`Krige` class.
-All other kriging classes are just shortcuts to this class with a limited list
-of input parameters.
+.. note::
+
+   All mentioned features can be combined within the :any:`Krige` class.
+   All other kriging classes are just shortcuts to this class with a limited list
+   of input parameters.
 
 The routines for kriging are almost identical to the routines for spatial random fields,
 with regard to their handling.
