@@ -6,8 +6,8 @@ It can happen, that the kriging system gets numerically unstable.
 One reason could be, that the input data contains redundant conditioning points
 that hold different values.
 
-To smoothly deal with such situations, you can switch on using the pseuodo
-inverse for the kriging matrix.
+To smoothly deal with such situations, you can use the pseudo
+inverse for the kriging matrix, which is enabled by default.
 
 This will result in the average value for the redundant data.
 
