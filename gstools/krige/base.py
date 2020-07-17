@@ -618,6 +618,12 @@ class Krige(Field):
         if not callable(trend_function):
             raise ValueError("Detrended kriging: trend function not callable.")
         self._trend_function = trend_function
+        # apply trend_function instantly (if cond_pos already set)
+        if self._cond_pos is not None:
+            if self._trend_function is no_trend:
+                self._cond_trend = 0.0
+            else:
+                self._cond_trend = self._trend_function(*self.cond_pos)
 
     @property
     def name(self):
