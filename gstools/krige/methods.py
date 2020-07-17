@@ -58,13 +58,15 @@ class Simple(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int`, optional
+    pseudo_inv_type : :class:`int` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
             * `1`: use `pinv` from `scipy` which uses `lstsq`
             * `2`: use `pinv2` from `scipy` which uses `SVD`
             * `3`: use `pinvh` from `scipy` which uses eigen-values
 
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
     """
 
@@ -131,13 +133,15 @@ class Ordinary(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int`, optional
+    pseudo_inv_type : :class:`int` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
             * `1`: use `pinv` from `scipy` which uses `lstsq`
             * `2`: use `pinv2` from `scipy` which uses `SVD`
             * `3`: use `pinvh` from `scipy` which uses eigen-values
 
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
     """
 
@@ -214,13 +218,15 @@ class Universal(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int`, optional
+    pseudo_inv_type : :class:`int` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
             * `1`: use `pinv` from `scipy` which uses `lstsq`
             * `2`: use `pinv2` from `scipy` which uses `SVD`
             * `3`: use `pinvh` from `scipy` which uses eigen-values
 
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
     """
 
@@ -294,13 +300,15 @@ class ExtDrift(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int`, optional
+    pseudo_inv_type : :class:`int` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
             * `1`: use `pinv` from `scipy` which uses `lstsq`
             * `2`: use `pinv2` from `scipy` which uses `SVD`
             * `3`: use `pinvh` from `scipy` which uses eigen-values
 
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
     """
 
@@ -370,13 +378,15 @@ class Detrended(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int`, optional
+    pseudo_inv_type : :class:`int` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
             * `1`: use `pinv` from `scipy` which uses `lstsq`
             * `2`: use `pinv2` from `scipy` which uses `SVD`
             * `3`: use `pinvh` from `scipy` which uses eigen-values
 
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
     """
 
