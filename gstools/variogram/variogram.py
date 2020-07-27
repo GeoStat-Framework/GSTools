@@ -32,6 +32,18 @@ def _set_estimator(estimator):
         )
     return cython_estimator
 
+def _set_distance(distance):
+    """Translate the verbose Python distance identifier to single char."""
+    if distance.lower() == "euclidean":
+        cython_distance = "e"
+    elif distance.lower() == "spherical":
+        cython_distance = "s"
+    else:
+        raise ValueError(
+            "Unknown variogram distance function " + str(distance)
+        )
+    return cython_distance
+
 
 def vario_estimate_unstructured(
     pos,
@@ -40,6 +52,7 @@ def vario_estimate_unstructured(
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    distance="euclidean",
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -92,6 +105,13 @@ def vario_estimate_unstructured(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    distance : :class:`str`, optional
+        the distance function, possible choices:
+
+            * "euclidean": the distance in Euclidean spaces
+            * "spherical": the great-circle distance on spheres
+
+        Default: "euclidean"
 
     Returns
     -------
@@ -116,11 +136,18 @@ def vario_estimate_unstructured(
             z = z[sampled_idx]
 
     cython_estimator = _set_estimator(estimator)
+    cython_distance = _set_distance(distance)
 
     return (
         bin_centres,
         unstructured(
-            field, bin_edges, x, y, z, estimator_type=cython_estimator
+            field,
+            bin_edges,
+            x,
+            y,
+            z,
+            estimator_type=cython_estimator,
+            distance_type=cython_distance,
         ),
     )
 

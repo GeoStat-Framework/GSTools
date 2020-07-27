@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt
+from libc.math cimport fabs, sqrt, pow, sin, cos, atan2, M_PI
 cimport numpy as np
 
 
@@ -35,6 +35,27 @@ cdef inline double _distance_2d(
     const int j
 ) nogil:
     return sqrt((x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]))
+
+cdef inline double _distance_2d_haversine(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const int i,
+    const int j
+) nogil:
+    # x is latitude in degree
+    # y is longitude in degree
+    cdef double deg_2_rad = M_PI / 180.0
+    cdef double diff_lat = (x[j] - x[i]) * deg_2_rad
+    cdef double diff_lon = (y[j] - y[i]) * deg_2_rad
+    cdef double arg = (
+        pow(sin(diff_lat/2.0), 2) +
+        cos(x[i]*deg_2_rad) *
+        cos(x[j]*deg_2_rad) *
+        pow(sin(diff_lon/2.0), 2)
+    )
+    # earth radius for WGS84 ellipsoid r ~ 6371km
+    return 12742000.0 * atan2(sqrt(arg), sqrt(1.0-arg))
 
 cdef inline double _distance_3d(
     const double[:] x,
@@ -117,7 +138,8 @@ def unstructured(
     const double[:] x,
     const double[:] y=None,
     const double[:] z=None,
-    str estimator_type='m'
+    str estimator_type='m',
+    str distance_type='e'
 ):
     if x.shape[0] != f.shape[0]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
@@ -138,6 +160,8 @@ def unstructured(
             raise ValueError('len(y) = {0} != len(f) = {1} '.
                              format(y.shape[0], f.shape[0]))
         distance = _distance_2d
+        if distance_type == 's':
+            distance = _distance_2d_haversine
     # 1d
     else:
         distance = _distance_1d
