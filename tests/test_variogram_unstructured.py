@@ -187,7 +187,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         lat = np.array((38.725267, 0.313611, 31.205167))
         lon = np.array((-9.150019, 32.581111, -7.862263))
         d = np.array((2, 1200, 2570))
-        bins = np.array((0.0, 844_999.0, 6_021_999.0, 10_000_000.0))
+        bins = np.array((0.0, 844999.0, 6021999.0, 10000000.0))
         _, gamma = vario_estimate_unstructured((lat, lon), d, bins, distance='spherical')
         self.assertAlmostEqual(gamma[0], 3297312.)
         self.assertAlmostEqual(gamma[1], 828026.)
