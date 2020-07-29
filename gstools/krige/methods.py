@@ -83,7 +83,7 @@ class Simple(Krige):
             self.field = (
                 field
                 + self.mean
-                + eval_func(self.trend_function, self.pos, self.mesh_type)
+                + eval_func(self.trend_function, self.points, self.mesh_type)
             )
         # add the given mean
         self.krige_var = self.model.sill - krige_var

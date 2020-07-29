@@ -7,6 +7,7 @@ import unittest
 import numpy as np
 
 from gstools import Mesh
+from gstools.field.mesh import convert_points
 
 
 class TestMesh(unittest.TestCase):
@@ -45,6 +46,31 @@ class TestMesh(unittest.TestCase):
         self.m2_tuple = Mesh(2, (self.x_tuple, self.y_tuple))
         self.m3_tuple = Mesh(3, (self.x_tuple, self.y_tuple, self.z_tuple))
 
+    def test_convert_points(self):
+        pass
+        # TODO figure out what this is all about
+        #1d
+        #p1_target = np.array((1, 2, 3, 4)).reshape(4, 1)
+        #print(p1_target.shape)
+        #p1_is = convert_points(1, p1_target)
+        #np.testing.assert_array_equal(p1_is, p1_target)
+
+        #p2 = [1, 2, 3, 4, 5]
+        #p2_target = np.array(p2)
+        #p2_is = convert_points(1, p2)
+        #np.testing.assert_array_equal(p2_is, p2_target)
+
+        #p3 = [[1], [2], [3], [4], [5]]
+        #p3_target = np.array(p3).reshape(-1)
+        #p3_is = convert_points(1, p3)
+        #np.testing.assert_array_equal(p3_is, p3_target)
+
+        ##2d
+        #p4 = [[1, 2], [3, 4], [5, 6]]
+        #p4_target = np.array(p4)
+        #print(p4_target.shape)
+
+
     def test_item_getter_setter(self):
         self.m3_grid.add_field(256.0 * self.f3_grid, name="2nd")
         self.m3_grid.add_field(512.0 * self.f3_grid, name="3rd")
@@ -60,15 +86,15 @@ class TestMesh(unittest.TestCase):
             self.m3_tuple["tmp_field"].all(), (2.0 * self.f3_tuple).all()
         )
 
-    def test_pos_getter(self):
-        self.assertEqual(self.m1_grid.pos, (self.x_grid,))
-        self.assertEqual(self.m1_tuple.pos, (self.x_tuple,))
-        self.assertEqual(self.m2_grid.pos, (self.x_grid, self.y_grid))
+    def test_points_getter(self):
+        self.assertEqual(self.m1_grid.points, (self.x_grid,))
+        self.assertEqual(self.m1_tuple.points, (self.x_tuple,))
+        self.assertEqual(self.m2_grid.points, (self.x_grid, self.y_grid))
         self.assertEqual(
-            self.m3_grid.pos, (self.x_grid, self.y_grid, self.z_grid)
+            self.m3_grid.points, (self.x_grid, self.y_grid, self.z_grid)
         )
         self.assertEqual(
-            self.m3_tuple.pos, (self.x_tuple, self.y_tuple, self.z_tuple)
+            self.m3_tuple.points, (self.x_tuple, self.y_tuple, self.z_tuple)
         )
 
     def test_default_value_type(self):
@@ -86,15 +112,15 @@ class TestMesh(unittest.TestCase):
         self.assertEqual(self.m2_tuple.field_data["mean"], 3.14)
         self.assertEqual(self.m2_tuple.mean, 3.14)
 
-    def test_new_pos(self):
-        # set new pos. (which causes reset)
+    def test_new_points(self):
+        # set new points (which causes reset)
         x_tuple2 = self.rng.uniform(0.0, 10, 100)
         y_tuple2 = self.rng.uniform(0.0, 10, 100)
         self.m2_tuple.add_field(self.f2_tuple)
 
-        self.m2_tuple.pos = (x_tuple2, y_tuple2)
+        self.m2_tuple.points = (x_tuple2, y_tuple2)
 
-        self.assertEqual(self.m2_tuple.pos, (x_tuple2, y_tuple2))
+        self.assertEqual(self.m2_tuple.points, (x_tuple2, y_tuple2))
 
         # previous field has to be deleted
         self.assertEqual(self.m2_tuple.field, None)

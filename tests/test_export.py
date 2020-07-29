@@ -20,7 +20,7 @@ except ImportError:
 class TestExport(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
-        self.x_grid = self.y_grid = self.z_grid = range(25)
+        self.x_grid = self.y_grid = self.z_grid = np.arange(25)
         model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
         self.srf_structured = gs.SRF(model)
         self.srf_structured(
@@ -43,22 +43,22 @@ class TestExport(unittest.TestCase):
 
     @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed.")
     def test_pyvista_struct(self):
-        mesh = self.srf_structured.to_pyvista()
+        mesh = self.srf_structured.convert()
         self.assertIsInstance(mesh, pv.RectilinearGrid)
 
     @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed.")
     def test_pyvista_unstruct(self):
-        mesh = self.srf_unstructured.to_pyvista()
+        mesh = self.srf_unstructured.convert()
         self.assertIsInstance(mesh, pv.UnstructuredGrid)
 
     def test_pyevtk_export_struct(self):
         filename = os.path.join(self.test_dir, "structured")
-        self.srf_structured.vtk_export(filename)
+        self.srf_structured.export(filename, "vtk")
         self.assertTrue(os.path.isfile(filename + ".vtr"))
 
     def test_pyevtk_export_unstruct(self):
         filename = os.path.join(self.test_dir, "unstructured")
-        self.srf_unstructured.vtk_export(filename)
+        self.srf_unstructured.export(filename, "vtk")
         self.assertTrue(os.path.isfile(filename + ".vtu"))
 
     @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed.")
@@ -66,7 +66,7 @@ class TestExport(unittest.TestCase):
         model = gs.Gaussian(dim=2, var=1, len_scale=10)
         srf = gs.SRF(model, generator="VectorField")
         srf((self.x_grid, self.y_grid), mesh_type="structured", seed=19841203)
-        mesh = srf.to_pyvista()
+        mesh = srf.convert()
         self.assertIsInstance(mesh, pv.RectilinearGrid)
 
     @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed.")
@@ -74,7 +74,7 @@ class TestExport(unittest.TestCase):
         model = gs.Gaussian(dim=2, var=1, len_scale=10)
         srf = gs.SRF(model, generator="VectorField")
         srf((self.x_tuple, self.y_tuple), mesh_type="unstructured", seed=19841203)
-        mesh = srf.to_pyvista()
+        mesh = srf.convert()
         self.assertIsInstance(mesh, pv.UnstructuredGrid)
 
     def test_pyevtk_vector_export_struct(self):
@@ -82,7 +82,7 @@ class TestExport(unittest.TestCase):
         model = gs.Gaussian(dim=2, var=1, len_scale=10)
         srf = gs.SRF(model, generator="VectorField")
         srf((self.x_grid, self.y_grid), mesh_type="structured", seed=19841203)
-        srf.vtk_export(filename)
+        srf.export(filename, "vtk")
         self.assertTrue(os.path.isfile(filename + ".vtr"))
 
     def test_pyevtk_vector_export_unstruct(self):
@@ -90,7 +90,7 @@ class TestExport(unittest.TestCase):
         model = gs.Gaussian(dim=2, var=1, len_scale=10)
         srf = gs.SRF(model, generator="VectorField")
         srf((self.x_tuple, self.y_tuple), mesh_type="unstructured", seed=19841203)
-        srf.vtk_export(filename)
+        srf.export(filename, "vtk")
         self.assertTrue(os.path.isfile(filename + ".vtu"))
 
 

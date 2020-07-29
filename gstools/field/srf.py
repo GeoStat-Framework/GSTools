@@ -78,19 +78,20 @@ class SRF(Field):
     def __init__(
         self,
         model,
-        pos=None,
+        points=None,
         mesh_type="unstructured",
         mean=0.0,
         upscaling="no_scaling",
         generator="RandMeth",
         **generator_kwargs
     ):
-        super().__init__(model, pos=pos, mesh_type=mesh_type, mean=mean)
+        super().__init__(model, points=points, mesh_type=mesh_type, mean=mean)
         # initialize private attributes
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
         # condition related
+        # TODO rename to self._cond_points
         self._cond_pos = None
         self._cond_val = None
         self._krige_type = None
@@ -104,7 +105,7 @@ class SRF(Field):
 
     def __call__(
         self,
-        pos=None,
+        points=None,
         name="field",
         seed=np.nan,
         point_volumes=0.0,
@@ -116,7 +117,7 @@ class SRF(Field):
 
         Parameters
         ----------
-        pos : :class:`list`, optional
+        points : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
         seed : :class:`int`, optional
@@ -142,18 +143,18 @@ class SRF(Field):
                 DeprecationWarning,
             )
             self.mesh_type = mesh_type
-        if pos is not None:
+        if points is not None:
             warn(
-                "'pos' will be ignored in the srf.__call__, use "
+                "'points' will be ignored in the srf.__call__, use "
                 "__init__ or setter instead.",
                 DeprecationWarning,
             )
-            self.pos = pos
+            self.points = points
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # internal conversation
-        x, y, z, pos, mt_gen, mt_changed, axis_lens = self._pre_pos(
-            self.pos, self.mesh_type
+        x, y, z, points, mt_gen, mt_changed, axis_lens = self._pre_points(
+            self.points, self.mesh_type
         )
         # generate the field
         self.raw_field = self.generator.__call__(x, y, z, mt_gen)

@@ -156,8 +156,12 @@ class TestKrige(unittest.TestCase):
                 anis=[0.9, 0.8],
                 angles=[2, 1, 0.5],
             )
-            srf = SRF(model)
-            field = srf(grid)
+            # TODO should meshgrids be accepted?!
+            if dim > 1:
+                grid = [g.flatten() for g in grid]
+            # TODO the pre_points shit has to be applied here too
+            srf = SRF(model, grid)
+            field = srf()
             ext_drift.append(field)
             field = field.reshape(self.grid_shape[:dim])
             cond_drift.append(field[self.data_idx[:dim]])

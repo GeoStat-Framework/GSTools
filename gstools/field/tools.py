@@ -74,34 +74,34 @@ def reshape_input_axis_from_struct(x, y=None, z=None):
 # SRF helpers #################################################################
 
 
-def check_mesh(dim, x, y, z, mesh_type):
+def check_mesh(dim, points, mesh_type):
     """Do a basic check of the shapes of the input arrays."""
     if dim >= 2:
-        if y is None:
+        if len(points) < 2:
             raise ValueError(
                 "The y-component is missing for " "{0} dimensions".format(dim)
             )
     if dim == 3:
-        if z is None:
+        if len(points) < 3:
             raise ValueError(
                 "The z-component is missing for " "{0} dimensions".format(dim)
             )
     if mesh_type == "unstructured":
         if dim >= 2:
             try:
-                if len(x) != len(y):
+                if len(points[0]) != len(points[1]):
                     raise ValueError(
                         "len(x) = {0} != len(y) = {1} "
-                        "for unstructured grids".format(len(x), len(y))
+                        "for unstructured grids".format(len(points[0]), len(points[1]))
                     )
             except TypeError:
                 pass
             if dim == 3:
                 try:
-                    if len(x) != len(z):
+                    if len(points[0]) != len(points[2]):
                         raise ValueError(
                             "len(x) = {0} != len(z) = {1} "
-                            "for unstructured grids".format(len(x), len(z))
+                            "for unstructured grids".format(len(points[0]), len(points[2]))
                         )
                 except TypeError:
                     pass
@@ -110,6 +110,40 @@ def check_mesh(dim, x, y, z, mesh_type):
     else:
         raise ValueError("Unknown mesh type {0}".format(mesh_type))
 
+def check_point_data(dim, points, data, mesh_type, value_type='scalar'):
+    """Do a basic check and compare shapes of the field data to mesh field."""
+    offset = 0
+    if value_type == 'vector':
+        if dim != data.shape[0]:
+            raise ValueError(
+                "Field is {} dim., but mesh is {}".
+                format(data.shape[0], dim)
+            )
+        offset = 1
+    if mesh_type == 'unstructured':
+        for d in range(dim):
+            if points[d].shape[0] != data.shape[offset]:
+                raise ValueError(
+                    "Field shape {} does not match existing mesh shape {}".
+                    format(data.shape[offset], points[d].shape[0])
+                )
+    elif mesh_type == 'structured':
+        try:
+            if dim != len(data.squeeze().shape)-offset:
+                raise ValueError(
+                    "Field is {} dim., but mesh {}".
+                    format(len(data.squeeze().shape), dim)
+                )
+        except AttributeError:
+            pass
+        for d in range(dim):
+            if points[d].shape[0] != data.shape[offset+d]:
+                raise ValueError(
+                    "Field shape {} does not match existing mesh shape {}".
+                    format(data.shape[offset+d], points[d].shape[0])
+                )
+    else:
+        raise ValueError("Unknown mesh type {0}".format(mesh_type))
 
 def make_isotropic(dim, anis, y, z):
     """Stretch given axes in order to implement anisotropy."""

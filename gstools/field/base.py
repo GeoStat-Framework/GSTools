@@ -41,7 +41,7 @@ class Field(Mesh):
     def __init__(
         self,
         model,
-        pos=None,
+        points=None,
         name="field",
         values=None,
         mesh_type="unstructured",
@@ -50,7 +50,7 @@ class Field(Mesh):
         # initialize attributes
         super().__init__(
             dim=model.dim,
-            pos=pos,
+            points=points,
             name=name,
             values=values,
             mesh_type=mesh_type,
@@ -127,7 +127,7 @@ class Field(Mesh):
                 pnts = mesh.centroids_flat.T[select]
             else:
                 pnts = mesh.NODES.T[select]
-            out = self.unstructured(pos=pnts, **kwargs)
+            out = self.unstructured(points=pnts, **kwargs)
         else:
             if points == "centroids":
                 # define unique order of cells
@@ -140,9 +140,9 @@ class Field(Mesh):
                     offset.append(pnts.shape[0])
                     length.append(pnt.shape[0])
                     pnts = np.vstack((pnts, pnt))
-                # generate pos for __call__
+                # generate points for __call__
                 pnts = pnts.T[select]
-                out = self.unstructured(pos=pnts, **kwargs)
+                out = self.unstructured(points=pnts, **kwargs)
                 if isinstance(out, np.ndarray):
                     field = out
                 else:
@@ -153,7 +153,7 @@ class Field(Mesh):
                     field_dict[cell] = field[offset[i] : offset[i] + length[i]]
                 mesh.cell_data[name] = field_dict
             else:
-                out = self.unstructured(pos=mesh.points.T[select], **kwargs)
+                out = self.unstructured(points=mesh.points.T[select], **kwargs)
                 if isinstance(out, np.ndarray):
                     field = out
                 else:
@@ -162,13 +162,13 @@ class Field(Mesh):
                 mesh.point_data[name] = field
         return out
 
-    def _pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
+    def _pre_points(self, points, mesh_type="unstructured", make_unstruct=False):
         """
         Preprocessing positions and mesh_type.
 
         Parameters
         ----------
-        pos : :any:`iterable`
+        points : :any:`iterable`
             the position tuple, containing main direction and transversal
             directions
         mesh_type : :class:`str`
@@ -184,7 +184,7 @@ class Field(Mesh):
             analog to x
         z : :class:`numpy.ndarray` or None
             analog to x
-        pos : :class:`tuple` of :class:`numpy.ndarray`
+        points : :class:`tuple` of :class:`numpy.ndarray`
             the normalized position tuple
         mesh_type_gen : :class:`str`
             'structured' / 'unstructured' for the generator
@@ -193,11 +193,11 @@ class Field(Mesh):
         axis_lens : :class:`tuple` or :any:`None`
             axis lengths of the structured mesh if mesh type was changed.
         """
-        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-        pos = xyz2pos(x, y, z)
+        x, y, z = pos2xyz(points, max_dim=self.model.dim)
+        points = xyz2pos(x, y, z)
         mesh_type_gen = mesh_type
         # format the positional arguments of the mesh
-        check_mesh(self.model.dim, x, y, z, mesh_type)
+        check_mesh(self.model.dim, points, mesh_type)
         mesh_type_changed = False
         axis_lens = None
         if (
@@ -212,7 +212,7 @@ class Field(Mesh):
             x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
         if not self.model.is_isotropic:
             y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
+        return x, y, z, points, mesh_type_gen, mesh_type_changed, axis_lens
 
     def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
         """

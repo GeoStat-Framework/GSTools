@@ -44,10 +44,11 @@ class TestCondition(unittest.TestCase):
             model = Model(
                 dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
+            # import pudb; pu.db
             srf = SRF(model, self.mean, seed=19970221)
             srf.set_condition(self.cond_pos[0], self.cond_val, "simple")
-            field_1 = srf.unstructured(self.pos[0])
-            field_2 = srf.structured(self.pos[0])
+            field_1 = srf.unstructured((self.pos[0],))
+            field_2 = srf.structured((self.pos[0],))
             for i, val in enumerate(self.cond_val):
                 self.assertAlmostEqual(val, field_1[i], places=2)
                 self.assertAlmostEqual(val, field_2[(i,)], places=2)
@@ -60,7 +61,7 @@ class TestCondition(unittest.TestCase):
                     anis=[0.1, 1],
                     angles=[0.5, 0, 0],
                 )
-                srf = SRF(model, self.mean, seed=19970221)
+                srf = SRF(model, mean=self.mean, seed=19970221)
                 srf.set_condition(self.cond_pos[:dim], self.cond_val, "simple")
                 field_1 = srf.unstructured(self.pos[:dim])
                 field_2 = srf.structured(self.pos[:dim])
@@ -73,10 +74,10 @@ class TestCondition(unittest.TestCase):
             model = Model(
                 dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
-            srf = SRF(model, seed=19970221)
+            srf = SRF(model, points=(self.pos[0],), seed=19970221)
             srf.set_condition(self.cond_pos[0], self.cond_val, "ordinary")
-            field_1 = srf.unstructured(self.pos[0])
-            field_2 = srf.structured(self.pos[0])
+            field_1 = srf.unstructured()
+            field_2 = srf.structured()
             for i, val in enumerate(self.cond_val):
                 self.assertAlmostEqual(val, field_1[i], places=2)
                 self.assertAlmostEqual(val, field_2[(i,)], places=2)

@@ -88,7 +88,7 @@ class Krige(Field):
         self.set_condition(cond_pos, cond_val, ext_drift)
 
     def __call__(
-        self, pos, mesh_type="unstructured", ext_drift=None, chunk_size=None
+        self, points, mesh_type="unstructured", ext_drift=None, chunk_size=None
     ):
         """
         Generate the kriging field.
@@ -98,7 +98,7 @@ class Krige(Field):
 
         Parameters
         ----------
-        pos : :class:`list`
+        points : :class:`list`
             the position tuple, containing main direction and transversal
             directions (x, [y, z])
         mesh_type : :class:`str`, optional
@@ -119,8 +119,8 @@ class Krige(Field):
         """
         self.mesh_type = mesh_type
         # internal conversation
-        x, y, z, self.pos, __, mt_changed, axis_lens = self._pre_pos(
-            pos, mesh_type, make_unstruct=True
+        x, y, z, self.points, __, mt_changed, axis_lens = self._pre_points(
+            points, mesh_type, make_unstruct=True
         )
         point_no = len(x)
         # set chunk size
@@ -215,7 +215,7 @@ class Krige(Field):
             self.field = field
         else:
             self.field = field + eval_func(
-                self.trend_function, self.pos, self.mesh_type
+                self.trend_function, self.points, self.mesh_type
             )
         self.krige_var = krige_var
 
@@ -309,7 +309,7 @@ class Krige(Field):
 
     def update(self):
         """Update the kriging settings."""
-        x, y, z, __, __, __, __ = self._pre_pos(self.cond_pos)
+        x, y, z, __, __, __, __ = self._pre_points(self.cond_pos)
         # krige pos are the unrotated and isotropic condition positions
         self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self._get_krige_mat()

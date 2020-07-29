@@ -40,7 +40,7 @@ def ordinary(srf):
     krige_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=srf.cond_val
     )
-    krige_field, krige_var = krige_ok(srf.pos, srf.mesh_type)
+    krige_field, krige_var = krige_ok(srf.points, srf.mesh_type)
 
     # evaluate the field at the conditional points
     x, y, z = pos2xyz(srf.cond_pos, max_dim=srf.model.dim)
@@ -52,7 +52,7 @@ def ordinary(srf):
     err_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=err_data
     )
-    err_field, __ = err_ok(srf.pos, srf.mesh_type)
+    err_field, __ = err_ok(srf.points, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field
     info = {"mean": krige_ok.mean}
     return cond_field, krige_field, err_field, krige_var, info
@@ -85,7 +85,7 @@ def simple(srf):
         cond_pos=srf.cond_pos,
         cond_val=srf.cond_val,
     )
-    krige_field, krige_var = krige_sk(srf.pos, srf.mesh_type)
+    krige_field, krige_var = krige_sk(srf.points, srf.mesh_type)
 
     # evaluate the field at the conditional points
     x, y, z = pos2xyz(srf.cond_pos, max_dim=srf.model.dim)
@@ -100,7 +100,7 @@ def simple(srf):
         cond_pos=srf.cond_pos,
         cond_val=err_data,
     )
-    err_field, __ = err_sk(srf.pos, srf.mesh_type)
+    err_field, __ = err_sk(srf.points, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field + srf.mean
     info = {}
     return cond_field, krige_field, err_field, krige_var, info

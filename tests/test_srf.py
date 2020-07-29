@@ -32,8 +32,14 @@ class TestSRF(unittest.TestCase):
 
     def test_shape_1d(self):
         self.cov_model.dim = 1
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
-        field_str = srf([self.x_grid], seed=self.seed, mesh_type="structured")
+        srf = SRF(
+            self.cov_model,
+            (self.x_grid,),
+            mesh_type="unstructured",
+            mean=self.mean,
+            mode_no=self.mode_no,
+        )
+        field_str = srf(seed=self.seed)
         field_unstr = srf(
             [self.x_tuple], seed=self.seed, mesh_type="unstructured"
         )
@@ -85,6 +91,8 @@ class TestSRF(unittest.TestCase):
             srf(name=name)
             self.assertTrue(name in srf.point_data.keys())
         self.assertEqual(srf.default_field, "ens_1")
+        # 3 ens + 1 raw_field
+        self.assertEqual(len(srf.point_data), 4)
 
     def test_anisotropy_2d(self):
         self.cov_model.dim = 2
@@ -138,8 +146,13 @@ class TestSRF(unittest.TestCase):
         field_str = np.reshape(field, (y_len, x_len))
 
         self.cov_model.angles = -np.pi / 2.0
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
-        field_rot = srf((x_u, y_u), seed=self.seed, mesh_type="unstructured")
+        srf = SRF(
+            self.cov_model,
+            (x_u, y_u),
+            mean=self.mean,
+            mode_no=self.mode_no
+        )
+        field_rot = srf(seed=self.seed)
         field_rot_str = np.reshape(field_rot, (y_len, x_len))
 
         self.assertAlmostEqual(field_str[0, 0], field_rot_str[-1, 0])
