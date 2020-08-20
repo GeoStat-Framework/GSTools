@@ -36,7 +36,7 @@ def _set_distance(distance):
     """Translate the verbose Python distance identifier to single char."""
     if distance.lower() == "euclidean":
         cython_distance = "e"
-    elif distance.lower() == "spherical":
+    elif distance.lower() == "great-circle":
         cython_distance = "s"
     else:
         raise ValueError(
@@ -109,7 +109,7 @@ def vario_estimate_unstructured(
         the distance function, possible choices:
 
             * "euclidean": the distance in Euclidean spaces
-            * "spherical": the great-circle distance on spheres
+            * "great-circle": the great-circle distance on spheres
 
         Default: "euclidean"
 
