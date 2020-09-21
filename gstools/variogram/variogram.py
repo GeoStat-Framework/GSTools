@@ -120,7 +120,7 @@ def vario_estimate_unstructured(
         sampled_idx = np.random.RandomState(sampling_seed).choice(
             np.arange(len(field)), sampling_size, replace=False
         )
-        field = field[sampled_idx]
+        field = field[:, sampled_idx]
         x = x[sampled_idx]
         if dim > 1:
             y = y[sampled_idx]
