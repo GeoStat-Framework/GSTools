@@ -116,9 +116,9 @@ def vario_estimate_unstructured(
     if not np.isnan(no_data):
         field[field == float(no_data)] = np.nan
 
-    if sampling_size is not None and sampling_size < len(field):
+    if sampling_size is not None and sampling_size < len(x):
         sampled_idx = np.random.RandomState(sampling_seed).choice(
-            np.arange(len(field)), sampling_size, replace=False
+            np.arange(len(x)), sampling_size, replace=False
         )
         field = field[:, sampled_idx]
         x = x[sampled_idx]
