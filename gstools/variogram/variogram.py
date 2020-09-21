@@ -40,6 +40,7 @@ def vario_estimate_unstructured(
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    no_data=np.nan,
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -73,8 +74,11 @@ def vario_estimate_unstructured(
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
-    field : :class:`numpy.ndarray`
-        the spatially distributed data
+    field : :class:`numpy.ndarray` or :class:`list` of :class:`numpy.ndarray`
+        The spatially distributed data.
+        You can pass a list of fields, that will be used simultaneously.
+        This could be helpful, when there are multiple realizations at the
+        same points, with the same statistical properties.
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
     sampling_size : :class:`int` or :any:`None`, optional
@@ -92,6 +96,9 @@ def vario_estimate_unstructured(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    no_data : :class:`float`, optional
+        Value to identify missing data in the given field.
+        Default: `np.nan`
 
     Returns
     -------
@@ -99,10 +106,15 @@ def vario_estimate_unstructured(
         the estimated variogram and the bin centers
     """
     # TODO check_mesh
-    field = np.array(field, ndmin=1, dtype=np.double)
+    # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
+    field = np.array(field, ndmin=2, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    # set no_data values
+    if not np.isnan(no_data):
+        field[field == float(no_data)] = np.nan
 
     if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.RandomState(sampling_seed).choice(

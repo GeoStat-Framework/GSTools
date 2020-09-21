@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt
+from libc.math cimport fabs, sqrt, isnan
 cimport numpy as np
 
 
@@ -112,31 +112,31 @@ ctypedef double (*_dist_func)(
 
 
 def unstructured(
-    const double[:] f,
+    const double[:, :] f,
     const double[:] bin_edges,
     const double[:] x,
     const double[:] y=None,
     const double[:] z=None,
     str estimator_type='m'
 ):
-    if x.shape[0] != f.shape[0]:
+    if x.shape[0] != f.shape[1]:
         raise ValueError('len(x) = {0} != len(f) = {1} '.
-                         format(x.shape[0], f.shape[0]))
+                         format(x.shape[0], f.shape[1]))
     if bin_edges.shape[0] < 2:
         raise ValueError('len(bin_edges) too small')
 
     cdef _dist_func distance
     # 3d
     if z is not None:
-        if z.shape[0] != f.shape[0]:
+        if z.shape[0] != f.shape[1]:
             raise ValueError('len(z) = {0} != len(f) = {1} '.
-                             format(z.shape[0], f.shape[0]))
+                             format(z.shape[0], f.shape[1]))
         distance = _distance_3d
     # 2d
     elif y is not None:
-        if y.shape[0] != f.shape[0]:
+        if y.shape[0] != f.shape[1]:
             raise ValueError('len(y) = {0} != len(f) = {1} '.
-                             format(y.shape[0], f.shape[0]))
+                             format(y.shape[0], f.shape[1]))
         distance = _distance_2d
     # 1d
     else:
@@ -150,18 +150,22 @@ def unstructured(
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = x.shape[0] - 1
     cdef int k_max = x.shape[0]
+    cdef int f_max = f.shape[0]
 
     cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
     cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
-    cdef int i, j, k
+    cdef int i, j, k, m
     cdef DTYPE_t dist
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(x, y, z, k, j)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
-                    counts[i] += 1
-                    variogram[i] += estimator_func(f[k] - f[j])
+                    for m in range(f_max):
+                        if isnan(f[m,k]) or isnan(f[m,j]):
+                            continue # skip no data values
+                        counts[i] += 1
+                        variogram[i] += estimator_func(f[m,k] - f[m,j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)
