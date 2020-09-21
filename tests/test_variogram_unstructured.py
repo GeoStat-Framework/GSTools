@@ -236,7 +236,7 @@ class TestVariogramUnstructured(unittest.TestCase):
             (x, y), [field1, field2], bins
         )
         gamma_mean = 0.5 * (gamma1 + gamma2)
-        for i in range(20):
+        for i in range(len(gamma)):
             self.assertAlmostEqual(gamma[i], gamma_mean[i], places=2)
 
 
