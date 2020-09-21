@@ -5,6 +5,7 @@ This is a unittest of the variogram module.
 
 import unittest
 import numpy as np
+import gstools as gs
 from gstools import vario_estimate_unstructured
 
 
@@ -216,6 +217,27 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertRaises(
             ValueError, vario_estimate_unstructured, [x], field_e, bins
         )
+
+    def test_multi_field(self):
+        x = np.random.RandomState(19970221).rand(100) * 100.0
+        y = np.random.RandomState(20011012).rand(100) * 100.0
+        model = gs.Exponential(dim=1, var=2, len_scale=10)
+        srf = gs.SRF(model)
+        field1 = srf((x, y), seed=19970221)
+        field2 = srf((x, y), seed=20011012)
+        bins = np.arange(20) * 2
+        bin_center, gamma1 = gs.vario_estimate_unstructured(
+            (x, y), field1, bins
+        )
+        bin_center, gamma2 = gs.vario_estimate_unstructured(
+            (x, y), field2, bins
+        )
+        bin_center, gamma = gs.vario_estimate_unstructured(
+            (x, y), [field1, field2], bins
+        )
+        gamma_mean = 0.5 * (gamma1 + gamma2)
+        for i in range(20):
+            self.assertAlmostEqual(gamma[i], gamma_mean[i], places=2)
 
 
 if __name__ == "__main__":
