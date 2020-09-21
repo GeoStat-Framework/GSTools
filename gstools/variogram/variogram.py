@@ -105,12 +105,18 @@ def vario_estimate_unstructured(
     :class:`tuple` of :class:`numpy.ndarray`
         the estimated variogram and the bin centers
     """
-    # TODO check_mesh
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     field = np.array(field, ndmin=2, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    # check_mesh
+    if len(field.shape) > 2 or field.shape[1] != len(x):
+        try:
+            field = field.reshape((-1, len(x)))
+        except ValueError:
+            raise ValueError("'field' has wrong shape")
 
     # set no_data values
     if not np.isnan(no_data):
