@@ -162,10 +162,10 @@ def unstructured(
                 dist = distance(x, y, z, k, j)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     for m in range(f_max):
-                        if isnan(f[m,k]) or isnan(f[m,j]):
-                            continue # skip no data values
-                        counts[i] += 1
-                        variogram[i] += estimator_func(f[m,k] - f[m,j])
+                        # skip no data values
+                        if not (isnan(f[m,k]) or isnan(f[m,j])):
+                            counts[i] += 1
+                            variogram[i] += estimator_func(f[m,k] - f[m,j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)
