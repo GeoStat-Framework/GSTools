@@ -20,6 +20,7 @@ srf = gs.SRF(model, mean=0)
 
 field1 = srf((x, y), seed=19970221)
 field2 = srf((x, y), seed=20011012)
+fields = [field1, field2]
 
 ###############################################################################
 # Now we estimate the variograms for both fields individual and then again
@@ -28,7 +29,7 @@ field2 = srf((x, y), seed=20011012)
 bins = np.arange(40)
 bin_center, gamma1 = gs.vario_estimate_unstructured((x, y), field1, bins)
 bin_center, gamma2 = gs.vario_estimate_unstructured((x, y), field2, bins)
-bin_center, gamma = gs.vario_estimate_unstructured((x, y), [field1, field2], bins)
+bin_center, gamma = gs.vario_estimate_unstructured((x, y), fields, bins)
 
 ###############################################################################
 # Now we demonstrate, that the mean variogram from both fields coincides
@@ -37,6 +38,6 @@ bin_center, gamma = gs.vario_estimate_unstructured((x, y), [field1, field2], bin
 plt.plot(bin_center, gamma1, label="field 1")
 plt.plot(bin_center, gamma2, label="field 2")
 plt.plot(bin_center, gamma, label="field joint")
-plt.plot(bin_center, 0.5*(gamma1+gamma2), ":", label="field 1+2 mean")
+plt.plot(bin_center, 0.5 * (gamma1 + gamma2), ":", label="field 1+2 mean")
 plt.legend()
 plt.show()
