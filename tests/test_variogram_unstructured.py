@@ -220,24 +220,31 @@ class TestVariogramUnstructured(unittest.TestCase):
 
     def test_multi_field(self):
         x = np.random.RandomState(19970221).rand(100) * 100.0
-        y = np.random.RandomState(20011012).rand(100) * 100.0
         model = gs.Exponential(dim=1, var=2, len_scale=10)
         srf = gs.SRF(model)
-        field1 = srf((x, y), seed=19970221)
-        field2 = srf((x, y), seed=20011012)
+        field1 = srf(x, seed=19970221)
+        field2 = srf(x, seed=20011012)
         bins = np.arange(20) * 2
-        bin_center, gamma1 = gs.vario_estimate_unstructured(
-            (x, y), field1, bins
-        )
-        bin_center, gamma2 = gs.vario_estimate_unstructured(
-            (x, y), field2, bins
-        )
+        bin_center, gamma1 = gs.vario_estimate_unstructured(x, field1, bins)
+        bin_center, gamma2 = gs.vario_estimate_unstructured(x, field2, bins)
         bin_center, gamma = gs.vario_estimate_unstructured(
-            (x, y), [field1, field2], bins
+            x, [field1, field2], bins
         )
         gamma_mean = 0.5 * (gamma1 + gamma2)
         for i in range(len(gamma)):
             self.assertAlmostEqual(gamma[i], gamma_mean[i], places=2)
+
+    def test_no_data(self):
+        x1 = np.random.RandomState(19970221).rand(100) * 100.0
+        field1 = np.random.RandomState(20011012).rand(100) * 100.0
+        field1[:10] = np.nan
+        x2 = x1[10:]
+        field2 = field1[10:]
+        bins = np.arange(20) * 2
+        bin_center, gamma1 = gs.vario_estimate_unstructured(x1, field1, bins)
+        bin_center, gamma2 = gs.vario_estimate_unstructured(x2, field2, bins)
+        for i in range(len(gamma1)):
+            self.assertAlmostEqual(gamma1[i], gamma2[i], places=2)
 
 
 if __name__ == "__main__":
