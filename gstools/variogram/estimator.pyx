@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt, atan2
+from libc.math cimport fabs, sqrt, atan2, acos, asin, sin, cos
 cimport numpy as np
 
 
@@ -69,27 +69,13 @@ cdef inline bint _angle_test_2d(
 ) nogil:
     cdef double dx = x[i] - x[j]
     cdef double dy = y[i] - y[j]
-
     # azimuth
-    cdef double phi = atan2(dy,dx)
-    return fabs(phi - angles[0]) <= angles_tol
-
-cdef inline bint _angle_test_3d_ignore_azim(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const double[:] angles,
-    const double angles_tol,
-    const int i,
-    const int j
-) nogil:
-    cdef double dx = x[i] - x[j]
-    cdef double dy = y[i] - y[j]
-    cdef double dz = z[i] - z[j]
-
-    # elevation
-    cdef double theta = atan2(dz,sqrt(dx + dy))
-    return fabs(angles[1] - theta) <= angles_tol
+    cdef double phi1 = atan2(dy,dx)
+    cdef double phi2 = atan2(-dy,-dx)
+    # check both directions (+/-)
+    cdef bint dir1 = fabs(phi1 - angles[0]) <= angles_tol
+    cdef bint dir2 = fabs(phi2 - angles[0]) <= angles_tol
+    return dir1 or dir2
 
 cdef inline bint _angle_test_3d(
     const double[:] x,
@@ -103,13 +89,26 @@ cdef inline bint _angle_test_3d(
     cdef double dx = x[i] - x[j]
     cdef double dy = y[i] - y[j]
     cdef double dz = z[i] - z[j]
-
+    cdef double dr = sqrt(dx**2 + dy**2 + dz**2)
     # azimuth
-    cdef double phi = atan2(dy,dx)
+    cdef double phi1 = atan2(dy, dx)
+    cdef double phi2 = atan2(-dy, -dx)
     # elevation
-    cdef double theta = atan2(dz,sqrt(dx + dy))
-
-    return sqrt((angles[0] - phi)**2 + (angles[1] - theta)**2) <= angles_tol
+    cdef double theta1 = acos(dz / dr)
+    cdef double theta2 = acos(-dz / dr)
+    # definitions for great-circle distance (for tolerance check)
+    cdef double dx1 = sin(theta1) * cos(phi1) - sin(angles[1]) * cos(angles[0])
+    cdef double dy1 = sin(theta1) * sin(phi1) - sin(angles[1]) * sin(angles[0])
+    cdef double dz1 = cos(theta1) - cos(angles[1])
+    cdef double dx2 = sin(theta2) * cos(phi2) - sin(angles[1]) * cos(angles[0])
+    cdef double dy2 = sin(theta2) * sin(phi2) - sin(angles[1]) * sin(angles[0])
+    cdef double dz2 = cos(theta2) - cos(angles[1])
+    cdef double dist1 = 2.0 * asin(sqrt(dx1**2 + dy1**2 + dz1**2) * 0.5)
+    cdef double dist2 = 2.0 * asin(sqrt(dx2**2 + dy2**2 + dz2**2) * 0.5)
+    # check both directions (+/-)
+    cdef bint dir1 = dist1 <= angles_tol
+    cdef bint dir2 = dist2 <= angles_tol
+    return dir1 or dir2
 
 cdef inline double estimator_matheron(const double f_diff) nogil:
     return f_diff * f_diff
@@ -209,13 +208,7 @@ def unstructured(
             raise ValueError('len(z) = {0} != len(f) = {1} '.
                              format(z.shape[0], f.shape[0]))
         distance = _distance_3d
-
-        # check if elevation is perpendicular to original axis
-        if angles is not None and fabs(angles[1] - 0.5*np.pi) < 1e-12 or fabs(angles[1] - 1.5*np.pi) < 1e-12:
-            # if so it does not matter how we rotated before (at least when dealing with two points)
-            angle_test = _angle_test_3d_ignore_azim
-        else:
-            angle_test = _angle_test_3d
+        angle_test = _angle_test_3d
     # 2d
     elif y is not None:
         if y.shape[0] != f.shape[0]:
