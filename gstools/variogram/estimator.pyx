@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt, atan2, acos, asin, sin, cos
+from libc.math cimport fabs, sqrt, atan2, acos, asin, sin, cos, M_PI
 cimport numpy as np
 
 
@@ -70,8 +70,8 @@ cdef inline bint _angle_test_2d(
     cdef double dx = x[i] - x[j]
     cdef double dy = y[i] - y[j]
     # azimuth
-    cdef double phi1 = atan2(dy,dx)
-    cdef double phi2 = atan2(-dy,-dx)
+    cdef double phi1 = atan2(dy,dx) % (2.0 * M_PI)
+    cdef double phi2 = atan2(-dy,-dx) % (2.0 * M_PI)
     # check both directions (+/-)
     cdef bint dir1 = fabs(phi1 - angles[0]) <= angles_tol
     cdef bint dir2 = fabs(phi2 - angles[0]) <= angles_tol
@@ -91,8 +91,8 @@ cdef inline bint _angle_test_3d(
     cdef double dz = z[i] - z[j]
     cdef double dr = sqrt(dx**2 + dy**2 + dz**2)
     # azimuth
-    cdef double phi1 = atan2(dy, dx)
-    cdef double phi2 = atan2(-dy, -dx)
+    cdef double phi1 = atan2(dy, dx) % (2.0 * M_PI)
+    cdef double phi2 = atan2(-dy, -dx) % (2.0 * M_PI)
     # elevation
     cdef double theta1 = acos(dz / dr)
     cdef double theta2 = acos(-dz / dr)

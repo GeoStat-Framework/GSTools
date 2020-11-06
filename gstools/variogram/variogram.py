@@ -127,19 +127,17 @@ def vario_estimate_unstructured(
 
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
 
-    if angles is not None:
+    if angles is not None and dim > 1:
         # there are at most (dim-1) angles
-        angles = np.array(angles, ndmin=1, dtype=np.double).ravel()[
-            : (dim - 1)
-        ]
+        angles = np.array(angles, ndmin=1, dtype=np.double)  # type convert
+        angles = angles.ravel()[: (dim - 1)]  # cutoff
         angles = np.pad(
             angles, (0, dim - angles.size - 1), "constant", constant_values=0.0
-        )
-        # correct intervalls for angles (prepared for n-d)
-        if dim >= 2:
-            angles[0] = angles[0] % (2 * np.pi)  # azimuth in [0, 2pi)
-        if dim >= 3:
-            angles[1:] = angles[1:] % np.pi  # inclinations in [0, pi)
+        )  # fill with 0 if too less given
+        # correct intervalls for angles (only need upper hemispheres)
+        angles = angles % np.pi
+    elif dim == 1:
+        angles = None
 
     if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.RandomState(sampling_seed).choice(
