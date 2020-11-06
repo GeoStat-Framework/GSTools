@@ -634,7 +634,9 @@ class Krige(Field):
         """Return String representation."""
         return (
             "{0}(model={1}, cond_no={2}".format(
-                self.name, self.model.name, self.cond_no,
+                self.name,
+                self.model.name,
+                self.cond_no,
             )
             + ")"
         )
