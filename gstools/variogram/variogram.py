@@ -134,8 +134,9 @@ def vario_estimate_unstructured(
         angles = np.pad(
             angles, (0, dim - angles.size - 1), "constant", constant_values=0.0
         )  # fill with 0 if too less given
-        # correct intervalls for angles (only need upper hemispheres)
-        angles = angles % np.pi
+        # correct intervalls for angles
+        angles[0] = angles[0] % (2 * np.pi)
+        angles[1:] = angles[1:] % np.pi
     elif dim == 1:
         angles = None
 
