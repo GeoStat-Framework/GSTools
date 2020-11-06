@@ -37,9 +37,12 @@ def vario_estimate_unstructured(
     pos,
     field,
     bin_edges,
+    angles=None,
+    angles_tol=0.436332,
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    return_counts=False,
 ):
     r"""
     Estimates the variogram on a unstructured grid.
@@ -64,10 +67,6 @@ def vario_estimate_unstructured(
     being the bins.
     The Cressie estimator is more robust to outliers.
 
-    Notes
-    -----
-    Internally uses double precision and also returns doubles.
-
     Parameters
     ----------
     pos : :class:`list`
@@ -77,6 +76,18 @@ def vario_estimate_unstructured(
         the spatially distributed data
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
+    angles : :class:`numpy.ndarray`
+        the angles of the main axis to calculate the variogram for in radians
+        angle definitions from ISO standard 80000-2:2009
+        for 1d this parameter will have no effect at all
+        for 2d supply one angle which is azimuth φ (ccw from +x in xy plane)
+        for 3d supply two angles which are azimuth φ (ccw from +x in xy plane)
+        and inclination θ (cw from +z)
+    angles_tol : class:`float`
+        the tolerance around the variogram angle to count a point as being
+        within this direction from another point (the angular tolerance around
+        the directional vector given by angles)
+        Default: 25°≈0.436332
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
@@ -92,17 +103,42 @@ def vario_estimate_unstructured(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    return_counts: class:`bool`, optional
+        if set to true, this function will also return the number of data
+        points found at each lag distance as a third return value
+        Default: False
 
     Returns
     -------
     :class:`tuple` of :class:`numpy.ndarray`
-        the estimated variogram and the bin centers
+        1. the bin centers
+        2. the estimated variogram values at bin centers
+        3. (optional) the number of points found at each bin center
+           (see argument return_counts)
+
+    Notes
+    -----
+    Internally uses double precision and also returns doubles.
     """
     # TODO check_mesh
     field = np.array(field, ndmin=1, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
+
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    if angles is not None and dim > 1:
+        # there are at most (dim-1) angles
+        angles = np.array(angles, ndmin=1, dtype=np.double)  # type convert
+        angles = angles.ravel()[: (dim - 1)]  # cutoff
+        angles = np.pad(
+            angles, (0, dim - angles.size - 1), "constant", constant_values=0.0
+        )  # fill with 0 if too less given
+        # correct intervalls for angles
+        angles[0] = angles[0] % (2 * np.pi)
+        angles[1:] = angles[1:] % np.pi
+    elif dim == 1:
+        angles = None
 
     if sampling_size is not None and sampling_size < len(field):
         sampled_idx = np.random.RandomState(sampling_seed).choice(
@@ -117,12 +153,21 @@ def vario_estimate_unstructured(
 
     cython_estimator = _set_estimator(estimator)
 
-    return (
-        bin_centres,
-        unstructured(
-            field, bin_edges, x, y, z, estimator_type=cython_estimator
-        ),
+    estimates, counts = unstructured(
+        field,
+        bin_edges,
+        x,
+        y,
+        z,
+        angles,
+        angles_tol,
+        estimator_type=cython_estimator,
     )
+
+    if return_counts:
+        return bin_centres, estimates, counts
+    else:
+        return bin_centres, estimates
 
 
 def vario_estimate_structured(field, direction="x", estimator="matheron"):
@@ -149,14 +194,6 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     being the bins.
     The Cressie estimator is more robust to outliers.
 
-    Warnings
-    --------
-    It is assumed that the field is defined on an equidistant Cartesian grid.
-
-    Notes
-    -----
-    Internally uses double precision and also returns doubles.
-
     Parameters
     ----------
     field : :class:`numpy.ndarray`
@@ -175,6 +212,14 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     -------
     :class:`numpy.ndarray`
         the estimated variogram along the given direction.
+
+    Warnings
+    --------
+    It is assumed that the field is defined on an equidistant Cartesian grid.
+
+    Notes
+    -----
+    Internally uses double precision and also returns doubles.
     """
     try:
         mask = np.array(field.mask, dtype=np.int32)

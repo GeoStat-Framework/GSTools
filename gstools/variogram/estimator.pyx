@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt
+from libc.math cimport fabs, sqrt, atan2, acos, asin, sin, cos, M_PI
 cimport numpy as np
 
 
@@ -47,6 +47,68 @@ cdef inline double _distance_3d(
                 (y[i] - y[j]) * (y[i] - y[j]) +
                 (z[i] - z[j]) * (z[i] - z[j]))
 
+cdef inline bint _angle_test_1d(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const double[:] angles,
+    const double angles_tol,
+    const int i,
+    const int j
+) nogil:
+    return True
+
+cdef inline bint _angle_test_2d(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const double[:] angles,
+    const double angles_tol,
+    const int i,
+    const int j
+) nogil:
+    cdef double dx = x[i] - x[j]
+    cdef double dy = y[i] - y[j]
+    # azimuth
+    cdef double phi1 = atan2(dy,dx) % (2.0 * M_PI)
+    cdef double phi2 = atan2(-dy,-dx) % (2.0 * M_PI)
+    # check both directions (+/-)
+    cdef bint dir1 = fabs(phi1 - angles[0]) <= angles_tol
+    cdef bint dir2 = fabs(phi2 - angles[0]) <= angles_tol
+    return dir1 or dir2
+
+cdef inline bint _angle_test_3d(
+    const double[:] x,
+    const double[:] y,
+    const double[:] z,
+    const double[:] angles,
+    const double angles_tol,
+    const int i,
+    const int j
+) nogil:
+    cdef double dx = x[i] - x[j]
+    cdef double dy = y[i] - y[j]
+    cdef double dz = z[i] - z[j]
+    cdef double dr = sqrt(dx**2 + dy**2 + dz**2)
+    # azimuth
+    cdef double phi1 = atan2(dy, dx) % (2.0 * M_PI)
+    cdef double phi2 = atan2(-dy, -dx) % (2.0 * M_PI)
+    # elevation
+    cdef double theta1 = acos(dz / dr)
+    cdef double theta2 = acos(-dz / dr)
+    # definitions for great-circle distance (for tolerance check)
+    cdef double dx1 = sin(theta1) * cos(phi1) - sin(angles[1]) * cos(angles[0])
+    cdef double dy1 = sin(theta1) * sin(phi1) - sin(angles[1]) * sin(angles[0])
+    cdef double dz1 = cos(theta1) - cos(angles[1])
+    cdef double dx2 = sin(theta2) * cos(phi2) - sin(angles[1]) * cos(angles[0])
+    cdef double dy2 = sin(theta2) * sin(phi2) - sin(angles[1]) * sin(angles[0])
+    cdef double dz2 = cos(theta2) - cos(angles[1])
+    cdef double dist1 = 2.0 * asin(sqrt(dx1**2 + dy1**2 + dz1**2) * 0.5)
+    cdef double dist2 = 2.0 * asin(sqrt(dx2**2 + dy2**2 + dz2**2) * 0.5)
+    # check both directions (+/-)
+    cdef bint dir1 = dist1 <= angles_tol
+    cdef bint dir2 = dist2 <= angles_tol
+    return dir1 or dir2
 
 cdef inline double estimator_matheron(const double f_diff) nogil:
     return f_diff * f_diff
@@ -110,6 +172,16 @@ ctypedef double (*_dist_func)(
     const int
 ) nogil
 
+ctypedef bint (*_angle_test_func)(
+    const double[:],
+    const double[:],
+    const double[:],
+    const double[:],
+    const double,
+    const int,
+    const int
+) nogil
+
 
 def unstructured(
     const double[:] f,
@@ -117,6 +189,8 @@ def unstructured(
     const double[:] x,
     const double[:] y=None,
     const double[:] z=None,
+    const double[:] angles=None,
+    const double angles_tol=0.436332,
     str estimator_type='m'
 ):
     if x.shape[0] != f.shape[0]:
@@ -126,21 +200,35 @@ def unstructured(
         raise ValueError('len(bin_edges) too small')
 
     cdef _dist_func distance
+    cdef _angle_test_func angle_test
+
     # 3d
     if z is not None:
         if z.shape[0] != f.shape[0]:
             raise ValueError('len(z) = {0} != len(f) = {1} '.
                              format(z.shape[0], f.shape[0]))
         distance = _distance_3d
+        angle_test = _angle_test_3d
     # 2d
     elif y is not None:
         if y.shape[0] != f.shape[0]:
             raise ValueError('len(y) = {0} != len(f) = {1} '.
                              format(y.shape[0], f.shape[0]))
         distance = _distance_2d
+        angle_test = _angle_test_2d
     # 1d
     else:
         distance = _distance_1d
+        angle_test = _angle_test_1d
+
+    if angles is not None:
+        if z is not None and angles.size < 2:
+            raise ValueError('3d requested but only one angle given')
+        if y is not None and angles.size < 1:
+            raise ValueError('2d with angle requested but no angle given')
+
+    if angles_tol <= 0:
+        raise ValueError('tolerance for angle search masks must be > 0')
 
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
@@ -160,11 +248,12 @@ def unstructured(
             for k in range(j+1, k_max):
                 dist = distance(x, y, z, k, j)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
-                    counts[i] += 1
-                    variogram[i] += estimator_func(f[k] - f[j])
+                    if angles is None or angle_test(x, y, z, angles, angles_tol, k, j):
+                        counts[i] += 1
+                        variogram[i] += estimator_func(f[k] - f[j])
 
     normalization_func(variogram, counts)
-    return np.asarray(variogram)
+    return np.asarray(variogram), np.asarray(counts)
 
 
 def structured(const double[:,:,:] f, str estimator_type='m'):
