@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt, atan2, acos, asin, sin, cos, M_PI
+from libc.math cimport fabs, sqrt, acos, M_PI
 cimport numpy as np
 
 
@@ -18,97 +18,54 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-cdef inline double _distance_1d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
+cdef inline double distance(
+    const int dim,
+    const double[:,:] pos,
     const int i,
     const int j
 ) nogil:
-    return sqrt((x[i] - x[j]) * (x[i] - x[j]))
+    cdef int d
+    cdef double dist_squared = 0.0
+    for d in range(dim):
+        dist_squared += ((pos[d,i] - pos[d,j]) * (pos[d,i] - pos[d,j]))
+    return sqrt(dist_squared)
 
-cdef inline double _distance_2d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const int i,
-    const int j
-) nogil:
-    return sqrt((x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]))
 
-cdef inline double _distance_3d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const int i,
-    const int j
-) nogil:
-    return sqrt((x[i] - x[j]) * (x[i] - x[j]) +
-                (y[i] - y[j]) * (y[i] - y[j]) +
-                (z[i] - z[j]) * (z[i] - z[j]))
-
-cdef inline bint _angle_test_1d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const double[:] angles,
+cdef inline bint dir_test(
+    const int dim,
+    const double[:,:] pos,
+    const double[:,:] direction,
     const double angles_tol,
+    const double bandwith,
     const int i,
-    const int j
+    const int j,
+    const int d
 ) nogil:
-    return True
+    cdef double s_prod = 0.0
+    cdef double p_norm = 0.0
+    cdef double b_dist = 0.0
+    cdef int k
+    cdef bint in_band = True
+    cdef bint in_angle
 
-cdef inline bint _angle_test_2d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const double[:] angles,
-    const double angles_tol,
-    const int i,
-    const int j
-) nogil:
-    cdef double dx = x[i] - x[j]
-    cdef double dy = y[i] - y[j]
-    # azimuth
-    cdef double phi1 = atan2(dy,dx) % (2.0 * M_PI)
-    cdef double phi2 = atan2(-dy,-dx) % (2.0 * M_PI)
-    # check both directions (+/-)
-    cdef bint dir1 = fabs(phi1 - angles[0]) <= angles_tol
-    cdef bint dir2 = fabs(phi2 - angles[0]) <= angles_tol
-    return dir1 or dir2
+    # scalar-product calculation for bandwith projection and angle calculation
+    for k in range(dim):
+        s_prod += (pos[k,i] - pos[k,j]) * direction[d,k]
+        p_norm += (pos[k,i] - pos[k,j])**2
+    p_norm = sqrt(p_norm)
 
-cdef inline bint _angle_test_3d(
-    const double[:] x,
-    const double[:] y,
-    const double[:] z,
-    const double[:] angles,
-    const double angles_tol,
-    const int i,
-    const int j
-) nogil:
-    cdef double dx = x[i] - x[j]
-    cdef double dy = y[i] - y[j]
-    cdef double dz = z[i] - z[j]
-    cdef double dr = sqrt(dx**2 + dy**2 + dz**2)
-    # azimuth
-    cdef double phi1 = atan2(dy, dx) % (2.0 * M_PI)
-    cdef double phi2 = atan2(-dy, -dx) % (2.0 * M_PI)
-    # elevation
-    cdef double theta1 = acos(dz / dr)
-    cdef double theta2 = acos(-dz / dr)
-    # definitions for great-circle distance (for tolerance check)
-    cdef double dx1 = sin(theta1) * cos(phi1) - sin(angles[1]) * cos(angles[0])
-    cdef double dy1 = sin(theta1) * sin(phi1) - sin(angles[1]) * sin(angles[0])
-    cdef double dz1 = cos(theta1) - cos(angles[1])
-    cdef double dx2 = sin(theta2) * cos(phi2) - sin(angles[1]) * cos(angles[0])
-    cdef double dy2 = sin(theta2) * sin(phi2) - sin(angles[1]) * sin(angles[0])
-    cdef double dz2 = cos(theta2) - cos(angles[1])
-    cdef double dist1 = 2.0 * asin(sqrt(dx1**2 + dy1**2 + dz1**2) * 0.5)
-    cdef double dist2 = 2.0 * asin(sqrt(dx2**2 + dy2**2 + dz2**2) * 0.5)
-    # check both directions (+/-)
-    cdef bint dir1 = dist1 <= angles_tol
-    cdef bint dir2 = dist2 <= angles_tol
-    return dir1 or dir2
+    # calculate band-distance by projection of point-pair-vec to direction line
+    if bandwith > 0.0:
+        for k in range(dim):
+            b_dist += ((pos[k,i] - pos[k,j]) - s_prod * direction[d,k]) ** 2
+        b_dist = sqrt(b_dist)
+        in_band = b_dist < bandwith
+
+    # use smallest angle by taking absolut value for arccos angle formula
+    in_angle = acos(fabs(s_prod) / p_norm) < angles_tol
+
+    return in_band and in_angle
+
 
 cdef inline double estimator_matheron(const double f_diff) nogil:
     return f_diff * f_diff
@@ -148,6 +105,38 @@ ctypedef void (*_normalization_func)(
     vector[long]&
 )
 
+cdef inline void normalization_matheron_vec(
+    double[:,:]& variogram,
+    long[:,:]& counts
+):
+    cdef int d, i
+    for d in range(variogram.shape[0]):
+        for i in range(variogram.shape[1]):
+            # avoid division by zero
+            if counts[d, i] == 0:
+                counts[d, i] = 1
+            variogram[d, i] /= (2. * counts[d, i])
+
+cdef inline void normalization_cressie_vec(
+    double[:,:]& variogram,
+    long[:,:]& counts
+):
+    cdef int d, i
+    for d in range(variogram.shape[0]):
+        for i in range(variogram.shape[1]):
+            # avoid division by zero
+            if counts[d, i] == 0:
+                counts[d, i] = 1
+            variogram[d, i] = (
+                0.5 * (1./counts[d, i] * variogram[d, i])**4 /
+                (0.457 + 0.494 / counts[d, i] + 0.045 / counts[d, i]**2)
+            )
+
+ctypedef void (*_normalization_func_vec)(
+    double[:,:]&,
+    long[:,:]&
+)
+
 cdef _estimator_func choose_estimator_func(str estimator_type):
     cdef _estimator_func estimator_func
     if estimator_type == 'm':
@@ -164,71 +153,78 @@ cdef _normalization_func choose_estimator_normalization(str estimator_type):
         normalization_func = normalization_cressie
     return normalization_func
 
-ctypedef double (*_dist_func)(
-    const double[:],
-    const double[:],
-    const double[:],
-    const int,
-    const int
-) nogil
-
-ctypedef bint (*_angle_test_func)(
-    const double[:],
-    const double[:],
-    const double[:],
-    const double[:],
-    const double,
-    const int,
-    const int
-) nogil
+cdef _normalization_func_vec choose_estimator_normalization_vec(str estimator_type):
+    cdef _normalization_func_vec normalization_func_vec
+    if estimator_type == 'm':
+        normalization_func_vec = normalization_matheron_vec
+    elif estimator_type == 'c':
+        normalization_func_vec = normalization_cressie_vec
+    return normalization_func_vec
 
 
-def unstructured(
+def directional(
+    const int dim,
     const double[:] f,
     const double[:] bin_edges,
-    const double[:] x,
-    const double[:] y=None,
-    const double[:] z=None,
-    const double[:] angles=None,
-    const double angles_tol=0.436332,
+    const double[:,:] pos,
+    const double[:,:] direction,  # should be normed
+    const double angles_tol=M_PI/8.0,
+    const double bandwith=-1.0,  # negative values to turn of bandwith search
     str estimator_type='m'
 ):
-    if x.shape[0] != f.shape[0]:
-        raise ValueError('len(x) = {0} != len(f) = {1} '.
-                         format(x.shape[0], f.shape[0]))
+    if pos.shape[1] != f.shape[0]:
+        raise ValueError('len(pos) = {0} != len(f) = {1} '.
+                         format(pos.shape[1], f.shape[0]))
+
     if bin_edges.shape[0] < 2:
         raise ValueError('len(bin_edges) too small')
 
-    cdef _dist_func distance
-    cdef _angle_test_func angle_test
-
-    # 3d
-    if z is not None:
-        if z.shape[0] != f.shape[0]:
-            raise ValueError('len(z) = {0} != len(f) = {1} '.
-                             format(z.shape[0], f.shape[0]))
-        distance = _distance_3d
-        angle_test = _angle_test_3d
-    # 2d
-    elif y is not None:
-        if y.shape[0] != f.shape[0]:
-            raise ValueError('len(y) = {0} != len(f) = {1} '.
-                             format(y.shape[0], f.shape[0]))
-        distance = _distance_2d
-        angle_test = _angle_test_2d
-    # 1d
-    else:
-        distance = _distance_1d
-        angle_test = _angle_test_1d
-
-    if angles is not None:
-        if z is not None and angles.size < 2:
-            raise ValueError('3d requested but only one angle given')
-        if y is not None and angles.size < 1:
-            raise ValueError('2d with angle requested but no angle given')
-
     if angles_tol <= 0:
         raise ValueError('tolerance for angle search masks must be > 0')
+
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func_vec normalization_func_vec = (
+        choose_estimator_normalization_vec(estimator_type)
+    )
+
+    cdef int d_max = direction.shape[0]
+    cdef int i_max = bin_edges.shape[0] - 1
+    cdef int j_max = pos.shape[1] - 1
+    cdef int k_max = pos.shape[1]
+
+    cdef double[:,:] variogram = np.zeros((d_max, len(bin_edges)-1))
+    cdef long[:,:] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
+    cdef vector[double] pos1 = vector[double](dim, 0.0)
+    cdef vector[double] pos2 = vector[double](dim, 0.0)
+    cdef int i, j, k, d
+    cdef DTYPE_t dist
+
+    for i in prange(i_max, nogil=True):
+        for j in range(j_max):
+            for k in range(j+1, k_max):
+                dist = distance(dim, pos, j, k)
+                if dist >= bin_edges[i] and dist < bin_edges[i+1]:
+                    for d in range(d_max):
+                        if dir_test(dim, pos, direction, angles_tol, bandwith, k, j, d):
+                            counts[d, i] += 1
+                            variogram[d, i] += estimator_func(f[k] - f[j])
+
+    normalization_func_vec(variogram, counts)
+    return np.asarray(variogram), np.asarray(counts)
+
+def unstructured(
+    const int dim,
+    const double[:] f,
+    const double[:] bin_edges,
+    const double[:,:] pos,
+    str estimator_type='m'
+):
+    if pos.shape[1] != f.shape[0]:
+        raise ValueError('len(pos) = {0} != len(f) = {1} '.
+                         format(pos.shape[1], f.shape[0]))
+
+    if bin_edges.shape[0] < 2:
+        raise ValueError('len(bin_edges) too small')
 
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
@@ -236,21 +232,23 @@ def unstructured(
     )
 
     cdef int i_max = bin_edges.shape[0] - 1
-    cdef int j_max = x.shape[0] - 1
-    cdef int k_max = x.shape[0]
+    cdef int j_max = pos.shape[1] - 1
+    cdef int k_max = pos.shape[1]
 
     cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
     cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
+    cdef vector[double] pos1 = vector[double](dim, 0.0)
+    cdef vector[double] pos2 = vector[double](dim, 0.0)
     cdef int i, j, k
     cdef DTYPE_t dist
+
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(j+1, k_max):
-                dist = distance(x, y, z, k, j)
+                dist = distance(dim, pos, j, k)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
-                    if angles is None or angle_test(x, y, z, angles, angles_tol, k, j):
-                        counts[i] += 1
-                        variogram[i] += estimator_func(f[k] - f[j])
+                    counts[i] += 1
+                    variogram[i] += estimator_func(f[k] - f[j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)
@@ -281,6 +279,7 @@ def structured(const double[:,:,:] f, str estimator_type='m'):
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)
+
 
 def ma_structured(
     const double[:,:,:] f,
