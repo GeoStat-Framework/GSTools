@@ -48,15 +48,15 @@ def vario_estimate(
     pos,
     field,
     bin_edges,
+    sampling_size=None,
+    sampling_seed=None,
+    estimator="matheron",
     direction=None,
     angles=None,
     angles_tol=np.pi / 8,
     bandwidth=None,
-    sampling_size=None,
-    sampling_seed=None,
-    estimator="matheron",
-    mesh_type="unstructured",
     no_data=np.nan,
+    mesh_type="unstructured",
     return_counts=False,
 ):
     r"""
@@ -104,6 +104,21 @@ def vario_estimate(
         same points, with the same statistical properties.
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
+    sampling_size : :class:`int` or :any:`None`, optional
+        for large input data, this method can take a long
+        time to compute the variogram, therefore this argument specifies
+        the number of data points to sample randomly
+        Default: :any:`None`
+    sampling_seed : :class:`int` or :any:`None`, optional
+        seed for samples if sampling_size is given.
+        Default: :any:`None`
+    estimator : :class:`str`, optional
+        the estimator function, possible choices:
+
+            * "matheron": the standard method of moments of Matheron
+            * "cressie": an estimator more robust to outliers
+
+        Default: "matheron"
     direction : :class:`list` of :class:`numpy.ndarray`, optional
         directions to evaluate a directional variogram.
         Anglular tolerance is given by `angles_tol`.
@@ -133,28 +148,13 @@ def vario_estimate(
         If None is given, only the `angles_tol` parameter will control the
         point selection.
         Default: :any:`None`
-    sampling_size : :class:`int` or :any:`None`, optional
-        for large input data, this method can take a long
-        time to compute the variogram, therefore this argument specifies
-        the number of data points to sample randomly
-        Default: :any:`None`
-    sampling_seed : :class:`int` or :any:`None`, optional
-        seed for samples if sampling_size is given.
-        Default: :any:`None`
-    estimator : :class:`str`, optional
-        the estimator function, possible choices:
-
-            * "matheron": the standard method of moments of Matheron
-            * "cressie": an estimator more robust to outliers
-
-        Default: "matheron"
+    no_data : :class:`float`, optional
+        Value to identify missing data in the given field.
+        Default: `np.nan`
     mesh_type : :class:`str`, optional
         'structured' / 'unstructured', indicates whether the pos tuple
         describes the axis or the point coordinates.
         Default: `'unstructured'`
-    no_data : :class:`float`, optional
-        Value to identify missing data in the given field.
-        Default: `np.nan`
     return_counts: class:`bool`, optional
         if set to true, this function will also return the number of data
         points found at each lag distance as a third return value
@@ -188,7 +188,7 @@ def vario_estimate(
     # set no_data values
     if not np.isnan(no_data):
         field[np.isclose(field, float(no_data))] = np.nan
-    # initialize number of directions
+    # set directions
     dir_no = 0
     if direction is not None and dim > 1:
         direction = np.array(direction, ndmin=2, dtype=np.double)
