@@ -5,7 +5,7 @@ This is a unittest of the variogram module.
 
 import unittest
 import numpy as np
-from gstools import vario_estimate_unstructured, Exponential, SRF
+from gstools import vario_estimate, Exponential, SRF
 import gstools as gs
 
 
@@ -20,7 +20,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         field = srf((x, y))
 
         bins = np.arange(10)
-        bin_center, gamma = gs.vario_estimate_unstructured((x,), field, bins)
+        bin_center, gamma = gs.vario_estimate((x,), field, bins)
         idx = np.argsort(x)
         self.test_data_rotation_1 = {
             "gamma": gamma,
@@ -52,21 +52,21 @@ class TestVariogramUnstructured(unittest.TestCase):
             dtype=np.double,
         )
         bins = np.arange(1, 11, 1, dtype=np.double)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 0.4917, places=4)
 
     def test_ints(self):
         x = np.arange(1, 5, 1, dtype=int)
         z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=int)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
     def test_np_int(self):
         x = np.arange(1, 5, 1, dtype=np.int)
         z = np.array((10, 20, 30, 40), dtype=np.int)
         bins = np.arange(1, 11, 1, dtype=np.int)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
     def test_mixed(self):
@@ -76,26 +76,26 @@ class TestVariogramUnstructured(unittest.TestCase):
             dtype=np.double,
         )
         bins = np.arange(1, 11, 1, dtype=int)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 0.4917, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
         z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=int)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
         z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=np.double)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
     def test_list(self):
         x = np.arange(1, 11, 1, dtype=np.double)
         z = [41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3]
         bins = np.arange(1, 11, 1, dtype=np.double)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[1], 0.7625, places=4)
 
     def test_1d(self):
@@ -106,7 +106,7 @@ class TestVariogramUnstructured(unittest.TestCase):
             dtype=np.double,
         )
         bins = np.arange(1, 11, 1, dtype=np.double)
-        bin_centres, gamma = vario_estimate_unstructured([x], z, bins)
+        bin_centres, gamma = vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 0.4917, places=4)
         self.assertAlmostEqual(gamma[1], 0.7625, places=4)
 
@@ -122,7 +122,7 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        bin_centres, gamma = vario_estimate_unstructured((x, y), field, bins)
+        bin_centres, gamma = vario_estimate((x, y), field, bins)
 
         var = 1.0 / 12.0
         self.assertAlmostEqual(gamma[0], var, places=2)
@@ -143,7 +143,7 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        bin_centres, gamma = vario_estimate_unstructured(
+        bin_centres, gamma = vario_estimate(
             (x, y, z), field, bins
         )
 
@@ -160,7 +160,7 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        bin_centres, gamma = vario_estimate_unstructured(
+        bin_centres, gamma = vario_estimate(
             [x], field, bins, sampling_size=5000, sampling_seed=1479373475
         )
 
@@ -181,7 +181,7 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        bin_centres, gamma = vario_estimate_unstructured(
+        bin_centres, gamma = vario_estimate(
             (x, y), field, bins, sampling_size=2000, sampling_seed=1479373475
         )
 
@@ -204,7 +204,7 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bins = np.arange(0, 100, 10)
 
-        bin_centres, gamma = vario_estimate_unstructured(
+        bin_centres, gamma = vario_estimate(
             (x, y, z),
             field,
             bins,
@@ -229,25 +229,25 @@ class TestVariogramUnstructured(unittest.TestCase):
         field_e = np.arange(0, 9)
 
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, [x_e], field, bins
+            ValueError, vario_estimate, [x_e], field, bins
         )
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, (x, y_e), field, bins
+            ValueError, vario_estimate, (x, y_e), field, bins
         )
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, (x, y_e, z), field, bins
+            ValueError, vario_estimate, (x, y_e, z), field, bins
         )
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, (x, y, z_e), field, bins
+            ValueError, vario_estimate, (x, y, z_e), field, bins
         )
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, (x_e, y, z), field, bins
+            ValueError, vario_estimate, (x_e, y, z), field, bins
         )
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, (x, y, z), field_e, bins
+            ValueError, vario_estimate, (x, y, z), field_e, bins
         )
         self.assertRaises(
-            ValueError, vario_estimate_unstructured, [x], field_e, bins
+            ValueError, vario_estimate, [x], field_e, bins
         )
 
     def test_multi_field(self):
@@ -257,9 +257,9 @@ class TestVariogramUnstructured(unittest.TestCase):
         field1 = srf(x, seed=19970221)
         field2 = srf(x, seed=20011012)
         bins = np.arange(20) * 2
-        bin_center, gamma1 = gs.vario_estimate_unstructured(x, field1, bins)
-        bin_center, gamma2 = gs.vario_estimate_unstructured(x, field2, bins)
-        bin_center, gamma = gs.vario_estimate_unstructured(
+        bin_center, gamma1 = gs.vario_estimate(x, field1, bins)
+        bin_center, gamma2 = gs.vario_estimate(x, field2, bins)
+        bin_center, gamma = gs.vario_estimate(
             x, [field1, field2], bins
         )
         gamma_mean = 0.5 * (gamma1 + gamma2)
@@ -273,337 +273,10 @@ class TestVariogramUnstructured(unittest.TestCase):
         x2 = x1[10:]
         field2 = field1[10:]
         bins = np.arange(20) * 2
-        bin_center, gamma1 = gs.vario_estimate_unstructured(x1, field1, bins)
-        bin_center, gamma2 = gs.vario_estimate_unstructured(x2, field2, bins)
+        bin_center, gamma1 = gs.vario_estimate(x1, field1, bins)
+        bin_center, gamma2 = gs.vario_estimate(x2, field2, bins)
         for i in range(len(gamma1)):
             self.assertAlmostEqual(gamma1[i], gamma2[i], places=2)
-
-    # def test_angles_2D_x2x(self):
-
-    #     x = self.test_data_rotation_1["x"]
-    #     field = self.test_data_rotation_1["field"]
-    #     gamma_exp = self.test_data_rotation_1["gamma"]
-    #     bins = self.test_data_rotation_1["bins"]
-    #     y = np.zeros_like(x)
-
-    #     # test case 1.)
-    #     #    all along x axis on x axis
-
-    #     bin_centres, gamma = vario_estimate_unstructured(
-    #         (x, y), field, bins, angles=[0]
-    #     )
-
-    #     for i in range(gamma.size):
-    #         self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
-
-    # def test_angles_2D_y2x(self):
-
-    #     x = self.test_data_rotation_1["x"]
-    #     field = self.test_data_rotation_1["field"]
-    #     gamma_exp = self.test_data_rotation_1["gamma"]
-    #     bins = self.test_data_rotation_1["bins"]
-    #     y = np.zeros_like(x)
-
-    #     # test case 2.)
-    #     #    all along y axis on y axis but calculation for x axis
-
-    #     bin_centres, gamma = vario_estimate_unstructured(
-    #         (y, x), field, bins, angles=[0]
-    #     )
-
-    #     for i in range(gamma.size):
-    #         self.assertAlmostEqual(0, gamma[i], places=3)
-
-    # def test_angles_2D_y2y(self):
-
-    #     x = self.test_data_rotation_1["x"]
-    #     field = self.test_data_rotation_1["field"]
-    #     gamma_exp = self.test_data_rotation_1["gamma"]
-    #     bins = self.test_data_rotation_1["bins"]
-    #     y = np.zeros_like(x)
-
-    #     # test case 3.)
-    #     #    all along y axis on y axis and calculation for y axis
-
-    #     bin_centres, gamma = vario_estimate_unstructured(
-    #         (y, x), field, bins, angles=[np.pi / 2.0]
-    #     )
-
-    #     for i in range(gamma.size):
-    #         self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
-
-    # def test_angles_2D_xy2x(self):
-
-    #     x = self.test_data_rotation_1["x"]
-    #     field = self.test_data_rotation_1["field"]
-    #     gamma_exp = self.test_data_rotation_1["gamma"]
-    #     bins = self.test_data_rotation_1["bins"]
-    #     y = np.zeros_like(x)
-
-    #     # test case 4.)
-    #     #    data along 45deg axis but calculation for x axis
-
-    #     ccos, csin = np.cos(np.pi / 4.0), np.sin(np.pi / 4.0)
-
-    #     xr = [xx * ccos - yy * csin for xx, yy in zip(x, y)]
-    #     yr = [xx * csin + yy * ccos for xx, yy in zip(x, y)]
-
-    #     bin_centres, gamma = vario_estimate_unstructured(
-    #         (xr, yr), field, bins, angles=[0]
-    #     )
-
-    #     for i in range(gamma.size):
-    #         self.assertAlmostEqual(0, gamma[i], places=3)
-
-    # def test_angles_2D_estim(self):
-
-    #     seed = gs.random.MasterRNG(19970221)
-    #     rng = np.random.RandomState(seed())
-    #     rng = np.random
-    #     x = rng.randint(0, 100, size=3000)
-    #     y = rng.randint(0, 100, size=3000)
-
-    #     model = gs.Exponential(
-    #         dim=2, var=1, len_scale=[12, 3], angles=np.pi / 8
-    #     )
-    #     model_maj = gs.Exponential(dim=1, var=1, len_scale=[12])
-    #     model_min = gs.Exponential(dim=1, var=1, len_scale=[3])
-
-    #     srf = gs.SRF(model, seed=20170519)
-    #     field = srf((x, y))
-
-    #     bins = np.arange(0, 50, 2.5)
-    #     angle_mask = 22.5
-    #     angle_tol = 22.5
-
-    #     bin_centers_maj, gamma_maj = gs.vario_estimate_unstructured(
-    #         (x, y),
-    #         field,
-    #         bins,
-    #         angles=[np.deg2rad(angle_mask)],
-    #         angles_tol=np.deg2rad(angle_tol),
-    #     )
-
-    #     bin_centers_min, gamma_min = gs.vario_estimate_unstructured(
-    #         (x, y),
-    #         field,
-    #         bins,
-    #         angles=[np.deg2rad(angle_mask + 90.0)],
-    #         angles_tol=np.deg2rad(angle_tol),
-    #     )
-
-    #     gamma_maj_real = model_maj.variogram(bin_centers_maj)
-    #     gamma_min_real = model_min.variogram(bin_centers_min)
-
-    #     # we have no real way of testing values, but we can test some basic properties which definitelly need to be true
-    #     # test that the major estimate aligns better with major real than minor real
-    #     self.assertTrue(
-    #         np.sum((gamma_maj_real - gamma_maj) ** 2)
-    #         < np.sum((gamma_min_real - gamma_maj) ** 2)
-    #     )
-    #     # test that the minor estimate aligns better with minor real than major real
-    #     self.assertTrue(
-    #         np.sum((gamma_min_real - gamma_min) ** 2)
-    #         < np.sum((gamma_maj_real - gamma_min) ** 2)
-    #     )
-    #     # test that both variograms converge within reasonable closeness (less than 10% rel error) to the actual field variance
-    #     self.assertTrue(
-    #         (np.mean(gamma_min[-5:]) - np.var(field)) / np.var(field) < 0.1
-    #     )
-    #     self.assertTrue(
-    #         (np.mean(gamma_maj[-5:]) - np.var(field)) / np.var(field) < 0.1
-    #     )
-
-    # def test_angles_line_3D(self):
-
-    #     x = self.test_data_rotation_1["x"]
-    #     field = self.test_data_rotation_1["field"]
-    #     gamma_exp = self.test_data_rotation_1["gamma"]
-    #     bins = self.test_data_rotation_1["bins"]
-
-    #     def test_xyz(x, y, z, angles, gamma_exp):
-    #         bin_centres, gamma = vario_estimate_unstructured(
-    #             (x, y, z), field, bins, angles=angles
-    #         )
-
-    #         if np.ndim(gamma_exp) == 0:
-    #             gamma_exp = np.ones_like(gamma) * gamma_exp
-
-    #         for i in range(gamma.size):
-    #             self.assertAlmostEqual(gamma_exp[i], gamma[i], places=3)
-
-    #     # all along x axis and calculation for x axis
-    #     test_xyz(x, np.zeros_like(x), np.zeros_like(x), [0], gamma_exp)
-    #     # all along y axis and calculation for x axis
-    #     test_xyz(np.zeros_like(x), x, np.zeros_like(x), [0], 0)
-    #     # all along z axis and calculation for x axis
-    #     test_xyz(np.zeros_like(x), np.zeros_like(x), x, [0], 0)
-
-    #     angles_rot_azim_90 = [np.pi / 2]
-    #     # all along x axis and calculation for y axis
-    #     test_xyz(x, np.zeros_like(x), np.zeros_like(x), angles_rot_azim_90, 0)
-    #     # all along y axis and calculation for y axis
-    #     test_xyz(
-    #         np.zeros_like(x),
-    #         x,
-    #         np.zeros_like(x),
-    #         angles_rot_azim_90,
-    #         gamma_exp,
-    #     )
-    #     # all along z axis and calculation for y axis
-    #     test_xyz(np.zeros_like(x), np.zeros_like(x), x, angles_rot_azim_90, 0)
-
-    #     # for elevation it is important to check, that IF elevation is 90° or 270° it does
-    #     # not matter how we rotated before, since any rotation around z (in XY plane)
-    #     # followed by a rotation around x' (in YZ' plane) by 90° will result in the same
-    #     # coordinates, (when the structure is two points with zero extend)
-
-    #     # test with [0, 90]
-    #     angles_rot_azim_90_elev_90 = [0, np.pi / 2]
-    #     # all along x axis and calculation for z axis
-    #     test_xyz(
-    #         x,
-    #         np.zeros_like(x),
-    #         np.zeros_like(x),
-    #         angles_rot_azim_90_elev_90,
-    #         0,
-    #     )
-    #     # all along y axis and calculation for z axis
-    #     test_xyz(
-    #         np.zeros_like(x),
-    #         x,
-    #         np.zeros_like(x),
-    #         angles_rot_azim_90_elev_90,
-    #         0,
-    #     )
-    #     # all along z axis and calculation for z axis
-    #     test_xyz(
-    #         np.zeros_like(x),
-    #         np.zeros_like(x),
-    #         x,
-    #         angles_rot_azim_90_elev_90,
-    #         gamma_exp,
-    #     )
-
-    #     # test with [90, 90]
-    #     angles_rot_azim_90_elev_90 = [np.pi / 2, np.pi / 2]
-    #     # all along x axis and calculation for z axis
-    #     test_xyz(
-    #         x,
-    #         np.zeros_like(x),
-    #         np.zeros_like(x),
-    #         angles_rot_azim_90_elev_90,
-    #         0,
-    #     )
-    #     # all along y axis and calculation for z axis
-    #     test_xyz(
-    #         np.zeros_like(x),
-    #         x,
-    #         np.zeros_like(x),
-    #         angles_rot_azim_90_elev_90,
-    #         0,
-    #     )
-    #     # all along z axis and calculation for z axis
-    #     test_xyz(
-    #         np.zeros_like(x),
-    #         np.zeros_like(x),
-    #         x,
-    #         angles_rot_azim_90_elev_90,
-    #         gamma_exp,
-    #     )
-
-    # def test_angles_3D_estim(self):
-
-    #     seed = gs.random.MasterRNG(19970221)
-    #     rng = np.random.RandomState(seed())
-    #     rng = np.random
-    #     x = rng.randint(0, 50, size=1000)
-    #     y = rng.randint(0, 50, size=1000)
-    #     z = rng.randint(0, 50, size=1000)
-
-    #     model = gs.Exponential(
-    #         dim=3, var=1, len_scale=[10, 5, 2], angles=[np.pi / 8, np.pi / 16]
-    #     )
-    #     model_maj = gs.Exponential(dim=1, var=1, len_scale=[10])
-    #     model_min1 = gs.Exponential(dim=1, var=1, len_scale=[5])
-    #     model_min2 = gs.Exponential(dim=1, var=1, len_scale=[2])
-
-    #     srf = gs.SRF(model, seed=20170519)
-    #     field = srf((x, y, z))
-
-    #     bins = np.arange(0, 25, 5)
-    #     angle_mask = [np.pi / 8, np.pi / 16]
-    #     angle_tol = 22.5
-
-    #     # in x'
-    #     bin_centers_maj, gamma_maj = gs.vario_estimate_unstructured(
-    #         (x, y, z),
-    #         field,
-    #         bins,
-    #         angles=[angle_mask[0], angle_mask[1]],
-    #         angles_tol=np.deg2rad(angle_tol),
-    #     )
-
-    #     # in y'
-    #     bin_centers_min1, gamma_min1 = gs.vario_estimate_unstructured(
-    #         (x, y, z),
-    #         field,
-    #         bins,
-    #         angles=[angle_mask[0] + 0.5 * np.pi, angle_mask[1]],
-    #         angles_tol=np.deg2rad(angle_tol),
-    #     )
-
-    #     # in z'
-    #     bin_centers_min2, gamma_min2 = gs.vario_estimate_unstructured(
-    #         (x, y, z),
-    #         field,
-    #         bins,
-    #         angles=[angle_mask[0], angle_mask[1] + 0.5 * np.pi],
-    #         angles_tol=np.deg2rad(angle_tol),
-    #     )
-
-    #     gamma_maj_real = model_maj.variogram(bin_centers_maj)
-    #     gamma_min1_real = model_min1.variogram(bin_centers_min1)
-    #     gamma_min2_real = model_min2.variogram(bin_centers_min2)
-
-    #     # we have no real way of testing values, but we can test some basic properties which definitelly need to be true
-    #     # test that the major estimate aligns better with major real than the minor reals
-    #     self.assertTrue(
-    #         np.sum((gamma_maj_real - gamma_maj) ** 2)
-    #         < np.sum((gamma_min1_real - gamma_maj) ** 2)
-    #     )
-    #     self.assertTrue(
-    #         np.sum((gamma_maj_real - gamma_maj) ** 2)
-    #         < np.sum((gamma_min2_real - gamma_maj) ** 2)
-    #     )
-    #     # test that the minor1 estimate aligns better with minor1 real than major real and minor2 real
-    #     self.assertTrue(
-    #         np.sum((gamma_min1_real - gamma_min1) ** 2)
-    #         < np.sum((gamma_maj_real - gamma_min1) ** 2)
-    #     )
-    #     self.assertTrue(
-    #         np.sum((gamma_min1_real - gamma_min1) ** 2)
-    #         < np.sum((gamma_min2_real - gamma_min1) ** 2)
-    #     )
-    #     # test that the minor2 estimate aligns better with minor2 real than major real and minor1 real
-    #     self.assertTrue(
-    #         np.sum((gamma_min2_real - gamma_min2) ** 2)
-    #         < np.sum((gamma_maj_real - gamma_min2) ** 2)
-    #     )
-    #     self.assertTrue(
-    #         np.sum((gamma_min2_real - gamma_min2) ** 2)
-    #         < np.sum((gamma_min1_real - gamma_min2) ** 2)
-    #     )
-    #     # test that all variograms converge within reasonable closeness (less than 10% rel error) to the actual field variance
-    #     self.assertTrue(
-    #         (np.mean(gamma_maj[-5:]) - np.var(field)) / np.var(field) < 0.1
-    #     )
-    #     self.assertTrue(
-    #         (np.mean(gamma_min1[-5:]) - np.var(field)) / np.var(field) < 0.1
-    #     )
-    #     self.assertTrue(
-    #         (np.mean(gamma_min2[-5:]) - np.var(field)) / np.var(field) < 0.1
-    #     )
 
 
 if __name__ == "__main__":
