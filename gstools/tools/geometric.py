@@ -161,3 +161,43 @@ def xyz2pos(x, y=None, z=None, dtype=None, max_dim=3):
     if z is not None and max_dim > 2:
         pos.append(np.array(z, dtype=dtype).reshape(-1))
     return tuple(pos)
+
+
+def ang2dir(angles, dtype=np.double, dim=None):
+    """Convert n-D spherical coordinates to Euclidean direction vectors.
+
+    Parameters
+    ----------
+    angles : :class:`list` of :class:`numpy.ndarray`
+        spherical coordinates given as angles.
+    dtype : data-type, optional
+        The desired data-type for the array.
+        If not given, then the type will be determined as the minimum type
+        required to hold the objects in the sequence. Default: None
+    dim : :class:`int`, optional
+        Cut of information above the given dimension.
+        Otherwise, dimension is determined by number of angles
+        Default: None
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        the list of direction vectors
+    """
+    angles = np.array(angles, ndmin=2, dtype=dtype)
+    if len(angles.shape) > 2:
+        raise ValueError("Can't interpret angles array {}".format(angles))
+    dim = angles.shape[1] + 1 if dim is None else dim
+    if dim == 2 and angles.shape[0] == 1:
+        # fix for 2D where only one angle per direction is given
+        angles = angles.T  # can't be interpreted if dim=None is given
+    if dim != angles.shape[1] + 1 or dim == 1:
+        raise ValueError("Wrong dim. ({}) for angles {}".format(dim, angles))
+    vec = np.empty((angles.shape[0], dim), dtype=dtype)
+    vec[:, 0] = np.prod(np.sin(angles), axis=1)
+    for i in range(1, dim):
+        vec[:, i] = np.prod(np.sin(angles[:, i:]), axis=1)  # empty prod = 1
+        vec[:, i] *= np.cos(angles[:, (i - 1)])
+    if dim in [2, 3]:
+        vec[:, [0, 1]] = vec[:, [1, 0]]  # to match convention in 2D and 3D
+    return vec
