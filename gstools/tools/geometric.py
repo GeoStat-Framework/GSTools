@@ -12,12 +12,13 @@ The following functions are provided
    r3d_z
    pos2xyz
    xyz2pos
+   ang2dir
 """
 # pylint: disable=C0103
 
 import numpy as np
 
-__all__ = ["r3d_x", "r3d_y", "r3d_z", "pos2xyz", "xyz2pos"]
+__all__ = ["r3d_x", "r3d_y", "r3d_z", "pos2xyz", "xyz2pos", "ang2dir"]
 
 
 # Geometric functions #########################################################

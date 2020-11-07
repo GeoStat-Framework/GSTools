@@ -33,6 +33,7 @@ Geometric
 .. autosummary::
    xyz2pos
    pos2xyz
+   ang2dir
    r3d_x
    r3d_y
    r3d_z
@@ -59,7 +60,14 @@ from gstools.tools.special import (
     tpl_gau_spec_dens,
 )
 
-from gstools.tools.geometric import r3d_x, r3d_y, r3d_z, xyz2pos, pos2xyz
+from gstools.tools.geometric import (
+    r3d_x,
+    r3d_y,
+    r3d_z,
+    xyz2pos,
+    pos2xyz,
+    ang2dir,
+)
 
 __all__ = [
     "vtk_export",
@@ -77,6 +85,7 @@ __all__ = [
     "tpl_gau_spec_dens",
     "xyz2pos",
     "pos2xyz",
+    "ang2dir",
     "r3d_x",
     "r3d_y",
     "r3d_z",
