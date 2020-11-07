@@ -146,7 +146,7 @@ plt.show()
 
 
 bins = np.linspace(0, 10, 50)
-bin_center, gamma = gs.vario_estimate_unstructured(
+bin_center, gamma = gs.vario_estimate(
     (x_u, y_u),
     herten_log_trans.reshape(-1),
     bins,

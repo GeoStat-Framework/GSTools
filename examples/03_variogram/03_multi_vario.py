@@ -27,9 +27,9 @@ fields = [field1, field2]
 # simultaneously with only one call.
 
 bins = np.arange(40)
-bin_center, gamma1 = gs.vario_estimate_unstructured((x, y), field1, bins)
-bin_center, gamma2 = gs.vario_estimate_unstructured((x, y), field2, bins)
-bin_center, gamma = gs.vario_estimate_unstructured((x, y), fields, bins)
+bin_center, gamma1 = gs.vario_estimate((x, y), field1, bins)
+bin_center, gamma2 = gs.vario_estimate((x, y), field2, bins)
+bin_center, gamma = gs.vario_estimate((x, y), fields, bins)
 
 ###############################################################################
 # Now we demonstrate, that the mean variogram from both fields coincides
