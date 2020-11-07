@@ -7,6 +7,7 @@ GStools subpackage providing tools for estimating and fitting variograms.
 The following functions are provided
 
 .. autosummary::
+   vario_estimate
    vario_estimate_unstructured
    vario_estimate_structured
 """
@@ -14,6 +15,7 @@ The following functions are provided
 
 import numpy as np
 
+from gstools.field.tools import reshape_axis_from_struct_to_unstruct
 from gstools.tools.geometric import pos2xyz, xyz2pos, ang2dir
 from gstools.variogram.estimator import (
     unstructured,
@@ -22,7 +24,11 @@ from gstools.variogram.estimator import (
     directional,
 )
 
-__all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
+__all__ = [
+    "vario_estimate",
+    "vario_estimate_unstructured",
+    "vario_estimate_structured",
+]
 
 
 def _set_estimator(estimator):
@@ -38,7 +44,7 @@ def _set_estimator(estimator):
     return cython_estimator
 
 
-def vario_estimate_unstructured(
+def vario_estimate(
     pos,
     field,
     bin_edges,
@@ -49,11 +55,12 @@ def vario_estimate_unstructured(
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    mesh_type="unstructured",
     no_data=np.nan,
     return_counts=False,
 ):
     r"""
-    Estimates the variogram on a unstructured grid.
+    Estimates the empirical variogram.
 
     The algorithm calculates following equation:
 
@@ -131,6 +138,10 @@ def vario_estimate_unstructured(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    mesh_type : :class:`str`, optional
+        'structured' / 'unstructured', indicates whether the pos tuple
+        describes the axis or the point coordinates.
+        Default: `'unstructured'`
     no_data : :class:`float`, optional
         Value to identify missing data in the given field.
         Default: `np.nan`
@@ -157,6 +168,8 @@ def vario_estimate_unstructured(
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # check_mesh shape
+    if mesh_type != "unstructured":
+        x, y, z, __ = reshape_axis_from_struct_to_unstruct(dim, x, y, z)
     if len(field.shape) > 2 or field.shape[1] != len(x):
         try:
             field = field.reshape((-1, len(x)))
@@ -313,3 +326,7 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     else:
         gamma = ma_structured(field, mask, cython_estimator)
     return gamma
+
+
+# for backward compatibility
+vario_estimate_unstructured = vario_estimate
