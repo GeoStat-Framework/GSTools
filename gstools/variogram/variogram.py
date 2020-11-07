@@ -136,7 +136,7 @@ def vario_estimate(
         for 2d supply one angle which is azimuth φ (ccw from +x in xy plane)
         for 3d supply two angles which are azimuth φ (ccw from +x in xy plane)
         and inclination θ (cw from +z).
-        Can be used instead of direction for a single main axis.
+        Can be used instead of direction.
         Default: :any:`None`
     angles_tol : class:`float`, optional
         the tolerance around the variogram angle to count a point as being
