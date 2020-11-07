@@ -51,7 +51,7 @@ def vario_estimate(
     direction=None,
     angles=None,
     angles_tol=np.pi / 8,
-    bandwith=None,
+    bandwidth=None,
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
@@ -82,6 +82,16 @@ def vario_estimate(
     being the bins.
     The Cressie estimator is more robust to outliers.
 
+    By provding `direction` vector[s] or angles, a directional variogram
+    can be calculated. If multiple directions are given, a set of variograms
+    will be returned.
+    Directional bining is controled by a given angle tolerance (`angles_tol`)
+    and an optional `bandwidth`, that truncates the width of the search band
+    around the given direction[s].
+
+    To reduce the calcuation time, `sampling_size` could be passed to sample
+    down the number of field points.
+
     Parameters
     ----------
     pos : :class:`list`
@@ -97,8 +107,8 @@ def vario_estimate(
     direction : :class:`list` of :class:`numpy.ndarray`, optional
         directions to evaluate a directional variogram.
         Anglular tolerance is given by `angles_tol`.
-        Bandwith to cut off how wide the search for point pairs should be
-        is given by `bandwith`.
+        bandwidth to cut off how wide the search for point pairs should be
+        is given by `bandwidth`.
         You can provide multiple directions at once to get one variogram
         for each direction.
         For a single direction you can also use the `angles` parameter,
@@ -118,8 +128,8 @@ def vario_estimate(
         within this direction from another point (the angular tolerance around
         the directional vector given by angles)
         Default: `np.pi/8` = 22.5°
-    bandwith : class:`float`, optional
-        Bandwith to cut off the angular tolerance for directional variograms.
+    bandwidth : class:`float`, optional
+        bandwidth to cut off the angular tolerance for directional variograms.
         If None is given, only the `angles_tol` parameter will control the
         point selection.
         Default: :any:`None`
@@ -198,8 +208,8 @@ def vario_estimate(
             raise ValueError("Zero length direction {}".format(direction))
         # only unit-vectors for directions
         direction = np.divide(direction, norms[:, np.newaxis])
-        # negative bandwith to turn it off
-        bandwith = float(bandwith) if bandwith is not None else -1.0
+        # negative bandwidth to turn it off
+        bandwidth = float(bandwidth) if bandwidth is not None else -1.0
         angles_tol = float(angles_tol)
     # prepare positions
     pos = np.array(xyz2pos(x, y, z, dtype=np.double, max_dim=dim))
@@ -229,7 +239,7 @@ def vario_estimate(
             pos,
             direction,
             angles_tol,
-            bandwith,
+            bandwidth,
             estimator_type=cython_estimator,
         )
         if dir_no == 1:

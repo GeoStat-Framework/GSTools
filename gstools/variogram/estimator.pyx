@@ -36,7 +36,7 @@ cdef inline bint dir_test(
     const double[:,:] pos,
     const double[:,:] direction,
     const double angles_tol,
-    const double bandwith,
+    const double bandwidth,
     const int i,
     const int j,
     const int d
@@ -48,18 +48,18 @@ cdef inline bint dir_test(
     cdef bint in_band = True
     cdef bint in_angle
 
-    # scalar-product calculation for bandwith projection and angle calculation
+    # scalar-product calculation for bandwidth projection and angle calculation
     for k in range(dim):
         s_prod += (pos[k,i] - pos[k,j]) * direction[d,k]
         p_norm += (pos[k,i] - pos[k,j])**2
     p_norm = sqrt(p_norm)
 
     # calculate band-distance by projection of point-pair-vec to direction line
-    if bandwith > 0.0:
+    if bandwidth > 0.0:
         for k in range(dim):
             b_dist += ((pos[k,i] - pos[k,j]) - s_prod * direction[d,k]) ** 2
         b_dist = sqrt(b_dist)
-        in_band = b_dist < bandwith
+        in_band = b_dist < bandwidth
 
     # use smallest angle by taking absolut value for arccos angle formula
     in_angle = acos(fabs(s_prod) / p_norm) < angles_tol
@@ -169,7 +169,7 @@ def directional(
     const double[:,:] pos,
     const double[:,:] direction,  # should be normed
     const double angles_tol=M_PI/8.0,
-    const double bandwith=-1.0,  # negative values to turn of bandwith search
+    const double bandwidth=-1.0,  # negative values to turn of bandwidth search
     str estimator_type='m'
 ):
     if pos.shape[1] != f.shape[1]:
@@ -206,7 +206,7 @@ def directional(
                 dist = distance(dim, pos, j, k)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     for d in range(d_max):
-                        if dir_test(dim, pos, direction, angles_tol, bandwith, k, j, d):
+                        if dir_test(dim, pos, direction, angles_tol, bandwidth, k, j, d):
                             for m in range(f_max):
                                 # skip no data values
                                 if not (isnan(f[m,k]) or isnan(f[m,j])):
