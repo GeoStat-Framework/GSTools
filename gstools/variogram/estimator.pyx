@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt, acos, M_PI
+from libc.math cimport fabs, sqrt, isnan, acos, M_PI
 cimport numpy as np
 
 
@@ -164,7 +164,7 @@ cdef _normalization_func_vec choose_estimator_normalization_vec(str estimator_ty
 
 def directional(
     const int dim,
-    const double[:] f,
+    const double[:,:] f,
     const double[:] bin_edges,
     const double[:,:] pos,
     const double[:,:] direction,  # should be normed
@@ -172,9 +172,9 @@ def directional(
     const double bandwith=-1.0,  # negative values to turn of bandwith search
     str estimator_type='m'
 ):
-    if pos.shape[1] != f.shape[0]:
+    if pos.shape[1] != f.shape[1]:
         raise ValueError('len(pos) = {0} != len(f) = {1} '.
-                         format(pos.shape[1], f.shape[0]))
+                         format(pos.shape[1], f.shape[1]))
 
     if bin_edges.shape[0] < 2:
         raise ValueError('len(bin_edges) too small')
@@ -191,12 +191,13 @@ def directional(
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = pos.shape[1] - 1
     cdef int k_max = pos.shape[1]
+    cdef int f_max = f.shape[0]
 
     cdef double[:,:] variogram = np.zeros((d_max, len(bin_edges)-1))
     cdef long[:,:] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
     cdef vector[double] pos1 = vector[double](dim, 0.0)
     cdef vector[double] pos2 = vector[double](dim, 0.0)
-    cdef int i, j, k, d
+    cdef int i, j, k, m, d
     cdef DTYPE_t dist
 
     for i in prange(i_max, nogil=True):
@@ -206,22 +207,25 @@ def directional(
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     for d in range(d_max):
                         if dir_test(dim, pos, direction, angles_tol, bandwith, k, j, d):
-                            counts[d, i] += 1
-                            variogram[d, i] += estimator_func(f[k] - f[j])
+                            for m in range(f_max):
+                                # skip no data values
+                                if not (isnan(f[m,k]) or isnan(f[m,j])):
+                                    counts[d, i] += 1
+                                    variogram[d, i] += estimator_func(f[m,k] - f[m,j])
 
     normalization_func_vec(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)
 
 def unstructured(
     const int dim,
-    const double[:] f,
+    const double[:,:] f,
     const double[:] bin_edges,
     const double[:,:] pos,
     str estimator_type='m'
 ):
-    if pos.shape[1] != f.shape[0]:
+    if pos.shape[1] != f.shape[1]:
         raise ValueError('len(pos) = {0} != len(f) = {1} '.
-                         format(pos.shape[1], f.shape[0]))
+                         format(pos.shape[1], f.shape[1]))
 
     if bin_edges.shape[0] < 2:
         raise ValueError('len(bin_edges) too small')
@@ -234,12 +238,13 @@ def unstructured(
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = pos.shape[1] - 1
     cdef int k_max = pos.shape[1]
+    cdef int f_max = f.shape[0]
 
     cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
     cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
     cdef vector[double] pos1 = vector[double](dim, 0.0)
     cdef vector[double] pos2 = vector[double](dim, 0.0)
-    cdef int i, j, k
+    cdef int i, j, k, m
     cdef DTYPE_t dist
 
     for i in prange(i_max, nogil=True):
@@ -247,8 +252,11 @@ def unstructured(
             for k in range(j+1, k_max):
                 dist = distance(dim, pos, j, k)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
-                    counts[i] += 1
-                    variogram[i] += estimator_func(f[k] - f[j])
+                    for m in range(f_max):
+                        # skip no data values
+                        if not (isnan(f[m,k]) or isnan(f[m,j])):
+                            counts[i] += 1
+                            variogram[i] += estimator_func(f[m,k] - f[m,j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)

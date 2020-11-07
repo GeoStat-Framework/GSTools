@@ -49,6 +49,7 @@ def vario_estimate_unstructured(
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    no_data=np.nan,
     return_counts=False,
 ):
     r"""
@@ -79,8 +80,11 @@ def vario_estimate_unstructured(
     pos : :class:`list`
         the position tuple, containing main direction and transversal
         directions
-    field : :class:`numpy.ndarray`
-        the spatially distributed data
+    field : :class:`numpy.ndarray` or :class:`list` of :class:`numpy.ndarray`
+        The spatially distributed data.
+        You can pass a list of fields, that will be used simultaneously.
+        This could be helpful, when there are multiple realizations at the
+        same points, with the same statistical properties.
     bin_edges : :class:`numpy.ndarray`
         the bins on which the variogram will be calculated
     direction : :class:`list` of :class:`numpy.ndarray`, optional
@@ -127,6 +131,9 @@ def vario_estimate_unstructured(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    no_data : :class:`float`, optional
+        Value to identify missing data in the given field.
+        Default: `np.nan`
     return_counts: class:`bool`, optional
         if set to true, this function will also return the number of data
         points found at each lag distance as a third return value
@@ -144,11 +151,20 @@ def vario_estimate_unstructured(
     -----
     Internally uses double precision and also returns doubles.
     """
-    # TODO check_mesh
-    field = np.array(field, ndmin=1, dtype=np.double)
+    # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
+    field = np.array(field, ndmin=2, dtype=np.double)
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    # check_mesh shape
+    if len(field.shape) > 2 or field.shape[1] != len(x):
+        try:
+            field = field.reshape((-1, len(x)))
+        except ValueError:
+            raise ValueError("'field' has wrong shape")
+    # set no_data values
+    if not np.isnan(no_data):
+        field[np.isclose(field, float(no_data))] = np.nan
     # initialize number of directions
     dir_no = 0
     if direction is not None and dim > 1:
@@ -175,11 +191,11 @@ def vario_estimate_unstructured(
     # prepare positions
     pos = np.array(xyz2pos(x, y, z, dtype=np.double, max_dim=dim))
     # prepare sampled variogram
-    if sampling_size is not None and sampling_size < len(field):
+    if sampling_size is not None and sampling_size < len(x):
         sampled_idx = np.random.RandomState(sampling_seed).choice(
-            np.arange(len(field)), sampling_size, replace=False
+            np.arange(len(x)), sampling_size, replace=False
         )
-        field = field[sampled_idx]
+        field = field[:, sampled_idx]
         pos = pos[:, sampled_idx]
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
