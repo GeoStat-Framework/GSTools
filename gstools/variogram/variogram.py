@@ -276,7 +276,9 @@ def vario_estimate(
     return bin_centres, estimates
 
 
-def vario_estimate_structured(field, direction="x", estimator="matheron"):
+def vario_estimate_structured(
+    field, direction="x", estimator="matheron", no_data=np.nan
+):
     r"""Estimates the variogram on a regular grid.
 
     The indices of the given direction are used for the bins.
@@ -314,6 +316,10 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
 
         Default: "matheron"
 
+    no_data : :class:`float`, optional
+        Value to identify missing data in the given field.
+        Default: `numpy.nan`
+
     Returns
     -------
     :class:`numpy.ndarray`
@@ -327,12 +333,19 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     -----
     Internally uses double precision and also returns doubles.
     """
-    masked = np.ma.is_masked(field)
+    missing_mask = (
+        np.isnan(field) if np.isnan(no_data) else np.isclose(field, no_data)
+    )
+    missing = np.any(missing_mask)
+    masked = np.ma.is_masked(field) or missing
     if masked:
-        mask = np.array(np.ma.getmaskarray(field), dtype=np.int32)
         field = np.ma.array(field, ndmin=1, dtype=np.double)
+        if missing:
+            field.mask = np.logical_or(field.mask, missing_mask)
+        mask = np.array(np.ma.getmaskarray(field), dtype=np.int32)
     else:
         field = np.array(field, ndmin=1, dtype=np.double)
+        missing_mask = None  # free space
 
     axis_to_swap = AXIS_DIR.get(direction)
     if axis_to_swap is None:
