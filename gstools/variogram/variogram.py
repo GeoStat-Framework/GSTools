@@ -8,8 +8,7 @@ The following functions are provided
 
 .. autosummary::
    vario_estimate
-   vario_estimate_unstructured
-   vario_estimate_structured
+   vario_estimate_axis
 """
 # pylint: disable=C0103
 
@@ -26,6 +25,7 @@ from gstools.variogram.estimator import (
 
 __all__ = [
     "vario_estimate",
+    "vario_estimate_axis",
     "vario_estimate_unstructured",
     "vario_estimate_structured",
 ]
@@ -187,7 +187,7 @@ def vario_estimate(
     masked = np.ma.is_masked(field) or np.any(mask)
     if masked and np.all(mask):
         raise ValueError("Given mask, masks all values.")
-    elif not masked:
+    if not masked:
         field = field.filled()
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
@@ -277,10 +277,10 @@ def vario_estimate(
     return bin_centres, estimates
 
 
-def vario_estimate_structured(
+def vario_estimate_axis(
     field, direction="x", estimator="matheron", no_data=np.nan
 ):
-    r"""Estimates the variogram on a regular grid.
+    r"""Estimates the variogram along array axis.
 
     The indices of the given direction are used for the bins.
     The algorithm calculates following equation:
@@ -366,3 +366,4 @@ def vario_estimate_structured(
 
 # for backward compatibility
 vario_estimate_unstructured = vario_estimate
+vario_estimate_structured = vario_estimate_axis

@@ -96,8 +96,7 @@ Estimate the variogram of a given field
 
 .. autosummary::
    vario_estimate
-   vario_estimate_structured
-   vario_estimate_unstructured
+   vario_estimate_axis
 """
 
 from gstools import field, variogram, random, covmodel, tools, krige, transform
@@ -112,6 +111,7 @@ from gstools.tools import (
 )
 from gstools.variogram import (
     vario_estimate,
+    vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
 )
@@ -158,6 +158,7 @@ __all__ += [
 
 __all__ += [
     "vario_estimate",
+    "vario_estimate_axis",
     "vario_estimate_structured",
     "vario_estimate_unstructured",
 ]
