@@ -31,6 +31,9 @@ __all__ = [
 ]
 
 
+AXIS_DIR = {"x": 0, "y": 1, "z": 2}
+
+
 def _set_estimator(estimator):
     """Translate the verbose Python estimator identifier to single char."""
     if estimator.lower() == "matheron":
@@ -300,42 +303,31 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
     -----
     Internally uses double precision and also returns doubles.
     """
-    try:
-        mask = np.array(field.mask, dtype=np.int32)
+    masked = np.ma.is_masked(field)
+    if masked:
+        mask = np.array(np.ma.getmaskarray(field), dtype=np.int32)
         field = np.ma.array(field, ndmin=1, dtype=np.double)
-        masked = True
-    except AttributeError:
-        mask = None
-        field = np.array(field, ndmin=1, dtype=np.double)
-        masked = False
-
-    if direction == "x":
-        axis_to_swap = 0
-    elif direction == "y":
-        axis_to_swap = 1
-    elif direction == "z":
-        axis_to_swap = 2
     else:
+        field = np.array(field, ndmin=1, dtype=np.double)
+
+    axis_to_swap = AXIS_DIR.get(direction)
+    if axis_to_swap is None:
         raise ValueError("Unknown direction {0}".format(direction))
 
+    # desired axis first, fill up field with empty dimensions up to a no. of 3
     field = field.swapaxes(0, axis_to_swap)
-    if masked:
-        mask = mask.swapaxes(0, axis_to_swap)
-
-    cython_estimator = _set_estimator(estimator)
-
-    # fill up the field with empty dimensions up to a number of 3
+    mask = mask.swapaxes(0, axis_to_swap) if masked else None
     for __ in range(3 - len(field.shape)):
         field = field[..., np.newaxis]
     if masked:
         for __ in range(3 - len(mask.shape)):
             mask = mask[..., np.newaxis]
 
-    if mask is None:
-        gamma = structured(field, cython_estimator)
-    else:
-        gamma = ma_structured(field, mask, cython_estimator)
-    return gamma
+    cython_estimator = _set_estimator(estimator)
+
+    if masked:
+        return ma_structured(field, mask, cython_estimator)
+    return structured(field, cython_estimator)
 
 
 # for backward compatibility
