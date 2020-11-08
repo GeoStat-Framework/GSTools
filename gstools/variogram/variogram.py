@@ -31,6 +31,7 @@ __all__ = [
 ]
 
 
+AXIS = ["x", "y", "z"]
 AXIS_DIR = {"x": 0, "y": 1, "z": 2}
 
 
@@ -306,8 +307,9 @@ def vario_estimate_structured(
     ----------
     field : :class:`numpy.ndarray` or :class:`numpy.ma.MaskedArray`
         the spatially distributed data (can be masked)
-    direction : :class:`str`
+    direction : :class:`str` or :class:`int`
         the axis over which the variogram will be estimated (x, y, z)
+        or (0, 1, 2, ...)
     estimator : :class:`str`, optional
         the estimator function, possible choices:
 
@@ -347,18 +349,13 @@ def vario_estimate_structured(
         field = np.array(field, ndmin=1, dtype=np.double)
         missing_mask = None  # free space
 
-    axis_to_swap = AXIS_DIR.get(direction)
-    if axis_to_swap is None:
-        raise ValueError("Unknown direction {0}".format(direction))
-
-    # desired axis first, fill up field with empty dimensions up to a no. of 3
+    axis_to_swap = AXIS_DIR[direction] if direction in AXIS else int(direction)
+    # desired axis first, convert to 2D array afterwards
     field = field.swapaxes(0, axis_to_swap)
-    mask = mask.swapaxes(0, axis_to_swap) if masked else None
-    for __ in range(3 - len(field.shape)):
-        field = field[..., np.newaxis]
+    field = field.reshape((field.shape[0], -1))
     if masked:
-        for __ in range(3 - len(mask.shape)):
-            mask = mask[..., np.newaxis]
+        mask = mask.swapaxes(0, axis_to_swap)
+        mask = mask.reshape((mask.shape[0], -1))
 
     cython_estimator = _set_estimator(estimator)
 

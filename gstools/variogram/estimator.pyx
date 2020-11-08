@@ -262,7 +262,7 @@ def unstructured(
     return np.asarray(variogram), np.asarray(counts)
 
 
-def structured(const double[:,:,:] f, str estimator_type='m'):
+def structured(const double[:,:] f, str estimator_type='m'):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
         choose_estimator_normalization(estimator_type)
@@ -270,28 +270,26 @@ def structured(const double[:,:,:] f, str estimator_type='m'):
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
-    cdef int k_max = f.shape[2]
-    cdef int l_max = i_max + 1
+    cdef int k_max = i_max + 1
 
-    cdef vector[double] variogram = vector[double](l_max, 0.0)
-    cdef vector[long] counts = vector[long](l_max, 0)
-    cdef int i, j, k, l
+    cdef vector[double] variogram = vector[double](k_max, 0.0)
+    cdef vector[long] counts = vector[long](k_max, 0)
+    cdef int i, j, k
 
     with nogil, parallel():
         for i in range(i_max):
             for j in range(j_max):
-                for k in range(k_max):
-                    for l in prange(1, l_max-i):
-                        counts[l] += 1
-                        variogram[l] += estimator_func(f[i,j,k] - f[i+l,j,k])
+                for k in prange(1, k_max-i):
+                    counts[k] += 1
+                    variogram[k] += estimator_func(f[i,j] - f[i+k,j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)
 
 
 def ma_structured(
-    const double[:,:,:] f,
-    const bint[:,:,:] mask,
+    const double[:,:] f,
+    const bint[:,:] mask,
     str estimator_type='m'
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
@@ -301,21 +299,19 @@ def ma_structured(
 
     cdef int i_max = f.shape[0] - 1
     cdef int j_max = f.shape[1]
-    cdef int k_max = f.shape[2]
-    cdef int l_max = i_max + 1
+    cdef int k_max = i_max + 1
 
-    cdef vector[double] variogram = vector[double](l_max, 0.0)
-    cdef vector[long] counts = vector[long](l_max, 0)
-    cdef int i, j, k, l
+    cdef vector[double] variogram = vector[double](k_max, 0.0)
+    cdef vector[long] counts = vector[long](k_max, 0)
+    cdef int i, j, k
 
     with nogil, parallel():
         for i in range(i_max):
             for j in range(j_max):
-                for k in range(k_max):
-                    for l in prange(1, l_max-i):
-                        if not mask[i,j,k] and not mask[i+l,j,k]:
-                            counts[l] += 1
-                            variogram[l] += estimator_func(f[i,j,k] - f[i+l,j,k])
+                for k in prange(1, k_max-i):
+                    if not mask[i,j] and not mask[i+k,j]:
+                        counts[k] += 1
+                        variogram[k] += estimator_func(f[i,j] - f[i+k,j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)
