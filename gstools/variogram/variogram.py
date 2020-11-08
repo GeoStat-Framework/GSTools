@@ -59,6 +59,7 @@ def vario_estimate(
     angles_tol=np.pi / 8,
     bandwidth=None,
     no_data=np.nan,
+    mask=np.ma.nomask,
     mesh_type="unstructured",
     return_counts=False,
 ):
@@ -98,10 +99,11 @@ def vario_estimate(
     Parameters
     ----------
     pos : :class:`list`
-        the position tuple, containing main direction and transversal
-        directions
+        the position tuple, containing either the point coordinates (x, y, ...)
+        or the axes descriptions (for mesh_type='structured')
     field : :class:`numpy.ndarray` or :class:`list` of :class:`numpy.ndarray`
         The spatially distributed data.
+        Can also be of type :class:`numpy.ma.MaskedArray` to use masked values.
         You can pass a list of fields, that will be used simultaneously.
         This could be helpful, when there are multiple realizations at the
         same points, with the same statistical properties.
@@ -153,12 +155,15 @@ def vario_estimate(
         Default: :any:`None`
     no_data : :class:`float`, optional
         Value to identify missing data in the given field.
-        Default: `np.nan`
+        Default: `numpy.nan`
+    mask : :class:`numpy.ndarray` of :class:`bool`, optional
+        Mask to deselect data in the given field.
+        Default: :any:`numpy.ma.nomask`
     mesh_type : :class:`str`, optional
         'structured' / 'unstructured', indicates whether the pos tuple
         describes the axis or the point coordinates.
         Default: `'unstructured'`
-    return_counts: class:`bool`, optional
+    return_counts: :class:`bool`, optional
         if set to true, this function will also return the number of data
         points found at each lag distance as a third return value
         Default: False
@@ -176,7 +181,13 @@ def vario_estimate(
     Internally uses double precision and also returns doubles.
     """
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
-    field = np.array(field, ndmin=2, dtype=np.double)
+    # need to convert to ma.array, since list of ma.array is not recognised
+    field = np.ma.array(field, ndmin=2, dtype=np.double)
+    masked = np.ma.is_masked(field) or np.any(mask)
+    if masked and np.all(mask):
+        raise ValueError("Given mask, masks all values.")
+    elif not masked:
+        field = field.filled()
     bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
     x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
@@ -188,6 +199,21 @@ def vario_estimate(
             field = field.reshape((-1, len(x)))
         except ValueError:
             raise ValueError("'field' has wrong shape")
+    # prepare positions
+    pos = np.array(xyz2pos(x, y, z, dtype=np.double, max_dim=dim))
+    # apply mask if wanted
+    if masked:
+        # if fields have different masks, take the minimal common mask
+        # given mask will be applied in addition
+        if np.size(mask) > 1:  # not only np.ma.nomask
+            mask = np.logical_or(
+                mask.reshape(len(x)), np.all(field.mask, axis=0)
+            )
+        else:
+            mask = np.all(field.mask, axis=0)
+        pos = pos[:, ~mask]
+        field.fill_value = np.nan  # use no-data val. for remaining masked vals
+        field = field[:, ~mask].filled()  # convert to ndarray
     # set no_data values
     if not np.isnan(no_data):
         field[np.isclose(field, float(no_data))] = np.nan
@@ -214,8 +240,6 @@ def vario_estimate(
         # negative bandwidth to turn it off
         bandwidth = float(bandwidth) if bandwidth is not None else -1.0
         angles_tol = float(angles_tol)
-    # prepare positions
-    pos = np.array(xyz2pos(x, y, z, dtype=np.double, max_dim=dim))
     # prepare sampled variogram
     if sampling_size is not None and sampling_size < len(x):
         sampled_idx = np.random.RandomState(sampling_seed).choice(
@@ -278,8 +302,8 @@ def vario_estimate_structured(field, direction="x", estimator="matheron"):
 
     Parameters
     ----------
-    field : :class:`numpy.ndarray`
-        the spatially distributed data
+    field : :class:`numpy.ndarray` or :class:`numpy.ma.MaskedArray`
+        the spatially distributed data (can be masked)
     direction : :class:`str`
         the axis over which the variogram will be estimated (x, y, z)
     estimator : :class:`str`, optional
