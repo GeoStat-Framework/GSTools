@@ -82,22 +82,20 @@ cdef inline void normalization_matheron(
     cdef int i
     for i in range(variogram.size()):
         # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
-        variogram[i] /= (2. * counts[i])
+        variogram[i] /= (2. * max(counts[i], 1))
 
 cdef inline void normalization_cressie(
     vector[double]& variogram,
     vector[long]& counts
 ):
     cdef int i
+    cdef long cnt
     for i in range(variogram.size()):
         # avoid division by zero
-        if counts[i] == 0:
-            counts[i] = 1
+        cnt = max(counts[i], 1)
         variogram[i] = (
-            0.5 * (1./counts[i] * variogram[i])**4 /
-            (0.457 + 0.494 / counts[i] + 0.045 / counts[i]**2)
+            0.5 * (1./cnt * variogram[i])**4 /
+            (0.457 + 0.494 / cnt + 0.045 / cnt**2)
         )
 
 ctypedef void (*_normalization_func)(
@@ -113,23 +111,21 @@ cdef inline void normalization_matheron_vec(
     for d in range(variogram.shape[0]):
         for i in range(variogram.shape[1]):
             # avoid division by zero
-            if counts[d, i] == 0:
-                counts[d, i] = 1
-            variogram[d, i] /= (2. * counts[d, i])
+            variogram[d, i] /= (2. * max(counts[d, i], 1))
 
 cdef inline void normalization_cressie_vec(
     double[:,:]& variogram,
     long[:,:]& counts
 ):
     cdef int d, i
+    cdef long cnt
     for d in range(variogram.shape[0]):
         for i in range(variogram.shape[1]):
             # avoid division by zero
-            if counts[d, i] == 0:
-                counts[d, i] = 1
+            cnt = max(counts[d, i], 1)
             variogram[d, i] = (
-                0.5 * (1./counts[d, i] * variogram[d, i])**4 /
-                (0.457 + 0.494 / counts[d, i] + 0.045 / counts[d, i]**2)
+                0.5 * (1./cnt * variogram[d, i])**4 /
+                (0.457 + 0.494 / cnt + 0.045 / cnt**2)
             )
 
 ctypedef void (*_normalization_func_vec)(
