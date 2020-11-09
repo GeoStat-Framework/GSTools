@@ -209,7 +209,9 @@ def vario_estimate(
         # selected region is the inverted masked (unmasked values)
         if np.size(mask) > 1:  # not only np.ma.nomask
             select = np.invert(
-                np.logical_or(mask.reshape(len(x)), np.all(field.mask, axis=0))
+                np.logical_or(
+                    np.reshape(mask, len(x)), np.all(field.mask, axis=0)
+                )
             )
         else:
             select = np.invert(np.all(field.mask, axis=0))
