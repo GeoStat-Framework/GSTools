@@ -203,11 +203,11 @@ class TestVariogramstructured(unittest.TestCase):
         # random values repeated along x-axis
         field_y = np.tile(y_rand, (len(x), 1))
 
-        gamma_x_x = gs.vario_estimate_axis(field_x, direction="x")
+        # gamma_x_x = gs.vario_estimate_axis(field_x, direction="x")
         gamma_x_y = gs.vario_estimate_axis(field_x, direction="y")
 
         gamma_y_x = gs.vario_estimate_axis(field_y, direction="x")
-        gamma_y_y = gs.vario_estimate_axis(field_y, direction="y")
+        # gamma_y_y = gs.vario_estimate_axis(field_y, direction="y")
 
         self.assertAlmostEqual(gamma_x_y[1], 0.0)
         self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0.0)
@@ -229,17 +229,17 @@ class TestVariogramstructured(unittest.TestCase):
         field_y = np.tile(y_rand.reshape((1, len(y), 1)), (len(x), 1, len(z)))
         field_z = np.tile(z_rand.reshape((1, 1, len(z))), (len(x), len(y), 1))
 
-        gamma_x_x = gs.vario_estimate_axis(field_x, direction="x")
+        # gamma_x_x = gs.vario_estimate_axis(field_x, direction="x")
         gamma_x_y = gs.vario_estimate_axis(field_x, direction="y")
         gamma_x_z = gs.vario_estimate_axis(field_x, direction="z")
 
         gamma_y_x = gs.vario_estimate_axis(field_y, direction="x")
-        gamma_y_y = gs.vario_estimate_axis(field_y, direction="y")
+        # gamma_y_y = gs.vario_estimate_axis(field_y, direction="y")
         gamma_y_z = gs.vario_estimate_axis(field_y, direction="z")
 
         gamma_z_x = gs.vario_estimate_axis(field_z, direction="x")
         gamma_z_y = gs.vario_estimate_axis(field_z, direction="y")
-        gamma_z_z = gs.vario_estimate_axis(field_z, direction="z")
+        # gamma_z_z = gs.vario_estimate_axis(field_z, direction="z")
 
         self.assertAlmostEqual(gamma_x_y[1], 0.0)
         self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0.0)
@@ -262,9 +262,20 @@ class TestVariogramstructured(unittest.TestCase):
 
     def test_exceptions(self):
         x = np.linspace(0.0, 10.0, 20)
-        rng = np.random.RandomState(1479373475)
-        x_rand = rng.rand(len(x))
+        # rng = np.random.RandomState(1479373475)
+        # x_rand = rng.rand(len(x))
         self.assertRaises(ValueError, gs.vario_estimate_axis, x, "a")
+
+    def test_missing(self):
+        x = np.linspace(0.0, 10.0, 10)
+        x_nan = x.copy()
+        x_nan[0] = np.nan
+        x_mask = np.isnan(x_nan)
+        x = np.ma.array(x, mask=x_mask)
+        v1 = gs.vario_estimate_axis(x_nan)
+        v2 = gs.vario_estimate_axis(x)
+        for i in range(len(v1)):
+            self.assertAlmostEqual(v1[i], v2[i])
 
 
 if __name__ == "__main__":
