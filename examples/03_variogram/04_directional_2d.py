@@ -30,7 +30,7 @@ ax2.set_aspect("equal")
 # direction by adding 90 degree.
 
 bins = range(0, 40, 3)
-bin_c, vario, cnt = gs.vario_estimate_unstructured(
+bin_c, vario, cnt = gs.vario_estimate(
     *((x, y), field, bins),
     angles=(angle, angle + np.pi / 2),
     angles_tol=np.pi / 16,
