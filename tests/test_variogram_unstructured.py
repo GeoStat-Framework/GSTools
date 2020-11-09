@@ -275,6 +275,55 @@ class TestVariogramUnstructured(unittest.TestCase):
             self.assertAlmostEqual(v1[i], v2[i])
             self.assertAlmostEqual(c1[i], c2[i])
 
+    def test_direction_assertion(self):
+        pos = [[1, 2, 3], [1, 2, 3]]
+        bns = [1, 2]
+        fld = np.ma.array([1, 2, 3])
+        self.assertRaises(  # degenerated direction
+            ValueError, gs.vario_estimate, pos, fld, bns, direction=[0, 0]
+        )
+        self.assertRaises(  # wrong shape of direction
+            ValueError, gs.vario_estimate, pos, fld, bns, direction=[[[3, 1]]]
+        )
+        self.assertRaises(  # wrong dimension of direction
+            ValueError, gs.vario_estimate, pos, fld, bns, direction=[[3, 1, 2]]
+        )
+        self.assertRaises(  # wrong shape of angles
+            ValueError, gs.vario_estimate, pos, fld, bns, angles=[[[1]]]
+        )
+        self.assertRaises(  # wrong dimension of angles
+            ValueError, gs.vario_estimate, pos, fld, bns, angles=[[1, 1]]
+        )
+
+    def test_mask_no_data(self):
+        pos = [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5]]
+        bns = [0, 4]
+        fld1 = np.ma.array([1, 2, 3, 4, 5])
+        fld2 = np.ma.array([np.nan, 2, 3, 4, 5])
+        fld3 = np.ma.array([1, 2, 3, 4, 5])
+        mask = [False, False, True, False, False]
+        fld1.mask = [True, False, False, False, False]
+        fld2.mask = mask
+        __, v1, c1 = gs.vario_estimate(
+            *(pos, fld1, bns),
+            mask=mask,
+            return_counts=True,
+        )
+        __, v2, c2 = gs.vario_estimate(
+            *(pos, fld2, bns),
+            return_counts=True,
+        )
+        __, v3, c3 = gs.vario_estimate(
+            *(pos, fld3, bns),
+            no_data=1,
+            mask=mask,
+            return_counts=True,
+        )
+        self.assertAlmostEqual(v1[0], v2[0])
+        self.assertAlmostEqual(v1[0], v3[0])
+        self.assertAlmostEqual(c1[0], c2[0])
+        self.assertAlmostEqual(c1[0], c3[0])
+
 
 if __name__ == "__main__":
     unittest.main()
