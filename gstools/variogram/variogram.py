@@ -198,23 +198,25 @@ def vario_estimate(
     if len(field.shape) > 2 or field.shape[1] != len(x):
         try:
             field = field.reshape((-1, len(x)))
-        except ValueError:
-            raise ValueError("'field' has wrong shape")
+        except ValueError as exc:
+            raise ValueError("'field' has wrong shape") from exc
     # prepare positions
     pos = np.array(xyz2pos(x, y, z, dtype=np.double, max_dim=dim))
     # apply mask if wanted
     if masked:
         # if fields have different masks, take the minimal common mask
         # given mask will be applied in addition
+        # selected region is the inverted masked (unmasked values)
         if np.size(mask) > 1:  # not only np.ma.nomask
-            mask = np.logical_or(
-                mask.reshape(len(x)), np.all(field.mask, axis=0)
+            select = np.invert(
+                np.logical_or(mask.reshape(len(x)), np.all(field.mask, axis=0))
             )
         else:
-            mask = np.all(field.mask, axis=0)
-        pos = pos[:, ~mask]
+            select = np.invert(np.all(field.mask, axis=0))
+        pos = pos[:, select]
         field.fill_value = np.nan  # use no-data val. for remaining masked vals
-        field = field[:, ~mask].filled()  # convert to ndarray
+        field = field[:, select].filled()  # convert to ndarray
+        select = mask = None  # free space
     # set no_data values
     if not np.isnan(no_data):
         field[np.isclose(field, float(no_data))] = np.nan
@@ -283,6 +285,8 @@ def vario_estimate_axis(
     r"""Estimates the variogram along array axis.
 
     The indices of the given direction are used for the bins.
+    Uniform spacings along the given axis are assumed.
+
     The algorithm calculates following equation:
 
     .. math::
