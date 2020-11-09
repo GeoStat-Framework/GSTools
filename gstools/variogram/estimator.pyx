@@ -44,25 +44,31 @@ cdef inline bint dir_test(
     cdef double s_prod = 0.0
     cdef double p_norm = 0.0
     cdef double b_dist = 0.0
+    cdef double tmp
     cdef int k
     cdef bint in_band = True
-    cdef bint in_angle
+    cdef bint in_angle = True
 
     # scalar-product calculation for bandwidth projection and angle calculation
     for k in range(dim):
-        s_prod += (pos[k,i] - pos[k,j]) * direction[d,k]
-        p_norm += (pos[k,i] - pos[k,j])**2
+        tmp = (pos[k,i] - pos[k,j])
+        s_prod += tmp * direction[d,k]
+        p_norm += tmp * tmp
     p_norm = sqrt(p_norm)
 
     # calculate band-distance by projection of point-pair-vec to direction line
     if bandwidth > 0.0:
         for k in range(dim):
-            b_dist += ((pos[k,i] - pos[k,j]) - s_prod * direction[d,k]) ** 2
-        b_dist = sqrt(b_dist)
-        in_band = b_dist < bandwidth
+            tmp = (pos[k,i] - pos[k,j]) - s_prod * direction[d,k]
+            b_dist += tmp * tmp
+        in_band = sqrt(b_dist) < bandwidth
 
-    # use smallest angle by taking absolut value for arccos angle formula
-    in_angle = acos(fabs(s_prod) / p_norm) < angles_tol
+    # allow repeating points
+    if p_norm > 0.0:
+        # use smallest angle by taking absolut value for arccos angle formula
+        tmp = fabs(s_prod) / p_norm
+        if tmp < 1.0:  # else same direction (prevent numerical errors)
+            in_angle = acos(tmp) < angles_tol
 
     return in_band and in_angle
 
