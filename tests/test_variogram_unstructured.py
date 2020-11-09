@@ -212,6 +212,9 @@ class TestVariogramUnstructured(unittest.TestCase):
             ValueError, gs.vario_estimate, (x, y, z), field_e, bins
         )
         self.assertRaises(ValueError, gs.vario_estimate, [x], field_e, bins)
+        self.assertRaises(
+            ValueError, gs.vario_estimate, [x], field, bins, estimator="bla"
+        )
 
     def test_multi_field(self):
         x = np.random.RandomState(19970221).rand(100) * 100.0

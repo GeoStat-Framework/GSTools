@@ -181,18 +181,22 @@ def vario_estimate(
     -----
     Internally uses double precision and also returns doubles.
     """
+    bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double)
     masked = np.ma.is_masked(field) or np.any(mask)
+    # catch special case if everything is masked
     if masked and np.all(mask):
-        raise ValueError("Given mask, masks all values.")
+        estimates = np.zeros_like(bin_centres)
+        if return_counts:
+            return bin_centres, estimates, np.zeros_like(estimates, dtype=int)
+        return bin_centres, estimates
     if not masked:
         field = field.filled()
-    bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
-    x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # check_mesh shape
+    x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
     if mesh_type != "unstructured":
         x, y, z, __ = reshape_axis_from_struct_to_unstruct(dim, x, y, z)
     if len(field.shape) > 2 or field.shape[1] != len(x):
