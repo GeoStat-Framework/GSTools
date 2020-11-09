@@ -34,6 +34,7 @@ cdef inline double distance(
 cdef inline bint dir_test(
     const int dim,
     const double[:,:] pos,
+    const double dist,
     const double[:,:] direction,
     const double angles_tol,
     const double bandwidth,
@@ -41,20 +42,16 @@ cdef inline bint dir_test(
     const int j,
     const int d
 ) nogil:
-    cdef double s_prod = 0.0
-    cdef double p_norm = 0.0
-    cdef double b_dist = 0.0
-    cdef double tmp
+    cdef double s_prod = 0.0  # scalar product
+    cdef double b_dist = 0.0  # band-distance
+    cdef double tmp  # temporary variable
     cdef int k
     cdef bint in_band = True
     cdef bint in_angle = True
 
     # scalar-product calculation for bandwidth projection and angle calculation
     for k in range(dim):
-        tmp = (pos[k,i] - pos[k,j])
-        s_prod += tmp * direction[d,k]
-        p_norm += tmp * tmp
-    p_norm = sqrt(p_norm)
+        s_prod += (pos[k,i] - pos[k,j]) * direction[d,k]
 
     # calculate band-distance by projection of point-pair-vec to direction line
     if bandwidth > 0.0:
@@ -63,10 +60,10 @@ cdef inline bint dir_test(
             b_dist += tmp * tmp
         in_band = sqrt(b_dist) < bandwidth
 
-    # allow repeating points
-    if p_norm > 0.0:
+    # allow repeating points (dist = 0)
+    if dist > 0.0:
         # use smallest angle by taking absolut value for arccos angle formula
-        tmp = fabs(s_prod) / p_norm
+        tmp = fabs(s_prod) / dist
         if tmp < 1.0:  # else same direction (prevent numerical errors)
             in_angle = acos(tmp) < angles_tol
 
@@ -208,7 +205,7 @@ def directional(
                 dist = distance(dim, pos, j, k)
                 if dist >= bin_edges[i] and dist < bin_edges[i+1]:
                     for d in range(d_max):
-                        if dir_test(dim, pos, direction, angles_tol, bandwidth, k, j, d):
+                        if dir_test(dim, pos, dist, direction, angles_tol, bandwidth, k, j, d):
                             for m in range(f_max):
                                 # skip no data values
                                 if not (isnan(f[m,k]) or isnan(f[m,j])):
