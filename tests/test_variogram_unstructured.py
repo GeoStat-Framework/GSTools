@@ -276,7 +276,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         )
         for i in range(len(bins) - 1):
             self.assertAlmostEqual(v1[i], v2[i])
-            self.assertAlmostEqual(c1[i], c2[i])
+            self.assertEqual(c1[i], c2[i])
 
     def test_direction_assertion(self):
         pos = [[1, 2, 3], [1, 2, 3]]
@@ -322,10 +322,17 @@ class TestVariogramUnstructured(unittest.TestCase):
             mask=mask,
             return_counts=True,
         )
+        __, v4, c4 = gs.vario_estimate(
+            *(pos, fld3, bns),
+            mask=True,
+            return_counts=True,
+        )
         self.assertAlmostEqual(v1[0], v2[0])
         self.assertAlmostEqual(v1[0], v3[0])
-        self.assertAlmostEqual(c1[0], c2[0])
-        self.assertAlmostEqual(c1[0], c3[0])
+        self.assertEqual(c1[0], c2[0])
+        self.assertEqual(c1[0], c3[0])
+        self.assertAlmostEqual(v4[0], 0.0)
+        self.assertEqual(c4[0], 0)
 
 
 if __name__ == "__main__":
