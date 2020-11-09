@@ -10,7 +10,11 @@ import gstools as gs
 
 class TestVariogramUnstructured(unittest.TestCase):
     def setUp(self):
-        pass
+        model = gs.Exponential(dim=3, len_scale=[12, 6, 3])
+        x = y = z = range(10)
+        self.pos = (x, y, z)
+        srf = gs.SRF(model, seed=123456)
+        self.field = srf((x, y, z), mesh_type="structured")
 
     def test_doubles(self):
         x = np.arange(1, 11, 1, dtype=np.double)
@@ -235,16 +239,12 @@ class TestVariogramUnstructured(unittest.TestCase):
         for i in range(len(gamma1)):
             self.assertAlmostEqual(gamma1[i], gamma2[i], places=2)
 
-    def test_direction(self):
-        model = gs.Exponential(dim=3, len_scale=[12, 6, 3])
-        x = y = z = range(10)
-        srf = gs.SRF(model, seed=123456)
-        field = np.ma.array(srf((x, y, z), mesh_type="structured"))
+    def test_direction_axis(self):
+        field = np.ma.array(self.field)
         field.mask = np.abs(field) < 0.1
-
         bins = range(10)
         __, vario_u = gs.vario_estimate(
-            *((x, y, z), field, bins),
+            *(self.pos, field, bins),
             direction=((1, 0, 0), (0, 1, 0), (0, 0, 1)),  # x-, y- and z-axis
             bandwidth=0.25,  # bandwith small enough to only match lines
             mesh_type="structured",
@@ -252,10 +252,28 @@ class TestVariogramUnstructured(unittest.TestCase):
         vario_s_x = gs.vario_estimate_axis(field, "x")
         vario_s_y = gs.vario_estimate_axis(field, "y")
         vario_s_z = gs.vario_estimate_axis(field, "z")
+        for i in range(len(bins) - 1):
+            self.assertAlmostEqual(vario_u[0][i], vario_s_x[i])
+            self.assertAlmostEqual(vario_u[1][i], vario_s_y[i])
+            self.assertAlmostEqual(vario_u[2][i], vario_s_z[i])
 
-        self.assertTrue(np.all(np.isclose(vario_u[0], vario_s_x[:-1])))
-        self.assertTrue(np.all(np.isclose(vario_u[1], vario_s_y[:-1])))
-        self.assertTrue(np.all(np.isclose(vario_u[2], vario_s_z[:-1])))
+    def test_direction_angle(self):
+        bins = range(0, 10, 2)
+        __, v2, c2 = gs.vario_estimate(
+            *(self.pos[:2], self.field[0], bins),
+            angles=np.pi / 4,  # 45 deg
+            mesh_type="structured",
+            return_counts=True,
+        )
+        __, v1, c1 = gs.vario_estimate(
+            *(self.pos[:2], self.field[0], bins),
+            direction=(1, 1),  # 45 deg
+            mesh_type="structured",
+            return_counts=True,
+        )
+        for i in range(len(bins) - 1):
+            self.assertAlmostEqual(v1[i], v2[i])
+            self.assertAlmostEqual(c1[i], c2[i])
 
 
 if __name__ == "__main__":
