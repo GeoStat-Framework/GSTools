@@ -286,9 +286,3 @@ class SRF(Field):
         return "SRF(model={0}, mean={1}, generator={2}".format(
             self.model, self.mean, self.generator
         )
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

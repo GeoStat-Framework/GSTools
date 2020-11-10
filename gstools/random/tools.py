@@ -186,9 +186,3 @@ class DistPdfCdfPpf(rv_continuous):
 
     def _ppf(self, q, *args):
         return self.ppf_in(q)
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

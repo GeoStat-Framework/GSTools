@@ -221,9 +221,3 @@ class RNG:
     def __repr__(self):
         """Return String representation."""
         return "RNG(seed={})".format(self.seed)
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
