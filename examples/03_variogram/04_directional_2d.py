@@ -9,9 +9,6 @@ import numpy as np
 import gstools as gs
 from matplotlib import pyplot as plt
 
-
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[10, 5])
-
 ###############################################################################
 # Generating synthetic field with anisotropy and a rotation of 22.5 degree.
 
@@ -20,8 +17,6 @@ model = gs.Exponential(dim=2, len_scale=[10, 5], angles=angle)
 x = y = range(100)
 srf = gs.SRF(model, seed=123456)
 field = srf((x, y), mesh_type="structured")
-srf.plot(ax=ax2)
-ax2.set_aspect("equal")
 
 ###############################################################################
 # Now we are going to estimate a directional variogram with an angular
@@ -38,9 +33,19 @@ bin_c, vario, cnt = gs.vario_estimate(
     mesh_type="structured",
     return_counts=True,
 )
+
+###############################################################################
+# Plotting.
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[10, 5])
+
 ax1.plot(bin_c, vario[0], label="emp. vario: pi/8")
 ax1.plot(bin_c, vario[1], label="emp. vario: pi*5/8")
 ax1.legend(loc="lower right")
+
+srf.plot(ax=ax2)
+ax2.set_aspect("equal")
+
 plt.show()
 
 ###############################################################################

@@ -10,12 +10,6 @@ import gstools as gs
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-
-fig = plt.figure(figsize=[15, 5])
-ax1 = fig.add_subplot(131)
-ax2 = fig.add_subplot(132, projection=Axes3D.name)
-ax3 = fig.add_subplot(133)
-
 ###############################################################################
 # Generating synthetic field with anisotropy and rotation by Tait-Bryan angles.
 
@@ -26,11 +20,9 @@ model = gs.Gaussian(dim=3, len_scale=[16, 8, 4], angles=angles)
 x = y = z = range(50)
 srf = gs.SRF(model, seed=1001)
 field = srf.structured((x, y, z))
-srf.plot(ax=ax1)
-ax1.set_aspect("equal")
 
 ###############################################################################
-# Here we plot the rotated coordinate system to get an impression, what
+# Here we generate the rotated coordinate system to get an impression, what
 # the rotation angles do.
 
 x1, x2, x3 = (1, 0, 0), (0, 1, 0), (0, 0, 1)
@@ -38,17 +30,6 @@ ret = np.array(gs.field.tools.rotate_mesh(dim, angles, x1, x2, x3))
 dir0 = ret[:, 0]  # main direction
 dir1 = ret[:, 1]  # first lateral direction
 dir2 = ret[:, 2]  # second lateral direction
-ax2.plot([0, dir0[0]], [0, dir0[1]], [0, dir0[2]], label="1.")
-ax2.plot([0, dir1[0]], [0, dir1[1]], [0, dir1[2]], label="2.")
-ax2.plot([0, dir2[0]], [0, dir2[1]], [0, dir2[2]], label="3.")
-ax2.set_xlim(-1, 1)
-ax2.set_ylim(-1, 1)
-ax2.set_zlim(-1, 1)
-ax2.set_xlabel("X")
-ax2.set_ylabel("Y")
-ax2.set_zlabel("Z")
-ax2.set_title("Tait-Bryan main axis")
-ax2.legend(loc="lower left")
 
 ###############################################################################
 # Now we estimate the variogram along the main axis. When the main axis are
@@ -65,6 +46,30 @@ bin_c, vario = gs.vario_estimate(
     sampling_seed=1001,
     mesh_type="structured"
 )
+
+###############################################################################
+# Plotting.
+
+fig = plt.figure(figsize=[15, 5])
+ax1 = fig.add_subplot(131)
+ax2 = fig.add_subplot(132, projection=Axes3D.name)
+ax3 = fig.add_subplot(133)
+
+srf.plot(ax=ax1)
+ax1.set_aspect("equal")
+
+ax2.plot([0, dir0[0]], [0, dir0[1]], [0, dir0[2]], label="1.")
+ax2.plot([0, dir1[0]], [0, dir1[1]], [0, dir1[2]], label="2.")
+ax2.plot([0, dir2[0]], [0, dir2[1]], [0, dir2[2]], label="3.")
+ax2.set_xlim(-1, 1)
+ax2.set_ylim(-1, 1)
+ax2.set_zlim(-1, 1)
+ax2.set_xlabel("X")
+ax2.set_ylabel("Y")
+ax2.set_zlabel("Z")
+ax2.set_title("Tait-Bryan main axis")
+ax2.legend(loc="lower left")
+
 ax3.plot(bin_c, vario[0], label="1. axis")
 ax3.plot(bin_c, vario[1], label="2. axis")
 ax3.plot(bin_c, vario[2], label="3. axis")
