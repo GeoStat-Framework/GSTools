@@ -101,6 +101,9 @@ class CovModel(metaclass=InitSubclassMeta):
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
         Default: :any:`None`
+    **opt_arg
+        Optional arguments are covered by these keyword arguments.
+        If present, they are described in the section `Other Parameters`.
     """
 
     def __init__(
