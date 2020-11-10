@@ -200,14 +200,13 @@ class Rational(CovModel):
     .. math::
        \rho(r) =
        \left(1 + \frac{1}{2\alpha} \cdot
-       \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
+       \left(s\cdot\frac{r}{\ell}\right)^2\right)^{-\alpha}
 
+    Where the standard rescale factor is :math:`s=1`.
     :math:`\alpha` is a shape parameter and should be > 0.5.
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     alpha : :class:`float`, optional
         Shape parameter. Standard range: ``(0, inf)``
         Default: ``1.0``
@@ -237,22 +236,13 @@ class Rational(CovModel):
         """
         return {"alpha": [0.5, np.inf]}
 
-    def correlation(self, r):
-        r"""Rational correlation function.
-
-        .. math::
-           \rho(r) =
-           \left(1 + \frac{1}{2\alpha} \cdot
-           \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.power(
-            1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
-        )
+    def cor(self, h):
+        """Rational normalized correlation function."""
+        return np.power(1 + 0.5 / self.alpha * h ** 2, -self.alpha)
 
     def calc_integral_scale(self):  # noqa: D102
         return (
-            self.len_scale
+            self.len_rescaled
             * np.sqrt(np.pi * self.alpha * 0.5)
             * sps.gamma(self.alpha - 0.5)
             / sps.gamma(self.alpha)
@@ -271,14 +261,13 @@ class Stable(CovModel):
 
     .. math::
        \rho(r) =
-       \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
+       \exp\left(- \left(s\cdot\frac{r}{\ell}\right)^{\alpha}\right)
 
+    Where the standard rescale factor is :math:`s=1`.
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     alpha : :class:`float`, optional
         Shape parameter. Standard range: ``(0, 2]``
         Default: ``1.5``
@@ -323,18 +312,12 @@ class Stable(CovModel):
                 + "count with unstable results"
             )
 
-    def correlation(self, r):
-        r"""Stable correlation function.
-
-        .. math::
-           \rho(r) =
-           \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.exp(-np.power(r / self.len_scale, self.alpha))
+    def cor(self, h):
+        r"""Stable normalized correlation function."""
+        return np.exp(-np.power(h, self.alpha))
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_scale * sps.gamma(1.0 + 1.0 / self.alpha)
+        return self.len_rescaled * sps.gamma(1.0 + 1.0 / self.alpha)
 
 
 # Matérn Model ################################################################
