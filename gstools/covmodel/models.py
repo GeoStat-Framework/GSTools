@@ -45,47 +45,46 @@ class Gaussian(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following variogram:
 
     .. math::
-       \rho(r) =
-       \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+       \gamma(r)=
+       \sigma^{2}
+       \left(1-\exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)\right)+n
 
+    Where the standard rescale factor is :math:`s=\frac{\sqrt{\pi}}{2}`.
     """
 
-    def correlation(self, r):
-        r"""Gaussian correlation function.
+    def cor(self, h):
+        """Gaussian normalized correlation function."""
+        return np.exp(-(h ** 2))
 
-        .. math::
-           \rho(r) =
-           \exp\left(- \frac{\pi}{4}\cdot \left(\frac{r}{\ell}\right)^2\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
+    def default_rescale(self):
+        """Gaussian rescaling factor to result in integral scale."""
+        return np.sqrt(np.pi) / 2.0
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
-        return (self.len_scale / np.pi) ** self.dim * np.exp(
-            -((k * self.len_scale) ** 2) / np.pi
+        return (self.len_rescaled / 2.0 / np.sqrt(np.pi)) ** self.dim * np.exp(
+            -((k * self.len_rescaled / 2.0) ** 2)
         )
 
     def spectral_rad_cdf(self, r):
-        """Radial spectral cdf."""
+        """Gaussian radial spectral cdf."""
         r = np.array(r, dtype=np.double)
         if self.dim == 1:
-            return sps.erf(self.len_scale * r / np.sqrt(np.pi))
+            return sps.erf(r * self.len_rescaled / 2.0)
         if self.dim == 2:
-            return 1.0 - np.exp(-((r * self.len_scale) ** 2) / np.pi)
+            return 1.0 - np.exp(-((r * self.len_rescaled / 2.0) ** 2))
         if self.dim == 3:
             return sps.erf(
-                self.len_scale * r / np.sqrt(np.pi)
-            ) - 2 * r * self.len_scale / np.pi * np.exp(
-                -((r * self.len_scale) ** 2) / np.pi
+                r * self.len_rescaled / 2.0
+            ) - r * self.len_rescaled / np.sqrt(np.pi) * np.exp(
+                -((r * self.len_rescaled / 2.0) ** 2)
             )
-        return None
 
     def spectral_rad_ppf(self, u):
-        """Radial spectral ppf.
+        """Gaussian radial spectral ppf.
 
         Notes
         -----
@@ -93,10 +92,9 @@ class Gaussian(CovModel):
         """
         u = np.array(u, dtype=np.double)
         if self.dim == 1:
-            return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
+            return 2.0 / self.len_rescaled * sps.erfinv(u)
         if self.dim == 2:
-            return np.sqrt(np.pi) / self.len_scale * np.sqrt(-np.log(1.0 - u))
-        return None
+            return 2.0 / self.len_rescaled * np.sqrt(-np.log(1.0 - u))
 
     def _has_cdf(self):
         return self.dim in [1, 2, 3]
@@ -105,7 +103,7 @@ class Gaussian(CovModel):
         return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_scale
+        return self.len_rescaled * np.sqrt(np.pi) / 2.0
 
 
 # Exponential Model ###########################################################
@@ -121,7 +119,6 @@ class Exponential(CovModel):
     .. math::
        \rho(r) =
        \exp\left(- \frac{r}{\ell} \right)
-
     """
 
     def correlation(self, r):
@@ -481,7 +478,6 @@ class Linear(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
-
     """
 
     def correlation(self, r):
@@ -527,7 +523,6 @@ class Circular(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
-
     """
 
     def correlation(self, r):
@@ -584,7 +579,6 @@ class Spherical(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
-
     """
 
     def correlation(self, r):
@@ -659,7 +653,6 @@ class Intersection(CovModel):
        & r<\ell\\
        0 & r\geq\ell
        \end{cases}
-
     """
 
     def correlation(self, r):  # noqa: D102
