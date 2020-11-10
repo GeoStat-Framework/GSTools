@@ -511,13 +511,13 @@ class Krige(Field):
     @property
     def cond_err(self):
         """:class:`list`: The measurement errors at the condition points."""
-        if self._cond_err == "nugget":
+        if isinstance(self._cond_err, str) and self._cond_err == "nugget":
             return self.model.nugget
         return self._cond_err
 
     @cond_err.setter
     def cond_err(self, value):
-        if value == "nugget":
+        if isinstance(value, str) and value == "nugget":
             self._cond_err = value
         else:
             if self.exact:
@@ -634,7 +634,9 @@ class Krige(Field):
         """Return String representation."""
         return (
             "{0}(model={1}, cond_no={2}".format(
-                self.name, self.model.name, self.cond_no,
+                self.name,
+                self.model.name,
+                self.cond_no,
             )
             + ")"
         )
