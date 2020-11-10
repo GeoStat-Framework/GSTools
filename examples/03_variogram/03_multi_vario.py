@@ -3,7 +3,7 @@ Multi-field variogram estimation
 --------------------------------
 
 In this example, we demonstrate how to estimate a variogram from multiple
-fields at the same point-set, that should have the same statistical properties.
+fields on the same point-set that should have the same statistical properties.
 """
 import numpy as np
 import gstools as gs
@@ -32,7 +32,7 @@ bin_center, gamma2 = gs.vario_estimate((x, y), field2, bins)
 bin_center, gamma = gs.vario_estimate((x, y), fields, bins)
 
 ###############################################################################
-# Now we demonstrate, that the mean variogram from both fields coincides
+# Now we demonstrate that the mean variogram from both fields coincides
 # with the joined estimated one.
 
 plt.plot(bin_center, gamma1, label="field 1")

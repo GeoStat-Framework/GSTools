@@ -62,7 +62,7 @@ cdef inline bint dir_test(
 
     # allow repeating points (dist = 0)
     if dist > 0.0:
-        # use smallest angle by taking absolut value for arccos angle formula
+        # use smallest angle by taking absolute value for arccos angle formula
         tmp = fabs(s_prod) / dist
         if tmp < 1.0:  # else same direction (prevent numerical errors)
             in_angle = acos(tmp) < angles_tol
@@ -168,7 +168,7 @@ def directional(
     const double[:,:] pos,
     const double[:,:] direction,  # should be normed
     const double angles_tol=M_PI/8.0,
-    const double bandwidth=-1.0,  # negative values to turn of bandwidth search
+    const double bandwidth=-1.0,  # neg. values to turn off bandwidth search
     str estimator_type='m'
 ):
     if pos.shape[1] != f.shape[1]:
