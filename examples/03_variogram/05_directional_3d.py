@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 fig = plt.figure(figsize=[15, 5])
-ax1 = fig.add_subplot(131, projection=Axes3D.name)
+ax1 = fig.add_subplot(131)
 ax2 = fig.add_subplot(132, projection=Axes3D.name)
 ax3 = fig.add_subplot(133)
 
@@ -47,7 +47,6 @@ ax2.set_zlim(-1, 1)
 ax2.set_xlabel("X")
 ax2.set_ylabel("Y")
 ax2.set_zlabel("Z")
-ax2.set_aspect("equal")
 ax2.set_title("Tait-Bryan main axis")
 ax2.legend(loc="lower left")
 
