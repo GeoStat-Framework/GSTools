@@ -204,74 +204,29 @@ class CovModel(metaclass=InitSubclassMeta):
 
     # one of these functions needs to be overridden
     def __init_subclass__(cls):
-        r"""Initialize gstools covariance model.
-
-        Warnings
-        --------
-        Don't instantiate ``CovModel`` directly. You need to inherit a
-        child class which overrides one of the following methods:
-
-            * ``model.variogram(r)``
-                :math:`\gamma\left(r\right)=
-                \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-            * ``model.covariance(r)``
-                :math:`C\left(r\right)=
-                \sigma^2\cdot\rho\left(r\right)`
-            * ``model.correlation(r)``
-                :math:`\rho\left(r\right)`
-
-        Best practice is to use the ``correlation`` function, or the ``cor``
-        function. The latter one takes the dimensionles distance h=r/l.
-        """
+        """Initialize gstools covariance model."""
 
         def variogram(self, r):
-            r"""Isotropic variogram of the model.
-
-            Given by: :math:`\gamma\left(r\right)=
-            \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-
-            Where :math:`\rho(r)` is the correlation function.
-            """
+            """Isotropic variogram of the model."""
             return self.var - self.covariance(r) + self.nugget
 
         def covariance(self, r):
-            r"""Covariance of the model.
-
-            Given by: :math:`C\left(r\right)=
-            \sigma^2\cdot\rho\left(r\right)`
-
-            Where :math:`\rho(r)` is the correlation function.
-            """
+            """Covariance of the model."""
             return self.var * self.correlation(r)
 
         def correlation(self, r):
-            r"""Correlation function (or normalized covariance) of the model.
-
-            Given by: :math:`\rho\left(r\right)`
-
-            It has to be a monotonic decreasing function with
-            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
-            """
+            """Correlation function of the model."""
             return 1.0 - (self.variogram(r) - self.nugget) / self.var
 
         def correlation_from_cor(self, r):
-            r"""Correlation function (or normalized covariance) of the model.
-
-            Given by: :math:`\rho\left(r\right)`
-
-            It has to be a monotonic decreasing function with
-            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
-            """
+            """Correlation function of the model."""
             r = np.array(np.abs(r), dtype=np.double)
-            return self.cor(r * self.rescale / self.len_scale)
+            return self.cor(r / self.len_rescaled)
 
         def cor_from_correlation(self, h):
-            r"""Normalziled correlation function taking a normalized range.
-
-            Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
-            """
+            """Correlation taking a non-dimensional range."""
             h = np.array(np.abs(h), dtype=np.double)
-            return self.correlation(h * self.len_scale / self.rescale)
+            return self.correlation(h * self.len_rescaled)
 
         abstract = True
         if hasattr(cls, "cor"):
@@ -312,7 +267,7 @@ class CovModel(metaclass=InitSubclassMeta):
         else:
             cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
-        ignore = ["__", "variogram", "covariance", "correlation"]
+        ignore = ["__", "variogram", "covariance", "cor"]
         for attr in cls.__dict__:
             if any(
                 [attr.startswith(ign) for ign in ignore]
@@ -570,8 +525,8 @@ class CovModel(metaclass=InitSubclassMeta):
 
         This is given by:
 
-        .. math:: S(k) = \left(\frac{1}{2\pi}\right)^n
-           \int C(r) e^{i b\mathbf{k}\cdot\mathbf{r}} d^n\mathbf{r}
+        .. math:: S(\mathbf{k}) = \left(\frac{1}{2\pi}\right)^n
+           \int C(r) e^{i \mathbf{k}\cdot\mathbf{r}} d^n\mathbf{r}
 
         Internally, this is calculated by the hankel transformation:
 
@@ -1061,6 +1016,11 @@ class CovModel(metaclass=InitSubclassMeta):
     def rescale(self):
         """:class:`float`: Rescale factor for the length scale of the model."""
         return self._rescale
+
+    @property
+    def len_rescaled(self):
+        """:class:`float`: The rescaled main length scale of the model."""
+        return self._len_scale / self._rescale
 
     @property
     def anis(self):
