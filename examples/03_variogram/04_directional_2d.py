@@ -41,7 +41,7 @@ bin_c, vario, cnt = gs.vario_estimate(
 ax1.plot(bin_c, vario[0], label="emp. vario: pi/8")
 ax1.plot(bin_c, vario[1], label="emp. vario: pi*5/8")
 ax1.legend(loc="lower right")
-fig.show()
+plt.show()
 
 ###############################################################################
 # Without fitting a model we see, that the correlation length in the main
