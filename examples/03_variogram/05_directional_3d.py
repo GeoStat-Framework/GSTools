@@ -1,5 +1,5 @@
 """
-Directional variogram estimation in 2D
+Directional variogram estimation in 3D
 --------------------------------------
 
 In this example, we demonstrate how to estimate a directional variogram by
