@@ -82,7 +82,13 @@ class CovModel(metaclass=InitSubclassMeta):
     integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
         If given, ``len_scale`` will be ignored and recalculated,
         so that the integral scale of the model matches the given one.
-        Default: ``None``
+        Default: :any:`None`
+    rescale : :class:`float` or :any:`None`, optional
+        Optional rescaling factor to divide the length scale with.
+        This could be used for unit convertion or rescaling the length scale
+        to coincide with e.g. the integral scale.
+        Will be set by each model individually.
+        Default: :any:`None`
     var_raw : :class:`float` or :any:`None`, optional
         raw variance of the model which will be multiplied with
         :any:`CovModel.var_factor` to result in the actual variance.
@@ -95,18 +101,6 @@ class CovModel(metaclass=InitSubclassMeta):
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
         Default: :any:`None`
-
-    Examples
-    --------
-    >>> from gstools import CovModel
-    >>> import numpy as np
-    >>> class Gau(CovModel):
-    ...     def cor(self, h):
-    ...         return np.exp(-h**2)
-    ...
-    >>> model = Gau()
-    >>> model.spectrum(2)
-    0.00825830126008459
     """
 
     def __init__(
@@ -118,6 +112,7 @@ class CovModel(metaclass=InitSubclassMeta):
         anis=1.0,
         angles=0.0,
         integral_scale=None,
+        rescale=None,
         var_raw=None,
         hankel_kw=None,
         **opt_arg
@@ -182,6 +177,9 @@ class CovModel(metaclass=InitSubclassMeta):
         self.set_arg_bounds(check_args=False, **bounds)
 
         # set parameters
+        self._rescale = (
+            self.default_rescale() if rescale is None else abs(float(rescale))
+        )
         self._nugget = nugget
         self._angles = set_angles(self.dim, angles)
         self._len_scale, self._anis = set_len_anis(self.dim, len_scale, anis)
@@ -265,7 +263,7 @@ class CovModel(metaclass=InitSubclassMeta):
             :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
             """
             r = np.array(np.abs(r), dtype=np.double)
-            return self.cor(r / self.len_scale)
+            return self.cor(r * self.rescale / self.len_scale)
 
         def cor_from_correlation(self, h):
             r"""Normalziled correlation function taking a normalized range.
@@ -273,11 +271,12 @@ class CovModel(metaclass=InitSubclassMeta):
             Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
             """
             h = np.array(np.abs(h), dtype=np.double)
-            return self.correlation(h * self.len_scale)
+            return self.correlation(h * self.len_scale / self.rescale)
 
         abstract = True
         if hasattr(cls, "cor"):
-            cls.correlation = correlation_from_cor
+            if not hasattr(cls, "correlation"):
+                cls.correlation = correlation_from_cor
             abstract = False
         else:
             cls.cor = cor_from_correlation
@@ -298,8 +297,8 @@ class CovModel(metaclass=InitSubclassMeta):
                 "Can't instantiate class '"
                 + cls.__name__
                 + "', "
-                + "without overriding at least on of the methods "
-                + "'variogram', 'covariance' or 'correlation'."
+                + "without providing at least one of the methods "
+                + "'cor', 'variogram', 'covariance' or 'correlation'."
             )
 
         # modify the docstrings
@@ -307,11 +306,11 @@ class CovModel(metaclass=InitSubclassMeta):
         # class docstring gets attributes added
         if cls.__doc__ is None:
             cls.__doc__ = (
-                "User defined GSTools Covariance-Model "
-                + CovModel.__doc__[44:-296]
+                "User defined GSTools Covariance-Model."
+                + CovModel.__doc__[45:]
             )
         else:
-            cls.__doc__ += CovModel.__doc__[44:-296]
+            cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
         ignore = ["__", "variogram", "covariance", "correlation"]
         for attr in cls.__dict__:
@@ -531,6 +530,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def var_factor(self):
         """Factor for the variance."""
+        return 1.0
+
+    def default_rescale(self):
+        """Provide default rescaling factor."""
         return 1.0
 
     # calculation of different scales
@@ -1055,6 +1058,11 @@ class CovModel(metaclass=InitSubclassMeta):
         self.check_arg_bounds()
 
     @property
+    def rescale(self):
+        """:class:`float`: Rescale factor for the length scale of the model."""
+        return self._rescale
+
+    @property
     def anis(self):
         """:class:`numpy.ndarray`: The anisotropy factors of the model."""
         return self._anis
@@ -1263,9 +1271,3 @@ class CovModel(metaclass=InitSubclassMeta):
             + opt_str
             + ")"
         )
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
