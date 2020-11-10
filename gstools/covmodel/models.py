@@ -114,52 +114,51 @@ class Exponential(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following variogram:
 
     .. math::
-       \rho(r) =
-       \exp\left(- \frac{r}{\ell} \right)
+       \gamma(r)=
+       \sigma^{2}
+       \left(1-\exp\left(-s\cdot\frac{r}{\ell}\right)\right)+n
+
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Exponential correlation function.
-
-        .. math::
-           \rho(r) =
-           \exp\left(- \frac{r}{\ell} \right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.exp(-1 * r / self.len_scale)
+    def cor(self, h):
+        """Exponential normalized correlation function."""
+        return np.exp(-h)
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (
-            self.len_scale ** self.dim
-            * sps.gamma((self.dim + 1) / 2)
-            / (np.pi * (1.0 + (k * self.len_scale) ** 2))
-            ** ((self.dim + 1) / 2)
+            self.len_rescaled ** self.dim
+            * sps.gamma((self.dim + 1) / 2.0)
+            / (np.pi * (1.0 + (k * self.len_rescaled) ** 2))
+            ** ((self.dim + 1) / 2.0)
         )
 
     def spectral_rad_cdf(self, r):
-        """Radial spectral cdf."""
+        """Exponential radial spectral cdf."""
         r = np.array(r, dtype=np.double)
         if self.dim == 1:
-            return np.arctan(r * self.len_scale) * 2 / np.pi
+            return np.arctan(r * self.len_rescaled) * 2.0 / np.pi
         if self.dim == 2:
-            return 1.0 - 1 / np.sqrt(1 + (r * self.len_scale) ** 2)
+            return 1.0 - 1.0 / np.sqrt(1.0 + (r * self.len_rescaled) ** 2)
         if self.dim == 3:
             return (
                 (
-                    np.arctan(r * self.len_scale)
-                    - r * self.len_scale / (1 + (r * self.len_scale) ** 2)
+                    np.arctan(r * self.len_rescaled)
+                    - r
+                    * self.len_rescaled
+                    / (1.0 + (r * self.len_rescaled) ** 2)
                 )
-                * 2
+                * 2.0
                 / np.pi
             )
         return None
 
     def spectral_rad_ppf(self, u):
-        """Radial spectral ppf.
+        """Exponential radial spectral ppf.
 
         Notes
         -----
@@ -167,7 +166,7 @@ class Exponential(CovModel):
         """
         u = np.array(u, dtype=np.double)
         if self.dim == 1:
-            return np.tan(np.pi / 2 * u) / self.len_scale
+            return np.tan(np.pi / 2 * u) / self.len_rescaled
         if self.dim == 2:
             u_power = np.divide(
                 1,
@@ -175,7 +174,7 @@ class Exponential(CovModel):
                 out=np.full_like(u, np.inf),
                 where=np.logical_not(np.isclose(u, 0)),
             )
-            return np.sqrt(u_power - 1.0) / self.len_scale
+            return np.sqrt(u_power - 1.0) / self.len_rescaled
         return None
 
     def _has_cdf(self):
@@ -185,7 +184,7 @@ class Exponential(CovModel):
         return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_scale
+        return self.len_rescaled
 
 
 # Rational Model ##############################################################
