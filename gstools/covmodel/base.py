@@ -38,10 +38,9 @@ HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
 
 
 class AttributeWarning(UserWarning):
+    """Attribute warning for CovModel class."""
+
     pass
-
-
-# The CovModel Base-Class #####################################################
 
 
 class CovModel(metaclass=InitSubclassMeta):
@@ -162,8 +161,9 @@ class CovModel(metaclass=InitSubclassMeta):
         for def_arg in default:
             if def_arg not in opt_arg:
                 opt_arg[def_arg] = default[def_arg]
-        # save names of the optional arguments
+        # save names of the optional arguments (sort them by name)
         self._opt_arg = list(opt_arg.keys())
+        self._opt_arg.sort()
         # add the optional arguments as attributes to the class
         for opt_name in opt_arg:
             if opt_name in dir(self):  # "dir" also respects properties
@@ -204,10 +204,7 @@ class CovModel(metaclass=InitSubclassMeta):
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
 
-    ###########################################################################
-    ### one of these functions needs to be overridden #########################
-    ###########################################################################
-
+    # one of these functions needs to be overridden
     def __init_subclass__(cls):
         r"""Initialize gstools covariance model.
 
@@ -228,7 +225,6 @@ class CovModel(metaclass=InitSubclassMeta):
         Best practice is to use the ``correlation`` function, or the ``cor``
         function. The latter one takes the dimensionles distance h=r/l.
         """
-        # override one of these ###############################################
 
         def variogram(self, r):
             r"""Isotropic variogram of the model.
@@ -279,8 +275,6 @@ class CovModel(metaclass=InitSubclassMeta):
             h = np.array(np.abs(h), dtype=np.double)
             return self.correlation(h * self.len_scale)
 
-        #######################################################################
-
         abstract = True
         if hasattr(cls, "cor"):
             cls.correlation = correlation_from_cor
@@ -308,7 +302,7 @@ class CovModel(metaclass=InitSubclassMeta):
                 + "'variogram', 'covariance' or 'correlation'."
             )
 
-        # modify the docstrings ###############################################
+        # modify the docstrings
 
         # class docstring gets attributes added
         if cls.__doc__ is None:
@@ -330,7 +324,7 @@ class CovModel(metaclass=InitSubclassMeta):
             if attr_cls.__doc__ is None:
                 attr_cls.__doc__ = attr_doc
 
-    ### special variogram functions ###########################################
+    # special variogram functions
 
     def _get_iso_rad(self, pos):
         x, y, z = pos2xyz(pos, max_dim=self.dim)
@@ -412,9 +406,7 @@ class CovModel(metaclass=InitSubclassMeta):
         routine = getattr(plot, "plot_" + func)
         return routine(self, **kwargs)
 
-    ###########################################################################
-    ### pykrige functions #####################################################
-    ###########################################################################
+    # pykrige functions
 
     def pykrige_vario(self, args=None, r=0):
         r"""Isotropic variogram of the model for pykrige.
@@ -501,9 +493,7 @@ class CovModel(metaclass=InitSubclassMeta):
         kwargs.update(add_kwargs)
         return kwargs
 
-    ###########################################################################
-    ### methods for optional arguments (can be overridden) ####################
-    ###########################################################################
+    # methods for optional arguments (can be overridden)
 
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
@@ -543,7 +533,7 @@ class CovModel(metaclass=InitSubclassMeta):
         """Factor for the variance."""
         return 1.0
 
-    ### calculation of different scales #######################################
+    # calculation of different scales
 
     def calc_integral_scale(self):
         """Calculate the integral scale of the isotrope model."""
@@ -569,9 +559,7 @@ class CovModel(metaclass=InitSubclassMeta):
         # take 'per * len_scale' as initial guess
         return root(curve, per * self.len_scale)["x"][0]
 
-    ###########################################################################
-    ### spectrum methods (can be overridden for speedup) ######################
-    ###########################################################################
+    # spectrum methods (can be overridden for speedup)
 
     def spectrum(self, k):
         r"""
@@ -646,7 +634,7 @@ class CovModel(metaclass=InitSubclassMeta):
         """State if a ppf is defined with 'spectral_rad_ppf'."""
         return hasattr(self, "spectral_rad_ppf")
 
-    ### fitting routine #######################################################
+    # fitting routine
 
     def fit_variogram(
         self,
@@ -787,7 +775,7 @@ class CovModel(metaclass=InitSubclassMeta):
             **para_select
         )
 
-    ### bounds setting and checks #############################################
+    # bounds setting and checks
 
     def default_arg_bounds(self):
         """Provide default boundaries for arguments.
@@ -875,7 +863,7 @@ class CovModel(metaclass=InitSubclassMeta):
                     "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
                 )
 
-    ### bounds properties #####################################################
+    # bounds properties
 
     @property
     def var_bounds(self):
@@ -993,7 +981,7 @@ class CovModel(metaclass=InitSubclassMeta):
         res.update(self.opt_arg_bounds)
         return res
 
-    ### standard parameters ###################################################
+    # standard parameters
 
     @property
     def dim(self):
