@@ -312,10 +312,7 @@ class TestVariogramUnstructured(unittest.TestCase):
             mask=mask,
             return_counts=True,
         )
-        __, v2, c2 = gs.vario_estimate(
-            *(pos, fld2, bns),
-            return_counts=True,
-        )
+        __, v2, c2 = gs.vario_estimate(*(pos, fld2, bns), return_counts=True)
         __, v3, c3 = gs.vario_estimate(
             *(pos, fld3, bns),
             no_data=1,
@@ -327,12 +324,15 @@ class TestVariogramUnstructured(unittest.TestCase):
             mask=True,
             return_counts=True,
         )
+        __, v5 = gs.vario_estimate(*(pos, fld3, bns), mask=True)
+
         self.assertAlmostEqual(v1[0], v2[0])
         self.assertAlmostEqual(v1[0], v3[0])
         self.assertEqual(c1[0], c2[0])
         self.assertEqual(c1[0], c3[0])
         self.assertAlmostEqual(v4[0], 0.0)
         self.assertEqual(c4[0], 0)
+        self.assertAlmostEqual(v5[0], 0.0)
 
 
 if __name__ == "__main__":
