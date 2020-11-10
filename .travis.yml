@@ -56,6 +56,9 @@ jobs:
         - python3 -m pytest --cov gstools --cov-report term-missing -v tests/
         - python3 -m coveralls
 
+    - name: "Linux py35"
+      services: docker
+      env: CIBW_BUILD="cp35-*"
     - name: "Linux py36"
       services: docker
       env: CIBW_BUILD="cp36-*"
@@ -69,6 +72,10 @@ jobs:
       services: docker
       env: CIBW_BUILD="cp39-*"
 
+    - name: "MacOS py35"
+      os: osx
+      language: shell
+      env: CIBW_BUILD="cp35-*"
     - name: "MacOS py36"
       os: osx
       language: shell
@@ -86,6 +93,10 @@ jobs:
       language: shell
       env: CIBW_BUILD="cp39-*"
 
+    - name: "Win py35"
+      os: windows
+      language: shell
+      env: CIBW_BUILD="cp35-*"
     - name: "Win py36"
       os: windows
       language: shell
