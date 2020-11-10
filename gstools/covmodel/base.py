@@ -1219,9 +1219,7 @@ class CovModel(metaclass=InitSubclassMeta):
     @property
     def do_rotation(self):
         """:any:`bool`: State if a rotation is performed."""
-        return (
-            not np.all(np.isclose(self.angles, 0.0))
-        )
+        return not np.all(np.isclose(self.angles, 0.0))
 
     @property
     def is_isotropic(self):
