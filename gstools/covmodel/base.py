@@ -450,7 +450,7 @@ class CovModel(metaclass=InitSubclassMeta):
         kwargs.update(add_kwargs)
         return kwargs
 
-    # methods for optional arguments (can be overridden)
+    # methods for optional/default arguments (can be overridden)
 
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
