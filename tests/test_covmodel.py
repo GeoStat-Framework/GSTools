@@ -20,6 +20,7 @@ from gstools import (
     TPLGaussian,
     TPLExponential,
     TPLStable,
+    TPLSimple,
 )
 
 
@@ -40,6 +41,7 @@ class TestCovModel(unittest.TestCase):
             TPLGaussian,
             TPLExponential,
             TPLStable,
+            TPLSimple,
         ]
         self.std_cov_models = [
             Gaussian,

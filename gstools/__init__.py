@@ -72,6 +72,7 @@ Truncated Power Law Covariance Models
    TPLGaussian
    TPLExponential
    TPLStable
+   TPLSimple
 
 Functions
 =========
@@ -133,6 +134,7 @@ from gstools.covmodel import (
     TPLGaussian,
     TPLExponential,
     TPLStable,
+    TPLSimple,
 )
 
 try:
@@ -160,6 +162,7 @@ __all__ += [
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",
+    "TPLSimple",
 ]
 
 __all__ += [

@@ -64,6 +64,7 @@ As a special feature, we also provide truncated power law (TPL) covariance model
     TPLGaussian
     TPLExponential
     TPLStable
+    TPLSimple
 
 Gallery
 -------

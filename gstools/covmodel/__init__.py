@@ -46,6 +46,7 @@ Truncated Power Law Covariance Models
    TPLGaussian
    TPLExponential
    TPLStable
+   TPLSimple
 """
 
 from gstools.covmodel.base import CovModel
@@ -62,7 +63,12 @@ from gstools.covmodel.models import (
     SuperSpherical,
     JBessel,
 )
-from gstools.covmodel.tpl_models import TPLGaussian, TPLExponential, TPLStable
+from gstools.covmodel.tpl_models import (
+    TPLGaussian,
+    TPLExponential,
+    TPLStable,
+    TPLSimple,
+)
 
 __all__ = [
     "CovModel",
@@ -80,4 +86,5 @@ __all__ = [
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",
+    "TPLSimple",
 ]

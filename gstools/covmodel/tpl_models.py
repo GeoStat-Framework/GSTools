@@ -10,6 +10,7 @@ The following classes and functions are provided
    TPLGaussian
    TPLExponential
    TPLStable
+   TPLSimple
 """
 # pylint: disable=C0103, E1101
 
@@ -23,7 +24,7 @@ from gstools.tools.special import (
 )
 
 
-__all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
+__all__ = ["TPLGaussian", "TPLExponential", "TPLStable", "TPLSimple"]
 
 
 class TPLCovModel(CovModel):
@@ -480,3 +481,71 @@ class TPLStable(TPLCovModel):
             self.len_up_rescaled ** (2 * self.hurst)
             - self.len_low_rescaled ** (2 * self.hurst)
         )
+
+
+class TPLSimple(CovModel):
+    r"""The simply truncated power law model.
+
+    This model describes a simple truncated power law
+    with a finite length scale. In contrast to other models,
+    this one is not derived from super-postioning modes.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       \left(1-s\cdot\frac{r}{\ell}\right)^{\nu} & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\nu\geq\frac{d+1}{2}` is a shape parameter,
+    which defaults to :math:`\nu=\frac{d+1}{2}`,
+
+    For :math:`\nu=1` (valid only in d=1)
+    this coincides with the truncated linear model:
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       1-s\cdot\frac{r}{\ell} & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[(dim+1)/2, inf)``
+        Default: ``dim/2``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": dim/2}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": (self.dim + 1) / 2}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [(self.dim + 1) / 2, np.inf, "co"]}
+
+    def cor(self, h):
+        """TPL Simple - normalized correlation function."""
+        return np.maximum(1 - np.abs(h, dtype=np.double), 0.0) ** self.nu
