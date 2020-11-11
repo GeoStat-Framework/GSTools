@@ -17,6 +17,7 @@ The following classes are provided
    Spherical
    HyperSpherical
    SuperSpherical
+   JBessel
 """
 # pylint: disable=C0103, E1101, E1137
 
@@ -36,6 +37,7 @@ __all__ = [
     "Spherical",
     "HyperSpherical",
     "SuperSpherical",
+    "JBessel",
 ]
 
 
@@ -329,12 +331,12 @@ class Matern(CovModel):
 
     :math:`\nu` is a shape parameter and should be >= 0.2.
 
-    If :math:`\nu > 20`, a gaussian model is used, since it is the limit
-    case:
+    If :math:`\nu > 20`, a gaussian model is used, since it represents
+    the limiting case:
 
     .. math::
        \rho(r) =
-       \exp\left(-\left(\frac{r}{2\ell}\right)^2\right)
+       \exp\left(-\left(s\cdot\frac{r}{2\ell}\right)^2\right)
 
     Other Parameters
     ----------------
@@ -601,7 +603,7 @@ class SuperSpherical(CovModel):
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[(dim-1)/2, inf]``
+        Shape parameter. Standard range: ``[(dim-1)/2, inf)``
         Default: ``(dim-1)/2``
     """
 
@@ -640,3 +642,105 @@ class SuperSpherical(CovModel):
             Boundaries for optional arguments
         """
         return {"nu": [(self.dim - 1) / 2, np.inf, "co"]}
+
+
+class JBessel(CovModel):
+    r"""The J-Bessel hole model.
+
+    This covariance model is a valid hole model, meaning it has areas
+    of negative correlation but a valid spectral density.
+
+    Notes
+    -----
+    This model is given by the following correlation functions.
+
+    .. math::
+       \rho(r) =
+       \Gamma(\nu+1) \cdot
+       \frac{\mathrm{J}_{\nu}\left(s\cdot\frac{r}{\ell}\right)}
+       {\left(s\cdot\frac{r}{2\ell}\right)^{\nu}}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\Gamma` is the gamma function and :math:`\mathrm{J}_{\nu}`
+    is the Bessel functions of the first kind.
+    :math:`\nu\geq\frac{d}{2}-1` is a shape parameter,
+    which defaults to :math:`\nu=\frac{d}{2}`,
+    since the spectrum of the model gets instable for
+    :math:`\nu\to\frac{d}{2}-1`.
+
+    For :math:`\nu=\frac{1}{2}` (valid in d=1,2,3)
+    we get the so-called 'Wave' model:
+
+    .. math::
+       \rho(r) =
+       \frac{\sin\left(s\cdot\frac{r}{\ell}\right)}{s\cdot\frac{r}{\ell}}
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[dim/2 - 1, inf)``
+        Default: ``dim/2``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": dim/2}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": self.dim / 2}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [self.dim / 2 - 1, np.inf, "co"]}
+
+    def check_opt_arg(self):
+        """Check the optional arguments.
+
+        Warns
+        -----
+        nu
+            If nu is close to dim/2 - 1, the model tends to get unstable.
+        """
+        if abs(self.nu - self.dim / 2 + 1) < 0.01:
+            warnings.warn(
+                "JBessel: parameter 'nu' is close to d/2-1, "
+                + "count with unstable results"
+            )
+
+    def cor(self, h):
+        """J-Bessel correlation."""
+        h = np.array(h, dtype=np.double)
+        h_gz = np.logical_not(np.isclose(h, 0))
+        hh = h[h_gz]
+        res = np.ones_like(h)
+        nu = self.nu
+        res[h_gz] = sps.gamma(nu + 1) * sps.jv(nu, hh) / (hh / 2.0) ** nu
+        return res
+
+    def spectral_density(self, k):  # noqa: D102
+        k = np.array(k, dtype=np.double)
+        k_ll = k < 1.0 / self.len_rescaled
+        kk = k[k_ll]
+        res = np.zeros_like(k)
+        # the model is degenerated for nu=d/2-1, so we tweak the spectral pdf
+        # and cut of the divisor at nu-(d/2-1)=0.01 (gamma(0.01) about 100)
+        res[k_ll] = (
+            (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+            * sps.gamma(self.nu + 1.0)
+            / np.minimum(sps.gamma(self.nu - self.dim / 2 + 1), 100.0)
+            * (1.0 - (kk * self.len_rescaled) ** 2) ** (self.nu - self.dim / 2)
+        )
+        return res
