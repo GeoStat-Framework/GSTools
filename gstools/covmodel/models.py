@@ -333,10 +333,11 @@ class Matern(CovModel):
     .. math::
        \rho(r) =
        \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-       \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
-       \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
+       \left(\sqrt{\nu}\cdot s\cdot\frac{r}{\ell}\right)^{\nu} \cdot
+       \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot s\cdot\frac{r}{\ell}\right)
 
-    Where :math:`\Gamma` is the gamma function and :math:`\mathrm{K}_{\nu}`
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\Gamma` is the gamma function and :math:`\mathrm{K}_{\nu}`
     is the modified Bessel function of the second kind.
 
     :math:`\nu` is a shape parameter and should be >= 0.2.
@@ -346,12 +347,10 @@ class Matern(CovModel):
 
     .. math::
        \rho(r) =
-       \exp\left(- \frac{1}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+       \exp\left(-\left(\frac{r}{2\ell}\right)^2\right)
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     nu : :class:`float`, optional
         Shape parameter. Standard range: ``[0.2, 30]``
         Default: ``1.0``
@@ -381,28 +380,20 @@ class Matern(CovModel):
         """
         return {"nu": [0.2, 30.0, "cc"]}
 
-    def correlation(self, r):
-        r"""Matérn correlation function.
-
-        .. math::
-           \rho(r) =
-           \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-           \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
-           \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
+    def cor(self, h):
+        """Matérn normalized correlation function."""
+        h = np.array(np.abs(h), dtype=np.double)
         # for nu > 20 we just use the gaussian model
         if self.nu > 20.0:
-            return np.exp(-((r / self.len_scale) ** 2) / 4)
+            return np.exp(-((h / 2.0) ** 2))
         # calculate by log-transformation to prevent numerical errors
-        r_gz = r[r > 0.0]
-        res = np.ones_like(r)
-        # with np.errstate(over="ignore", invalid="ignore"):
-        res[r > 0.0] = np.exp(
+        h_gz = h[h > 0.0]
+        res = np.ones_like(h)
+        res[h > 0.0] = np.exp(
             (1.0 - self.nu) * np.log(2)
             - sps.loggamma(self.nu)
-            + self.nu * np.log(np.sqrt(self.nu) * r_gz / self.len_scale)
-        ) * sps.kv(self.nu, np.sqrt(self.nu) * r_gz / self.len_scale)
+            + self.nu * np.log(np.sqrt(self.nu) * h_gz)
+        ) * sps.kv(self.nu, np.sqrt(self.nu) * h_gz)
         # if nu >> 1 we get errors for the farfield, there 0 is approached
         res[np.logical_not(np.isfinite(res))] = 0.0
         # covariance is positiv
@@ -414,20 +405,20 @@ class Matern(CovModel):
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
             return (
-                (self.len_scale / np.sqrt(np.pi)) ** self.dim
-                * np.exp(-((k * self.len_scale) ** 2))
+                (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+                * np.exp(-((k * self.len_rescaled) ** 2))
                 * (
                     1
                     + (
-                        ((k * self.len_scale) ** 2 - self.dim / 2.0) ** 2
+                        ((k * self.len_rescaled) ** 2 - self.dim / 2.0) ** 2
                         - self.dim / 2.0
                     )
                     / self.nu
                 )
             )
-        return (self.len_scale / np.sqrt(np.pi)) ** self.dim * np.exp(
+        return (self.len_rescaled / np.sqrt(np.pi)) ** self.dim * np.exp(
             -(self.nu + self.dim / 2.0)
-            * np.log(1.0 + (k * self.len_scale) ** 2 / self.nu)
+            * np.log(1.0 + (k * self.len_rescaled) ** 2 / self.nu)
             + sps.loggamma(self.nu + self.dim / 2.0)
             - sps.loggamma(self.nu)
             - self.dim * np.log(np.sqrt(self.nu))
@@ -435,7 +426,10 @@ class Matern(CovModel):
 
     def calc_integral_scale(self):  # noqa: D102
         return (
-            self.len_scale * np.pi / np.sqrt(self.nu) / sps.beta(self.nu, 0.5)
+            self.len_rescaled
+            * np.pi
+            / np.sqrt(self.nu)
+            / sps.beta(self.nu, 0.5)
         )
 
 
