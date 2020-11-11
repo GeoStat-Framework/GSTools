@@ -60,6 +60,14 @@ class TPLCovModel(CovModel):
             - self.len_low_rescaled ** (2 * self.hurst)
         ) / (2 * self.hurst)
 
+    def cor(self, h):
+        """TPL - normalized correlation function."""
+        return 1.0
+
+    def correlation(self, r):
+        """TPL - correlation function."""
+        return 1.0
+
 
 # Truncated power law #########################################################
 
@@ -320,7 +328,7 @@ class TPLExponential(TPLCovModel):
         )
 
 
-class TPLStable(CovModel):
+class TPLStable(TPLCovModel):
     r"""Truncated-Power-Law with Stable modes.
 
     Notes
