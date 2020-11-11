@@ -536,141 +536,57 @@ class Spherical(CovModel):
         return 1.0 - 1.5 * h + 0.5 * h ** 3
 
 
-class Intersection(CovModel):
-    r"""The Intersection covariance model.
+class HyperSpherical(CovModel):
+    r"""The Hyper-Spherical covariance model.
 
     This model is derived from the relative intersection area of
-    two d-dimensional spheres,
+    two d-dimensional hyper spheres,
     where the middle points have a distance of :math:`r`
     and the diameters are given by :math:`\ell`.
 
-    In 1D this is the Linear model, in 2D this is the Circular model
-    and in 3D this is the Spherical model.
+    In 1D this is the Linear model, in 2D the Circular model
+    and in 3D the Spherical model.
 
     Notes
     -----
     This model is given by the following correlation functions.
 
-    In 1D:
-
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{r}{\ell}
-       & r<\ell\\
-       0 & r\geq\ell
+       1-\frac{
+       _{2}F_{1}\left(\frac{1}{2},\frac{1-d}{2},\frac{3}{2},
+       \left(s\cdot\frac{r}{\ell}\right)^{2}\right)}
+       {_{2}F_{1}\left(\frac{1}{2},\frac{1-d}{2},\frac{3}{2},1\right)}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
 
-    In 2D:
-
-    .. math::
-       \rho(r) =
-       \begin{cases}
-       \frac{2}{\pi}\cdot\left(
-       \cos^{-1}\left(\frac{r}{\ell}\right) -
-       \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
-       \right)
-       & r<\ell\\
-       0 & r\geq\ell
-       \end{cases}
-
-    In >=3D:
-
-    .. math::
-       \rho(r) =
-       \begin{cases}
-       1-\frac{3}{2}\cdot\frac{r}{\ell} +
-       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-       & r<\ell\\
-       0 & r\geq\ell
-       \end{cases}
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`d` is the dimension.
     """
 
-    def correlation(self, r):  # noqa: D102
-        r"""
-        Intersection correlation function.
-
-        In 1D:
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           1-\frac{r}{\ell}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-
-        In 2D:
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           \frac{2}{\pi}\cdot\left(
-           \cos^{-1}\left(\frac{r}{\ell}\right) -
-           \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
-           \right)
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-
-        In >=3D:
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           1-\frac{3}{2}\cdot\frac{r}{\ell} +
-           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        if self.dim == 1:
-            res[r_ll] = 1.0 - r_low / self.len_scale
-        elif self.dim == 2:
-            res[r_ll] = (
-                2
-                / np.pi
-                * (
-                    np.arccos(r_low / self.len_scale)
-                    - r_low
-                    / self.len_scale
-                    * np.sqrt(1 - (r_low / self.len_scale) ** 2)
-                )
-            )
-        else:
-            res[r_ll] = (
-                1.0
-                - 3.0 / 2.0 * r_low / self.len_scale
-                + 1.0 / 2.0 * (r_low / self.len_scale) ** 3
-            )
+    def cor(self, h):
+        """Hyper-Spherical normalized correlation function."""
+        h = np.array(h, dtype=np.double)
+        res = np.zeros_like(h)
+        h_l1 = h < 1
+        nu = (self.dim - 1.0) / 2.0
+        fac = 1.0 / sps.hyp2f1(0.5, -nu, 1.5, 1)
+        res[h_l1] = 1 - h[h_l1] * fac * sps.hyp2f1(0.5, -nu, 1.5, h[h_l1] ** 2)
         return res
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         res = np.empty_like(k)
-        kl = k * self.len_scale
-        kl_gz = kl > 0
-        # for k=0 we calculate the limit by hand
-        if self.dim == 1:
-            res[kl_gz] = (1.0 - np.cos(kl[kl_gz])) / (
-                np.pi * k[kl_gz] * kl[kl_gz]
-            )
-            res[np.logical_not(kl_gz)] = self.len_scale / 2.0 / np.pi
-        elif self.dim == 2:
-            res[kl_gz] = sps.j1(kl[kl_gz] / 2.0) ** 2 / np.pi / k[kl_gz] ** 2
-            res[np.logical_not(kl_gz)] = self.len_scale ** 2 / 16.0 / np.pi
-        else:
-            res[kl_gz] = -(
-                12 * kl[kl_gz] * np.sin(kl[kl_gz])
-                + (12 - 3 * kl[kl_gz] ** 2) * np.cos(kl[kl_gz])
-                - 3 * kl[kl_gz] ** 2
-                - 12
-            ) / (2 * np.pi ** 2 * kl[kl_gz] ** 3 * k[kl_gz] ** 3)
-            res[np.logical_not(kl_gz)] = (
-                self.len_scale ** 3 / 48.0 / np.pi ** 2
-            )
+        kl = k * self.len_rescaled
+        kl_gz = np.logical_not(np.isclose(k, 0))
+        res[kl_gz] = sps.gamma(self.dim / 2 + 1) / np.sqrt(np.pi) ** self.dim
+        res[kl_gz] *= sps.jv(self.dim / 2, kl[kl_gz] / 2) ** 2
+        res[kl_gz] /= k[kl_gz] ** self.dim
+        res[np.logical_not(kl_gz)] = (
+            (self.len_rescaled / 4) ** self.dim
+            / sps.gamma(self.dim / 2 + 1)
+            / np.sqrt(np.pi) ** self.dim
+        )
         return res
