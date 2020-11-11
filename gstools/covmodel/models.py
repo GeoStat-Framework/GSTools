@@ -450,29 +450,16 @@ class Linear(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{r}{\ell}
-       & r<\ell\\
-       0 & r\geq\ell
+       1-s\cdot\frac{r}{\ell} & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Linear correlation function.
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           1-\frac{r}{\ell}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        res[r_ll] = 1.0 - r_low / self.len_scale
-        return res
+    def cor(self, h):
+        """Linear normalized correlation function."""
+        return np.maximum(1 - np.abs(h, dtype=np.double), 0.0)
 
 
 # Circular Model ##############################################################
@@ -492,43 +479,27 @@ class Circular(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       \frac{2}{\pi}\cdot\left(
-       \cos^{-1}\left(\frac{r}{\ell}\right) -
-       \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
+       \frac{2}{\pi}\cdot
+       \left(
+       \cos^{-1}\left(s\cdot\frac{r}{\ell}\right) -
+       s\cdot\frac{r}{\ell}\cdot\sqrt{1-\left(s\cdot\frac{r}{\ell}\right)^{2}}
        \right)
-       & r<\ell\\
-       0 & r\geq\ell
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Circular correlation function.
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           \frac{2}{\pi}\cdot\left(
-           \cos^{-1}\left(\frac{r}{\ell}\right) -
-           \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
-           \right)
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        res[r_ll] = (
-            2
-            / np.pi
-            * (
-                np.arccos(r_low / self.len_scale)
-                - r_low
-                / self.len_scale
-                * np.sqrt(1 - (r_low / self.len_scale) ** 2)
-            )
+    def cor(self, h):
+        """Circular normalized correlation function."""
+        h = np.array(np.abs(h), dtype=np.double)
+        res = np.zeros_like(h)
+        # arccos is instable around h=1
+        h_l1 = h < 1.0
+        h_low = h[h_l1]
+        res[h_l1] = (
+            2 / np.pi * (np.arccos(h_low) - h_low * np.sqrt(1 - h_low ** 2))
         )
         return res
 
@@ -550,35 +521,19 @@ class Spherical(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{3}{2}\cdot\frac{r}{\ell} +
-       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-       & r<\ell\\
-       0 & r\geq\ell
+       1-\frac{3}{2}\cdot s\cdot\frac{r}{\ell} +
+       \frac{1}{2}\cdot\left(s\cdot\frac{r}{\ell}\right)^{3}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Spherical correlation function.
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           1-\frac{3}{2}\cdot\frac{r}{\ell} +
-           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        res[r_ll] = (
-            1.0
-            - 3.0 / 2.0 * r_low / self.len_scale
-            + 1.0 / 2.0 * (r_low / self.len_scale) ** 3
-        )
-        return res
+    def cor(self, h):
+        """Spherical normalized correlation function."""
+        h = np.minimum(np.abs(h, dtype=np.double), 1.0)
+        return 1.0 - 1.5 * h + 0.5 * h ** 3
 
 
 class Intersection(CovModel):
