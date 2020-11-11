@@ -48,6 +48,18 @@ def _set_estimator(estimator):
     return cython_estimator
 
 
+def _separate_dirs_test(direction, angles_tol):
+    """Check if given directions are separated."""
+    if direction is None or direction.shape[0] < 2:
+        return True
+    separate_dirs = True
+    for i in range(direction.shape[0] - 1):
+        for j in range(i + 1, direction.shape[0]):
+            s_prod = np.minimum(np.abs(np.dot(direction[i], direction[j])), 1)
+            separate_dirs &= np.arccos(s_prod) >= 2 * angles_tol
+    return separate_dirs
+
+
 def vario_estimate(
     pos,
     field,
@@ -276,6 +288,7 @@ def vario_estimate(
             direction,
             angles_tol,
             bandwidth,
+            separate_dirs=_separate_dirs_test(direction, angles_tol),
             estimator_type=cython_estimator,
         )
         if dir_no == 1:
