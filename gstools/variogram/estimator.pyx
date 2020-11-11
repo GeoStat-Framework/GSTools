@@ -169,6 +169,7 @@ def directional(
     const double[:,:] direction,  # should be normed
     const double angles_tol=M_PI/8.0,
     const double bandwidth=-1.0,  # negative values to turn of bandwidth search
+    const bint separate_dirs=False,  # whether the direction bands don't overlap
     str estimator_type='m'
 ):
     if pos.shape[1] != f.shape[1]:
@@ -203,14 +204,20 @@ def directional(
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(dim, pos, j, k)
-                if dist >= bin_edges[i] and dist < bin_edges[i+1]:
-                    for d in range(d_max):
-                        if dir_test(dim, pos, dist, direction, angles_tol, bandwidth, k, j, d):
-                            for m in range(f_max):
-                                # skip no data values
-                                if not (isnan(f[m,k]) or isnan(f[m,j])):
-                                    counts[d, i] += 1
-                                    variogram[d, i] += estimator_func(f[m,k] - f[m,j])
+                if dist < bin_edges[i] or dist >= bin_edges[i+1]:
+                    continue  # skip if not in current bin
+                for d in range(d_max):
+                    if not dir_test(dim, pos, dist, direction, angles_tol, bandwidth, k, j, d):
+                        continue  # skip if not in current direction
+                    for m in range(f_max):
+                        # skip no data values
+                        if not (isnan(f[m,k]) or isnan(f[m,j])):
+                            counts[d, i] += 1
+                            variogram[d, i] += estimator_func(f[m,k] - f[m,j])
+                    # once we found a fitting direction
+                    # break the search if directions are separated
+                    if separate_dirs:
+                        break
 
     normalization_func_vec(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)
@@ -250,12 +257,13 @@ def unstructured(
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(dim, pos, j, k)
-                if dist >= bin_edges[i] and dist < bin_edges[i+1]:
-                    for m in range(f_max):
-                        # skip no data values
-                        if not (isnan(f[m,k]) or isnan(f[m,j])):
-                            counts[i] += 1
-                            variogram[i] += estimator_func(f[m,k] - f[m,j])
+                if dist < bin_edges[i] or dist >= bin_edges[i+1]:
+                    continue  # skip if not in current bin
+                for m in range(f_max):
+                    # skip no data values
+                    if not (isnan(f[m,k]) or isnan(f[m,j])):
+                        counts[i] += 1
+                        variogram[i] += estimator_func(f[m,k] - f[m,j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)
