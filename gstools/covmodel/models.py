@@ -16,6 +16,7 @@ The following classes are provided
    Circular
    Spherical
    HyperSpherical
+   SuperSpherical
 """
 # pylint: disable=C0103, E1101, E1137
 
@@ -34,6 +35,7 @@ __all__ = [
     "Circular",
     "Spherical",
     "HyperSpherical",
+    "SuperSpherical",
 ]
 
 
@@ -530,10 +532,10 @@ class HyperSpherical(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{
-       _{2}F_{1}\left(\frac{1}{2},\frac{1-d}{2},\frac{3}{2},
+       1-s\cdot\frac{r}{\ell}\cdot\frac{
+       _{2}F_{1}\left(\frac{1}{2},-\frac{d-1}{2},\frac{3}{2},
        \left(s\cdot\frac{r}{\ell}\right)^{2}\right)}
-       {_{2}F_{1}\left(\frac{1}{2},\frac{1-d}{2},\frac{3}{2},1\right)}
+       {_{2}F_{1}\left(\frac{1}{2},-\frac{d-1}{2},\frac{3}{2},1\right)}
        & r<\frac{\ell}{s}\\
        0 & r\geq\frac{\ell}{s}
        \end{cases}
@@ -566,3 +568,75 @@ class HyperSpherical(CovModel):
             / np.sqrt(np.pi) ** self.dim
         )
         return res
+
+
+class SuperSpherical(CovModel):
+    r"""The Super-Spherical covariance model.
+
+    This model is derived from the relative intersection area of
+    two d-dimensional hyper spheres,
+    where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+    It is than valid in all lower dimensions.
+    By default it coincides with the Hyper-Spherical model.
+
+    Notes
+    -----
+    This model is given by the following correlation functions.
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       1-s\cdot\frac{r}{\ell}\cdot\frac{
+       _{2}F_{1}\left(\frac{1}{2},-\nu,\frac{3}{2},
+       \left(s\cdot\frac{r}{\ell}\right)^{2}\right)}
+       {_{2}F_{1}\left(\frac{1}{2},-\nu,\frac{3}{2},1\right)}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\nu\geq\frac{d-1}{2}` is a shape parameter.
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[(dim-1)/2, inf]``
+        Default: ``(dim-1)/2``
+    """
+
+    def cor(self, h):
+        """Super-Spherical normalized correlation function."""
+        h = np.array(h, dtype=np.double)
+        res = np.zeros_like(h)
+        h_l1 = h < 1
+        nu = self.nu
+        fac = 1.0 / sps.hyp2f1(0.5, -nu, 1.5, 1.0)
+        res[h_l1] = 1.0 - h[h_l1] * fac * sps.hyp2f1(
+            0.5, -nu, 1.5, h[h_l1] ** 2
+        )
+        return res
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": (self.dim - 1) / 2}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [0.5, 30.0, "cc"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [(self.dim - 1) / 2, np.inf, "co"]}

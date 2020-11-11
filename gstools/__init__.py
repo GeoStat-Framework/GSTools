@@ -61,6 +61,7 @@ Standard Covariance Models
    Circular
    Spherical
    HyperSpherical
+   SuperSpherical
 
 Truncated Power Law Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,6 +125,7 @@ from gstools.covmodel import (
     Circular,
     Spherical,
     HyperSpherical,
+    SuperSpherical,
     TPLGaussian,
     TPLExponential,
     TPLStable,
@@ -149,6 +151,7 @@ __all__ += [
     "Circular",
     "Spherical",
     "HyperSpherical",
+    "SuperSpherical",
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",

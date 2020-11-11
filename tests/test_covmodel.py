@@ -15,6 +15,7 @@ from gstools import (
     Circular,
     Spherical,
     HyperSpherical,
+    SuperSpherical,
     TPLGaussian,
     TPLExponential,
     TPLStable,
@@ -33,6 +34,7 @@ class TestCovModel(unittest.TestCase):
             Circular,
             Spherical,
             HyperSpherical,
+            SuperSpherical,
             TPLGaussian,
             TPLExponential,
             TPLStable,
@@ -47,6 +49,7 @@ class TestCovModel(unittest.TestCase):
             Circular,
             Spherical,
             HyperSpherical,
+            SuperSpherical,
         ]
         self.dims = range(1, 4)
         self.lens = [[10, 5, 2]]
