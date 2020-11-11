@@ -54,7 +54,7 @@ The following standard covariance models are provided by GSTools
     Linear
     Circular
     Spherical
-    Intersection
+    HyperSpherical
 
 As a special feature, we also provide truncated power law (TPL) covariance models
 

@@ -15,7 +15,7 @@ The following classes and functions are provided
    Linear
    Circular
    Spherical
-   Intersection
+   HyperSpherical
 """
 # pylint: disable=C0103, E1101, E1137
 
@@ -33,7 +33,7 @@ __all__ = [
     "Linear",
     "Circular",
     "Spherical",
-    "Intersection",
+    "HyperSpherical",
 ]
 
 

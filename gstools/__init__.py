@@ -60,7 +60,7 @@ Standard Covariance Models
    Linear
    Circular
    Spherical
-   Intersection
+   HyperSpherical
 
 Truncated Power Law Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +123,7 @@ from gstools.covmodel import (
     Linear,
     Circular,
     Spherical,
-    Intersection,
+    HyperSpherical,
     TPLGaussian,
     TPLExponential,
     TPLStable,
@@ -148,7 +148,7 @@ __all__ += [
     "Linear",
     "Circular",
     "Spherical",
-    "Intersection",
+    "HyperSpherical",
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",
