@@ -620,7 +620,7 @@ class SuperSpherical(CovModel):
     def default_opt_arg(self):
         """Defaults for the optional arguments.
 
-            * ``{"nu": 1.0}``
+            * ``{"nu": (dim-1)/2}``
 
         Returns
         -------
@@ -632,7 +632,7 @@ class SuperSpherical(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [0.5, 30.0, "cc"]}``
+            * ``{"nu": [(dim-1)/2, inf, "co"]}``
 
         Returns
         -------
