@@ -62,7 +62,7 @@ cdef inline bint dir_test(
 
     # allow repeating points (dist = 0)
     if dist > 0.0:
-        # use smallest angle by taking absolut value for arccos angle formula
+        # use smallest angle by taking absolute value for arccos angle formula
         tmp = fabs(s_prod) / dist
         if tmp < 1.0:  # else same direction (prevent numerical errors)
             in_angle = acos(tmp) < angles_tol

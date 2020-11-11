@@ -183,7 +183,7 @@ def ang2dir(angles, dtype=np.double, dim=None):
     Returns
     -------
     :class:`numpy.ndarray`
-        the list of direction vectors
+        the array of direction vectors
     """
     pre_dim = np.asanyarray(angles).ndim
     angles = np.array(angles, ndmin=2, dtype=dtype)

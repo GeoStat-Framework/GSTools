@@ -49,5 +49,5 @@ ax2.set_aspect("equal")
 plt.show()
 
 ###############################################################################
-# Without fitting a model we see, that the correlation length in the main
+# Without fitting a model, we see that the correlation length in the main
 # direction is greater than the transversal one.

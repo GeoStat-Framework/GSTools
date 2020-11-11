@@ -22,7 +22,7 @@ srf = gs.SRF(model, seed=1001)
 field = srf.structured((x, y, z))
 
 ###############################################################################
-# Here we generate the rotated coordinate system to get an impression, what
+# Here we generate the rotated coordinate system to get an impression what
 # the rotation angles do.
 
 x1, x2, x3 = (1, 0, 0), (0, 1, 0), (0, 0, 1)
@@ -32,9 +32,9 @@ dir1 = ret[:, 1]  # first lateral direction
 dir2 = ret[:, 2]  # second lateral direction
 
 ###############################################################################
-# Now we estimate the variogram along the main axis. When the main axis are
-# unknown, one would need to sample multiple directions and look out for
-# the one with the longest correlation length (flattest gradient).
+# Now we estimate the variogram along the main axis. When the main axis is
+# unknown, one would need to sample multiple directions and look for the one
+# with the longest correlation length (flattest gradient).
 # Then check the transversal directions and so on.
 
 bins = range(0, 40, 3)
