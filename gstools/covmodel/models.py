@@ -4,7 +4,7 @@ GStools subpackage providing different covariance models.
 
 .. currentmodule:: gstools.covmodel.models
 
-The following classes and functions are provided
+The following classes are provided
 
 .. autosummary::
    Gaussian
@@ -35,9 +35,6 @@ __all__ = [
     "Spherical",
     "HyperSpherical",
 ]
-
-
-# Gaussian Model ##############################################################
 
 
 class Gaussian(CovModel):
@@ -104,9 +101,6 @@ class Gaussian(CovModel):
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_rescaled * np.sqrt(np.pi) / 2.0
-
-
-# Exponential Model ###########################################################
 
 
 class Exponential(CovModel):
@@ -187,9 +181,6 @@ class Exponential(CovModel):
         return self.len_rescaled
 
 
-# Rational Model ##############################################################
-
-
 class Rational(CovModel):
     r"""The rational quadratic covariance model.
 
@@ -247,9 +238,6 @@ class Rational(CovModel):
             * sps.gamma(self.alpha - 0.5)
             / sps.gamma(self.alpha)
         )
-
-
-# Stable Model ################################################################
 
 
 class Stable(CovModel):
@@ -318,9 +306,6 @@ class Stable(CovModel):
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_rescaled * sps.gamma(1.0 + 1.0 / self.alpha)
-
-
-# Matérn Model ################################################################
 
 
 class Matern(CovModel):
@@ -433,9 +418,6 @@ class Matern(CovModel):
         )
 
 
-# Bounded linear Model ########################################################
-
-
 class Linear(CovModel):
     r"""The bounded linear covariance model.
 
@@ -460,9 +442,6 @@ class Linear(CovModel):
     def cor(self, h):
         """Linear normalized correlation function."""
         return np.maximum(1 - np.abs(h, dtype=np.double), 0.0)
-
-
-# Circular Model ##############################################################
 
 
 class Circular(CovModel):
@@ -502,9 +481,6 @@ class Circular(CovModel):
             2 / np.pi * (np.arccos(h_low) - h_low * np.sqrt(1 - h_low ** 2))
         )
         return res
-
-
-# Spherical Model #############################################################
 
 
 class Spherical(CovModel):
