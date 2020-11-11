@@ -15,7 +15,6 @@ import numpy as np
 from scipy import interpolate as inter
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, RadioButtons
-from mpl_toolkits.mplot3d import Axes3D
 from gstools.tools import pos2xyz
 from gstools.covmodel.plot import _get_fig_ax
 
@@ -91,7 +90,7 @@ def _plot_2d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
 def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     """Plot 3D field."""
     dir1, dir2 = np.mgrid[0:1:51j, 0:1:51j]
-    levels = np.linspace(field.min(), field.max(), 256, endpoint=True)
+    levels = np.linspace(field.min(), field.max(), 100, endpoint=True)
 
     x_min = pos[0].min()
     x_max = pos[0].max()
@@ -110,7 +109,7 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
         "y": [y_min, y_max, y_range, y_step],
         "z": [z_min, z_max, z_range, z_step],
     }
-    fig, ax = _get_fig_ax(fig, ax, Axes3D.name)
+    fig, ax = _get_fig_ax(fig, ax)
     title = "Field 3D " + mesh_type + ": " + str(field.shape)
     fig.subplots_adjust(left=0.2, right=0.8, bottom=0.25)
     sax = plt.axes([0.15, 0.1, 0.65, 0.03])
@@ -122,7 +121,7 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
         valinit=z_min + z_range / 2.0,
         valstep=z_step,
     )
-    rax = plt.axes([0.05, 0.5, 0.1, 0.15])
+    rax = plt.axes([0.05, 0.7, 0.1, 0.15])
     radio = RadioButtons(rax, ("x slice", "y slice", "z slice"), active=2)
     z_dir_tmp = "z"
     # create container
@@ -155,13 +154,11 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
             plane = inter.griddata(
                 pos, field, (x_io, y_io, z_io), method="linear"
             )
-        if z_dir == "z":
-            z_io = plane
+        if z_dir == "x":
+            return y_io, z_io, plane
         elif z_dir == "y":
-            y_io = plane
-        else:
-            x_io = plane
-        return x_io, y_io, z_io
+            return x_io, z_io, plane
+        return x_io, y_io, plane
 
     def update(__):
         """Widget update."""
@@ -188,17 +185,20 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
             vmin=field.min(),
             vmax=field.max(),
             levels=levels,
-            zdir=z_dir_in,
-            offset=z_val,
         )
-        cont.cmap.set_under("k", alpha=0.0)
-        cont.cmap.set_bad("k", alpha=0.0)
-        ax.set_xlabel("X")
-        ax.set_ylabel("Y")
-        ax.set_zlabel("Z")
+        # cont.cmap.set_under("k", alpha=0.0)
+        # cont.cmap.set_bad("k", alpha=0.0)
+        if z_dir_in == "x":
+            ax.set_xlabel("Y")
+            ax.set_ylabel("Z")
+        elif z_dir_in == "y":
+            ax.set_xlabel("X")
+            ax.set_ylabel("Z")
+        else:
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
         ax.set_xlim([x_min, x_max])
         ax.set_ylim([y_min, y_max])
-        ax.set_zlim([z_min, z_max])
         ax.set_title(title)
         fig.canvas.draw_idle()
         return cont

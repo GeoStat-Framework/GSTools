@@ -146,7 +146,7 @@ plt.show()
 
 
 bins = np.linspace(0, 10, 50)
-bin_center, gamma = gs.vario_estimate_unstructured(
+bin_center, gamma = gs.vario_estimate(
     (x_u, y_u),
     herten_log_trans.reshape(-1),
     bins,
@@ -209,8 +209,8 @@ herten_trans_skip = herten_log_trans[::10, ::10]
 # With this much smaller data set, we can immediately estimate the variogram in
 # the x- and y-axis
 
-gamma_x = gs.vario_estimate_structured(herten_trans_skip, direction="x")
-gamma_y = gs.vario_estimate_structured(herten_trans_skip, direction="y")
+gamma_x = gs.vario_estimate_axis(herten_trans_skip, direction="x")
+gamma_y = gs.vario_estimate_axis(herten_trans_skip, direction="y")
 
 ###############################################################################
 # With these two estimated variograms, we can start fitting :any:`Exponential`

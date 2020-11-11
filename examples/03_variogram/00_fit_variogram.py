@@ -18,7 +18,7 @@ field = srf((x, y))
 # Estimate the variogram of the field with 40 bins.
 
 bins = np.arange(40)
-bin_center, gamma = gs.vario_estimate_unstructured((x, y), field, bins)
+bin_center, gamma = gs.vario_estimate((x, y), field, bins)
 
 ###############################################################################
 # Fit the variogram with a stable model (no nugget fitted).
