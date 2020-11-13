@@ -7,9 +7,17 @@ GStools subpackage providing geometric tools.
 The following functions are provided
 
 .. autosummary::
-   r3d_x
-   r3d_y
-   r3d_z
+   set_angles
+   set_anis
+   no_of_angles
+   rotation_planes
+   givens_rotation
+   matrix_rotate
+   matrix_derotate
+   matrix_isotropify
+   matrix_anisotropify
+   matrix_isometrize
+   matrix_anisometrize
    pos2xyz
    xyz2pos
    ang2dir
@@ -18,64 +26,278 @@ The following functions are provided
 
 import numpy as np
 
-__all__ = ["r3d_x", "r3d_y", "r3d_z", "pos2xyz", "xyz2pos", "ang2dir"]
+__all__ = [
+    "set_angles",
+    "set_anis",
+    "no_of_angles",
+    "rotation_planes",
+    "givens_rotation",
+    "matrix_rotate",
+    "matrix_derotate",
+    "matrix_isotropify",
+    "matrix_anisotropify",
+    "matrix_isometrize",
+    "matrix_anisometrize",
+    "pos2xyz",
+    "xyz2pos",
+    "ang2dir",
+]
 
 
 # Geometric functions #########################################################
 
 
-def r3d_x(theta):
-    """Rotation matrix about x axis.
+def set_angles(dim, angles):
+    """Set the angles for the given dimension.
 
     Parameters
     ----------
-    theta : :class:`float`
-        Rotation angle
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the angles of the SRF
+
+    Returns
+    -------
+    angles : :class:`float`
+        the angles fitting to the dimension
+
+    Notes
+    -----
+        If too few angles are given, they are filled up with `0`.
+    """
+    out_angles = np.atleast_1d(angles)[: no_of_angles(dim)]
+    # fill up the rotation angle array with zeros
+    out_angles = np.pad(
+        out_angles,
+        (0, no_of_angles(dim) - len(out_angles)),
+        "constant",
+        constant_values=0.0,
+    )
+    return out_angles
+
+
+def set_anis(dim, anis):
+    """Set the anisotropy ratios for the given dimension.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    anis : :class:`list` of :class:`float`
+        the anisotropy of length scales along the transversal directions
+
+    Returns
+    -------
+    anis : :class:`list` of :class:`float`
+        the anisotropy of length scales fitting the dimensions
+
+    Notes
+    -----
+        If too few anisotrpy ratios are given, they are filled up with `1`.
+    """
+    out_anis = np.atleast_1d(anis)[: dim - 1]
+    if len(out_anis) < dim - 1:
+        # fill up the anisotropies with ones, such that len()==dim-1
+        out_anis = np.pad(
+            out_anis,
+            (dim - len(out_anis) - 1, 0),
+            "constant",
+            constant_values=1.0,
+        )
+    return out_anis
+
+
+def no_of_angles(dim):
+    """Calculate number of rotation angles depending on the dimension.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+
+    Returns
+    -------
+    :class:`int`
+        Number of angles.
+    """
+    return (dim * (dim - 1)) // 2
+
+
+def rotation_planes(dim):
+    """Get all 2D sub-planes for rotation.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+
+    Returns
+    -------
+    :class:`list` of :class:`tuple` of :class:`int`
+        All 2D sub-planes for rotation.
+    """
+    return [(i, j) for j in range(1, dim) for i in range(j)]
+
+
+def givens_rotation(dim, plane, angle):
+    """Givens rotation matrix in arbitrary dimensions.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    plane : :class:`list` of :class:`int`
+        the plane to rotate in, given by the indices of the two defining axes.
+        For example the xy plane is defined by `(0,1)`
+    angle : :class:`float` or :class:`list`
+        the rotation angle in the given plane
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Rotation matrix.
+    """
+    result = np.eye(dim, dtype=np.double)
+    result[plane[0], plane[0]] = np.cos(angle)
+    result[plane[1], plane[1]] = np.cos(angle)
+    result[plane[0], plane[1]] = -np.sin(angle)
+    result[plane[1], plane[0]] = np.sin(angle)
+    return result
+
+
+def matrix_rotate(dim, angles):
+    """Create a matrix to rotate points to the target coordinate-system.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Rotation matrix.
+    """
+    angles = set_angles(dim, angles)
+    planes = rotation_planes(dim)
+    result = np.eye(dim, dtype=np.double)
+    for i, (angle, plane) in enumerate(zip(angles, planes)):
+        # angles have alternating signs to match tait bryan
+        result = np.matmul(
+            givens_rotation(dim, plane, (-1) ** i * angle), result
+        )
+    return result
+
+
+def matrix_derotate(dim, angles):
+    """Create a matrix to derotate points to the initial coordinate-system.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
 
     Returns
     -------
         :class:`numpy.ndarray`
             Rotation matrix.
     """
-    sin = np.sin(theta)
-    cos = np.cos(theta)
-    return np.array(((1.0, +0.0, +0.0), (0.0, cos, -sin), (0.0, sin, cos)))
+    angles = -set_angles(dim, angles)
+    planes = rotation_planes(dim)
+    result = np.eye(dim, dtype=np.double)
+    for i, (angle, plane) in enumerate(zip(angles, planes)):
+        # angles have alternating signs to match tait bryan
+        result = np.matmul(
+            result, givens_rotation(dim, plane, (-1) ** i * angle)
+        )
+    return result
 
 
-def r3d_y(theta):
-    """Rotation matrix about y axis.
+def matrix_isotropify(dim, anis):
+    """Create a stretching matrix to make things isotrope.
 
     Parameters
     ----------
-    theta : :class:`float`
-        Rotation angle
+    dim : :class:`int`
+        spatial dimension
+    anis : :class:`list` of :class:`float`
+        the anisotropy of length scales along the transversal directions
 
     Returns
     -------
         :class:`numpy.ndarray`
-            Rotation matrix.
+            Stretching matrix.
     """
-    sin = np.sin(theta)
-    cos = np.cos(theta)
-    return np.array(((+cos, 0.0, sin), (+0.0, 1.0, +0.0), (-sin, 0.0, cos)))
+    anis = set_anis(dim, anis)
+    return np.diag(np.concatenate(([1.0], 1.0 / anis)))
 
 
-def r3d_z(theta):
-    """Rotation matrix about z axis.
+def matrix_anisotropify(dim, anis):
+    """Create a stretching matrix to make things anisotrope.
 
     Parameters
     ----------
-    theta : :class:`float`
-        Rotation angle
+    dim : :class:`int`
+        spatial dimension
+    anis : :class:`list` of :class:`float`
+        the anisotropy of length scales along the transversal directions
 
     Returns
     -------
         :class:`numpy.ndarray`
-            Rotation matrix.
+            Stretching matrix.
     """
-    sin = np.sin(theta)
-    cos = np.cos(theta)
-    return np.array(((cos, -sin, 0.0), (sin, +cos, 0.0), (+0.0, +0.0, 1.0)))
+    anis = set_anis(dim, anis)
+    return np.diag(np.concatenate(([1.0], anis)))
+
+
+def matrix_isometrize(dim, angles, anis):
+    """Create a matrix to derotate points and make them isotrope.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
+    anis : :class:`list` of :class:`float`
+        the anisotropy of length scales along the transversal directions
+
+    Returns
+    -------
+        :class:`numpy.ndarray`
+            Transformation matrix.
+    """
+    return np.matmul(
+        matrix_isotropify(dim, anis), matrix_derotate(dim, angles)
+    )
+
+
+def matrix_anisometrize(dim, angles, anis):
+    """Create a matrix to rotate points and make them anisotrope.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
+    anis : :class:`list` of :class:`float`
+        the anisotropy of length scales along the transversal directions
+
+    Returns
+    -------
+        :class:`numpy.ndarray`
+            Transformation matrix.
+    """
+    return np.matmul(
+        matrix_rotate(dim, angles), matrix_anisotropify(dim, anis)
+    )
 
 
 # conversion ##################################################################

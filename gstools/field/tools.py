@@ -21,7 +21,7 @@ The following classes and functions are provided
 # pylint: disable=C0103
 
 import numpy as np
-from gstools.tools.geometric import r3d_x, r3d_y, r3d_z
+from gstools.tools.geometric import matrix_rotate, matrix_derotate
 
 __all__ = [
     "reshape_input",
@@ -137,24 +137,21 @@ def unrotate_mesh(dim, angles, x, y, z):
     """Rotate axes in order to implement rotation.
 
     for 3d: yaw, pitch, and roll angles are alpha, beta, and gamma,
-    of intrinsic rotation rotation whose Tait-Bryan angles are
+    of intrinsic rotation whose Tait-Bryan angles are
     alpha, beta, gamma about axes x, y, z.
     """
     if dim == 1:
         return x, y, z
     if dim == 2:
         # extract 2d rotation matrix
-        rot_mat = r3d_z(-angles[0])[0:2, 0:2]
+        rot_mat = matrix_derotate(dim, angles)
         pos_tuple = np.vstack((x, y))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 2)
         x = pos_tuple[0].reshape(np.shape(x))
         y = pos_tuple[1].reshape(np.shape(y))
         return x, y, z
     if dim == 3:
-        alpha = -angles[0]
-        beta = -angles[1]
-        gamma = -angles[2]
-        rot_mat = np.dot(np.dot(r3d_z(alpha), r3d_y(beta)), r3d_x(gamma))
+        rot_mat = matrix_derotate(dim, angles)
         pos_tuple = np.vstack((x, y, z))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
         x = pos_tuple[0].reshape(np.shape(x))
@@ -168,24 +165,21 @@ def rotate_mesh(dim, angles, x, y, z):
     """Rotate axes.
 
     for 3d: yaw, pitch, and roll angles are alpha, beta, and gamma,
-    of intrinsic rotation rotation whose Tait-Bryan angles are
+    of intrinsic rotation whose Tait-Bryan angles are
     alpha, beta, gamma about axes x, y, z.
     """
     if dim == 1:
         return x, y, z
     if dim == 2:
         # extract 2d rotation matrix
-        rot_mat = r3d_z(angles[0])[0:2, 0:2]
+        rot_mat = matrix_rotate(dim, angles)
         pos_tuple = np.vstack((x, y))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 2)
         x = pos_tuple[0].reshape(np.shape(x))
         y = pos_tuple[1].reshape(np.shape(y))
         return x, y, z
     if dim == 3:
-        alpha = angles[0]
-        beta = angles[1]
-        gamma = angles[2]
-        rot_mat = np.dot(np.dot(r3d_x(gamma), r3d_y(beta)), r3d_z(alpha))
+        rot_mat = matrix_rotate(dim, angles)
         pos_tuple = np.vstack((x, y, z))
         pos_tuple = np.vsplit(np.dot(rot_mat, pos_tuple), 3)
         x = pos_tuple[0].reshape(np.shape(x))
