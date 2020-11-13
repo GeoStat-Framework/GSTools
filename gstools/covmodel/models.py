@@ -200,6 +200,12 @@ class Rational(CovModel):
     Where the standard rescale factor is :math:`s=1`.
     :math:`\alpha` is a shape parameter and should be > 0.5.
 
+    For :math:`\alpha\to\infty` this model converges to the Gaussian model:
+
+    .. math::
+       \rho(r)=
+       \exp\left(-\frac{\pi}{4}\left(s\cdot\frac{r}{\ell}\right)^{2}\right)
+
     Other Parameters
     ----------------
     alpha : :class:`float`, optional
@@ -607,18 +613,6 @@ class SuperSpherical(CovModel):
         Default: ``(dim-1)/2``
     """
 
-    def cor(self, h):
-        """Super-Spherical normalized correlation function."""
-        h = np.array(h, dtype=np.double)
-        res = np.zeros_like(h)
-        h_l1 = h < 1
-        nu = self.nu
-        fac = 1.0 / sps.hyp2f1(0.5, -nu, 1.5, 1.0)
-        res[h_l1] = 1.0 - h[h_l1] * fac * sps.hyp2f1(
-            0.5, -nu, 1.5, h[h_l1] ** 2
-        )
-        return res
-
     def default_opt_arg(self):
         """Defaults for the optional arguments.
 
@@ -642,6 +636,17 @@ class SuperSpherical(CovModel):
             Boundaries for optional arguments
         """
         return {"nu": [(self.dim - 1) / 2, np.inf, "co"]}
+
+    def cor(self, h):
+        """Super-Spherical normalized correlation function."""
+        h = np.array(h, dtype=np.double)
+        res = np.zeros_like(h)
+        h_l1 = h < 1
+        fac = 1.0 / sps.hyp2f1(0.5, -self.nu, 1.5, 1.0)
+        res[h_l1] = 1.0 - h[h_l1] * fac * sps.hyp2f1(
+            0.5, -self.nu, 1.5, h[h_l1] ** 2
+        )
+        return res
 
 
 class JBessel(CovModel):
