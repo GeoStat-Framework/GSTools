@@ -27,7 +27,7 @@ field = srf((x, y), mesh_type="structured")
 bins = range(0, 40, 3)
 bin_c, vario, cnt = gs.vario_estimate(
     *((x, y), field, bins),
-    angles=(angle, angle + np.pi / 2),  # main dir. and transversal dir.
+    direction=gs.rotated_main_axes(dim=2, angles=angle),
     angles_tol=np.pi / 16,
     bandwidth=1.0,
     mesh_type="structured",

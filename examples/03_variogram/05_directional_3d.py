@@ -22,17 +22,15 @@ srf = gs.SRF(model, seed=1001)
 field = srf.structured((x, y, z))
 
 ###############################################################################
-# Here we generate the rotated coordinate system to get an impression what
-# the rotation angles do.
+# Here we generate the axes of the rotated coordinate system
+# to get an impression what the rotation angles do.
 
-x1, x2, x3 = (1, 0, 0), (0, 1, 0), (0, 0, 1)
-ret = np.array(gs.field.tools.rotate_mesh(dim, angles, x1, x2, x3))
-dir0 = ret[:, 0]  # main direction
-dir1 = ret[:, 1]  # first lateral direction
-dir2 = ret[:, 2]  # second lateral direction
+# All 3 axes of the rotated coordinate-system
+main_axes = gs.rotated_main_axes(dim, angles)
+axis1, axis2, axis3 = main_axes
 
 ###############################################################################
-# Now we estimate the variogram along the main axis. When the main axis is
+# Now we estimate the variogram along the main axes. When the main axes are
 # unknown, one would need to sample multiple directions and look for the one
 # with the longest correlation length (flattest gradient).
 # Then check the transversal directions and so on.
@@ -40,7 +38,7 @@ dir2 = ret[:, 2]  # second lateral direction
 bins = range(0, 40, 3)
 bin_c, vario = gs.vario_estimate(
     *([x, y, z], field, bins),
-    direction=(dir0, dir1, dir2),
+    direction=main_axes,
     bandwidth=10,
     sampling_size=2000,
     sampling_seed=1001,
@@ -58,9 +56,9 @@ ax3 = fig.add_subplot(133)
 srf.plot(ax=ax1)
 ax1.set_aspect("equal")
 
-ax2.plot([0, dir0[0]], [0, dir0[1]], [0, dir0[2]], label="1.")
-ax2.plot([0, dir1[0]], [0, dir1[1]], [0, dir1[2]], label="2.")
-ax2.plot([0, dir2[0]], [0, dir2[1]], [0, dir2[2]], label="3.")
+ax2.plot([0, axis1[0]], [0, axis1[1]], [0, axis1[2]], label="1.")
+ax2.plot([0, axis2[0]], [0, axis2[1]], [0, axis2[2]], label="2.")
+ax2.plot([0, axis3[0]], [0, axis3[1]], [0, axis3[2]], label="3.")
 ax2.set_xlim(-1, 1)
 ax2.set_ylim(-1, 1)
 ax2.set_zlim(-1, 1)

@@ -21,6 +21,7 @@ from gstools.tools.geometric import (
     set_angles,
     matrix_anisometrize,
     matrix_isometrize,
+    rotated_main_axes,
 )
 from gstools.covmodel.tools import (
     InitSubclassMeta,
@@ -603,7 +604,12 @@ class CovModel(metaclass=InitSubclassMeta):
             matrix_anisometrize(self.dim, self.angles, self.anis), pos
         )
 
+    def main_axes(self):
+        """Axes of the rotated coordinate-system."""
+        return rotated_main_axes(self.dim, self.angles)
+
     def _get_iso_rad(self, pos):
+        """Isometrized radians."""
         return np.linalg.norm(self.isometrize(pos), axis=0)
 
     # fitting routine

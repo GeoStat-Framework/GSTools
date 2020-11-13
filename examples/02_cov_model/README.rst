@@ -24,7 +24,7 @@ Where:
   - :math:`s` is a scaling factor for unit conversion or normalization
   - :math:`\sigma^2` is the variance
   - :math:`n` is the nugget (subscale variance)
-  - :math:`\mathrm{cor}(h)` is normalized correlation function depending on
+  - :math:`\mathrm{cor}(h)` is the normalized correlation function depending on
     the non-dimensional distance :math:`h=s\cdot\frac{r}{\ell}`
 
 Depending on the normalized correlation function, all covariance models in
