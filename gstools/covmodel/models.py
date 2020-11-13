@@ -185,71 +185,6 @@ class Exponential(CovModel):
         return self.len_rescaled
 
 
-class Rational(CovModel):
-    r"""The rational quadratic covariance model.
-
-    Notes
-    -----
-    This model is given by the following correlation function:
-
-    .. math::
-       \rho(r) =
-       \left(1 + \frac{1}{2\alpha} \cdot
-       \left(s\cdot\frac{r}{\ell}\right)^2\right)^{-\alpha}
-
-    Where the standard rescale factor is :math:`s=1`.
-    :math:`\alpha` is a shape parameter and should be > 0.5.
-
-    For :math:`\alpha\to\infty` this model converges to the Gaussian model:
-
-    .. math::
-       \rho(r)=
-       \exp\left(-\frac{\pi}{4}\left(s\cdot\frac{r}{\ell}\right)^{2}\right)
-
-    Other Parameters
-    ----------------
-    alpha : :class:`float`, optional
-        Shape parameter. Standard range: ``(0, inf)``
-        Default: ``1.0``
-    """
-
-    def default_opt_arg(self):
-        """Defaults for the optional arguments.
-
-            * ``{"alpha": 1.0}``
-
-        Returns
-        -------
-        :class:`dict`
-            Defaults for optional arguments
-        """
-        return {"alpha": 1.0}
-
-    def default_opt_arg_bounds(self):
-        """Defaults for boundaries of the optional arguments.
-
-            * ``{"alpha": [0.5, inf]}``
-
-        Returns
-        -------
-        :class:`dict`
-            Boundaries for optional arguments
-        """
-        return {"alpha": [0.5, np.inf]}
-
-    def cor(self, h):
-        """Rational normalized correlation function."""
-        return np.power(1 + 0.5 / self.alpha * h ** 2, -self.alpha)
-
-    def calc_integral_scale(self):  # noqa: D102
-        return (
-            self.len_rescaled
-            * np.sqrt(np.pi * self.alpha * 0.5)
-            * sps.gamma(self.alpha - 0.5)
-            / sps.gamma(self.alpha)
-        )
-
-
 class Stable(CovModel):
     r"""The stable covariance model.
 
@@ -425,6 +360,72 @@ class Matern(CovModel):
             * np.pi
             / np.sqrt(self.nu)
             / sps.beta(self.nu, 0.5)
+        )
+
+
+class Rational(CovModel):
+    r"""The rational quadratic covariance model.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \rho(r) =
+       \left(1 + \frac{1}{\alpha} \cdot
+       \left(s\cdot\frac{r}{\ell}\right)^2\right)^{-\alpha}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\alpha` is a shape parameter and should be > 0.5.
+
+    For :math:`\alpha\to\infty` this model converges to the Gaussian model:
+
+    .. math::
+       \rho(r)=
+       \exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)
+
+    Other Parameters
+    ----------------
+    alpha : :class:`float`, optional
+        Shape parameter. Standard range: ``(0, inf)``
+        Default: ``1.0``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"alpha": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"alpha": 1.0}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"alpha": [0.5, inf]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"alpha": [0.5, np.inf]}
+
+    def cor(self, h):
+        """Rational normalized correlation function."""
+        return np.power(1 + h ** 2 / self.alpha, -self.alpha)
+
+    def calc_integral_scale(self):  # noqa: D102
+        return (
+            self.len_rescaled
+            * np.sqrt(np.pi * self.alpha)
+            * sps.gamma(self.alpha - 0.5)
+            / sps.gamma(self.alpha)
+            / 2.0
         )
 
 
