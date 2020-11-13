@@ -31,6 +31,7 @@ Geometric
 ^^^^^^^^^
 
 .. autosummary::
+   rotated_main_axes
    set_angles
    set_anis
    no_of_angles
@@ -80,6 +81,7 @@ from gstools.tools.geometric import (
     matrix_anisotropify,
     matrix_isometrize,
     matrix_anisometrize,
+    rotated_main_axes,
     pos2xyz,
     xyz2pos,
     ang2dir,
@@ -110,6 +112,7 @@ __all__ = [
     "matrix_anisotropify",
     "matrix_isometrize",
     "matrix_anisometrize",
+    "rotated_main_axes",
     "pos2xyz",
     "xyz2pos",
     "ang2dir",

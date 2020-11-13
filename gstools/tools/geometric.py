@@ -18,6 +18,7 @@ The following functions are provided
    matrix_anisotropify
    matrix_isometrize
    matrix_anisometrize
+   rotated_main_axes
    pos2xyz
    xyz2pos
    ang2dir
@@ -38,6 +39,7 @@ __all__ = [
     "matrix_anisotropify",
     "matrix_isometrize",
     "matrix_anisometrize",
+    "rotated_main_axes",
     "pos2xyz",
     "xyz2pos",
     "ang2dir",
@@ -185,7 +187,7 @@ def matrix_rotate(dim, angles):
     planes = rotation_planes(dim)
     result = np.eye(dim, dtype=np.double)
     for i, (angle, plane) in enumerate(zip(angles, planes)):
-        # angles have alternating signs to match tait bryan
+        # angles have alternating signs to match tait-bryan
         result = np.matmul(
             givens_rotation(dim, plane, (-1) ** i * angle), result
         )
@@ -207,6 +209,7 @@ def matrix_derotate(dim, angles):
         :class:`numpy.ndarray`
             Rotation matrix.
     """
+    # derotating by taking negative angles
     angles = -set_angles(dim, angles)
     planes = rotation_planes(dim)
     result = np.eye(dim, dtype=np.double)
@@ -298,6 +301,24 @@ def matrix_anisometrize(dim, angles, anis):
     return np.matmul(
         matrix_rotate(dim, angles), matrix_anisotropify(dim, anis)
     )
+
+
+def rotated_main_axes(dim, angles):
+    """Create list of the main axis defined by the given system rotations.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Main axes of the target coordinate-system.
+    """
+    return matrix_rotate(dim, angles).T
 
 
 # conversion ##################################################################
