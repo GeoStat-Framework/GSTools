@@ -17,13 +17,15 @@ import numpy as np
 from scipy.integrate import quad as integral
 from scipy.optimize import root
 from hankel import SymmetricFourierTransform as SFT
-from gstools.field.tools import make_isotropic, unrotate_mesh
-from gstools.tools.geometric import pos2xyz
+from gstools.tools.geometric import (
+    set_angles,
+    matrix_anisometrize,
+    matrix_isometrize,
+)
 from gstools.covmodel.tools import (
     InitSubclassMeta,
     rad_fac,
     set_len_anis,
-    set_angles,
     check_bounds,
     check_arg_in_bounds,
     default_arg_from_bounds,
@@ -282,14 +284,6 @@ class CovModel(metaclass=InitSubclassMeta):
                 attr_cls.__doc__ = attr_doc
 
     # special variogram functions
-
-    def _get_iso_rad(self, pos):
-        x, y, z = pos2xyz(pos, max_dim=self.dim)
-        if self.do_rotation:
-            x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
-        if not self.is_isotropic:
-            y, z = make_isotropic(self.dim, self.anis, y, z)
-        return np.linalg.norm((x, y, z)[: self.dim], axis=0)
 
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
@@ -594,6 +588,23 @@ class CovModel(metaclass=InitSubclassMeta):
     def _has_ppf(self):
         """State if a ppf is defined with 'spectral_rad_ppf'."""
         return hasattr(self, "spectral_rad_ppf")
+
+    # spatial routines
+
+    def isometrize(self, pos):
+        """Make a position tuple ready for isotropic operations."""
+        pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
+
+    def anisometrize(self, pos):
+        """Bring a position tuple into the anisotropic coordinate-system."""
+        pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        return np.dot(
+            matrix_anisometrize(self.dim, self.angles, self.anis), pos
+        )
+
+    def _get_iso_rad(self, pos):
+        return np.linalg.norm(self.isometrize(pos), axis=0)
 
     # fitting routine
 
