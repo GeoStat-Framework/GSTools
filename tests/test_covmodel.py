@@ -102,10 +102,10 @@ class TestCovModel(unittest.TestCase):
                                 model.var * model.correlation(1),
                             )
                             self.assertAlmostEqual(
-                                model.vario_spatial(([1], [2], [3]))[0],
+                                model.vario_spatial(([1], [2], [3])[:dim])[0],
                                 model.var
                                 + model.nugget
-                                - model.cov_spatial(([1], [2], [3]))[0],
+                                - model.cov_spatial(([1], [2], [3])[:dim])[0],
                             )
                             self.assertAlmostEqual(
                                 model.cov_nugget(0), model.sill
@@ -119,7 +119,7 @@ class TestCovModel(unittest.TestCase):
                                 model.vario_nugget(1), model.variogram(1)
                             )
                             # check if callable
-                            model.vario_spatial((1, 2, 3))
+                            model.vario_spatial((1, 2, 3)[:dim])
                             model.spectral_density([0, 1])
                             model.spectrum([0, 1])
                             model.spectral_rad_pdf([0, 1])
