@@ -184,20 +184,21 @@ def check_arg_in_bounds(model, arg, val=None):
         raise ValueError("check bounds: unknown argument: {}".format(arg))
     bnd = list(model.arg_bounds[arg])
     val = getattr(model, arg) if val is None else val
+    val = np.array(val)
     error_case = 0
     if len(bnd) == 2:
         bnd.append("cc")  # use closed intervals by default
     if bnd[2][0] == "c":
-        if val < bnd[0]:
+        if np.any(val < bnd[0]):
             error_case = 1
     else:
-        if val <= bnd[0]:
+        if np.any(val <= bnd[0]):
             error_case = 2
     if bnd[2][1] == "c":
-        if val > bnd[1]:
+        if np.any(val > bnd[1]):
             error_case = 3
     else:
-        if val >= bnd[1]:
+        if np.any(val >= bnd[1]):
             error_case = 4
     return error_case
 
