@@ -68,7 +68,8 @@ def set_angles(dim, angles):
     -----
         If too few angles are given, they are filled up with `0`.
     """
-    out_angles = np.atleast_1d(angles)[: no_of_angles(dim)]
+    out_angles = np.array(angles, dtype=np.double)
+    out_angles = np.atleast_1d(out_angles)[: no_of_angles(dim)]
     # fill up the rotation angle array with zeros
     out_angles = np.pad(
         out_angles,
@@ -98,7 +99,8 @@ def set_anis(dim, anis):
     -----
         If too few anisotrpy ratios are given, they are filled up with `1`.
     """
-    out_anis = np.atleast_1d(anis)[: dim - 1]
+    out_anis = np.array(anis, dtype=np.double)
+    out_anis = np.atleast_1d(out_anis)[: dim - 1]
     if len(out_anis) < dim - 1:
         # fill up the anisotropies with ones, such that len()==dim-1
         out_anis = np.pad(
