@@ -208,6 +208,8 @@ class CovModel(metaclass=InitSubclassMeta):
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
+        # precision for printing
+        self._prec = 3
 
     # one of these functions needs to be overridden
     def __init_subclass__(cls):
@@ -1267,10 +1269,12 @@ class CovModel(metaclass=InitSubclassMeta):
         """Return String representation."""
         opt_str = ""
         for opt in self.opt_arg:
-            opt_str += ", " + opt + "={.3}".format(getattr(self, opt))
+            opt_str += (
+                ", " + opt + "={0:.{1}}".format(getattr(self, opt), self._prec)
+            )
         return (
-            "{0}(dim={1}, var={2:.3}, len_scale={3:.3}, "
-            "nugget={4:.3}, anis={5}, angles={6}".format(
+            "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
+            "nugget={4:.{p}}, anis={5}, angles={6}".format(
                 self.name,
                 self.dim,
                 self.var,
@@ -1278,6 +1282,7 @@ class CovModel(metaclass=InitSubclassMeta):
                 self.nugget,
                 list_format(self.anis, 3),
                 list_format(self.angles, 3),
+                p=self._prec,
             )
             + opt_str
             + ")"
