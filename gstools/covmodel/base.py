@@ -23,6 +23,7 @@ from gstools.tools.geometric import (
     matrix_isometrize,
     rotated_main_axes,
 )
+from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
     InitSubclassMeta,
     rad_fac,
@@ -175,7 +176,7 @@ class CovModel(metaclass=InitSubclassMeta):
                     + "the class. It could not be added to the model"
                 )
             # Magic happens here
-            setattr(self, opt_name, opt_arg[opt_name])
+            setattr(self, opt_name, float(opt_arg[opt_name]))
 
         # set standard boundaries for variance, len_scale, nugget and opt_arg
         bounds = self.default_arg_bounds()
@@ -1266,17 +1267,17 @@ class CovModel(metaclass=InitSubclassMeta):
         """Return String representation."""
         opt_str = ""
         for opt in self.opt_arg:
-            opt_str += ", " + opt + "={}".format(getattr(self, opt))
+            opt_str += ", " + opt + "={.3}".format(getattr(self, opt))
         return (
-            "{0}(dim={1}, var={2}, len_scale={3}, "
-            "nugget={4}, anis={5}, angles={6}".format(
+            "{0}(dim={1}, var={2:.3}, len_scale={3:.3}, "
+            "nugget={4:.3}, anis={5}, angles={6}".format(
                 self.name,
                 self.dim,
                 self.var,
                 self.len_scale,
                 self.nugget,
-                self.anis,
-                self.angles,
+                list_format(self.anis, 3),
+                list_format(self.angles, 3),
             )
             + opt_str
             + ")"
