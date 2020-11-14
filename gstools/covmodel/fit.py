@@ -159,36 +159,21 @@ def fit_variogram(
     The fitted parameters will be instantly set in the model.
     """
     # preprocess selected parameters
-    para, sill, constrain_sill = _pre_para(model, para_select, sill)
+    para, sill, constrain_sill, anis = _pre_para(
+        model, para_select, sill, anis
+    )
     # check curve_fit kwargs
     curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
     # check method
     if method not in ["trf", "dogbox"]:
         raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")
     # prepare variogram data
-    x_data = np.array(x_data).reshape(-1)
-    y_data = np.array(y_data)
-    # check if anisotropy should be fitted or set
-    if not isinstance(anis, bool):
-        model.anis = anis
-        anis = False
-    # if multiple variograms are given, they will be interpreted
-    # as directional variograms along the main rotated axes of the model
-    is_dir_vario = False
-    if model.dim > 1 and x_data.size * model.dim == y_data.size:
-        is_dir_vario = True
-        # concatenate multiple variograms
-        x_data = np.tile(x_data, model.dim)
-        y_data = y_data.reshape(-1)
-    elif x_data.size != y_data.size:
-        raise ValueError(
-            "CovModel.fit_variogram: Wrong number of empirical variograms! "
-            + "Either provide only one variogram to fit an isotropic model, "
-            + "or directional ones for all main axes to fit anisotropy."
-        )
+    # => concatenate directional variograms to have a 1D array for x and y
+    x_data, y_data, is_dir_vario = _check_vario(model, x_data, y_data)
+    # only fit anisotropy if a directional variogram was given
     anis &= is_dir_vario
     # set weights
-    _set_weights(weights, x_data, curve_fit_kwargs)
+    _set_weights(model, weights, x_data, curve_fit_kwargs, is_dir_vario)
     # set the lower/upper boundaries for the variogram-parameters
     bounds, init_guess_list = _init_curve_fit_para(
         model, para, init_guess, constrain_sill, sill, anis
@@ -215,7 +200,7 @@ def fit_variogram(
     return fit_para, pcov
 
 
-def _pre_para(model, para_select, sill):
+def _pre_para(model, para_select, sill, anis):
     """Preprocess selected parameters."""
     var_last = False
     for par in para_select:
@@ -277,63 +262,47 @@ def _pre_para(model, para_select, sill):
     para.update({opt: True for opt in model.opt_arg})
     # now deselect unwanted parameters
     para.update(para_select)
-    return para, sill, constrain_sill
+    # check if anisotropy should be fitted or set
+    if not isinstance(anis, bool):
+        model.anis = anis
+        anis = False
+    return para, sill, constrain_sill, anis
 
 
-def _set_weights(weights, x_data, curve_fit_kwargs):
+def _check_vario(model, x_data, y_data):
+    # prepare variogram data
+    x_data = np.array(x_data).reshape(-1)
+    y_data = np.array(y_data).reshape(-1)
+    # if multiple variograms are given, they will be interpreted
+    # as directional variograms along the main rotated axes of the model
+    is_dir_vario = False
+    if model.dim > 1 and x_data.size * model.dim == y_data.size:
+        is_dir_vario = True
+        # concatenate multiple variograms
+        x_data = np.tile(x_data, model.dim)
+    elif x_data.size != y_data.size:
+        raise ValueError(
+            "CovModel.fit_variogram: Wrong number of empirical variograms! "
+            + "Either provide only one variogram to fit an isotropic model, "
+            + "or directional ones for all main axes to fit anisotropy."
+        )
+    return x_data, y_data, is_dir_vario
+
+
+def _set_weights(model, weights, x_data, curve_fit_kwargs, is_dir_vario):
     if weights is not None:
         if callable(weights):
             weights = 1.0 / weights(x_data)
         elif weights == "inv":
             weights = 1.0 + x_data
+        elif is_dir_vario:
+            if weights.size * model.dim == x_data.size:
+                weights = np.tile(weights, model.dim)
+            weights = 1.0 / np.array(weights).reshape(-1)
         else:
-            weights = 1.0 / np.array(weights)
+            weights = 1.0 / np.array(weights).reshape(-1)
         curve_fit_kwargs["sigma"] = weights
         curve_fit_kwargs["absolute_sigma"] = True
-
-
-def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
-    """Create the curve for scipys curve_fit."""
-    # we need arg1, otherwise curve_fit throws an error (bug?!)
-    def curve(x, arg1, *args):
-        """Adapted Variogram function."""
-        args = (arg1,) + args
-        para_skip = 0
-        opt_skip = 0
-        if para["var"]:
-            var_tmp = args[para_skip]
-            if constrain_sill:
-                nugget_tmp = sill - var_tmp
-                # punishment, if resulting nugget out of range for fixed sill
-                if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
-                    return np.full_like(x, np.inf)
-                # nugget estimation deselected in this case
-                model.nugget = nugget_tmp
-            para_skip += 1
-        if para["len_scale"]:
-            model.len_scale = args[para_skip]
-            para_skip += 1
-        if para["nugget"]:
-            model.nugget = args[para_skip]
-            para_skip += 1
-        for opt in model.opt_arg:
-            if para[opt]:
-                setattr(model, opt, args[para_skip + opt_skip])
-                opt_skip += 1
-        # set var at last because of var_factor (other parameter needed)
-        if para["var"]:
-            model.var = var_tmp
-        if is_dir_vario:
-            if anis:
-                model.anis = args[1 - model.dim :]
-            xs = x[: x.size // model.dim]
-            out = np.array([], dtype=np.double)
-            for i in range(model.dim):
-                out = np.concatenate((out, model.vario_axis(xs, axis=i)))
-            return out
-        return model.variogram(x)
-
-    return curve
 
 
 def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
@@ -396,6 +365,50 @@ def _init_guess(bounds, current, default, typ, para_name):
     if typ == "current":
         return current
     raise ValueError("CovModel.fit: unkwon init_guess: '{}'".format(typ))
+
+
+def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
+    """Create the curve for scipys curve_fit."""
+    # we need arg1, otherwise curve_fit throws an error (bug?!)
+    def curve(x, arg1, *args):
+        """Adapted Variogram function."""
+        args = (arg1,) + args
+        para_skip = 0
+        opt_skip = 0
+        if para["var"]:
+            var_tmp = args[para_skip]
+            if constrain_sill:
+                nugget_tmp = sill - var_tmp
+                # punishment, if resulting nugget out of range for fixed sill
+                if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
+                    return np.full_like(x, np.inf)
+                # nugget estimation deselected in this case
+                model.nugget = nugget_tmp
+            para_skip += 1
+        if para["len_scale"]:
+            model.len_scale = args[para_skip]
+            para_skip += 1
+        if para["nugget"]:
+            model.nugget = args[para_skip]
+            para_skip += 1
+        for opt in model.opt_arg:
+            if para[opt]:
+                setattr(model, opt, args[para_skip + opt_skip])
+                opt_skip += 1
+        # set var at last because of var_factor (other parameter needed)
+        if para["var"]:
+            model.var = var_tmp
+        if is_dir_vario:
+            if anis:
+                model.anis = args[1 - model.dim :]
+            xs = x[: x.size // model.dim]
+            out = np.array([], dtype=np.double)
+            for i in range(model.dim):
+                out = np.concatenate((out, model.vario_axis(xs, axis=i)))
+            return out
+        return model.variogram(x)
+
+    return curve
 
 
 def _post_fitting(model, para, popt, anis, is_dir_vario):
