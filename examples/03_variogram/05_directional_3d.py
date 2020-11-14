@@ -38,22 +38,28 @@ axis1, axis2, axis3 = main_axes
 # Then check the transversal directions and so on.
 
 bins = range(0, 40, 3)
-bin_center, dir_vario = gs.vario_estimate(
+bin_center, dir_vario, counts = gs.vario_estimate(
     *([x, y, z], field, bins),
     direction=main_axes,
     bandwidth=10,
     sampling_size=2000,
     sampling_seed=1001,
-    mesh_type="structured"
+    mesh_type="structured",
+    return_counts=True,
 )
 
 ###############################################################################
 # Afterwards we can use the estimated variogram to fit a model to it.
 # Note, that the rotation angles need to be set beforehand.
+#
+# We can use the `counts` of data pairs per bin as weights for the fitting
+# routines to give more attention to areas where more data was available.
+# In order to not introduce to much offset at the origin, we disable
+# fitting the nugget.
 
 print("Original:")
 print(model)
-model.fit_variogram(bin_center, dir_vario)
+model.fit_variogram(bin_center, dir_vario, weights=counts, nugget=False)
 print("Fitted:")
 print(model)
 
