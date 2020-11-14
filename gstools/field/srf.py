@@ -283,6 +283,6 @@ class SRF(Field):
 
     def __repr__(self):
         """Return String representation."""
-        return "SRF(model={0}, mean={1}, generator={2}".format(
-            self.model, self.mean, self.generator
+        return "SRF(model={0}, mean={1:.{p}}, generator={2}".format(
+            self.model, self.mean, self.generator, p=self.model._prec
         )
