@@ -127,7 +127,8 @@ def set_len_anis(dim, len_scale, anis):
     If to few ``anis`` values are given, the first dimensions will be filled
     up with 1. (eg. anis=[e] in 3D is equal to anis=[1, e])
     """
-    ls_tmp = np.atleast_1d(len_scale)[:dim]
+    ls_tmp = np.array(len_scale, dtype=np.double)
+    ls_tmp = np.atleast_1d(ls_tmp)[:dim]
     # use just one length scale (x-direction)
     out_len_scale = ls_tmp[0]
     # set the anisotropies in y- and z-direction according to the input
