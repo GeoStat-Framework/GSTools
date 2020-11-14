@@ -13,4 +13,6 @@ The following functions are provided
 
 def list_format(lst, prec):
     """Format a list of floats."""
-    return "[{}]".format(", ".join(f"{x:.{prec}}" for x in lst))
+    return "[{}]".format(
+        ", ".join("{x:.{p}}".format(x=x, p=prec) for x in lst)
+    )
