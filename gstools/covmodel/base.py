@@ -286,6 +286,24 @@ class CovModel(metaclass=InitSubclassMeta):
 
     # special variogram functions
 
+    def vario_axis(self, r, axis=0):
+        r"""Variogram along axis of anisotropy."""
+        if axis == 0:
+            return self.variogram(r)
+        return self.variogram(np.abs(r) / self.anis[axis - 1])
+
+    def cov_axis(self, r, axis=0):
+        r"""Covariance along axis of anisotropy."""
+        if axis == 0:
+            return self.covariance(r)
+        return self.covariance(np.abs(r) / self.anis[axis - 1])
+
+    def cor_axis(self, r, axis=0):
+        r"""Correlation along axis of anisotropy."""
+        if axis == 0:
+            return self.correlation(r)
+        return self.correlation(np.abs(r) / self.anis[axis - 1])
+
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
         return self.variogram(self._get_iso_rad(pos))
@@ -618,6 +636,7 @@ class CovModel(metaclass=InitSubclassMeta):
         self,
         x_data,
         y_data,
+        anis=True,
         sill=None,
         init_guess="default",
         weights=None,
@@ -629,14 +648,25 @@ class CovModel(metaclass=InitSubclassMeta):
         **para_select
     ):
         """
-        Fiting the isotropic variogram-model to given data.
+        Fiting the variogram-model to an empirical variogram.
 
         Parameters
         ----------
         x_data : :class:`numpy.ndarray`
-            The radii of the meassured variogram.
+            The bin-centers of the empirical variogram.
         y_data : :class:`numpy.ndarray`
             The messured variogram
+            If multiple are given, they are interpreted as the directional
+            variograms along the main axis of the associated rotated
+            coordinate system.
+            Anisotropy ratios will be estimated in that case.
+        anis : :class:`bool`, optional
+            In case of a directional variogram, you can control anisotropy
+            by this argument. Deselect the parameter from fitting, by setting
+            it "False".
+            You could also pass a fixed value to be set in the model.
+            Then the anisotropy ratios wont be altered during fitting.
+            Default: True
         sill : :class:`float` or :class:`bool`, optional
             Here you can provide a fixed sill for the variogram.
             It needs to be in a fitting range for the var and nugget bounds.
@@ -742,6 +772,7 @@ class CovModel(metaclass=InitSubclassMeta):
             model=self,
             x_data=x_data,
             y_data=y_data,
+            anis=anis,
             sill=sill,
             init_guess=init_guess,
             weights=weights,
@@ -773,9 +804,8 @@ class CovModel(metaclass=InitSubclassMeta):
         Parameters
         ----------
         check_args : bool, optional
-            Whether to check if the arguments need to resetted to be in the
-            given bounds. In case, a propper default value will be determined
-            from the given bounds.
+            Whether to check if the arguments are in their valid bounds.
+            In case not, a propper default value will be determined.
             Default: True
         **kwargs
             Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
