@@ -14,6 +14,7 @@ The following classes and functions are provided
 import numpy as np
 from scipy.optimize import curve_fit
 from gstools.covmodel.tools import check_arg_in_bounds, default_arg_from_bounds
+from gstools.tools.geometric import set_anis
 
 
 __all__ = ["fit_variogram"]
@@ -340,12 +341,22 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
                 )
             )
     if anis:
-        low_bounds += [0.0] * (model.dim - 1)
-        top_bounds += [np.inf] * (model.dim - 1)
-        if init_guess == "default":
-            init_guess_list += [1.0] * (model.dim - 1)
-        else:
+        low_bounds += [model.anis_bounds[0]] * (model.dim - 1)
+        top_bounds += [model.anis_bounds[1]] * (model.dim - 1)
+        if isinstance(init_guess, dict):
+            if "anis" not in init_guess:
+                raise ValueError("CovModel.fit: missing init guess for 'anis'")
+            init_guess_list += list(set_anis(model.dim, init_guess["anis"]))
+        elif init_guess == "default":
+            def_arg = default_arg_from_bounds(model.anis_bounds)
+            init_guess_list += [def_arg] * (model.dim - 1)
+        elif init_guess == "current":
             init_guess_list += list(model.anis)
+        else:
+            raise ValueError(
+                "CovModel.fit: unknown init_guess: '{}'".format(init_guess)
+            )
+
     return (low_bounds, top_bounds), init_guess_list
 
 
@@ -356,7 +367,7 @@ def _init_guess(bounds, current, default, typ, para_name):
             return typ[para_name]
         # if we have a dict, all parameters need a given init_guess
         raise ValueError(
-            "CovModel.fit: missing init guess for: '{}'".format(para_name)
+            "CovModel.fit: missing init guess for '{}'".format(para_name)
         )
     if typ == "default":
         if bounds[0] < default < bounds[1]:
@@ -364,7 +375,7 @@ def _init_guess(bounds, current, default, typ, para_name):
         return default_arg_from_bounds(bounds)
     if typ == "current":
         return current
-    raise ValueError("CovModel.fit: unkwon init_guess: '{}'".format(typ))
+    raise ValueError("CovModel.fit: unknown init_guess: '{}'".format(typ))
 
 
 def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
