@@ -142,6 +142,7 @@ class CovModel(metaclass=InitSubclassMeta):
         self._var_bounds = None
         self._len_scale_bounds = None
         self._nugget_bounds = None
+        self._anis_bounds = None
         self._opt_arg_bounds = {}
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
@@ -798,6 +799,7 @@ class CovModel(metaclass=InitSubclassMeta):
             "var": (0.0, np.inf, "oo"),
             "len_scale": (0.0, np.inf, "oo"),
             "nugget": (0.0, np.inf, "co"),
+            "anis": (0.0, np.inf, "oo"),
         }
         return res
 
@@ -838,12 +840,18 @@ class CovModel(metaclass=InitSubclassMeta):
                 self.len_scale_bounds = kwargs[arg]
             elif arg == "nugget":
                 self.nugget_bounds = kwargs[arg]
+            elif arg == "anis":
+                self.anis_bounds = kwargs[arg]
             else:
                 raise ValueError(
                     "set_arg_bounds: unknown argument '{}'".format(arg)
                 )
             if check_args and check_arg_in_bounds(self, arg) > 0:
-                setattr(self, arg, default_arg_from_bounds(kwargs[arg]))
+                def_arg = default_arg_from_bounds(kwargs[arg])
+                if arg == "anis":
+                    setattr(self, arg, [def_arg] * (self.dim - 1))
+                else:
+                    setattr(self, arg, def_arg)
         # set var last like allways
         if var_bnds:
             self.var_bounds = var_bnds
@@ -955,6 +963,32 @@ class CovModel(metaclass=InitSubclassMeta):
         self._nugget_bounds = bounds
 
     @property
+    def anis_bounds(self):
+        """:class:`list`: Bounds for the nugget.
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * ``[a, b]`` or
+            * ``[a, b, <type>]``
+
+        <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
+        to define if the bounds are open ("o") or closed ("c").
+        """
+        return self._anis_bounds
+
+    @anis_bounds.setter
+    def anis_bounds(self, bounds):
+        if not check_bounds(bounds):
+            raise ValueError(
+                "Given bounds for 'anis' are not "
+                + "valid, got: "
+                + str(bounds)
+            )
+        self._anis_bounds = bounds
+
+    @property
     def opt_arg_bounds(self):
         """:class:`dict`: Bounds for the optional arguments.
 
@@ -988,6 +1022,7 @@ class CovModel(metaclass=InitSubclassMeta):
             "var": self.var_bounds,
             "len_scale": self.len_scale_bounds,
             "nugget": self.nugget_bounds,
+            "anis": self.anis_bounds,
         }
         res.update(self.opt_arg_bounds)
         return res

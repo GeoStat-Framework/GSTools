@@ -142,7 +142,7 @@ def set_len_anis(dim, len_scale, anis):
         out_anis = np.zeros(dim - 1, dtype=np.double)
         for i in range(1, dim):
             out_anis[i - 1] = ls_tmp[i] / ls_tmp[0]
-
+    # sanity check
     for ani in out_anis:
         if not ani > 0.0:
             raise ValueError(
