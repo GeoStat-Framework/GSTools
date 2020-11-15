@@ -44,8 +44,6 @@ HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
 class AttributeWarning(UserWarning):
     """Attribute warning for CovModel class."""
 
-    pass
-
 
 class CovModel(metaclass=InitSubclassMeta):
     r"""Base class for the GSTools covariance models.
@@ -320,34 +318,22 @@ class CovModel(metaclass=InitSubclassMeta):
         r"""Spatial correlation respecting anisotropy and rotation."""
         return self.correlation(self._get_iso_rad(pos))
 
-    def cov_nugget(self, r):
-        r"""Covariance of the model respecting the nugget at r=0.
-
-        Given by: :math:`C\left(r\right)=
-        \sigma^2\cdot\rho\left(r\right)`
-
-        Where :math:`\rho(r)` is the correlation function.
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        r_gz = np.logical_not(np.isclose(r, 0))
-        res = np.empty_like(r, dtype=np.double)
-        res[r_gz] = self.covariance(r[r_gz])
-        res[np.logical_not(r_gz)] = self.sill
-        return res
-
     def vario_nugget(self, r):
-        r"""Isotropic variogram of the model respecting the nugget at r=0.
-
-        Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-
-        Where :math:`\rho(r)` is the correlation function.
-        """
+        """Isotropic variogram of the model respecting the nugget at r=0."""
         r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
         res = np.empty_like(r, dtype=np.double)
         res[r_gz] = self.variogram(r[r_gz])
         res[np.logical_not(r_gz)] = 0.0
+        return res
+
+    def cov_nugget(self, r):
+        """Isotropic covariance of the model respecting the nugget at r=0."""
+        r = np.array(np.abs(r), dtype=np.double)
+        r_gz = np.logical_not(np.isclose(r, 0))
+        res = np.empty_like(r, dtype=np.double)
+        res[r_gz] = self.covariance(r[r_gz])
+        res[np.logical_not(r_gz)] = self.sill
         return res
 
     def plot(self, func="variogram", **kwargs):  # pragma: no cover
@@ -365,6 +351,9 @@ class CovModel(metaclass=InitSubclassMeta):
                 * "vario_spatial"
                 * "cov_spatial"
                 * "cor_spatial"
+                * "vario_axis"
+                * "cov_axis"
+                * "cor_axis"
                 * "spectrum"
                 * "spectral_density"
                 * "spectral_rad_pdf"
@@ -383,13 +372,7 @@ class CovModel(metaclass=InitSubclassMeta):
     # pykrige functions
 
     def pykrige_vario(self, args=None, r=0):
-        r"""Isotropic variogram of the model for pykrige.
-
-        Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-
-        Where :math:`\rho(r)` is the correlation function.
-        """
+        """Isotropic variogram of the model for pykrige."""
         return self.variogram(r)
 
     @property
@@ -497,7 +480,6 @@ class CovModel(metaclass=InitSubclassMeta):
         * Any return value will be ignored
         * This method will only be run once, when the class is initialized
         """
-        pass
 
     def fix_dim(self):
         """Set a fix dimension for the model."""
@@ -1038,7 +1020,9 @@ class CovModel(metaclass=InitSubclassMeta):
     def dim(self, dim):
         # check if a fixed dimension should be used
         if self.fix_dim() is not None:
-            print(self.name + ": using fixed dimension " + str(self.fix_dim()))
+            warnings.warn(
+                self.name + ": using fixed dimension " + str(self.fix_dim())
+            )
             dim = self.fix_dim()
         # set the dimension
         # TODO: add a routine to check if dimension is valid
@@ -1215,6 +1199,27 @@ class CovModel(metaclass=InitSubclassMeta):
     def arg(self):
         """:class:`list` of :class:`str`: Names of all arguments."""
         return ["var", "len_scale", "nugget", "anis", "angles"] + self._opt_arg
+
+    @property
+    def arg_list(self):
+        """:class:`list` of :class:`float`: Values of all arguments."""
+        alist = [self.var, self.len_scale, self.nugget, self.anis, self.angles]
+        for opt in self.opt_arg:
+            alist.append(getattr(self, opt))
+        return alist
+
+    @property
+    def iso_arg(self):
+        """:class:`list` of :class:`str`: Names of isotropic arguments."""
+        return ["var", "len_scale", "nugget"] + self._opt_arg
+
+    @property
+    def iso_arg_list(self):
+        """:class:`list` of :class:`float`: Values of isotropic arguments."""
+        alist = [self.var, self.len_scale, self.nugget]
+        for opt in self.opt_arg:
+            alist.append(getattr(self, opt))
+        return alist
 
     @property
     def opt_arg(self):
