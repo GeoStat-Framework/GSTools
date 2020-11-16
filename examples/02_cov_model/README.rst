@@ -79,7 +79,9 @@ As a special feature, we also provide truncated power law (TPL) covariance model
     TPLStable
     TPLSimple
 
-Gallery
--------
+.. only:: html
 
-Below is a gallery of examples
+   Gallery
+   -------
+
+   Below is a gallery of examples

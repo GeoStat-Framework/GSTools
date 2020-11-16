@@ -10,7 +10,9 @@ The same `(semi-)variogram <https://en.wikipedia.org/wiki/Variogram#Semivariogra
 :ref:`tutorial_02_cov` is being used
 by this subpackage.
 
-Gallery
--------
+.. only:: html
 
-Below is a gallery of examples
+   Gallery
+   -------
+
+   Below is a gallery of examples

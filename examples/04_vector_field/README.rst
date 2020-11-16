@@ -32,7 +32,9 @@ with the projector
 By calculating :math:`\nabla \cdot \mathbf U = 0`, it can be verified, that
 the resulting field is indeed incompressible.
 
-Gallery
--------
+.. only:: html
 
-Below is a gallery of examples
+   Gallery
+   -------
+
+   Below is a gallery of examples

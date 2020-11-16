@@ -151,9 +151,11 @@ def vario_estimate(
         the angles of the main axis to calculate the variogram for in radians
         angle definitions from ISO standard 80000-2:2009
         for 1d this parameter will have no effect at all
-        for 2d supply one angle which is azimuth φ (ccw from +x in xy plane)
-        for 3d supply two angles which are azimuth φ (ccw from +x in xy plane)
-        and inclination θ (cw from +z).
+        for 2d supply one angle which is
+        azimuth :math:`\varphi` (ccw from +x in xy plane)
+        for 3d supply two angles which are
+        azimuth :math:`\varphi` (ccw from +x in xy plane)
+        and inclination :math:`\theta` (cw from +z).
         Can be used instead of direction.
         Default: :any:`None`
     angles_tol : class:`float`, optional

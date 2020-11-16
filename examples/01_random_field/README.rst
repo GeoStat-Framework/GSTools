@@ -13,7 +13,9 @@ and its discretised modes are evaluated at random frequencies.
 
 GSTools supports arbitrary and non-isotropic covariance models.
 
-Gallery
--------
+.. only:: html
 
-Below is a gallery of examples
+   Gallery
+   -------
+
+   Below is a gallery of examples
