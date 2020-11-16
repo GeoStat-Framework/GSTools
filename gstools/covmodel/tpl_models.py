@@ -488,7 +488,7 @@ class TPLSimple(CovModel):
 
     This model describes a simple truncated power law
     with a finite length scale. In contrast to other models,
-    this one is not derived from super-postioning modes.
+    this one is not derived from super-positioning modes.
 
     Notes
     -----

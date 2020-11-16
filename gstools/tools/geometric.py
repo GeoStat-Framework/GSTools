@@ -97,7 +97,7 @@ def set_anis(dim, anis):
 
     Notes
     -----
-        If too few anisotrpy ratios are given, they are filled up with `1`.
+        If too few anisotropy ratios are given, they are filled up with `1`.
     """
     out_anis = np.array(anis, dtype=np.double)
     out_anis = np.atleast_1d(out_anis)[: dim - 1]

@@ -39,7 +39,7 @@ def fit_variogram(
     **para_select
 ):
     """
-    Fiting a variogram-model to an empirical variogram.
+    Fitting a variogram-model to an empirical variogram.
 
     Parameters
     ----------
@@ -58,7 +58,7 @@ def fit_variogram(
         by this argument. Deselect the parameter from fitting, by setting
         it "False".
         You could also pass a fixed value to be set in the model.
-        Then the anisotropy ratios wont be altered during fitting.
+        Then the anisotropy ratios won't be altered during fitting.
         Default: True
     sill : :class:`float` or :class:`bool` or :any:`None`, optional
         Here you can provide a fixed sill for the variogram.

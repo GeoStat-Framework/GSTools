@@ -527,7 +527,7 @@ class HyperSpherical(CovModel):
     r"""The Hyper-Spherical covariance model.
 
     This model is derived from the relative intersection area of
-    two d-dimensional hyper spheres,
+    two d-dimensional hyperspheres,
     where the middle points have a distance of :math:`r`
     and the diameters are given by :math:`\ell`.
 
@@ -583,7 +583,7 @@ class SuperSpherical(CovModel):
     r"""The Super-Spherical covariance model.
 
     This model is derived from the relative intersection area of
-    two d-dimensional hyper spheres,
+    two d-dimensional hyperspheres,
     where the middle points have a distance of :math:`r`
     and the diameters are given by :math:`\ell`.
     It is than valid in all lower dimensions.
