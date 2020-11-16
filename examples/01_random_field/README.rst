@@ -15,3 +15,5 @@ GSTools supports arbitrary and non-isotropic covariance models.
 
 Gallery
 -------
+
+Below is a gallery of examples

@@ -12,3 +12,5 @@ by this subpackage.
 
 Gallery
 -------
+
+Below is a gallery of examples

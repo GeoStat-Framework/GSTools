@@ -89,3 +89,5 @@ submodule :any:`gstools.krige`.
 
 Gallery
 -------
+
+Below is a gallery of examples

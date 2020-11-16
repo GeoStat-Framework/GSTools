@@ -34,3 +34,5 @@ the resulting field is indeed incompressible.
 
 Gallery
 -------
+
+Below is a gallery of examples
