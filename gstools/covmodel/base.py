@@ -481,6 +481,10 @@ class CovModel(metaclass=InitSubclassMeta):
         * This method will only be run once, when the class is initialized
         """
 
+    def check_dim(self, dim):
+        """Check the given dimension."""
+        return True
+
     def fix_dim(self):
         """Set a fix dimension for the model."""
         return None
@@ -1025,9 +1029,13 @@ class CovModel(metaclass=InitSubclassMeta):
             )
             dim = self.fix_dim()
         # set the dimension
-        # TODO: add a routine to check if dimension is valid
-        if dim < 1 or dim > 3:
-            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
+        if dim < 1:
+            raise ValueError("Only dimensions of d >= 1 are supported.")
+        check = self.check_dim(dim)
+        if not check:
+            warnings.warn(
+                "Dimension {} is not appropriate for this model.".format(dim)
+            )
         self._dim = int(dim)
         # create fourier transform just once (recreate for dim change)
         self._sft = SFT(ndim=self.dim, **self.hankel_kw)
@@ -1038,6 +1046,7 @@ class CovModel(metaclass=InitSubclassMeta):
             )
         if self._angles is not None:
             self._angles = set_angles(self.dim, self._angles)
+        self.check_arg_bounds()
 
     @property
     def var(self):
