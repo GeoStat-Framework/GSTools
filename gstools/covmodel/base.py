@@ -849,7 +849,7 @@ class CovModel(metaclass=InitSubclassMeta):
         # check var, len_scale, nugget and optional-arguments
         for arg in self.arg_bounds:
             if not self.arg_bounds[arg]:
-                continue
+                continue  # no bounds given during init (called from self.dim)
             bnd = list(self.arg_bounds[arg])
             val = getattr(self, arg)
             error_case = check_arg_in_bounds(self, arg)

@@ -454,6 +454,10 @@ class Linear(CovModel):
         """Linear normalized correlation function."""
         return np.maximum(1 - np.abs(h, dtype=np.double), 0.0)
 
+    def check_dim(self, dim):
+        """Linear model is only valid in 1D."""
+        return dim < 2
+
 
 class Circular(CovModel):
     r"""The circular covariance model.
@@ -493,6 +497,10 @@ class Circular(CovModel):
         )
         return res
 
+    def check_dim(self, dim):
+        """Circular model is only valid in 1D and 2D."""
+        return dim < 3
+
 
 class Spherical(CovModel):
     r"""The Spherical covariance model.
@@ -521,6 +529,10 @@ class Spherical(CovModel):
         """Spherical normalized correlation function."""
         h = np.minimum(np.abs(h, dtype=np.double), 1.0)
         return 1.0 - 1.5 * h + 0.5 * h ** 3
+
+    def check_dim(self, dim):
+        """Spherical model is only valid in 1D, 2D and 3D."""
+        return dim < 4
 
 
 class HyperSpherical(CovModel):
