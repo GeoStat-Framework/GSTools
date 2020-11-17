@@ -848,6 +848,8 @@ class CovModel(metaclass=InitSubclassMeta):
         """Check arguments to be within the given bounds."""
         # check var, len_scale, nugget and optional-arguments
         for arg in self.arg_bounds:
+            if not self.arg_bounds[arg]:
+                continue
             bnd = list(self.arg_bounds[arg])
             val = getattr(self, arg)
             error_case = check_arg_in_bounds(self, arg)
@@ -1025,7 +1027,8 @@ class CovModel(metaclass=InitSubclassMeta):
         # check if a fixed dimension should be used
         if self.fix_dim() is not None:
             warnings.warn(
-                self.name + ": using fixed dimension " + str(self.fix_dim())
+                self.name + ": using fixed dimension " + str(self.fix_dim()),
+                AttributeWarning,
             )
             dim = self.fix_dim()
         # set the dimension
@@ -1034,7 +1037,8 @@ class CovModel(metaclass=InitSubclassMeta):
         check = self.check_dim(dim)
         if not check:
             warnings.warn(
-                "Dimension {} is not appropriate for this model.".format(dim)
+                "Dimension {} is not appropriate for this model.".format(dim),
+                AttributeWarning,
             )
         self._dim = int(dim)
         # create fourier transform just once (recreate for dim change)
