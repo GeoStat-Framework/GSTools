@@ -15,7 +15,6 @@ import warnings
 import copy
 import numpy as np
 from scipy.integrate import quad as integral
-from scipy.optimize import root
 from hankel import SymmetricFourierTransform as SFT
 from gstools.tools.geometric import (
     set_angles,
@@ -26,11 +25,12 @@ from gstools.tools.geometric import (
 from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
     InitSubclassMeta,
-    spectral_rad_pdf,
     set_len_anis,
     check_bounds,
     check_arg_in_bounds,
     default_arg_from_bounds,
+    spectral_rad_pdf,
+    percentile_scale,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -510,18 +510,7 @@ class CovModel(metaclass=InitSubclassMeta):
         This is the distance, where the given percentile of the variance
         is reached by the variogram
         """
-        # check the given percentile
-        if not 0.0 < per < 1.0:
-            raise ValueError(
-                "percentile needs to be within (0, 1), got: " + str(per)
-            )
-
-        # define a curve, that has its root at the wanted point
-        def curve(x):
-            return 1.0 - self.correlation(x) - per
-
-        # take 'per * len_scale' as initial guess
-        return root(curve, per * self.len_scale)["x"][0]
+        return percentile_scale(self, per)
 
     # spectrum methods (can be overridden for speedup)
 

@@ -13,10 +13,13 @@ The following classes and functions are provided
    check_bounds
    check_arg_in_bounds
    default_arg_from_bounds
+   spectral_rad_pdf
+   percentile_scale
 """
 
 # pylint: disable=C0103
 import numpy as np
+from scipy.optimize import root
 from scipy import special as sps
 from gstools.tools.geometric import set_anis
 
@@ -27,6 +30,8 @@ __all__ = [
     "check_bounds",
     "check_arg_in_bounds",
     "default_arg_from_bounds",
+    "spectral_rad_pdf",
+    "percentile_scale",
 ]
 
 
@@ -94,40 +99,6 @@ def rad_fac(dim, r):
             / sps.gamma(dim / 2.0 + 1.0)
         )
     return fac
-
-
-def spectral_rad_pdf(model, r):
-    """
-    Spectral radians PDF of a model.
-
-    Parameters
-    ----------
-    model : :any:`CovModel`
-        The covariance model in use.
-    r : :class:`numpy.ndarray`
-        Given radii.
-
-    Returns
-    -------
-    :class:`numpy.ndarray`
-        PDF values.
-
-    """
-    r = np.array(np.abs(r), dtype=np.double)
-    if model.dim > 1:
-        r_gz = np.logical_not(np.isclose(r, 0))
-        # to prevent numerical errors, we just calculate where r>0
-        res = np.zeros_like(r, dtype=np.double)
-        res[r_gz] = rad_fac(model.dim, r[r_gz]) * np.abs(
-            model.spectral_density(r[r_gz])
-        )
-    else:
-        res = rad_fac(model.dim, r) * np.abs(model.spectral_density(r))
-    # prevent numerical errors in hankel for small r values (set 0)
-    res[np.logical_not(np.isfinite(res))] = 0.0
-    # prevent numerical errors in hankel for big r (set non-negative)
-    res = np.maximum(res, 0.0)
-    return res
 
 
 def set_len_anis(dim, len_scale, anis):
@@ -258,3 +229,80 @@ def default_arg_from_bounds(bounds):
     if bounds[1] < np.inf:
         return bounds[1] - 1.0
     return 0.0
+
+
+# outsourced routines
+
+
+def spectral_rad_pdf(model, r):
+    """
+    Spectral radians PDF of a model.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    r : :class:`numpy.ndarray`
+        Given radii.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        PDF values.
+
+    """
+    r = np.array(np.abs(r), dtype=np.double)
+    if model.dim > 1:
+        r_gz = np.logical_not(np.isclose(r, 0))
+        # to prevent numerical errors, we just calculate where r>0
+        res = np.zeros_like(r, dtype=np.double)
+        res[r_gz] = rad_fac(model.dim, r[r_gz]) * np.abs(
+            model.spectral_density(r[r_gz])
+        )
+    else:
+        res = rad_fac(model.dim, r) * np.abs(model.spectral_density(r))
+    # prevent numerical errors in hankel for small r values (set 0)
+    res[np.logical_not(np.isfinite(res))] = 0.0
+    # prevent numerical errors in hankel for big r (set non-negative)
+    res = np.maximum(res, 0.0)
+    return res
+
+
+def percentile_scale(model, per=0.9):
+    """
+    Calculate the percentile scale of the isotrope model.
+
+    This is the distance, where the given percentile of the variance
+    is reached by the variogram
+
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    per : float, optional
+        Percentile to use. The default is 0.9.
+
+    Raises
+    ------
+    ValueError
+        When percentile is not in (0, 1).
+
+    Returns
+    -------
+    float
+        Percentile scale.
+
+    """
+    # check the given percentile
+    if not 0.0 < per < 1.0:
+        raise ValueError(
+            "percentile needs to be within (0, 1), got: " + str(per)
+        )
+
+    # define a curve, that has its root at the wanted point
+    def curve(x):
+        return 1.0 - model.correlation(x) - per
+
+    # take 'per * len_rescaled' as initial guess
+    return root(curve, per * model.len_rescaled)["x"][0]
