@@ -19,14 +19,16 @@ The following classes and functions are provided
    percentile_scale
    set_arg_bounds
    check_arg_bounds
+   set_dim
 """
 
-# pylint: disable=C0103
+# pylint: disable=C0103, W0212
 import warnings
 import numpy as np
 from scipy.optimize import root
 from scipy import special as sps
-from gstools.tools.geometric import set_anis
+from hankel import SymmetricFourierTransform as SFT
+from gstools.tools.geometric import set_anis, set_angles
 
 __all__ = [
     "InitSubclassMeta",
@@ -41,6 +43,7 @@ __all__ = [
     "percentile_scale",
     "set_arg_bounds",
     "check_arg_bounds",
+    "set_dim",
 ]
 
 
@@ -463,3 +466,48 @@ def check_arg_bounds(model):
             raise ValueError(
                 "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
             )
+
+
+def set_dim(model, dim):
+    """
+    Set the dimension in the given model.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    dim : :class:`int`
+        dimension of the model.
+
+    Raises
+    ------
+    ValueError
+        When dimension is < 1.
+    """
+    # check if a fixed dimension should be used
+    if model.fix_dim() is not None:
+        warnings.warn(
+            model.name + ": using fixed dimension " + str(model.fix_dim()),
+            AttributeWarning,
+        )
+        dim = model.fix_dim()
+    # set the dimension
+    if dim < 1:
+        raise ValueError("Only dimensions of d >= 1 are supported.")
+    check = model.check_dim(dim)
+    if not check:
+        warnings.warn(
+            "Dimension {} is not appropriate for this model.".format(dim),
+            AttributeWarning,
+        )
+    model._dim = int(dim)
+    # create fourier transform just once (recreate for dim change)
+    model._sft = SFT(ndim=model.dim, **model.hankel_kw)
+    # recalculate dimension related parameters
+    if model._anis is not None:
+        model._len_scale, model._anis = set_len_anis(
+            model.dim, model._len_scale, model._anis
+        )
+    if model._angles is not None:
+        model._angles = set_angles(model.dim, model._angles)
+    model.check_arg_bounds()

@@ -11,7 +11,6 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201
 
-import warnings
 import copy
 import numpy as np
 from scipy.integrate import quad as integral
@@ -24,17 +23,15 @@ from gstools.tools.geometric import (
 )
 from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
-    AttributeWarning,
     InitSubclassMeta,
     set_opt_args,
     set_len_anis,
     check_bounds,
-    check_arg_in_bounds,
-    default_arg_from_bounds,
     spectral_rad_pdf,
     percentile_scale,
     set_arg_bounds,
     check_arg_bounds,
+    set_dim,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -915,33 +912,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @dim.setter
     def dim(self, dim):
-        # check if a fixed dimension should be used
-        if self.fix_dim() is not None:
-            warnings.warn(
-                self.name + ": using fixed dimension " + str(self.fix_dim()),
-                AttributeWarning,
-            )
-            dim = self.fix_dim()
-        # set the dimension
-        if dim < 1:
-            raise ValueError("Only dimensions of d >= 1 are supported.")
-        check = self.check_dim(dim)
-        if not check:
-            warnings.warn(
-                "Dimension {} is not appropriate for this model.".format(dim),
-                AttributeWarning,
-            )
-        self._dim = int(dim)
-        # create fourier transform just once (recreate for dim change)
-        self._sft = SFT(ndim=self.dim, **self.hankel_kw)
-        # recalculate dimension related parameters
-        if self._anis is not None:
-            self._len_scale, self._anis = set_len_anis(
-                self.dim, self._len_scale, self._anis
-            )
-        if self._angles is not None:
-            self._angles = set_angles(self.dim, self._angles)
-        self.check_arg_bounds()
+        set_dim(self, dim)
 
     @property
     def var(self):
