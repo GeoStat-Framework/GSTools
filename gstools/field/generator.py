@@ -339,10 +339,9 @@ class IncomprRandMeth(RandMeth):
         verbose=False,
         **kwargs
     ):
-        if model.dim < 2:
+        if model.dim < 2 or model.dim > 3:
             raise ValueError(
-                "Only 2- and 3-dimensional incompressible fields "
-                + "can be generated."
+                "Only 2D and 3D incompressible fields can be generated."
             )
         super().__init__(model, mode_no, seed, verbose, **kwargs)
 
