@@ -4,7 +4,11 @@ This is the unittest of CovModel class.
 """
 import numpy as np
 import unittest
-from gstools.covmodel.tools import AttributeWarning, check_bounds
+from gstools.covmodel.tools import (
+    AttributeWarning,
+    check_bounds,
+    check_arg_in_bounds,
+)
 from gstools import (
     CovModel,
     Gaussian,
@@ -215,6 +219,7 @@ class TestCovModel(unittest.TestCase):
         cor = model_std.cor(2.5)
 
         self.assertFalse(check_bounds(bounds=[0]))
+        self.assertFalse(check_bounds(bounds=[1, -1]))
         self.assertFalse(check_bounds(bounds=[0, 1, 2, 3]))
         self.assertFalse(check_bounds(bounds=[0, 1, "kk"]))
         self.assertRaises(ValueError, model_std.set_arg_bounds, wrong_arg=[1])
@@ -249,6 +254,7 @@ class TestCovModel(unittest.TestCase):
         self.assertRaises(ValueError, model_std.percentile_scale, per=-1.0)
         self.assertRaises(ValueError, Gaussian, anis=-1.0)
         self.assertRaises(ValueError, Gaussian, len_scale=[1, -1])
+        self.assertRaises(ValueError, check_arg_in_bounds, model_std, "wrong")
         self.assertWarns(AttributeWarning, Gaussian, wrong_arg=1.0)
         with self.assertWarns(AttributeWarning):
             self.assertRaises(ValueError, Gaussian, len_rescaled=1.0)

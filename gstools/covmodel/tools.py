@@ -345,7 +345,7 @@ def default_arg_from_bounds(bounds):
         return bounds[0] + 1.0
     if bounds[1] < np.inf:
         return bounds[1] - 1.0
-    return 0.0
+    return 0.0  # pragma: no cover
 
 
 # outsourced routines
