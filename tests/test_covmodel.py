@@ -201,6 +201,9 @@ class TestCovModel(unittest.TestCase):
                 model.var_raw = 1.1
                 self.assertAlmostEqual(model.var, var_save * 1.1)
                 self.assertAlmostEqual(model.integral_scale, 10)
+                # integral scale is not setable when len_low is not 0
+                with self.assertRaises(ValueError):
+                    Model(var_raw=1, len_low=5, integral_scale=10)
 
     def test_fitting(self):
         for Model in self.std_cov_models:
@@ -218,6 +221,8 @@ class TestCovModel(unittest.TestCase):
                     self.gamma_x, self.gamma_y, sill=2, nugget=False
                 )
                 self.assertAlmostEqual(model.var, 2.0)
+                model.fit_variogram(self.gamma_x, self.gamma_y, var=1)
+                self.assertAlmostEqual(model.var, 1)
                 model = Model(dim=dim)
                 model.fit_variogram(
                     self.gamma_x, self.gamma_y, sill=2, nugget=1
@@ -230,8 +235,47 @@ class TestCovModel(unittest.TestCase):
                     loss="linear",
                     return_r2=True,
                     weights="inv",
+                    init_guess="current",
                 )
                 self.assertEqual(len(ret), 3)
+
+        # treatment of sill/var/nugget by fitting
+        model = Stable()
+        model.fit_variogram(
+            self.gamma_x, self.gamma_y, nugget=False, var=False, sill=2
+        )
+        self.assertAlmostEqual(model.var, 1)
+        self.assertAlmostEqual(model.nugget, 1)
+        model.fit_variogram(self.gamma_x, self.gamma_y, var=2, sill=3)
+        self.assertAlmostEqual(model.var, 2)
+        self.assertAlmostEqual(model.nugget, 1)
+        model.var = 3
+        model.fit_variogram(
+            self.gamma_x, self.gamma_y, nugget=False, var=False, sill=2
+        )
+        self.assertAlmostEqual(model.var, 2)
+        self.assertAlmostEqual(model.nugget, 0)
+        # check ValueErrors
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, sill=2, var=3)
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, sill=2, nugget=3)
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, method="wrong")
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, wrong=False)
+        model.var_bounds = [0, 1]
+        model.nugget_bounds = [0, 1]
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, sill=3)
+        # init guess
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, init_guess="wrong")
+        model.var_bounds = [0, np.inf]
+        model.fit_variogram(
+            self.gamma_x, np.array(self.gamma_y) + 1, sill=2, alpha=False
+        )
+        self.assertAlmostEqual(model.var + model.nugget, 2)
 
     def test_covmodel_class(self):
         model_std = Gaussian(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)
@@ -253,13 +297,14 @@ class TestCovModel(unittest.TestCase):
         )
 
         # checking some properties
-        self.assertEqual(len(model_std.arg), len(model_std.arg_list))
-        self.assertEqual(len(model_std.iso_arg), len(model_std.iso_arg_list))
-        self.assertEqual(len(model_std.arg), len(model_std.iso_arg) + 2)
-        self.assertEqual(len(model_std.len_scale_vec), model_std.dim)
+        model_par = Stable()
+        self.assertEqual(len(model_par.arg), len(model_par.arg_list))
+        self.assertEqual(len(model_par.iso_arg), len(model_par.iso_arg_list))
+        self.assertEqual(len(model_par.arg), len(model_par.iso_arg) + 2)
+        self.assertEqual(len(model_par.len_scale_vec), model_par.dim)
         self.assertFalse(Gaussian() == Stable())
-        model_std.hankel_kw = {"N": 300}
-        self.assertEqual(model_std.hankel_kw["N"], 300)
+        model_par.hankel_kw = {"N": 300}
+        self.assertEqual(model_par.hankel_kw["N"], 300)
 
         # arg in bounds check
         model_std.set_arg_bounds(var=[0.5, 1.5])

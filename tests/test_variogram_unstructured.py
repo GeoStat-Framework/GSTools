@@ -334,6 +334,24 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertEqual(c4[0], 0)
         self.assertAlmostEqual(v5[0], 0.0)
 
+    def test_fit_directional(self):
+        model = gs.Stable(dim=3)
+        bins = [0, 3, 6, 9, 12]
+        model.len_scale_bounds = [0, 20]
+        bin_center, emp_vario = gs.vario_estimate(
+            *(self.pos, self.field, bins),
+            direction=gs.rotated_main_axes(3, model.angles),
+            mesh_type="structured",
+        )
+        # check if this succeeds
+        model.fit_variogram(bin_center, emp_vario, sill=1, return_r2=True)
+        self.assertTrue(1 > model.anis[0] > model.anis[1])
+        model.fit_variogram(bin_center, emp_vario, sill=1, anis=[0.5, 0.25])
+        self.assertTrue(15 > model.len_scale)
+        # catch wrong dim for dir.-vario
+        with self.assertRaises(ValueError):
+            model.fit_variogram(bin_center, emp_vario[:2])
+
 
 if __name__ == "__main__":
     unittest.main()
