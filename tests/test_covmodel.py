@@ -147,6 +147,19 @@ class TestCovModel(unittest.TestCase):
                                 - model.cov_spatial(([1], [2], [3])[:dim])[0],
                             )
                             self.assertAlmostEqual(
+                                model.cor_spatial(([1], [2], [3])[:dim])[0],
+                                model.cov_spatial(([1], [2], [3])[:dim])[0]
+                                / model.var,
+                            )
+                            self.assertAlmostEqual(
+                                model.vario_axis(1),
+                                model.var - model.cov_axis(1) + model.nugget,
+                            )
+                            self.assertAlmostEqual(
+                                model.cor_axis(1),
+                                model.cov_axis(1) / model.var,
+                            )
+                            self.assertAlmostEqual(
                                 model.cov_nugget(0), model.sill
                             )
                             self.assertAlmostEqual(model.vario_nugget(0), 0.0)
