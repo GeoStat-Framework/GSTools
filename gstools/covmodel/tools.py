@@ -18,6 +18,7 @@ The following classes and functions are provided
 """
 
 # pylint: disable=C0103
+import warnings
 import numpy as np
 from scipy.optimize import root
 from scipy import special as sps
@@ -70,6 +71,10 @@ else:
                 super_class.__init_subclass__.__func__(cls, **kwargs)
 
 
+class AttributeWarning(UserWarning):
+    """Attribute warning for CovModel class."""
+
+
 # Helping functions ###########################################################
 
 
@@ -99,6 +104,53 @@ def rad_fac(dim, r):
             / sps.gamma(dim / 2.0 + 1.0)
         )
     return fac
+
+
+def set_opt_args(model, opt_arg):
+    """
+    Setting optional arguments in the model class.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    opt_arg : :class:`dict`
+        Dictionary with optional arguments.
+
+    Raises
+    ------
+    ValueError
+        When an optional argument has an already taken name.
+    """
+    model._opt_arg = []
+    # look up the defaults for the optional arguments (defined by the user)
+    default = model.default_opt_arg()
+    for opt_name in opt_arg:
+        if opt_name not in default:
+            warnings.warn(
+                "The given optional argument '{}' ".format(opt_name)
+                + "is unknown or has at least no defined standard value. "
+                + "Or you made a Typo... hehe.",
+                AttributeWarning,
+            )
+    # add the default vaules if not specified
+    for def_arg in default:
+        if def_arg not in opt_arg:
+            opt_arg[def_arg] = default[def_arg]
+    # save names of the optional arguments (sort them by name)
+    model._opt_arg = list(opt_arg.keys())
+    model._opt_arg.sort()
+    # add the optional arguments as attributes to the class
+    for opt_name in opt_arg:
+        if opt_name in dir(model):  # "dir" also respects properties
+            raise ValueError(
+                "parameter '"
+                + opt_name
+                + "' has a 'bad' name, since it is already present in "
+                + "the class. It could not be added to the model"
+            )
+        # Magic happens here
+        setattr(model, opt_name, float(opt_arg[opt_name]))
 
 
 def set_len_anis(dim, len_scale, anis):

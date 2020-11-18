@@ -24,7 +24,9 @@ from gstools.tools.geometric import (
 )
 from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
+    AttributeWarning,
     InitSubclassMeta,
+    set_opt_args,
     set_len_anis,
     check_bounds,
     check_arg_in_bounds,
@@ -39,10 +41,6 @@ __all__ = ["CovModel"]
 
 # default arguments for hankel.SymmetricFourierTransform
 HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
-
-
-class AttributeWarning(UserWarning):
-    """Attribute warning for CovModel class."""
 
 
 class CovModel(metaclass=InitSubclassMeta):
@@ -147,35 +145,7 @@ class CovModel(metaclass=InitSubclassMeta):
         self.dim = dim
 
         # optional arguments for the variogram-model
-        self._opt_arg = []
-        # look up the defaults for the optional arguments (defined by the user)
-        default = self.default_opt_arg()
-        for opt_name in opt_arg:
-            if opt_name not in default:
-                warnings.warn(
-                    "The given optional argument '{}' ".format(opt_name)
-                    + "is unknown or has at least no defined standard value. "
-                    + "Or you made a Typo... hehe.",
-                    AttributeWarning,
-                )
-        # add the default vaules if not specified
-        for def_arg in default:
-            if def_arg not in opt_arg:
-                opt_arg[def_arg] = default[def_arg]
-        # save names of the optional arguments (sort them by name)
-        self._opt_arg = list(opt_arg.keys())
-        self._opt_arg.sort()
-        # add the optional arguments as attributes to the class
-        for opt_name in opt_arg:
-            if opt_name in dir(self):  # "dir" also respects properties
-                raise ValueError(
-                    "parameter '"
-                    + opt_name
-                    + "' has a 'bad' name, since it is already present in "
-                    + "the class. It could not be added to the model"
-                )
-            # Magic happens here
-            setattr(self, opt_name, float(opt_arg[opt_name]))
+        set_opt_args(self, opt_arg)
 
         # set standard boundaries for variance, len_scale, nugget and opt_arg
         bounds = self.default_arg_bounds()
