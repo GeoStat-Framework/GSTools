@@ -44,7 +44,7 @@ class TPLCovModel(CovModel):
 
         * ``len_up_rescaled = (len_low + len_scale) / rescale``
         """
-        return (self.len_low + self.len_scale) / self.rescale
+        return self.len_up / self.rescale
 
     @property
     def len_low_rescaled(self):
@@ -63,11 +63,9 @@ class TPLCovModel(CovModel):
 
     def cor(self, h):
         """TPL - normalized correlation function."""
-        return 1.0
 
     def correlation(self, r):
         """TPL - correlation function."""
-        return 1.0
 
 
 # Truncated power law #########################################################
