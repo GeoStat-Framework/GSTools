@@ -65,23 +65,6 @@ class Mod_add(CovModel):
 
 class TestCovModel(unittest.TestCase):
     def setUp(self):
-        self.cov_models = [
-            Gaussian,
-            Exponential,
-            Rational,
-            Stable,
-            Matern,
-            Linear,
-            Circular,
-            Spherical,
-            HyperSpherical,
-            SuperSpherical,
-            JBessel,
-            TPLGaussian,
-            TPLExponential,
-            TPLStable,
-            TPLSimple,
-        ]
         self.std_cov_models = [
             Gaussian,
             Exponential,
@@ -94,7 +77,14 @@ class TestCovModel(unittest.TestCase):
             HyperSpherical,
             SuperSpherical,
             JBessel,
+            TPLSimple,
         ]
+        self.tpl_cov_models = [
+            TPLGaussian,
+            TPLExponential,
+            TPLStable,
+        ]
+        self.cov_models = self.std_cov_models + self.tpl_cov_models
         self.dims = range(1, 4)
         self.lens = [[10, 5, 2]]
         self.anis = [[0.5, 0.2]]
@@ -189,6 +179,19 @@ class TestCovModel(unittest.TestCase):
                             )
                             self.assertAlmostEqual(model.var, 3)
                             self.assertAlmostEqual(model.nugget, 1.5)
+
+    def test_tpl_models(self):
+        for Model in self.tpl_cov_models:
+            for dim in self.dims:
+                model = Model(dim=dim, len_scale=9, len_low=1, rescale=2)
+                self.assertAlmostEqual(model.len_up_rescaled, 5)
+                model.len_low = 0.0
+                self.assertAlmostEqual(model.cor(2), model.correlation(9))
+                # also check resetting of var when sill is given lower
+                model.fit_variogram(
+                    self.gamma_x, self.gamma_y, sill=2, nugget=False
+                )
+                self.assertAlmostEqual(model.var, 2.0, delta=1e-5)
 
     def test_fitting(self):
         for Model in self.std_cov_models:

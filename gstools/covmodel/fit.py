@@ -380,6 +380,7 @@ def _init_guess(bounds, current, default, typ, para_name):
 
 def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
     """Create the curve for scipys curve_fit."""
+    var_save = model.var
     # we need arg1, otherwise curve_fit throws an error (bug?!)
     def curve(x, arg1, *args):
         """Adapted Variogram function."""
@@ -409,6 +410,9 @@ def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
         # set var at last because of var_factor (other parameter needed)
         if para["var"]:
             model.var = var_tmp
+        # needs to be reset for TPL models when len_scale was changed
+        else:
+            model.var = var_save
         if is_dir_vario:
             if anis:
                 model.anis = args[1 - model.dim :]
