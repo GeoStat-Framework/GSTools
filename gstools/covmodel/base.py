@@ -292,56 +292,56 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def pykrige_vario(self, args=None, r=0):
         """Isotropic variogram of the model for pykrige."""
-        return self.variogram(r)
+        return self.variogram(r)  # pragma: no cover
 
     @property
     def pykrige_anis(self):
         """2D anisotropy ratio for pykrige."""
         if self.dim == 2:
             return 1 / self.anis[0]
-        return 1.0
+        return 1.0  # pragma: no cover
 
     @property
     def pykrige_anis_y(self):
         """3D anisotropy ratio in y direction for pykrige."""
         if self.dim >= 2:
             return 1 / self.anis[0]
-        return 1.0
+        return 1.0  # pragma: no cover
 
     @property
     def pykrige_anis_z(self):
         """3D anisotropy ratio in z direction for pykrige."""
         if self.dim == 3:
             return 1 / self.anis[1]
-        return 1.0
+        return 1.0  # pragma: no cover
 
     @property
     def pykrige_angle(self):
         """2D rotation angle for pykrige."""
         if self.dim == 2:
             return self.angles[0] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_angle_z(self):
         """3D rotation angle around z for pykrige."""
         if self.dim >= 2:
             return self.angles[0] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_angle_y(self):
         """3D rotation angle around y for pykrige."""
         if self.dim == 3:
             return self.angles[1] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_angle_x(self):
         """3D rotation angle around x for pykrige."""
         if self.dim == 3:
             return self.angles[2] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_kwargs(self):
@@ -374,12 +374,9 @@ class CovModel(metaclass=InitSubclassMeta):
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
 
-        Should be given as a dictionary.
+        Should be given as a dictionary when overridden.
         """
-        res = {}
-        for opt in self.opt_arg:
-            res[opt] = 0.0
-        return res
+        return {}
 
     def default_opt_arg_bounds(self):
         """Provide default boundaries for optional arguments."""

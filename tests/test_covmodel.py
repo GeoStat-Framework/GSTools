@@ -191,8 +191,13 @@ class TestCovModel(unittest.TestCase):
                 model.fit_variogram(
                     self.gamma_x, self.gamma_y, sill=1.1, nugget=False
                 )
-                print(model)
                 self.assertAlmostEqual(model.var, 1.1, delta=1e-5)
+                # check var_raw handling
+                model = Model(var_raw=1, len_low=0, integral_scale=10)
+                var_save = model.var
+                model.var_raw = 1.1
+                self.assertAlmostEqual(model.var, var_save * 1.1)
+                self.assertAlmostEqual(model.integral_scale, 10)
 
     def test_fitting(self):
         for Model in self.std_cov_models:
@@ -244,6 +249,15 @@ class TestCovModel(unittest.TestCase):
             ValueError, model_std.set_arg_bounds, wrong_arg=[-1, 1]
         )
 
+        # checking some properties
+        self.assertEqual(len(model_std.arg), len(model_std.arg_list))
+        self.assertEqual(len(model_std.iso_arg), len(model_std.iso_arg_list))
+        self.assertEqual(len(model_std.arg), len(model_std.iso_arg) + 2)
+        self.assertEqual(len(model_std.len_scale_vec), model_std.dim)
+        self.assertFalse(Gaussian() == Stable())
+        model_std.hankel_kw = {"N": 300}
+        self.assertEqual(model_std.hankel_kw["N"], 300)
+
         # arg in bounds check
         model_std.set_arg_bounds(var=[0.5, 1.5])
         with self.assertRaises(ValueError):
@@ -255,7 +269,16 @@ class TestCovModel(unittest.TestCase):
             model_std.var = 0.5
         with self.assertRaises(ValueError):
             model_std.var = 1.5
-        model_std.var = 1
+        with self.assertRaises(ValueError):
+            model_std.var_bounds = [1, -1]
+        with self.assertRaises(ValueError):
+            model_std.len_scale_bounds = [1, -1]
+        with self.assertRaises(ValueError):
+            model_std.nugget_bounds = [1, -1]
+        with self.assertRaises(ValueError):
+            model_std.anis_bounds = [1, -1]
+        # reset the standard model
+        model_std = Gaussian(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)
         # std value from bounds with neg. inf and finit bound
         model_add = Mod_add()
         model_add.set_arg_bounds(alpha=[-np.inf, 0])
