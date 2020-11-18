@@ -340,7 +340,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         model.len_scale_bounds = [0, 20]
         bin_center, emp_vario, counts = gs.vario_estimate(
             *(self.pos, self.field, bins),
-            direction=gs.rotated_main_axes(3, model.angles),
+            direction=model.main_axes(),
             mesh_type="structured",
             return_counts=True,
         )
