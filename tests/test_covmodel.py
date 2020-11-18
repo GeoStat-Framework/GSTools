@@ -4,6 +4,7 @@ This is the unittest of CovModel class.
 """
 import numpy as np
 import unittest
+from gstools.covmodel.tools import AttributeWarning, check_bounds
 from gstools import (
     CovModel,
     Gaussian,
@@ -22,6 +23,40 @@ from gstools import (
     TPLStable,
     TPLSimple,
 )
+
+
+class Gau_var(CovModel):
+    def variogram(self, r):
+        h = np.abs(r) / self.len_rescaled
+        return self.var * (1.0 - np.exp(-(h ** 2))) + self.nugget
+
+
+class Gau_cov(CovModel):
+    def covariance(self, r):
+        h = np.abs(r) / self.len_rescaled
+        return self.var * np.exp(-(h ** 2))
+
+
+class Gau_cor(CovModel):
+    def correlation(self, r):
+        h = np.abs(r) / self.len_rescaled
+        return np.exp(-(h ** 2))
+
+
+class Gau_fix(CovModel):
+    def cor(self, h):
+        return np.exp(-(h ** 2))
+
+    def fix_dim(self):
+        return 2
+
+
+class Mod_add(CovModel):
+    def cor(self, h):
+        return 1.0
+
+    def default_opt_arg(self):
+        return {"alpha": 1}
 
 
 class TestCovModel(unittest.TestCase):
@@ -168,6 +203,84 @@ class TestCovModel(unittest.TestCase):
                     weights="inv",
                 )
                 self.assertEqual(len(ret), 3)
+
+    def test_covmodel_class(self):
+        model_std = Gaussian(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)
+        model_var = Gau_var(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)
+        model_cov = Gau_cov(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)
+        model_cor = Gau_cor(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)
+        var = model_std.variogram(2.5)
+        cov = model_std.covariance(2.5)
+        corr = model_std.correlation(2.5)
+        cor = model_std.cor(2.5)
+
+        self.assertFalse(check_bounds(bounds=[0]))
+        self.assertFalse(check_bounds(bounds=[0, 1, 2, 3]))
+        self.assertFalse(check_bounds(bounds=[0, 1, "kk"]))
+        self.assertRaises(ValueError, model_std.set_arg_bounds, wrong_arg=[1])
+        self.assertRaises(
+            ValueError, model_std.set_arg_bounds, wrong_arg=[-1, 1]
+        )
+
+        # arg in bounds check
+        model_std.set_arg_bounds(var=[0.5, 1.5])
+        with self.assertRaises(ValueError):
+            model_std.var = 0.4
+        with self.assertRaises(ValueError):
+            model_std.var = 1.6
+        model_std.set_arg_bounds(var=[0.5, 1.5, "oo"])
+        with self.assertRaises(ValueError):
+            model_std.var = 0.5
+        with self.assertRaises(ValueError):
+            model_std.var = 1.5
+        model_std.var = 1
+        # std value from bounds with neg. inf and finit bound
+        model_add = Mod_add()
+        model_add.set_arg_bounds(alpha=[-np.inf, 0])
+        self.assertAlmostEqual(model_add.alpha, -1)
+        # special treatment of anis check
+        model_std.set_arg_bounds(anis=[2, 4, "oo"])
+        self.assertTrue(np.all(np.isclose(model_std.anis, 3)))
+        # dim specific checks
+        with self.assertWarns(AttributeWarning):
+            Gau_fix(dim=1)
+        self.assertRaises(ValueError, Gaussian, dim=0)
+        # check inputs
+        self.assertRaises(ValueError, model_std.percentile_scale, per=-1.0)
+        self.assertRaises(ValueError, Gaussian, anis=-1.0)
+        self.assertRaises(ValueError, Gaussian, len_scale=[1, -1])
+        self.assertWarns(AttributeWarning, Gaussian, wrong_arg=1.0)
+        with self.assertWarns(AttributeWarning):
+            self.assertRaises(ValueError, Gaussian, len_rescaled=1.0)
+
+        # check correct subclassing
+        with self.assertRaises(TypeError):
+
+            class Gau_err(CovModel):
+                pass
+
+        self.assertAlmostEqual(var, model_var.variogram(2.5))
+        self.assertAlmostEqual(var, model_cov.variogram(2.5))
+        self.assertAlmostEqual(var, model_cor.variogram(2.5))
+        self.assertAlmostEqual(cov, model_var.covariance(2.5))
+        self.assertAlmostEqual(cov, model_cov.covariance(2.5))
+        self.assertAlmostEqual(cov, model_cor.covariance(2.5))
+        self.assertAlmostEqual(corr, model_var.correlation(2.5))
+        self.assertAlmostEqual(corr, model_cov.correlation(2.5))
+        self.assertAlmostEqual(corr, model_cor.correlation(2.5))
+        self.assertAlmostEqual(cor, model_var.cor(2.5))
+        self.assertAlmostEqual(cor, model_cov.cor(2.5))
+        self.assertAlmostEqual(cor, model_cor.cor(2.5))
+
+    def test_rescale(self):
+        model1 = Exponential()
+        model2 = Exponential(rescale=2.1)
+        model3 = Exponential(rescale=2.1, len_scale=2.1)
+
+        self.assertAlmostEqual(
+            model1.integral_scale, 2.1 * model2.integral_scale
+        )
+        self.assertAlmostEqual(model1.integral_scale, model3.integral_scale)
 
 
 if __name__ == "__main__":
