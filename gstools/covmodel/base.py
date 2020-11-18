@@ -565,12 +565,11 @@ class CovModel(metaclass=InitSubclassMeta):
             and set to the current sill of the model.
             Then, the procedure above is applied.
             Default: None
-        init_guess : :class:`str` or :class:`dict`, optional
+        init_guess : :class:`str`, optional
             Initial guess for the estimation. Either:
 
                 * "default": using the default values of the covariance model
                 * "current": using the current values of the covariance model
-                * dict(name: val): specified value for each parameter by name
 
             Default: "default"
         weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`, optional

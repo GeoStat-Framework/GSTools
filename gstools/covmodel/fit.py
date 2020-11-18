@@ -77,12 +77,11 @@ def fit_variogram(
         and set to the current sill of the model.
         Then, the procedure above is applied.
         Default: None
-    init_guess : :class:`str` or :class:`dict`, optional
+    init_guess : :class:`str`, optional
         Initial guess for the estimation. Either:
 
             * "default": using the default values of the covariance model
             * "current": using the current values of the covariance model
-            * dict(name: val): specified value for each parameter by name
 
         Default: "default"
     weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`optional
@@ -343,11 +342,7 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
     if anis:
         low_bounds += [model.anis_bounds[0]] * (model.dim - 1)
         top_bounds += [model.anis_bounds[1]] * (model.dim - 1)
-        if isinstance(init_guess, dict):
-            if "anis" not in init_guess:
-                raise ValueError("CovModel.fit: missing init guess for 'anis'")
-            init_guess_list += list(set_anis(model.dim, init_guess["anis"]))
-        elif init_guess == "default":
+        if init_guess == "default":
             def_arg = default_arg_from_bounds(model.anis_bounds)
             init_guess_list += [def_arg] * (model.dim - 1)
         elif init_guess == "current":
@@ -362,13 +357,6 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
 
 def _init_guess(bounds, current, default, typ, para_name):
     """Proper determination of initial guess."""
-    if isinstance(typ, dict):
-        if para_name in typ:
-            return typ[para_name]
-        # if we have a dict, all parameters need a given init_guess
-        raise ValueError(
-            "CovModel.fit: missing init guess for '{}'".format(para_name)
-        )
     if typ == "default":
         if bounds[0] < default < bounds[1]:
             return default
@@ -381,6 +369,7 @@ def _init_guess(bounds, current, default, typ, para_name):
 def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
     """Create the curve for scipys curve_fit."""
     var_save = model.var
+
     # we need arg1, otherwise curve_fit throws an error (bug?!)
     def curve(x, arg1, *args):
         """Adapted Variogram function."""
