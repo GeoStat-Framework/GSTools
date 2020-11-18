@@ -96,6 +96,40 @@ def rad_fac(dim, r):
     return fac
 
 
+def spectral_rad_pdf(model, r):
+    """
+    Spectral radians PDF of a model.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    r : :class:`numpy.ndarray`
+        Given radii.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        PDF values.
+
+    """
+    r = np.array(np.abs(r), dtype=np.double)
+    if model.dim > 1:
+        r_gz = np.logical_not(np.isclose(r, 0))
+        # to prevent numerical errors, we just calculate where r>0
+        res = np.zeros_like(r, dtype=np.double)
+        res[r_gz] = rad_fac(model.dim, r[r_gz]) * np.abs(
+            model.spectral_density(r[r_gz])
+        )
+    else:
+        res = rad_fac(model.dim, r) * np.abs(model.spectral_density(r))
+    # prevent numerical errors in hankel for small r values (set 0)
+    res[np.logical_not(np.isfinite(res))] = 0.0
+    # prevent numerical errors in hankel for big r (set non-negative)
+    res = np.maximum(res, 0.0)
+    return res
+
+
 def set_len_anis(dim, len_scale, anis):
     """Set the length scale and anisotropy factors for the given dimension.
 

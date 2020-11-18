@@ -26,7 +26,7 @@ from gstools.tools.geometric import (
 from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
     InitSubclassMeta,
-    rad_fac,
+    spectral_rad_pdf,
     set_len_anis,
     check_bounds,
     check_arg_in_bounds,
@@ -569,21 +569,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def spectral_rad_pdf(self, r):
         """Radial spectral density of the model."""
-        r = np.array(np.abs(r), dtype=np.double)
-        if self.dim > 1:
-            r_gz = np.logical_not(np.isclose(r, 0))
-            # to prevent numerical errors, we just calculate where r>0
-            res = np.zeros_like(r, dtype=np.double)
-            res[r_gz] = rad_fac(self.dim, r[r_gz]) * np.abs(
-                self.spectral_density(r[r_gz])
-            )
-        else:
-            res = rad_fac(self.dim, r) * np.abs(self.spectral_density(r))
-        # prevent numerical errors in hankel for small r values (set 0)
-        res[np.logical_not(np.isfinite(res))] = 0.0
-        # prevent numerical errors in hankel for big r (set non-negative)
-        res = np.maximum(res, 0.0)
-        return res
+        return spectral_rad_pdf(self, r)
 
     def ln_spectral_rad_pdf(self, r):
         """Log radial spectral density of the model."""
