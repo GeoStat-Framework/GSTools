@@ -16,7 +16,8 @@ The following classes and functions are provided
 
 import warnings
 import numpy as np
-from gstools.covmodel.base import CovModel
+from gstools.covmodel import CovModel
+from gstools.covmodel.tools import AttributeWarning
 from gstools.tools.special import (
     tplstable_cor,
     tpl_gau_spec_dens,
@@ -458,7 +459,8 @@ class TPLStable(TPLCovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "TPLStable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results"
+                + "count with unstable results",
+                AttributeWarning,
             )
 
     def cor(self, h):

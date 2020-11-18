@@ -19,11 +19,12 @@ The following classes are provided
    SuperSpherical
    JBessel
 """
-# pylint: disable=C0103, E1101, E1137
+# pylint: disable=C0103, E1101, E1137, R0201
 
 import warnings
 import numpy as np
 from scipy import special as sps
+from gstools.covmodel.tools import AttributeWarning
 from gstools.covmodel import CovModel
 
 __all__ = [
@@ -83,6 +84,7 @@ class Gaussian(CovModel):
             ) - r * self.len_rescaled / np.sqrt(np.pi) * np.exp(
                 -((r * self.len_rescaled / 2.0) ** 2)
             )
+        return None  # pragma: no cover
 
     def spectral_rad_ppf(self, u):
         """Gaussian radial spectral ppf.
@@ -96,6 +98,7 @@ class Gaussian(CovModel):
             return 2.0 / self.len_rescaled * sps.erfinv(u)
         if self.dim == 2:
             return 2.0 / self.len_rescaled * np.sqrt(-np.log(1.0 - u))
+        return None  # pragma: no cover
 
     def _has_cdf(self):
         return self.dim in [1, 2, 3]
@@ -153,7 +156,7 @@ class Exponential(CovModel):
                 * 2.0
                 / np.pi
             )
-        return None
+        return None  # pragma: no cover
 
     def spectral_rad_ppf(self, u):
         """Exponential radial spectral ppf.
@@ -173,7 +176,7 @@ class Exponential(CovModel):
                 where=np.logical_not(np.isclose(u, 0)),
             )
             return np.sqrt(u_power - 1.0) / self.len_rescaled
-        return None
+        return None  # pragma: no cover
 
     def _has_cdf(self):
         return self.dim in [1, 2, 3]
@@ -242,7 +245,8 @@ class Stable(CovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "Stable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results"
+                + "count with unstable results",
+                AttributeWarning,
             )
 
     def cor(self, h):
@@ -735,7 +739,8 @@ class JBessel(CovModel):
         if abs(self.nu - self.dim / 2 + 1) < 0.01:
             warnings.warn(
                 "JBessel: parameter 'nu' is close to d/2-1, "
-                + "count with unstable results"
+                + "count with unstable results",
+                AttributeWarning,
             )
 
     def cor(self, h):

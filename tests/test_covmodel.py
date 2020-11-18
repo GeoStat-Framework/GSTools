@@ -189,9 +189,10 @@ class TestCovModel(unittest.TestCase):
                 self.assertAlmostEqual(model.cor(2), model.correlation(9))
                 # also check resetting of var when sill is given lower
                 model.fit_variogram(
-                    self.gamma_x, self.gamma_y, sill=2, nugget=False
+                    self.gamma_x, self.gamma_y, sill=1.1, nugget=False
                 )
-                self.assertAlmostEqual(model.var, 2.0, delta=1e-5)
+                print(model)
+                self.assertAlmostEqual(model.var, 1.1, delta=1e-5)
 
     def test_fitting(self):
         for Model in self.std_cov_models:
@@ -303,6 +304,23 @@ class TestCovModel(unittest.TestCase):
             model1.integral_scale, 2.1 * model2.integral_scale
         )
         self.assertAlmostEqual(model1.integral_scale, model3.integral_scale)
+
+    def test_special_models(self):
+        # matern converges to gaussian
+        model1 = Matern()
+        model1.set_arg_bounds(nu=[0, 101])
+        model1.nu = 100
+        model2 = Gaussian(rescale=0.5)
+        self.assertAlmostEqual(model1.variogram(1), model2.variogram(1))
+        self.assertAlmostEqual(model1.spectrum(1), model2.spectrum(1), 2)
+        # stable model gets unstable for alpha < 0.3
+        with self.assertWarns(AttributeWarning):
+            Stable(alpha=0.2)
+        with self.assertWarns(AttributeWarning):
+            TPLStable(alpha=0.2)
+        # corner case for JBessel model
+        with self.assertWarns(AttributeWarning):
+            JBessel(dim=3, nu=0.5)
 
 
 if __name__ == "__main__":
