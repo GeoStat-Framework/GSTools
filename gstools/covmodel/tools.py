@@ -8,13 +8,17 @@ The following classes and functions are provided
 
 .. autosummary::
    InitSubclassMeta
+   AttributeWarning
    rad_fac
+   set_opt_args
    set_len_anis
    check_bounds
    check_arg_in_bounds
    default_arg_from_bounds
    spectral_rad_pdf
    percentile_scale
+   set_arg_bounds
+   check_arg_bounds
 """
 
 # pylint: disable=C0103
@@ -26,13 +30,17 @@ from gstools.tools.geometric import set_anis
 
 __all__ = [
     "InitSubclassMeta",
+    "AttributeWarning",
     "rad_fac",
+    "set_opt_args",
     "set_len_anis",
     "check_bounds",
     "check_arg_in_bounds",
     "default_arg_from_bounds",
     "spectral_rad_pdf",
     "percentile_scale",
+    "set_arg_bounds",
+    "check_arg_bounds",
 ]
 
 
@@ -108,7 +116,7 @@ def rad_fac(dim, r):
 
 def set_opt_args(model, opt_arg):
     """
-    Setting optional arguments in the model class.
+    Set optional arguments in the model class.
 
     Parameters
     ----------
@@ -358,3 +366,100 @@ def percentile_scale(model, per=0.9):
 
     # take 'per * len_rescaled' as initial guess
     return root(curve, per * model.len_rescaled)["x"][0]
+
+
+def set_arg_bounds(model, check_args=True, **kwargs):
+    r"""Set bounds for the parameters of the model.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    check_args : bool, optional
+        Whether to check if the arguments are in their valid bounds.
+        In case not, a propper default value will be determined.
+        Default: True
+    **kwargs
+        Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
+        and a list of 2 or 3 values as value:
+
+            * ``[a, b]`` or
+            * ``[a, b, <type>]``
+
+        <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
+        to define if the bounds are open ("o") or closed ("c").
+    """
+    # if variance needs to be resetted, do this at last
+    var_bnds = []
+    for arg in kwargs:
+        if not check_bounds(kwargs[arg]):
+            raise ValueError(
+                "Given bounds for '{0}' are not valid, got: {1}".format(
+                    arg, kwargs[arg]
+                )
+            )
+        if arg in model.opt_arg:
+            model._opt_arg_bounds[arg] = kwargs[arg]
+        elif arg == "var":
+            var_bnds = kwargs[arg]
+            continue
+        elif arg == "len_scale":
+            model.len_scale_bounds = kwargs[arg]
+        elif arg == "nugget":
+            model.nugget_bounds = kwargs[arg]
+        elif arg == "anis":
+            model.anis_bounds = kwargs[arg]
+        else:
+            raise ValueError(
+                "set_arg_bounds: unknown argument '{}'".format(arg)
+            )
+        if check_args and check_arg_in_bounds(model, arg) > 0:
+            def_arg = default_arg_from_bounds(kwargs[arg])
+            if arg == "anis":
+                setattr(model, arg, [def_arg] * (model.dim - 1))
+            else:
+                setattr(model, arg, def_arg)
+    # set var last like allways
+    if var_bnds:
+        model.var_bounds = var_bnds
+        if check_args and check_arg_in_bounds(model, "var") > 0:
+            model.var = default_arg_from_bounds(var_bnds)
+
+
+def check_arg_bounds(model):
+    """
+    Check arguments to be within their given bounds.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+
+    Raises
+    ------
+    ValueError
+        When an argument is not in its valid bounds.
+    """
+    # check var, len_scale, nugget and optional-arguments
+    for arg in model.arg_bounds:
+        if not model.arg_bounds[arg]:
+            continue  # no bounds given during init (called from self.dim)
+        bnd = list(model.arg_bounds[arg])
+        val = getattr(model, arg)
+        error_case = check_arg_in_bounds(model, arg)
+        if error_case == 1:
+            raise ValueError(
+                "{0} needs to be >= {1}, got: {2}".format(arg, bnd[0], val)
+            )
+        if error_case == 2:
+            raise ValueError(
+                "{0} needs to be > {1}, got: {2}".format(arg, bnd[0], val)
+            )
+        if error_case == 3:
+            raise ValueError(
+                "{0} needs to be <= {1}, got: {2}".format(arg, bnd[1], val)
+            )
+        if error_case == 4:
+            raise ValueError(
+                "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
+            )

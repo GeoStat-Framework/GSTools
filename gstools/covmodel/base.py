@@ -33,6 +33,8 @@ from gstools.covmodel.tools import (
     default_arg_from_bounds,
     spectral_rad_pdf,
     percentile_scale,
+    set_arg_bounds,
+    check_arg_bounds,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -753,67 +755,11 @@ class CovModel(metaclass=InitSubclassMeta):
             <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
             to define if the bounds are open ("o") or closed ("c").
         """
-        # if variance needs to be resetted, do this at last
-        var_bnds = []
-        for arg in kwargs:
-            if not check_bounds(kwargs[arg]):
-                raise ValueError(
-                    "Given bounds for '{0}' are not valid, got: {1}".format(
-                        arg, kwargs[arg]
-                    )
-                )
-            if arg in self.opt_arg:
-                self._opt_arg_bounds[arg] = kwargs[arg]
-            elif arg == "var":
-                var_bnds = kwargs[arg]
-                continue
-            elif arg == "len_scale":
-                self.len_scale_bounds = kwargs[arg]
-            elif arg == "nugget":
-                self.nugget_bounds = kwargs[arg]
-            elif arg == "anis":
-                self.anis_bounds = kwargs[arg]
-            else:
-                raise ValueError(
-                    "set_arg_bounds: unknown argument '{}'".format(arg)
-                )
-            if check_args and check_arg_in_bounds(self, arg) > 0:
-                def_arg = default_arg_from_bounds(kwargs[arg])
-                if arg == "anis":
-                    setattr(self, arg, [def_arg] * (self.dim - 1))
-                else:
-                    setattr(self, arg, def_arg)
-        # set var last like allways
-        if var_bnds:
-            self.var_bounds = var_bnds
-            if check_args and check_arg_in_bounds(self, "var") > 0:
-                self.var = default_arg_from_bounds(var_bnds)
+        return set_arg_bounds(self, check_args, **kwargs)
 
     def check_arg_bounds(self):
-        """Check arguments to be within the given bounds."""
-        # check var, len_scale, nugget and optional-arguments
-        for arg in self.arg_bounds:
-            if not self.arg_bounds[arg]:
-                continue  # no bounds given during init (called from self.dim)
-            bnd = list(self.arg_bounds[arg])
-            val = getattr(self, arg)
-            error_case = check_arg_in_bounds(self, arg)
-            if error_case == 1:
-                raise ValueError(
-                    "{0} needs to be >= {1}, got: {2}".format(arg, bnd[0], val)
-                )
-            if error_case == 2:
-                raise ValueError(
-                    "{0} needs to be > {1}, got: {2}".format(arg, bnd[0], val)
-                )
-            if error_case == 3:
-                raise ValueError(
-                    "{0} needs to be <= {1}, got: {2}".format(arg, bnd[1], val)
-                )
-            if error_case == 4:
-                raise ValueError(
-                    "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
-                )
+        """Check arguments to be within their given bounds."""
+        return check_arg_bounds(self)
 
     # bounds properties
 
