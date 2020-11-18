@@ -500,9 +500,3 @@ def _set_dtype(x, y=None, z=None, dtype=np.double):
     if z is not None:
         z = z.astype(dtype, copy=False)
     return x, y, z
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

@@ -11,22 +11,28 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201
 
-import warnings
 import copy
 import numpy as np
 from scipy.integrate import quad as integral
-from scipy.optimize import root
 from hankel import SymmetricFourierTransform as SFT
-from gstools.field.tools import make_isotropic, unrotate_mesh
-from gstools.tools.geometric import pos2xyz
+from gstools.tools.geometric import (
+    set_angles,
+    matrix_anisometrize,
+    matrix_isometrize,
+    rotated_main_axes,
+)
+from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
     InitSubclassMeta,
-    rad_fac,
+    _init_subclass,
+    set_opt_args,
     set_len_anis,
-    set_angles,
     check_bounds,
-    check_arg_in_bounds,
-    default_arg_from_bounds,
+    spectral_rad_pdf,
+    percentile_scale,
+    set_arg_bounds,
+    check_arg_bounds,
+    set_dim,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -35,12 +41,6 @@ __all__ = ["CovModel"]
 
 # default arguments for hankel.SymmetricFourierTransform
 HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
-
-
-class AttributeWarning(UserWarning):
-    """Attribute warning for CovModel class."""
-
-    pass
 
 
 class CovModel(metaclass=InitSubclassMeta):
@@ -82,7 +82,13 @@ class CovModel(metaclass=InitSubclassMeta):
     integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
         If given, ``len_scale`` will be ignored and recalculated,
         so that the integral scale of the model matches the given one.
-        Default: ``None``
+        Default: :any:`None`
+    rescale : :class:`float` or :any:`None`, optional
+        Optional rescaling factor to divide the length scale with.
+        This could be used for unit convertion or rescaling the length scale
+        to coincide with e.g. the integral scale.
+        Will be set by each model individually.
+        Default: :any:`None`
     var_raw : :class:`float` or :any:`None`, optional
         raw variance of the model which will be multiplied with
         :any:`CovModel.var_factor` to result in the actual variance.
@@ -95,18 +101,9 @@ class CovModel(metaclass=InitSubclassMeta):
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
         Default: :any:`None`
-
-    Examples
-    --------
-    >>> from gstools import CovModel
-    >>> import numpy as np
-    >>> class Gau(CovModel):
-    ...     def cor(self, h):
-    ...         return np.exp(-h**2)
-    ...
-    >>> model = Gau()
-    >>> model.spectrum(2)
-    0.00825830126008459
+    **opt_arg
+        Optional arguments are covered by these keyword arguments.
+        If present, they are described in the section `Other Parameters`.
     """
 
     def __init__(
@@ -118,6 +115,7 @@ class CovModel(metaclass=InitSubclassMeta):
         anis=1.0,
         angles=0.0,
         integral_scale=None,
+        rescale=None,
         var_raw=None,
         hankel_kw=None,
         **opt_arg
@@ -140,41 +138,14 @@ class CovModel(metaclass=InitSubclassMeta):
         self._var_bounds = None
         self._len_scale_bounds = None
         self._nugget_bounds = None
+        self._anis_bounds = None
         self._opt_arg_bounds = {}
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
         self.dim = dim
 
         # optional arguments for the variogram-model
-        self._opt_arg = []
-        # look up the defaults for the optional arguments (defined by the user)
-        default = self.default_opt_arg()
-        for opt_name in opt_arg:
-            if opt_name not in default:
-                warnings.warn(
-                    "The given optional argument '{}' ".format(opt_name)
-                    + "is unknown or has at least no defined standard value. "
-                    + "Or you made a Typo... hehe.",
-                    AttributeWarning,
-                )
-        # add the default vaules if not specified
-        for def_arg in default:
-            if def_arg not in opt_arg:
-                opt_arg[def_arg] = default[def_arg]
-        # save names of the optional arguments (sort them by name)
-        self._opt_arg = list(opt_arg.keys())
-        self._opt_arg.sort()
-        # add the optional arguments as attributes to the class
-        for opt_name in opt_arg:
-            if opt_name in dir(self):  # "dir" also respects properties
-                raise ValueError(
-                    "parameter '"
-                    + opt_name
-                    + "' has a 'bad' name, since it is already present in "
-                    + "the class. It could not be added to the model"
-                )
-            # Magic happens here
-            setattr(self, opt_name, opt_arg[opt_name])
+        set_opt_args(self, opt_arg)
 
         # set standard boundaries for variance, len_scale, nugget and opt_arg
         bounds = self.default_arg_bounds()
@@ -182,6 +153,9 @@ class CovModel(metaclass=InitSubclassMeta):
         self.set_arg_bounds(check_args=False, **bounds)
 
         # set parameters
+        self._rescale = (
+            self.default_rescale() if rescale is None else abs(float(rescale))
+        )
         self._nugget = nugget
         self._angles = set_angles(self.dim, angles)
         self._len_scale, self._anis = set_len_anis(self.dim, len_scale, anis)
@@ -203,117 +177,24 @@ class CovModel(metaclass=InitSubclassMeta):
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
+        # precision for printing
+        self._prec = 3
 
     # one of these functions needs to be overridden
     def __init_subclass__(cls):
-        r"""Initialize gstools covariance model.
+        """Initialize gstools covariance model."""
+        _init_subclass(cls)
 
-        Warnings
-        --------
-        Don't instantiate ``CovModel`` directly. You need to inherit a
-        child class which overrides one of the following methods:
-
-            * ``model.variogram(r)``
-                :math:`\gamma\left(r\right)=
-                \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-            * ``model.covariance(r)``
-                :math:`C\left(r\right)=
-                \sigma^2\cdot\rho\left(r\right)`
-            * ``model.correlation(r)``
-                :math:`\rho\left(r\right)`
-
-        Best practice is to use the ``correlation`` function, or the ``cor``
-        function. The latter one takes the dimensionles distance h=r/l.
-        """
-
-        def variogram(self, r):
-            r"""Isotropic variogram of the model.
-
-            Given by: :math:`\gamma\left(r\right)=
-            \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-
-            Where :math:`\rho(r)` is the correlation function.
-            """
-            return self.var - self.covariance(r) + self.nugget
-
-        def covariance(self, r):
-            r"""Covariance of the model.
-
-            Given by: :math:`C\left(r\right)=
-            \sigma^2\cdot\rho\left(r\right)`
-
-            Where :math:`\rho(r)` is the correlation function.
-            """
-            return self.var * self.correlation(r)
-
-        def correlation(self, r):
-            r"""Correlation function (or normalized covariance) of the model.
-
-            Given by: :math:`\rho\left(r\right)`
-
-            It has to be a monotonic decreasing function with
-            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
-            """
-            return 1.0 - (self.variogram(r) - self.nugget) / self.var
-
-        def correlation_from_cor(self, r):
-            r"""Correlation function (or normalized covariance) of the model.
-
-            Given by: :math:`\rho\left(r\right)`
-
-            It has to be a monotonic decreasing function with
-            :math:`\rho(0)=1` and :math:`\rho(\infty)=0`.
-            """
-            r = np.array(np.abs(r), dtype=np.double)
-            return self.cor(r / self.len_scale)
-
-        def cor_from_correlation(self, h):
-            r"""Normalziled correlation function taking a normalized range.
-
-            Given by: :math:`\mathrm{cor}\left(r/\ell\right) = \rho(r)`
-            """
-            h = np.array(np.abs(h), dtype=np.double)
-            return self.correlation(h * self.len_scale)
-
-        abstract = True
-        if hasattr(cls, "cor"):
-            cls.correlation = correlation_from_cor
-            abstract = False
-        else:
-            cls.cor = cor_from_correlation
-        if not hasattr(cls, "variogram"):
-            cls.variogram = variogram
-        else:
-            abstract = False
-        if not hasattr(cls, "covariance"):
-            cls.covariance = covariance
-        else:
-            abstract = False
-        if not hasattr(cls, "correlation"):
-            cls.correlation = correlation
-        else:
-            abstract = False
-        if abstract:
-            raise TypeError(
-                "Can't instantiate class '"
-                + cls.__name__
-                + "', "
-                + "without overriding at least on of the methods "
-                + "'variogram', 'covariance' or 'correlation'."
-            )
-
-        # modify the docstrings
-
-        # class docstring gets attributes added
+        # modify the docstrings: class docstring gets attributes added
         if cls.__doc__ is None:
             cls.__doc__ = (
-                "User defined GSTools Covariance-Model "
-                + CovModel.__doc__[44:-296]
+                "User defined GSTools Covariance-Model."
+                + CovModel.__doc__[45:]
             )
         else:
-            cls.__doc__ += CovModel.__doc__[44:-296]
+            cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
-        ignore = ["__", "variogram", "covariance", "correlation"]
+        ignore = ["__", "variogram", "covariance", "cor"]
         for attr in cls.__dict__:
             if any(
                 [attr.startswith(ign) for ign in ignore]
@@ -326,13 +207,23 @@ class CovModel(metaclass=InitSubclassMeta):
 
     # special variogram functions
 
-    def _get_iso_rad(self, pos):
-        x, y, z = pos2xyz(pos, max_dim=self.dim)
-        if self.do_rotation:
-            x, y, z = unrotate_mesh(self.dim, self.angles, x, y, z)
-        if not self.is_isotropic:
-            y, z = make_isotropic(self.dim, self.anis, y, z)
-        return np.linalg.norm((x, y, z)[: self.dim], axis=0)
+    def vario_axis(self, r, axis=0):
+        r"""Variogram along axis of anisotropy."""
+        if axis == 0:
+            return self.variogram(r)
+        return self.variogram(np.abs(r) / self.anis[axis - 1])
+
+    def cov_axis(self, r, axis=0):
+        r"""Covariance along axis of anisotropy."""
+        if axis == 0:
+            return self.covariance(r)
+        return self.covariance(np.abs(r) / self.anis[axis - 1])
+
+    def cor_axis(self, r, axis=0):
+        r"""Correlation along axis of anisotropy."""
+        if axis == 0:
+            return self.correlation(r)
+        return self.correlation(np.abs(r) / self.anis[axis - 1])
 
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
@@ -346,34 +237,22 @@ class CovModel(metaclass=InitSubclassMeta):
         r"""Spatial correlation respecting anisotropy and rotation."""
         return self.correlation(self._get_iso_rad(pos))
 
-    def cov_nugget(self, r):
-        r"""Covariance of the model respecting the nugget at r=0.
-
-        Given by: :math:`C\left(r\right)=
-        \sigma^2\cdot\rho\left(r\right)`
-
-        Where :math:`\rho(r)` is the correlation function.
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        r_gz = np.logical_not(np.isclose(r, 0))
-        res = np.empty_like(r, dtype=np.double)
-        res[r_gz] = self.covariance(r[r_gz])
-        res[np.logical_not(r_gz)] = self.sill
-        return res
-
     def vario_nugget(self, r):
-        r"""Isotropic variogram of the model respecting the nugget at r=0.
-
-        Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-
-        Where :math:`\rho(r)` is the correlation function.
-        """
+        """Isotropic variogram of the model respecting the nugget at r=0."""
         r = np.array(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
         res = np.empty_like(r, dtype=np.double)
         res[r_gz] = self.variogram(r[r_gz])
         res[np.logical_not(r_gz)] = 0.0
+        return res
+
+    def cov_nugget(self, r):
+        """Isotropic covariance of the model respecting the nugget at r=0."""
+        r = np.array(np.abs(r), dtype=np.double)
+        r_gz = np.logical_not(np.isclose(r, 0))
+        res = np.empty_like(r, dtype=np.double)
+        res[r_gz] = self.covariance(r[r_gz])
+        res[np.logical_not(r_gz)] = self.sill
         return res
 
     def plot(self, func="variogram", **kwargs):  # pragma: no cover
@@ -391,6 +270,9 @@ class CovModel(metaclass=InitSubclassMeta):
                 * "vario_spatial"
                 * "cov_spatial"
                 * "cor_spatial"
+                * "vario_axis"
+                * "cov_axis"
+                * "cor_axis"
                 * "spectrum"
                 * "spectral_density"
                 * "spectral_rad_pdf"
@@ -409,63 +291,57 @@ class CovModel(metaclass=InitSubclassMeta):
     # pykrige functions
 
     def pykrige_vario(self, args=None, r=0):
-        r"""Isotropic variogram of the model for pykrige.
-
-        Given by: :math:`\gamma\left(r\right)=
-        \sigma^2\cdot\left(1-\rho\left(r\right)\right)+n`
-
-        Where :math:`\rho(r)` is the correlation function.
-        """
-        return self.variogram(r)
+        """Isotropic variogram of the model for pykrige."""
+        return self.variogram(r)  # pragma: no cover
 
     @property
     def pykrige_anis(self):
         """2D anisotropy ratio for pykrige."""
         if self.dim == 2:
             return 1 / self.anis[0]
-        return 1.0
+        return 1.0  # pragma: no cover
 
     @property
     def pykrige_anis_y(self):
         """3D anisotropy ratio in y direction for pykrige."""
         if self.dim >= 2:
             return 1 / self.anis[0]
-        return 1.0
+        return 1.0  # pragma: no cover
 
     @property
     def pykrige_anis_z(self):
         """3D anisotropy ratio in z direction for pykrige."""
         if self.dim == 3:
             return 1 / self.anis[1]
-        return 1.0
+        return 1.0  # pragma: no cover
 
     @property
     def pykrige_angle(self):
         """2D rotation angle for pykrige."""
         if self.dim == 2:
             return self.angles[0] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_angle_z(self):
         """3D rotation angle around z for pykrige."""
         if self.dim >= 2:
             return self.angles[0] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_angle_y(self):
         """3D rotation angle around y for pykrige."""
         if self.dim == 3:
             return self.angles[1] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_angle_x(self):
         """3D rotation angle around x for pykrige."""
         if self.dim == 3:
             return self.angles[2] / np.pi * 180
-        return 0.0
+        return 0.0  # pragma: no cover
 
     @property
     def pykrige_kwargs(self):
@@ -493,17 +369,14 @@ class CovModel(metaclass=InitSubclassMeta):
         kwargs.update(add_kwargs)
         return kwargs
 
-    # methods for optional arguments (can be overridden)
+    # methods for optional/default arguments (can be overridden)
 
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
 
-        Should be given as a dictionary.
+        Should be given as a dictionary when overridden.
         """
-        res = {}
-        for opt in self.opt_arg:
-            res[opt] = 0.0
-        return res
+        return {}
 
     def default_opt_arg_bounds(self):
         """Provide default boundaries for optional arguments."""
@@ -523,7 +396,10 @@ class CovModel(metaclass=InitSubclassMeta):
         * Any return value will be ignored
         * This method will only be run once, when the class is initialized
         """
-        pass
+
+    def check_dim(self, dim):
+        """Check the given dimension."""
+        return True
 
     def fix_dim(self):
         """Set a fix dimension for the model."""
@@ -531,6 +407,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def var_factor(self):
         """Factor for the variance."""
+        return 1.0
+
+    def default_rescale(self):
+        """Provide default rescaling factor."""
         return 1.0
 
     # calculation of different scales
@@ -546,18 +426,7 @@ class CovModel(metaclass=InitSubclassMeta):
         This is the distance, where the given percentile of the variance
         is reached by the variogram
         """
-        # check the given percentile
-        if not 0.0 < per < 1.0:
-            raise ValueError(
-                "percentile needs to be within (0, 1), got: " + str(per)
-            )
-
-        # define a curve, that has its root at the wanted point
-        def curve(x):
-            return 1.0 - self.correlation(x) - per
-
-        # take 'per * len_scale' as initial guess
-        return root(curve, per * self.len_scale)["x"][0]
+        return percentile_scale(self, per)
 
     # spectrum methods (can be overridden for speedup)
 
@@ -567,8 +436,8 @@ class CovModel(metaclass=InitSubclassMeta):
 
         This is given by:
 
-        .. math:: S(k) = \left(\frac{1}{2\pi}\right)^n
-           \int C(r) e^{i b\mathbf{k}\cdot\mathbf{r}} d^n\mathbf{r}
+        .. math:: S(\mathbf{k}) = \left(\frac{1}{2\pi}\right)^n
+           \int C(r) e^{i \mathbf{k}\cdot\mathbf{r}} d^n\mathbf{r}
 
         Internally, this is calculated by the hankel transformation:
 
@@ -605,21 +474,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def spectral_rad_pdf(self, r):
         """Radial spectral density of the model."""
-        r = np.array(np.abs(r), dtype=np.double)
-        if self.dim > 1:
-            r_gz = np.logical_not(np.isclose(r, 0))
-            # to prevent numerical errors, we just calculate where r>0
-            res = np.zeros_like(r, dtype=np.double)
-            res[r_gz] = rad_fac(self.dim, r[r_gz]) * np.abs(
-                self.spectral_density(r[r_gz])
-            )
-        else:
-            res = rad_fac(self.dim, r) * np.abs(self.spectral_density(r))
-        # prevent numerical errors in hankel for small r values (set 0)
-        res[np.logical_not(np.isfinite(res))] = 0.0
-        # prevent numerical errors in hankel for big r (set non-negative)
-        res = np.maximum(res, 0.0)
-        return res
+        return spectral_rad_pdf(self, r)
 
     def ln_spectral_rad_pdf(self, r):
         """Log radial spectral density of the model."""
@@ -634,12 +489,35 @@ class CovModel(metaclass=InitSubclassMeta):
         """State if a ppf is defined with 'spectral_rad_ppf'."""
         return hasattr(self, "spectral_rad_ppf")
 
+    # spatial routines
+
+    def isometrize(self, pos):
+        """Make a position tuple ready for isotropic operations."""
+        pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
+
+    def anisometrize(self, pos):
+        """Bring a position tuple into the anisotropic coordinate-system."""
+        pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        return np.dot(
+            matrix_anisometrize(self.dim, self.angles, self.anis), pos
+        )
+
+    def main_axes(self):
+        """Axes of the rotated coordinate-system."""
+        return rotated_main_axes(self.dim, self.angles)
+
+    def _get_iso_rad(self, pos):
+        """Isometrized radians."""
+        return np.linalg.norm(self.isometrize(pos), axis=0)
+
     # fitting routine
 
     def fit_variogram(
         self,
         x_data,
         y_data,
+        anis=True,
         sill=None,
         init_guess="default",
         weights=None,
@@ -651,14 +529,25 @@ class CovModel(metaclass=InitSubclassMeta):
         **para_select
     ):
         """
-        Fiting the isotropic variogram-model to given data.
+        Fiting the variogram-model to an empirical variogram.
 
         Parameters
         ----------
         x_data : :class:`numpy.ndarray`
-            The radii of the meassured variogram.
+            The bin-centers of the empirical variogram.
         y_data : :class:`numpy.ndarray`
             The messured variogram
+            If multiple are given, they are interpreted as the directional
+            variograms along the main axis of the associated rotated
+            coordinate system.
+            Anisotropy ratios will be estimated in that case.
+        anis : :class:`bool`, optional
+            In case of a directional variogram, you can control anisotropy
+            by this argument. Deselect the parameter from fitting, by setting
+            it "False".
+            You could also pass a fixed value to be set in the model.
+            Then the anisotropy ratios wont be altered during fitting.
+            Default: True
         sill : :class:`float` or :class:`bool`, optional
             Here you can provide a fixed sill for the variogram.
             It needs to be in a fitting range for the var and nugget bounds.
@@ -676,12 +565,11 @@ class CovModel(metaclass=InitSubclassMeta):
             and set to the current sill of the model.
             Then, the procedure above is applied.
             Default: None
-        init_guess : :class:`str` or :class:`dict`, optional
+        init_guess : :class:`str`, optional
             Initial guess for the estimation. Either:
 
                 * "default": using the default values of the covariance model
                 * "current": using the current values of the covariance model
-                * dict(name: val): specified value for each parameter by name
 
             Default: "default"
         weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`, optional
@@ -764,6 +652,7 @@ class CovModel(metaclass=InitSubclassMeta):
             model=self,
             x_data=x_data,
             y_data=y_data,
+            anis=anis,
             sill=sill,
             init_guess=init_guess,
             weights=weights,
@@ -786,6 +675,7 @@ class CovModel(metaclass=InitSubclassMeta):
             "var": (0.0, np.inf, "oo"),
             "len_scale": (0.0, np.inf, "oo"),
             "nugget": (0.0, np.inf, "co"),
+            "anis": (0.0, np.inf, "oo"),
         }
         return res
 
@@ -795,9 +685,8 @@ class CovModel(metaclass=InitSubclassMeta):
         Parameters
         ----------
         check_args : bool, optional
-            Whether to check if the arguments need to resetted to be in the
-            given bounds. In case, a propper default value will be determined
-            from the given bounds.
+            Whether to check if the arguments are in their valid bounds.
+            In case not, a propper default value will be determined.
             Default: True
         **kwargs
             Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
@@ -809,59 +698,11 @@ class CovModel(metaclass=InitSubclassMeta):
             <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
             to define if the bounds are open ("o") or closed ("c").
         """
-        # if variance needs to be resetted, do this at last
-        var_bnds = []
-        for arg in kwargs:
-            if not check_bounds(kwargs[arg]):
-                raise ValueError(
-                    "Given bounds for '{0}' are not valid, got: {1}".format(
-                        arg, kwargs[arg]
-                    )
-                )
-            if arg in self.opt_arg:
-                self._opt_arg_bounds[arg] = kwargs[arg]
-            elif arg == "var":
-                var_bnds = kwargs[arg]
-                continue
-            elif arg == "len_scale":
-                self.len_scale_bounds = kwargs[arg]
-            elif arg == "nugget":
-                self.nugget_bounds = kwargs[arg]
-            else:
-                raise ValueError(
-                    "set_arg_bounds: unknown argument '{}'".format(arg)
-                )
-            if check_args and check_arg_in_bounds(self, arg) > 0:
-                setattr(self, arg, default_arg_from_bounds(kwargs[arg]))
-        # set var last like allways
-        if var_bnds:
-            self.var_bounds = var_bnds
-            if check_args and check_arg_in_bounds(self, "var") > 0:
-                self.var = default_arg_from_bounds(var_bnds)
+        return set_arg_bounds(self, check_args, **kwargs)
 
     def check_arg_bounds(self):
-        """Check arguments to be within the given bounds."""
-        # check var, len_scale, nugget and optional-arguments
-        for arg in self.arg_bounds:
-            bnd = list(self.arg_bounds[arg])
-            val = getattr(self, arg)
-            error_case = check_arg_in_bounds(self, arg)
-            if error_case == 1:
-                raise ValueError(
-                    "{0} needs to be >= {1}, got: {2}".format(arg, bnd[0], val)
-                )
-            if error_case == 2:
-                raise ValueError(
-                    "{0} needs to be > {1}, got: {2}".format(arg, bnd[0], val)
-                )
-            if error_case == 3:
-                raise ValueError(
-                    "{0} needs to be <= {1}, got: {2}".format(arg, bnd[1], val)
-                )
-            if error_case == 4:
-                raise ValueError(
-                    "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
-                )
+        """Check arguments to be within their given bounds."""
+        return check_arg_bounds(self)
 
     # bounds properties
 
@@ -944,6 +785,32 @@ class CovModel(metaclass=InitSubclassMeta):
         self._nugget_bounds = bounds
 
     @property
+    def anis_bounds(self):
+        """:class:`list`: Bounds for the nugget.
+
+        Notes
+        -----
+        Is a list of 2 or 3 values:
+
+            * ``[a, b]`` or
+            * ``[a, b, <type>]``
+
+        <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
+        to define if the bounds are open ("o") or closed ("c").
+        """
+        return self._anis_bounds
+
+    @anis_bounds.setter
+    def anis_bounds(self, bounds):
+        if not check_bounds(bounds):
+            raise ValueError(
+                "Given bounds for 'anis' are not "
+                + "valid, got: "
+                + str(bounds)
+            )
+        self._anis_bounds = bounds
+
+    @property
     def opt_arg_bounds(self):
         """:class:`dict`: Bounds for the optional arguments.
 
@@ -977,6 +844,7 @@ class CovModel(metaclass=InitSubclassMeta):
             "var": self.var_bounds,
             "len_scale": self.len_scale_bounds,
             "nugget": self.nugget_bounds,
+            "anis": self.anis_bounds,
         }
         res.update(self.opt_arg_bounds)
         return res
@@ -990,24 +858,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @dim.setter
     def dim(self, dim):
-        # check if a fixed dimension should be used
-        if self.fix_dim() is not None:
-            print(self.name + ": using fixed dimension " + str(self.fix_dim()))
-            dim = self.fix_dim()
-        # set the dimension
-        # TODO: add a routine to check if dimension is valid
-        if dim < 1 or dim > 3:
-            raise ValueError("Only dimensions of 1 <= d <= 3 are supported.")
-        self._dim = int(dim)
-        # create fourier transform just once (recreate for dim change)
-        self._sft = SFT(ndim=self.dim, **self.hankel_kw)
-        # recalculate dimension related parameters
-        if self._anis is not None:
-            self._len_scale, self._anis = set_len_anis(
-                self.dim, self._len_scale, self._anis
-            )
-        if self._angles is not None:
-            self._angles = set_angles(self.dim, self._angles)
+        set_dim(self, dim)
 
     @property
     def var(self):
@@ -1053,6 +904,16 @@ class CovModel(metaclass=InitSubclassMeta):
             self.dim, len_scale, self.anis
         )
         self.check_arg_bounds()
+
+    @property
+    def rescale(self):
+        """:class:`float`: Rescale factor for the length scale of the model."""
+        return self._rescale
+
+    @property
+    def len_rescaled(self):
+        """:class:`float`: The rescaled main length scale of the model."""
+        return self._len_scale / self._rescale
 
     @property
     def anis(self):
@@ -1161,6 +1022,27 @@ class CovModel(metaclass=InitSubclassMeta):
         return ["var", "len_scale", "nugget", "anis", "angles"] + self._opt_arg
 
     @property
+    def arg_list(self):
+        """:class:`list` of :class:`float`: Values of all arguments."""
+        alist = [self.var, self.len_scale, self.nugget, self.anis, self.angles]
+        for opt in self.opt_arg:
+            alist.append(getattr(self, opt))
+        return alist
+
+    @property
+    def iso_arg(self):
+        """:class:`list` of :class:`str`: Names of isotropic arguments."""
+        return ["var", "len_scale", "nugget"] + self._opt_arg
+
+    @property
+    def iso_arg_list(self):
+        """:class:`list` of :class:`float`: Values of isotropic arguments."""
+        alist = [self.var, self.len_scale, self.nugget]
+        for opt in self.opt_arg:
+            alist.append(getattr(self, opt))
+        return alist
+
+    @property
     def opt_arg(self):
         """:class:`list` of :class:`str`: Names of the optional arguments."""
         return self._opt_arg
@@ -1248,24 +1130,21 @@ class CovModel(metaclass=InitSubclassMeta):
         """Return String representation."""
         opt_str = ""
         for opt in self.opt_arg:
-            opt_str += ", " + opt + "={}".format(getattr(self, opt))
+            opt_str += (
+                ", " + opt + "={0:.{1}}".format(getattr(self, opt), self._prec)
+            )
         return (
-            "{0}(dim={1}, var={2}, len_scale={3}, "
-            "nugget={4}, anis={5}, angles={6}".format(
+            "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
+            "nugget={4:.{p}}, anis={5}, angles={6}".format(
                 self.name,
                 self.dim,
                 self.var,
                 self.len_scale,
                 self.nugget,
-                self.anis,
-                self.angles,
+                list_format(self.anis, 3),
+                list_format(self.angles, 3),
+                p=self._prec,
             )
             + opt_str
             + ")"
         )
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

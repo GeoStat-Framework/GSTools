@@ -34,7 +34,9 @@ Standard Covariance Models
    Linear
    Circular
    Spherical
-   Intersection
+   HyperSpherical
+   SuperSpherical
+   JBessel
 
 Truncated Power Law Covariance Models
 
@@ -44,6 +46,7 @@ Truncated Power Law Covariance Models
    TPLGaussian
    TPLExponential
    TPLStable
+   TPLSimple
 """
 
 from gstools.covmodel.base import CovModel
@@ -56,9 +59,16 @@ from gstools.covmodel.models import (
     Linear,
     Circular,
     Spherical,
-    Intersection,
+    HyperSpherical,
+    SuperSpherical,
+    JBessel,
 )
-from gstools.covmodel.tpl_models import TPLGaussian, TPLExponential, TPLStable
+from gstools.covmodel.tpl_models import (
+    TPLGaussian,
+    TPLExponential,
+    TPLStable,
+    TPLSimple,
+)
 
 __all__ = [
     "CovModel",
@@ -70,8 +80,11 @@ __all__ = [
     "Linear",
     "Circular",
     "Spherical",
-    "Intersection",
+    "HyperSpherical",
+    "SuperSpherical",
+    "JBessel",
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",
+    "TPLSimple",
 ]

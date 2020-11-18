@@ -393,10 +393,6 @@ class Field:
 
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0}, mean={1})".format(self.model, self.mean)
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
+        return "Field(model={0}, mean={1:.{p}})".format(
+            self.model, self.mean, p=self.model._prec
+        )

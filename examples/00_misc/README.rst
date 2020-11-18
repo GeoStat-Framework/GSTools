@@ -3,5 +3,9 @@ Miscellaneous
 
 A few miscellaneous examples
 
-Gallery
--------
+.. only:: html
+
+   Gallery
+   -------
+
+   Below is a gallery of examples

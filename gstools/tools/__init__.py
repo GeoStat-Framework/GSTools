@@ -31,12 +31,21 @@ Geometric
 ^^^^^^^^^
 
 .. autosummary::
-   xyz2pos
+   rotated_main_axes
+   set_angles
+   set_anis
+   no_of_angles
+   rotation_planes
+   givens_rotation
+   matrix_rotate
+   matrix_derotate
+   matrix_isotropify
+   matrix_anisotropify
+   matrix_isometrize
+   matrix_anisometrize
    pos2xyz
+   xyz2pos
    ang2dir
-   r3d_x
-   r3d_y
-   r3d_z
 
 ----
 """
@@ -61,11 +70,20 @@ from gstools.tools.special import (
 )
 
 from gstools.tools.geometric import (
-    r3d_x,
-    r3d_y,
-    r3d_z,
-    xyz2pos,
+    set_angles,
+    set_anis,
+    no_of_angles,
+    rotation_planes,
+    givens_rotation,
+    matrix_rotate,
+    matrix_derotate,
+    matrix_isotropify,
+    matrix_anisotropify,
+    matrix_isometrize,
+    matrix_anisometrize,
+    rotated_main_axes,
     pos2xyz,
+    xyz2pos,
     ang2dir,
 )
 
@@ -83,10 +101,19 @@ __all__ = [
     "tplstable_cor",
     "tpl_exp_spec_dens",
     "tpl_gau_spec_dens",
-    "xyz2pos",
+    "set_angles",
+    "set_anis",
+    "no_of_angles",
+    "rotation_planes",
+    "givens_rotation",
+    "matrix_rotate",
+    "matrix_derotate",
+    "matrix_isotropify",
+    "matrix_anisotropify",
+    "matrix_isometrize",
+    "matrix_anisometrize",
+    "rotated_main_axes",
     "pos2xyz",
+    "xyz2pos",
     "ang2dir",
-    "r3d_x",
-    "r3d_y",
-    "r3d_z",
 ]
