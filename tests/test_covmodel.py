@@ -221,8 +221,6 @@ class TestCovModel(unittest.TestCase):
                     self.gamma_x, self.gamma_y, sill=2, nugget=False
                 )
                 self.assertAlmostEqual(model.var, 2.0)
-                model.fit_variogram(self.gamma_x, self.gamma_y, var=1)
-                self.assertAlmostEqual(model.var, 1)
                 model = Model(dim=dim)
                 model.fit_variogram(
                     self.gamma_x, self.gamma_y, sill=2, nugget=1
@@ -255,6 +253,12 @@ class TestCovModel(unittest.TestCase):
         )
         self.assertAlmostEqual(model.var, 2)
         self.assertAlmostEqual(model.nugget, 0)
+        model.fit_variogram(self.gamma_x, self.gamma_y, weights="inv")
+        len_save = model.len_scale
+        model.fit_variogram(
+            self.gamma_x, self.gamma_y, weights=lambda x: 1 / (1 + x)
+        )
+        self.assertAlmostEqual(model.len_scale, len_save)
         # check ValueErrors
         with self.assertRaises(ValueError):
             model.fit_variogram(self.gamma_x, self.gamma_y, sill=2, var=3)
