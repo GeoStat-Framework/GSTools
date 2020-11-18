@@ -47,6 +47,10 @@ __all__ = [
 ]
 
 
+class AttributeWarning(UserWarning):
+    """Attribute warning for CovModel class."""
+
+
 # __init_subclass__ hack for Python 3.5
 
 if hasattr(object, "__init_subclass__"):
@@ -82,8 +86,58 @@ else:
                 super_class.__init_subclass__.__func__(cls, **kwargs)
 
 
-class AttributeWarning(UserWarning):
-    """Attribute warning for CovModel class."""
+def _init_subclass(cls):
+    """Initialize gstools covariance model."""
+
+    def variogram(self, r):
+        """Isotropic variogram of the model."""
+        return self.var - self.covariance(r) + self.nugget
+
+    def covariance(self, r):
+        """Covariance of the model."""
+        return self.var * self.correlation(r)
+
+    def correlation(self, r):
+        """Correlation function of the model."""
+        return 1.0 - (self.variogram(r) - self.nugget) / self.var
+
+    def correlation_from_cor(self, r):
+        """Correlation function of the model."""
+        r = np.array(np.abs(r), dtype=np.double)
+        return self.cor(r / self.len_rescaled)
+
+    def cor_from_correlation(self, h):
+        """Correlation taking a non-dimensional range."""
+        h = np.array(np.abs(h), dtype=np.double)
+        return self.correlation(h * self.len_rescaled)
+
+    abstract = True
+    if hasattr(cls, "cor"):
+        if not hasattr(cls, "correlation"):
+            cls.correlation = correlation_from_cor
+        abstract = False
+    else:
+        cls.cor = cor_from_correlation
+    if not hasattr(cls, "variogram"):
+        cls.variogram = variogram
+    else:
+        abstract = False
+    if not hasattr(cls, "covariance"):
+        cls.covariance = covariance
+    else:
+        abstract = False
+    if not hasattr(cls, "correlation"):
+        cls.correlation = correlation
+    else:
+        abstract = False
+    if abstract:
+        raise TypeError(
+            "Can't instantiate class '"
+            + cls.__name__
+            + "', "
+            + "without providing at least one of the methods "
+            + "'cor', 'variogram', 'covariance' or 'correlation'."
+        )
 
 
 # Helping functions ###########################################################

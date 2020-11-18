@@ -24,6 +24,7 @@ from gstools.tools.geometric import (
 from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
     InitSubclassMeta,
+    _init_subclass,
     set_opt_args,
     set_len_anis,
     check_bounds,
@@ -182,60 +183,9 @@ class CovModel(metaclass=InitSubclassMeta):
     # one of these functions needs to be overridden
     def __init_subclass__(cls):
         """Initialize gstools covariance model."""
+        _init_subclass(cls)
 
-        def variogram(self, r):
-            """Isotropic variogram of the model."""
-            return self.var - self.covariance(r) + self.nugget
-
-        def covariance(self, r):
-            """Covariance of the model."""
-            return self.var * self.correlation(r)
-
-        def correlation(self, r):
-            """Correlation function of the model."""
-            return 1.0 - (self.variogram(r) - self.nugget) / self.var
-
-        def correlation_from_cor(self, r):
-            """Correlation function of the model."""
-            r = np.array(np.abs(r), dtype=np.double)
-            return self.cor(r / self.len_rescaled)
-
-        def cor_from_correlation(self, h):
-            """Correlation taking a non-dimensional range."""
-            h = np.array(np.abs(h), dtype=np.double)
-            return self.correlation(h * self.len_rescaled)
-
-        abstract = True
-        if hasattr(cls, "cor"):
-            if not hasattr(cls, "correlation"):
-                cls.correlation = correlation_from_cor
-            abstract = False
-        else:
-            cls.cor = cor_from_correlation
-        if not hasattr(cls, "variogram"):
-            cls.variogram = variogram
-        else:
-            abstract = False
-        if not hasattr(cls, "covariance"):
-            cls.covariance = covariance
-        else:
-            abstract = False
-        if not hasattr(cls, "correlation"):
-            cls.correlation = correlation
-        else:
-            abstract = False
-        if abstract:
-            raise TypeError(
-                "Can't instantiate class '"
-                + cls.__name__
-                + "', "
-                + "without providing at least one of the methods "
-                + "'cor', 'variogram', 'covariance' or 'correlation'."
-            )
-
-        # modify the docstrings
-
-        # class docstring gets attributes added
+        # modify the docstrings: class docstring gets attributes added
         if cls.__doc__ is None:
             cls.__doc__ = (
                 "User defined GSTools Covariance-Model."
