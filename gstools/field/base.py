@@ -67,8 +67,8 @@ class Field:
         return call(*args, **kwargs)
 
     def mesh(
-        self, mesh, points="centroids", direction="xyz", name="field", **kwargs
-    ):  # pragma: no cover
+        self, mesh, points="centroids", direction="all", name="field", **kwargs
+    ):
         """Generate a field on a given meshio or ogs5py mesh.
 
         Parameters
@@ -81,11 +81,12 @@ class Field:
             (calculated as mean of the cell vertices) or the "points"
             of the given mesh.
             Default: "centroids"
-        direction : :class:`str`, optional
+        direction : :class:`str` or :class:`list`, optional
             Here you can state which direction should be choosen for
             lower dimension. For example, if you got a 2D mesh in xz direction,
-            you have to pass "xz"
-            Default: "xyz"
+            you have to pass "xz". By default, all directions are used.
+            One can also pass a list of indices.
+            Default: "all"
         name : :class:`str`, optional
             Name to store the field in the given mesh as point_data or
             cell_data. Default: "field"
@@ -101,7 +102,12 @@ class Field:
 
         See: :any:`Field.__call__`
         """
-        select = _get_select(direction)[: self.model.dim]
+        if isinstance(direction, str) and direction == "all":
+            select = list(range(self.model.dim))
+        elif isinstance(direction, str):
+            select = _get_select(direction)[: self.model.dim]
+        else:
+            select = direction[: self.model.dim]
         if len(select) < self.model.dim:
             raise ValueError(
                 "Field.mesh: need at least {} direction(s), got '{}'".format(
