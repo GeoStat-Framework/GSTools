@@ -24,7 +24,7 @@ The following classes and functions are provided
 import numpy as np
 
 import gstools
-from gstools.field.tools import reshape_axis_from_struct_to_unstruct
+
 
 __all__ = [
     "plot_variogram",
@@ -70,13 +70,11 @@ def plot_vario_spatial(
     field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.len_scale
-    field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
-    pos = [x_s] * model.dim
-    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
-    vario = model.vario_spatial([x, y, z][: model.dim]).reshape(shape)
-    field.pos = pos
-    field.field = vario
+    iso_pos, shape = field.pre_pos([x_s] * model.dim, "structured")
+    field.field = model.vario_spatial(model.anisometrize(iso_pos)).reshape(
+        shape
+    )
     return field.plot(fig=fig, ax=ax)
 
 
@@ -88,13 +86,9 @@ def plot_cov_spatial(
     field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.len_scale
-    field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
-    pos = [x_s] * model.dim
-    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
-    vario = model.cov_spatial([x, y, z][: model.dim]).reshape(shape)
-    field.pos = pos
-    field.field = vario
+    iso_pos, shape = field.pre_pos([x_s] * model.dim, "structured")
+    field.field = model.cov_spatial(model.anisometrize(iso_pos)).reshape(shape)
     return field.plot(fig=fig, ax=ax)
 
 
@@ -106,13 +100,9 @@ def plot_cor_spatial(
     field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.len_scale
-    field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
-    pos = [x_s] * model.dim
-    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
-    vario = model.cor_spatial([x, y, z][: model.dim]).reshape(shape)
-    field.pos = pos
-    field.field = vario
+    iso_pos, shape = field.pre_pos([x_s] * model.dim, "structured")
+    field.field = model.cor_spatial(model.anisometrize(iso_pos)).reshape(shape)
     return field.plot(fig=fig, ax=ax)
 
 
