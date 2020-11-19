@@ -304,13 +304,14 @@ class TestSRF(unittest.TestCase):
         self.assertRaises(
             ValueError, srf, [self.x_grid, self.y_grid, self.z_grid]
         )
-        self.assertRaises(
-            ValueError,
-            srf,
-            [self.x_tuple, self.y_tuple, self.z_tuple],
-            self.seed,
-            mesh_type="hyper_mesh",
-        )
+        # everything not "unstructured" is treated as "structured"
+        # self.assertRaises(
+        #     ValueError,
+        #     srf,
+        #     [self.x_tuple, self.y_tuple, self.z_tuple],
+        #     self.seed,
+        #     mesh_type="hyper_mesh",
+        # )
 
 
 if __name__ == "__main__":
