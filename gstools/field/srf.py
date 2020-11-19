@@ -132,20 +132,12 @@ class SRF(Field):
         field : :class:`numpy.ndarray`
             the SRF
         """
-        self.mesh_type = mesh_type
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
-        # internal conversation
-        x, y, z, self.pos, mt_gen, mt_changed, axis_lens = self._pre_pos(
-            pos, mesh_type
-        )
+        # get isometrized positions and the resulting field-shape
+        iso_pos, shape = self.pre_pos(pos, mesh_type)
         # generate the field
-        self.raw_field = self.generator.__call__(x, y, z, mt_gen)
-        # reshape field if we got an unstructured mesh
-        if mt_changed:
-            self.raw_field = reshape_field_from_unstruct_to_struct(
-                self.model.dim, self.raw_field, axis_lens
-            )
+        self.raw_field = np.reshape(self.generator(iso_pos), shape)
         # apply given conditions to the field
         if self.condition:
             (

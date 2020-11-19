@@ -17,14 +17,7 @@ import numpy as np
 
 from gstools.covmodel.base import CovModel
 from gstools.tools.export import to_vtk, vtk_export
-from gstools.field.tools import (
-    _get_select,
-    check_mesh,
-    make_isotropic,
-    unrotate_mesh,
-    reshape_axis_from_struct_to_unstruct,
-)
-from gstools.tools.geometric import pos2xyz, xyz2pos
+
 
 __all__ = ["Field"]
 
@@ -154,7 +147,7 @@ class Field:
                 mesh.point_data[name] = field
         return out
 
-    def _pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
+    def pre_pos(self, pos, mesh_type="unstructured"):
         """
         Preprocessing positions and mesh_type.
 
@@ -165,46 +158,39 @@ class Field:
             directions
         mesh_type : :class:`str`
             'structured' / 'unstructured'
-        make_unstruct: :class:`bool`
-            State if mesh_type should be made unstructured.
 
         Returns
         -------
-        x : :class:`numpy.ndarray`
-            first components of unrotated and isotropic position vectors
-        y : :class:`numpy.ndarray` or None
-            analog to x
-        z : :class:`numpy.ndarray` or None
-            analog to x
-        pos : :class:`tuple` of :class:`numpy.ndarray`
-            the normalized position tuple
-        mesh_type_gen : :class:`str`
-            'structured' / 'unstructured' for the generator
-        mesh_type_changed : :class:`bool`
-            State if the mesh_type was changed.
-        axis_lens : :class:`tuple` or :any:`None`
-            axis lengths of the structured mesh if mesh type was changed.
+        iso_pos : (d, n), :class:`numpy.ndarray`
+            the isometrize position tuple
+        shape : :class:`tuple`
+            Shape of the resulting field.
         """
-        x, y, z = pos2xyz(pos, dtype=np.double, max_dim=self.model.dim)
-        pos = xyz2pos(x, y, z)
-        mesh_type_gen = mesh_type
-        # format the positional arguments of the mesh
-        check_mesh(self.model.dim, x, y, z, mesh_type)
-        mesh_type_changed = False
-        axis_lens = None
-        if (
-            self.model.do_rotation or make_unstruct
-        ) and mesh_type == "structured":
-            mesh_type_changed = True
-            mesh_type_gen = "unstructured"
-            x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                self.model.dim, x, y, z
-            )
-        if self.model.do_rotation:
-            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
-        if not self.model.is_isotropic:
-            y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
+        # save mesh-type
+        self.mesh_type = mesh_type
+        # save pos tuple
+        if mesh_type != "unstructured":
+            if self.model.dim == 1:
+                self.pos = (np.array(pos, dtype=np.double).reshape(-1),)
+            else:
+                if len(pos) != self.model.dim:
+                    raise ValueError(
+                        "Field: position tuple doesn't match dimension."
+                    )
+                self.pos = tuple(
+                    [
+                        np.array(pos_i, dtype=np.double).reshape(-1)
+                        for pos_i in pos
+                    ]
+                )
+            pos = np.meshgrid(*self.pos, indexing="ij")
+            shape = tuple([len(pos_i) for pos_i in self.pos])
+        else:
+            pos = np.array(pos, dtype=np.double).reshape(self.model.dim, -1)
+            self.pos = pos
+            shape = np.shape(self.pos[0])
+        # return isometrized pos tuple and resulting field shape
+        return self.model.isometrize(pos), shape
 
     def _to_vtk_helper(
         self, filename=None, field_select="field", fieldname="field"
@@ -396,3 +382,35 @@ class Field:
         return "Field(model={0}, mean={1:.{p}})".format(
             self.model, self.mean, p=self.model._prec
         )
+
+
+def _get_select(direction):
+    select = []
+    if not (0 < len(direction) < 4):
+        raise ValueError(
+            "Field.mesh: need 1 to 3 direction(s), got '{}'".format(direction)
+        )
+    for axis in direction:
+        if axis == "x":
+            if 0 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(0)
+        elif axis == "y":
+            if 1 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(1)
+        elif axis == "z":
+            if 2 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(2)
+        else:
+            raise ValueError(
+                "Field.mesh: got unknown direction {}".format(axis)
+            )
+    return select
