@@ -43,8 +43,6 @@ Geometric
    matrix_anisotropify
    matrix_isometrize
    matrix_anisometrize
-   pos2xyz
-   xyz2pos
    ang2dir
 
 ----
@@ -82,8 +80,6 @@ from gstools.tools.geometric import (
     matrix_isometrize,
     matrix_anisometrize,
     rotated_main_axes,
-    pos2xyz,
-    xyz2pos,
     ang2dir,
 )
 
@@ -113,7 +109,5 @@ __all__ = [
     "matrix_isometrize",
     "matrix_anisometrize",
     "rotated_main_axes",
-    "pos2xyz",
-    "xyz2pos",
     "ang2dir",
 ]
