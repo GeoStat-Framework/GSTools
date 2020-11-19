@@ -148,7 +148,7 @@ class Field:
                 mesh.point_data[name] = field
         return out
 
-    def pre_pos(self, pos, mesh_type="unstructured", name="pos"):
+    def pre_pos(self, pos, mesh_type="unstructured"):
         """
         Preprocessing positions and mesh_type.
 
@@ -160,9 +160,6 @@ class Field:
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
             Default: `"unstructured"`
-        name : :class:`str`, optional
-            Name of the attribute to be set in the class.
-            Default: `"pos"`
 
         Returns
         -------
@@ -176,12 +173,15 @@ class Field:
         # save pos tuple
         if mesh_type != "unstructured":
             pos, shape = format_struct_pos_dim(pos, self.model.dim)
-            setattr(self, name, pos)
+            self.pos = pos
             pos = gen_mesh(pos)
         else:
             pos = np.array(pos, dtype=np.double).reshape(self.model.dim, -1)
-            setattr(self, name, pos)
+            self.pos = pos
             shape = np.shape(pos[0])
+        # prepend dimension if we have a vector field
+        if self.value_type == "vector":
+            shape = (self.model.dim,) + shape
         # return isometrized pos tuple and resulting field shape
         return self.model.isometrize(pos), shape
 
