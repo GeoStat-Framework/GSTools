@@ -158,6 +158,8 @@ class SRF(Field):
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
+            if np.size(scaled_var) > 1:
+                scaled_var = np.reshape(scaled_var, shape)
             self.field -= self.mean
             self.field *= np.sqrt(scaled_var / self.model.sill)
             self.field += self.mean
