@@ -14,7 +14,6 @@ The following functions are provided
 
 import numpy as np
 
-from gstools.field.tools import reshape_axis_from_struct_to_unstruct
 from gstools.tools.geometric import (
     gen_mesh,
     format_struct_pos_shape,
