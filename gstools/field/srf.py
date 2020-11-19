@@ -13,7 +13,6 @@ The following classes are provided
 
 import numpy as np
 from gstools.field.generator import RandMeth, IncomprRandMeth
-from gstools.field.tools import reshape_field_from_unstruct_to_struct
 from gstools.field.base import Field
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 from gstools.field.condition import ordinary, simple

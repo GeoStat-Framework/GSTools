@@ -16,6 +16,7 @@ from functools import partial
 import numpy as np
 
 from gstools.covmodel.base import CovModel
+from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
 from gstools.tools.export import to_vtk, vtk_export
 
 
@@ -147,7 +148,7 @@ class Field:
                 mesh.point_data[name] = field
         return out
 
-    def pre_pos(self, pos, mesh_type="unstructured"):
+    def pre_pos(self, pos, mesh_type="unstructured", name="pos"):
         """
         Preprocessing positions and mesh_type.
 
@@ -156,8 +157,12 @@ class Field:
         pos : :any:`iterable`
             the position tuple, containing main direction and transversal
             directions
-        mesh_type : :class:`str`
+        mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
+            Default: `"unstructured"`
+        name : :class:`str`, optional
+            Name of the attribute to be set in the class.
+            Default: `"pos"`
 
         Returns
         -------
@@ -170,25 +175,13 @@ class Field:
         self.mesh_type = mesh_type
         # save pos tuple
         if mesh_type != "unstructured":
-            if self.model.dim == 1:
-                self.pos = (np.array(pos, dtype=np.double).reshape(-1),)
-            else:
-                if len(pos) != self.model.dim:
-                    raise ValueError(
-                        "Field: position tuple doesn't match dimension."
-                    )
-                self.pos = tuple(
-                    [
-                        np.array(pos_i, dtype=np.double).reshape(-1)
-                        for pos_i in pos
-                    ]
-                )
-            pos = np.meshgrid(*self.pos, indexing="ij")
-            shape = tuple([len(pos_i) for pos_i in self.pos])
+            pos, shape = format_struct_pos_dim(pos, self.model.dim)
+            setattr(self, name, pos)
+            pos = gen_mesh(pos)
         else:
             pos = np.array(pos, dtype=np.double).reshape(self.model.dim, -1)
-            self.pos = pos
-            shape = np.shape(self.pos[0])
+            setattr(self, name, pos)
+            shape = np.shape(pos[0])
         # return isometrized pos tuple and resulting field shape
         return self.model.isometrize(pos), shape
 
