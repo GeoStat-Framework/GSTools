@@ -46,8 +46,10 @@ def plot_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
         ax = _plot_1d(fld.pos, plot_field, fig, ax)
     elif fld.model.dim == 2:
         ax = _plot_2d(fld.pos, plot_field, fld.mesh_type, fig, ax)
-    else:
+    elif fld.model.dim == 3:
         ax = _plot_3d(fld.pos, plot_field, fld.mesh_type, fig, ax)
+    else:
+        raise ValueError("Field.plot: only possible for dim=1,2,3!")
     return ax
 
 
