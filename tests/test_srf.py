@@ -8,6 +8,7 @@ import unittest
 import numpy as np
 from gstools import SRF, Gaussian
 from gstools import transform as tf
+import meshio
 
 
 class TestSRF(unittest.TestCase):
@@ -312,6 +313,24 @@ class TestSRF(unittest.TestCase):
         #     self.seed,
         #     mesh_type="hyper_mesh",
         # )
+
+    def test_meshio(self):
+        points = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [1.0, 0.0, 0.0],
+            ]
+        )
+        cells = [("tetra", np.array([[0, 1, 2, 3]]))]
+        mesh = meshio.Mesh(points, cells)
+        model = Gaussian(dim=3, len_scale=0.1)
+        srf = SRF(model)
+        srf.mesh(mesh, points="points")
+        self.assertEqual(len(srf.field), 4)
+        srf.mesh(mesh, points="centroids")
+        self.assertEqual(len(srf.field), 1)
 
 
 if __name__ == "__main__":

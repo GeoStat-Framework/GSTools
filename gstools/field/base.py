@@ -101,7 +101,7 @@ class Field:
 
         See: :any:`Field.__call__`
         """
-        select = _get_select(direction)
+        select = _get_select(direction)[: self.model.dim]
         if len(select) < self.model.dim:
             raise ValueError(
                 "Field.mesh: need at least {} direction(s), got '{}'".format(
@@ -117,12 +117,11 @@ class Field:
         else:
             if points == "centroids":
                 # define unique order of cells
-                cells = list(mesh.cells)
                 offset = []
                 length = []
                 pnts = np.empty((0, 3), dtype=np.double)
-                for cell in cells:
-                    pnt = np.mean(mesh.points[mesh.cells[cell]], axis=1)
+                for cell in mesh.cells:
+                    pnt = np.mean(mesh.points[cell[1]], axis=1)
                     offset.append(pnts.shape[0])
                     length.append(pnt.shape[0])
                     pnts = np.vstack((pnts, pnt))
@@ -134,10 +133,10 @@ class Field:
                 else:
                     # if multiple values are returned, take the first one
                     field = out[0]
-                field_dict = {}
-                for i, cell in enumerate(cells):
-                    field_dict[cell] = field[offset[i] : offset[i] + length[i]]
-                mesh.cell_data[name] = field_dict
+                field_list = []
+                for i in range(len(offset)):
+                    field_list.append(field[offset[i] : offset[i] + length[i]])
+                mesh.cell_data[name] = field_list
             else:
                 out = self.unstructured(pos=mesh.points.T[select], **kwargs)
                 if isinstance(out, np.ndarray):
