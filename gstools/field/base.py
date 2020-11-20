@@ -14,6 +14,7 @@ The following classes are provided
 from functools import partial
 
 import numpy as np
+import meshio
 
 from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
@@ -120,7 +121,7 @@ class Field:
             else:
                 pnts = mesh.NODES.T[select]
             out = self.unstructured(pos=pnts, **kwargs)
-        else:
+        elif isinstance(mesh, meshio.Mesh):
             if points == "centroids":
                 # define unique order of cells
                 offset = []
@@ -154,6 +155,8 @@ class Field:
                     # if multiple values are returned, take the first one
                     field = out[0]
                 mesh.point_data[name] = field
+        else:
+            raise ValueError("Field.mesh: Unknown mesh format!")
         return out
 
     def pre_pos(self, pos, mesh_type="unstructured"):
@@ -251,11 +254,7 @@ class Field:
                         filename, self.pos, {fieldname: field}, self.mesh_type
                     )
             else:
-                print(
-                    "Field.to_vtk: No "
-                    + field_select
-                    + " stored in the class."
-                )
+                print("Field.to_vtk: '{}' not available.".format(field_select))
         else:
             raise ValueError(
                 "Unknown field value type: {}".format(self.value_type)
