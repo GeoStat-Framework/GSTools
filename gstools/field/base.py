@@ -125,7 +125,10 @@ class Field:
                 # define unique order of cells
                 offset = []
                 length = []
-                pnts = np.empty((0, 3), dtype=np.double)
+                mesh_dim = mesh.points.shape[1]
+                if mesh_dim < self.model.dim:
+                    raise ValueError("Field.mesh: mesh dimension to low!")
+                pnts = np.empty((0, mesh_dim), dtype=np.double)
                 for cell in mesh.cells:
                     pnt = np.mean(mesh.points[cell[1]], axis=1)
                     offset.append(pnts.shape[0])
