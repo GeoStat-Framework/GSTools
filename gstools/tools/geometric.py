@@ -507,24 +507,25 @@ def format_unstruct_pos_shape(pos, shape, check_stacked_shape=False):
     stacked_shape_size = np.prod(shape[1:])
     wrong_shape = False
     # now we try to be smart
+    pre_len = len(np.atleast_1d(pos))
+    # care about 1D: pos can be given as 1D array here -> convert to 2D array
     pos = np.array(pos, dtype=np.double, ndmin=2)
+    post_len = len(pos)
+    # first array dimension should be spatial dimension (1D is special case)
+    dim = post_len if pre_len == post_len else 1
     pnt_cnt = pos[0].size
     # case: 1D unstacked
-    if pos.size == shape_size:
-        dim = 1
+    if dim == 1 and pos.size == shape_size:
         shape = (1, pos.size) if check_stacked_shape else (pos.size,)
     # case: 1D and stacked
-    elif pos.size == stacked_shape_size:
-        dim = 1
+    elif dim == 1 and pos.size == stacked_shape_size:
         shape = (shape[0], pos.size)
         wrong_shape = not check_stacked_shape
     # case: nD unstacked
     elif pnt_cnt == shape_size:
-        dim = len(pos)
         shape = (1, pnt_cnt) if check_stacked_shape else pnt_cnt
     # case: nD and stacked
     elif pnt_cnt == stacked_shape_size:
-        dim = len(pos)
         shape = (shape[0], pnt_cnt)
         wrong_shape = not check_stacked_shape
     # if nothing works, we raise an error
