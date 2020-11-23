@@ -25,14 +25,16 @@ bin_center, gamma = gs.vario_estimate((x, y), field, bins)
 # Define a set of models to test.
 
 models = {
-    "gaussian": gs.Gaussian,
-    "exponential": gs.Exponential,
-    "matern": gs.Matern,
-    "stable": gs.Stable,
-    "rational": gs.Rational,
-    "linear": gs.Linear,
-    "circular": gs.Circular,
-    "spherical": gs.Spherical,
+    "Gaussian": gs.Gaussian,
+    "Exponential": gs.Exponential,
+    "Matern": gs.Matern,
+    "Stable": gs.Stable,
+    "Rational": gs.Rational,
+    "Linear": gs.Linear,
+    "Circular": gs.Circular,
+    "Spherical": gs.Spherical,
+    "SuperSpherical": gs.SuperSpherical,
+    "JBessel": gs.JBessel,
 }
 scores = {}
 
@@ -40,7 +42,7 @@ scores = {}
 # Iterate over all models, fit their variogram and calculate the r2 score.
 
 # plot the estimated variogram
-plt.scatter(bin_center, gamma, label="data")
+plt.scatter(bin_center, gamma, color="k", label="data")
 ax = plt.gca()
 
 # fit all models to the estimated variogram

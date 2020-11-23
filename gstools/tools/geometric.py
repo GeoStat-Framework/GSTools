@@ -19,8 +19,10 @@ The following functions are provided
    matrix_isometrize
    matrix_anisometrize
    rotated_main_axes
-   pos2xyz
-   xyz2pos
+   gen_mesh
+   format_struct_pos_dim
+   format_struct_pos_shape
+   format_unstruct_pos_shape
    ang2dir
 """
 # pylint: disable=C0103
@@ -40,8 +42,10 @@ __all__ = [
     "matrix_isometrize",
     "matrix_anisometrize",
     "rotated_main_axes",
-    "pos2xyz",
-    "xyz2pos",
+    "gen_mesh",
+    "format_struct_pos_dim",
+    "format_struct_pos_shape",
+    "format_unstruct_pos_shape",
     "ang2dir",
 ]
 
@@ -326,87 +330,215 @@ def rotated_main_axes(dim, angles):
 # conversion ##################################################################
 
 
-def pos2xyz(pos, dtype=None, calc_dim=False, max_dim=3):
-    """Convert postional arguments to x, y, z.
+def gen_mesh(pos):
+    """
+    Generate mesh from a structured position tuple.
+
+    Parameters
+    ----------
+    pos : :class:`tuple` of :class:`numpy.ndarray`
+        The structured position tuple.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Unstructured position tuple.
+    """
+    return np.array(np.meshgrid(*pos, indexing="ij"), dtype=np.double).reshape(
+        (len(pos), -1)
+    )
+
+
+def format_struct_pos_dim(pos, dim):
+    """
+    Format a structured position tuple with given dimension.
 
     Parameters
     ----------
     pos : :any:`iterable`
-        the position tuple, containing main direction and transversal
-        directions
-    dtype : data-type, optional
-        The desired data-type for the array.
-        If not given, then the type will be determined as the minimum type
-        required to hold the objects in the sequence. Default: None
-    calc_dim : :class:`bool`, optional
-        State if the dimension should be returned. Default: False
-    max_dim : :class:`int`, optional
-        Cut of information above the given dimension. Default: 3
+        Position tuple, containing main direction and transversal directions.
+    dim : :class:`int`
+        Spatial dimension.
 
-    Returns
-    -------
-    x : :class:`numpy.ndarray`
-        first components of position vectors
-    y : :class:`numpy.ndarray` or None
-        analog to x
-    z : :class:`numpy.ndarray` or None
-        analog to x
-    dim : :class:`int`, optional
-        dimension (only if calc_dim is True)
-
-    Notes
-    -----
-    If len(pos) > 3, everything after pos[2] will be ignored.
-    """
-    if max_dim == 1:  # sanity check
-        pos = np.array(pos, ndmin=2)
-    x = np.array(pos[0], dtype=dtype).reshape(-1)
-    dim = 1
-    y = z = None
-    if len(pos) > 1 and max_dim > 1:
-        dim = 2
-        y = np.array(pos[1], dtype=dtype).reshape(-1)
-    if len(pos) > 2 and max_dim > 2:
-        dim = 3
-        z = np.array(pos[2], dtype=dtype).reshape(-1)
-    if calc_dim:
-        return x, y, z, dim
-    return x, y, z
-
-
-def xyz2pos(x, y=None, z=None, dtype=None, max_dim=3):
-    """Convert x, y, z to postional arguments.
-
-    Parameters
-    ----------
-    x : :class:`numpy.ndarray`
-        grid axis in x-direction if structured, or first components of
-        position vectors if unstructured
-    y : :class:`numpy.ndarray`, optional
-        analog to x
-    z : :class:`numpy.ndarray`, optional
-        analog to x
-    dtype : data-type, optional
-        The desired data-type for the array.
-        If not given, then the type will be determined as the minimum type
-        required to hold the objects in the sequence. Default: None
-    max_dim : :class:`int`, optional
-        Cut of information above the given dimension. Default: 3
+    Raises
+    ------
+    ValueError
+        When position tuple doesn't match the given dimension.
 
     Returns
     -------
     pos : :class:`tuple` of :class:`numpy.ndarray`
-        the position tuple
+        The formatted structured position tuple.
+    shape : :class:`tuple`
+        Shape of the resulting field.
     """
-    if y is None and z is not None:
-        raise ValueError("gstools.tools.xyz2pos: if z is given, y is needed!")
-    pos = []
-    pos.append(np.array(x, dtype=dtype).reshape(-1))
-    if y is not None and max_dim > 1:
-        pos.append(np.array(y, dtype=dtype).reshape(-1))
-    if z is not None and max_dim > 2:
-        pos.append(np.array(z, dtype=dtype).reshape(-1))
-    return tuple(pos)
+    if dim == 1:
+        pos = (np.array(pos, dtype=np.double).reshape(-1),)
+    elif len(pos) != dim:
+        raise ValueError("Formatting: position tuple doesn't match dimension.")
+    else:
+        pos = tuple(np.array(p_i, dtype=np.double).reshape(-1) for p_i in pos)
+    shape = tuple(len(p_i) for p_i in pos)
+    return pos, shape
+
+
+def format_struct_pos_shape(pos, shape, check_stacked_shape=False):
+    """
+    Format a structured position tuple with given shape.
+
+    Shape could be stacked, when multiple fields are given.
+
+    Parameters
+    ----------
+    pos : :any:`iterable`
+        Position tuple, containing main direction and transversal directions.
+    shape : :class:`tuple`
+        Shape of the input field.
+    check_stacked_shape : :class:`bool`, optional
+        Whether to check if given shape comes from stacked fields.
+        Default: False.
+
+    Raises
+    ------
+    ValueError
+        When position tuple doesn't match the given dimension.
+
+    Returns
+    -------
+    pos : :class:`tuple` of :class:`numpy.ndarray`
+        The formatted structured position tuple.
+    shape : :class:`tuple`
+        Shape of the resulting field.
+    dim : :class:`int`
+        Spatial dimension.
+    """
+    # some help from the given shape
+    shape_size = np.prod(shape)
+    stacked_shape_size = np.prod(shape[1:])
+    wrong_shape = False
+    # now we try to be smart
+    try:
+        # if this works we have either:
+        # - a 1D array
+        # - nD array where all axes have same length (corner case)
+        check_pos = np.array(pos, dtype=np.double, ndmin=2)
+    except ValueError:
+        # if it doesn't work, we have a tuple of differently sized axes (easy)
+        dim = len(pos)
+        pos, pos_shape = format_struct_pos_dim(pos, dim)
+        # determine if we have a stacked field if wanted
+        if check_stacked_shape and stacked_shape_size == np.prod(pos_shape):
+            shape = (shape[0],) + pos_shape
+        # check if we have a single field with matching size
+        elif shape_size == np.prod(pos_shape):
+            shape = (1,) + pos_shape if check_stacked_shape else pos_shape
+        # if nothing works, we raise an error
+        else:
+            wrong_shape = True
+    else:
+        struct_size = np.prod([p_i.size for p_i in check_pos])
+        # case: 1D unstacked
+        if check_pos.size == shape_size:
+            dim = 1
+            pos, pos_shape = format_struct_pos_dim(check_pos, dim)
+            shape = (1,) + pos_shape if check_stacked_shape else pos_shape
+        # case: 1D and stacked
+        elif check_pos.size == stacked_shape_size:
+            dim = 1
+            pos, pos_shape = format_struct_pos_dim(check_pos, dim)
+            cnt = shape[0]
+            shape = (cnt,) + pos_shape
+            wrong_shape = not check_stacked_shape
+        # case: nD unstacked
+        elif struct_size == shape_size:
+            dim = len(check_pos)
+            pos, pos_shape = format_struct_pos_dim(pos, dim)
+            shape = (1,) + pos_shape if check_stacked_shape else pos_shape
+        # case: nD and stacked
+        elif struct_size == stacked_shape_size:
+            dim = len(check_pos)
+            pos, pos_shape = format_struct_pos_dim(pos, dim)
+            cnt = shape[0]
+            shape = (cnt,) + pos_shape
+            wrong_shape = not check_stacked_shape
+        # if nothing works, we raise an error
+        else:
+            wrong_shape = True
+
+    # if shape was wrong at one point we raise an error
+    if wrong_shape:
+        raise ValueError("Formatting: position tuple doesn't match dimension.")
+
+    return pos, shape, dim
+
+
+def format_unstruct_pos_shape(pos, shape, check_stacked_shape=False):
+    """
+    Format an unstructured position tuple with given shape.
+
+    Shape could be stacked, when multiple fields were given.
+
+    Parameters
+    ----------
+    pos : :any:`iterable`
+        Position tuple, containing point coordinates.
+    shape : :class:`tuple`
+        Shape of the input field.
+    check_stacked_shape : :class:`bool`, optional
+        Whether to check if given shape comes from stacked fields.
+        Default: False.
+
+    Raises
+    ------
+    ValueError
+        When position tuple doesn't match the given dimension.
+
+    Returns
+    -------
+    pos : :class:`tuple` of :class:`numpy.ndarray`
+        The formatted structured position tuple.
+    shape : :class:`tuple`
+        Shape of the resulting field.
+    dim : :class:`int`
+        Spatial dimension.
+    """
+    # some help from the given shape
+    shape_size = np.prod(shape)
+    stacked_shape_size = np.prod(shape[1:])
+    wrong_shape = False
+    # now we try to be smart
+    pre_len = len(np.atleast_1d(pos))
+    # care about 1D: pos can be given as 1D array here -> convert to 2D array
+    pos = np.array(pos, dtype=np.double, ndmin=2)
+    post_len = len(pos)
+    # first array dimension should be spatial dimension (1D is special case)
+    dim = post_len if pre_len == post_len else 1
+    pnt_cnt = pos[0].size
+    # case: 1D unstacked
+    if dim == 1 and pos.size == shape_size:
+        shape = (1, pos.size) if check_stacked_shape else (pos.size,)
+    # case: 1D and stacked
+    elif dim == 1 and pos.size == stacked_shape_size:
+        shape = (shape[0], pos.size)
+        wrong_shape = not check_stacked_shape
+    # case: nD unstacked
+    elif pnt_cnt == shape_size:
+        shape = (1, pnt_cnt) if check_stacked_shape else pnt_cnt
+    # case: nD and stacked
+    elif pnt_cnt == stacked_shape_size:
+        shape = (shape[0], pnt_cnt)
+        wrong_shape = not check_stacked_shape
+    # if nothing works, we raise an error
+    else:
+        wrong_shape = True
+
+    # if shape was wrong at one point we raise an error
+    if wrong_shape:
+        raise ValueError("Formatting: position tuple doesn't match dimension.")
+
+    pos = pos.reshape((dim, -1))
+
+    return pos, shape, dim
 
 
 def ang2dir(angles, dtype=np.double, dim=None):

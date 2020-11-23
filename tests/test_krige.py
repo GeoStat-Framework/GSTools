@@ -213,7 +213,7 @@ class TestKrige(unittest.TestCase):
                     krig = krige.Krige(
                         model, self.p_data[:dim], self.p_vals, unbiased=False
                     )
-                    field, __ = krig([0, 0, 0])
+                    field, __ = krig([0, 0, 0][:dim])
                     # with the pseudo-inverse, the estimated value
                     # should be the mean of the 3 redundant input values
                     self.assertAlmostEqual(

@@ -15,7 +15,6 @@ import numpy as np
 from scipy import interpolate as inter
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, RadioButtons
-from gstools.tools import pos2xyz
 from gstools.covmodel.plot import _get_fig_ax
 
 __all__ = ["plot_field", "plot_vec_field"]
@@ -47,8 +46,10 @@ def plot_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
         ax = _plot_1d(fld.pos, plot_field, fig, ax)
     elif fld.model.dim == 2:
         ax = _plot_2d(fld.pos, plot_field, fld.mesh_type, fig, ax)
-    else:
+    elif fld.model.dim == 3:
         ax = _plot_3d(fld.pos, plot_field, fld.mesh_type, fig, ax)
+    else:
+        raise ValueError("Field.plot: only possible for dim=1,2,3!")
     return ax
 
 
@@ -56,7 +57,7 @@ def _plot_1d(pos, field, fig=None, ax=None):  # pragma: no cover
     """Plot a 1d field."""
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 1D: " + str(field.shape)
-    x, __, __ = pos2xyz(pos, max_dim=1)
+    x = pos[0]
     x = x.flatten()
     arg = np.argsort(x)
     ax.plot(x[arg], field.ravel()[arg])
@@ -71,7 +72,8 @@ def _plot_2d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
     """Plot a 2d field."""
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 2D " + mesh_type + ": " + str(field.shape)
-    x, y, __ = pos2xyz(pos, max_dim=2)
+    x = pos[0]
+    y = pos[1]
     if mesh_type == "unstructured":
         cont = ax.tricontourf(x, y, field.ravel(), levels=256)
     else:
@@ -241,7 +243,8 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
 
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 2D " + fld.mesh_type + ": " + str(plot_field.shape)
-    x, y, __ = pos2xyz(fld.pos, max_dim=2)
+    x = fld.pos[0]
+    y = fld.pos[1]
 
     sp = plt.streamplot(
         x,

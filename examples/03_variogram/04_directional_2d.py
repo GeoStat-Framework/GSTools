@@ -48,8 +48,8 @@ print(model)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[10, 5])
 
-ax1.plot(bin_center, dir_vario[0], label="emp. vario: pi/8")
-ax1.plot(bin_center, dir_vario[1], label="emp. vario: pi*5/8")
+ax1.scatter(bin_center, dir_vario[0], label="emp. vario: pi/8")
+ax1.scatter(bin_center, dir_vario[1], label="emp. vario: pi*5/8")
 ax1.legend(loc="lower right")
 
 model.plot("vario_axis", axis=0, ax=ax1, x_max=40, label="fit on axis 0")

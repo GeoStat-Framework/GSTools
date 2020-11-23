@@ -19,7 +19,6 @@ The following functions are provided
 import numpy as np
 from pyevtk.hl import gridToVTK, pointsToVTK
 
-from gstools.tools.geometric import pos2xyz
 
 try:
     import pyvista as pv
@@ -43,11 +42,14 @@ def _vtk_structured_helper(pos, fields):
     """Extract field info for vtk rectilinear grid."""
     if not isinstance(fields, dict):
         fields = {"field": fields}
-    x, y, z = pos2xyz(pos)
-    if y is None:
-        y = np.array([0])
-    if z is None:
-        z = np.array([0])
+    if len(pos) > 3:
+        raise ValueError(
+            "gstools.vtk_export_structured: "
+            "vtk export only possible for dim=1,2,3"
+        )
+    x = pos[0]
+    y = pos[1] if len(pos) > 1 else np.array([0])
+    z = pos[2] if len(pos) > 2 else np.array([0])
     # need fortran order in VTK
     for field in fields:
         fields[field] = fields[field].reshape(-1, order="F")
@@ -110,11 +112,14 @@ def vtk_export_structured(filename, pos, fields):  # pragma: no cover
 def _vtk_unstructured_helper(pos, fields):
     if not isinstance(fields, dict):
         fields = {"field": fields}
-    x, y, z = pos2xyz(pos)
-    if y is None:
-        y = np.zeros_like(x)
-    if z is None:
-        z = np.zeros_like(x)
+    if len(pos) > 3:
+        raise ValueError(
+            "gstools.vtk_export_structured: "
+            "vtk export only possible for dim=1,2,3"
+        )
+    x = pos[0]
+    y = pos[1] if len(pos) > 1 else np.zeros_like(x)
+    z = pos[2] if len(pos) > 2 else np.zeros_like(x)
     for field in fields:
         fields[field] = fields[field].reshape(-1)
         if (

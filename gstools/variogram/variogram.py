@@ -14,8 +14,12 @@ The following functions are provided
 
 import numpy as np
 
-from gstools.field.tools import reshape_axis_from_struct_to_unstruct
-from gstools.tools.geometric import pos2xyz, xyz2pos, ang2dir
+from gstools.tools.geometric import (
+    gen_mesh,
+    format_struct_pos_shape,
+    format_unstruct_pos_shape,
+    ang2dir,
+)
 from gstools.variogram.estimator import (
     unstructured,
     structured,
@@ -209,17 +213,19 @@ def vario_estimate(
         return bin_centres, estimates
     if not masked:
         field = field.filled()
-    # check_mesh shape
-    x, y, z, dim = pos2xyz(pos, calc_dim=True, dtype=np.double)
+    # check mesh shape
     if mesh_type != "unstructured":
-        x, y, z, __ = reshape_axis_from_struct_to_unstruct(dim, x, y, z)
-    if len(field.shape) > 2 or field.shape[1] != len(x):
-        try:
-            field = field.reshape((-1, len(x)))
-        except ValueError as exc:
-            raise ValueError("'field' has wrong shape") from exc
-    # prepare positions
-    pos = np.array(xyz2pos(x, y, z, dtype=np.double, max_dim=dim))
+        pos, __, dim = format_struct_pos_shape(
+            pos, field.shape, check_stacked_shape=True
+        )
+        pos = gen_mesh(pos)
+    else:
+        pos, __, dim = format_unstruct_pos_shape(
+            pos, field.shape, check_stacked_shape=True
+        )
+    # prepare the field
+    pnt_cnt = len(pos[0])
+    field = field.reshape((-1, pnt_cnt))
     # apply mask if wanted
     if masked:
         # if fields have different masks, take the minimal common mask
@@ -228,7 +234,7 @@ def vario_estimate(
         if np.size(mask) > 1:  # not only np.ma.nomask
             select = np.invert(
                 np.logical_or(
-                    np.reshape(mask, len(x)), np.all(field.mask, axis=0)
+                    np.reshape(mask, pnt_cnt), np.all(field.mask, axis=0)
                 )
             )
         else:
@@ -264,9 +270,9 @@ def vario_estimate(
         bandwidth = float(bandwidth) if bandwidth is not None else -1.0
         angles_tol = float(angles_tol)
     # prepare sampled variogram
-    if sampling_size is not None and sampling_size < len(x):
+    if sampling_size is not None and sampling_size < pnt_cnt:
         sampled_idx = np.random.RandomState(sampling_seed).choice(
-            np.arange(len(x)), sampling_size, replace=False
+            np.arange(pnt_cnt), sampling_size, replace=False
         )
         field = field[:, sampled_idx]
         pos = pos[:, sampled_idx]

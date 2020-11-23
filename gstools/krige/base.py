@@ -15,12 +15,6 @@ import numpy as np
 
 from scipy.spatial.distance import cdist
 import scipy.linalg as spl
-from gstools.field.tools import (
-    reshape_field_from_unstruct_to_struct,
-    make_anisotropic,
-    rotate_mesh,
-)
-from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.field.base import Field
 from gstools.krige.krigesum import krigesum
 from gstools.krige.tools import (
@@ -175,48 +169,40 @@ class Krige(Field):
         krige_var : :class:`numpy.ndarray`
             the kriging error variance
         """
-        self.mesh_type = mesh_type
-        # internal conversation
-        x, y, z, self.pos, __, mt_changed, axis_lens = self._pre_pos(
-            pos, mesh_type, make_unstruct=True
-        )
-        field = np.empty_like(x)
-        krige_var = np.empty_like(x)
+        iso_pos, shape = self.pre_pos(pos, mesh_type)
+        pnt_cnt = len(iso_pos[0])
+
+        field = np.empty(pnt_cnt, dtype=np.double)
+        krige_var = np.empty(pnt_cnt, dtype=np.double)
         # set constant mean if present and wanted
         if only_mean and self.has_const_mean:
             field[...] = self.get_mean() - self.mean  # mean is added later
             krige_var[...] = self.model.sill  # will result in 0 var. later
         # execute the kriging routine
         else:
-            point_no = len(x)
             # set chunk size
-            chunk_size = point_no if chunk_size is None else int(chunk_size)
-            chunk_no = int(np.ceil(point_no / chunk_size))
-            ext_drift = self._pre_ext_drift(point_no, ext_drift)
+            chunk_size = pnt_cnt if chunk_size is None else int(chunk_size)
+            chunk_no = int(np.ceil(pnt_cnt / chunk_size))
+            ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
             # iterate of chunks
             for i in range(chunk_no):
                 # get chunk slice for actual chunk
                 chunk_slice = (
                     i * chunk_size,
-                    min(point_no, (i + 1) * chunk_size),
+                    min(pnt_cnt, (i + 1) * chunk_size),
                 )
                 c_slice = slice(*chunk_slice)
                 # get RHS of the kriging system
                 k_vec = self._get_krige_vecs(
-                    (x, y, z), chunk_slice, ext_drift, only_mean
+                    iso_pos, chunk_slice, ext_drift, only_mean
                 )
                 # generate the raw kriging field and error variance
                 field[c_slice], krige_var[c_slice] = krigesum(
                     self._krige_mat, k_vec, self._krige_cond
                 )
         # reshape field if we got a structured mesh
-        if mt_changed:
-            field = reshape_field_from_unstruct_to_struct(
-                self.model.dim, field, axis_lens
-            )
-            krige_var = reshape_field_from_unstruct_to_struct(
-                self.model.dim, krige_var, axis_lens
-            )
+        field = np.reshape(field, shape)
+        krige_var = np.reshape(krige_var, shape)
         self._post_field(field, krige_var)
         return self.field, self.krige_var
 
@@ -280,17 +266,9 @@ class Krige(Field):
         if self.unbiased:
             res[self.cond_no, :] = 1
         # drift function need the anisotropic and rotated positions
-        if self.int_drift_no > 0 and not self.model.is_isotropic:
-            x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-            y, z = make_anisotropic(self.model.dim, self.model.anis, y, z)
-            if self.model.do_rotation:
-                x, y, z = rotate_mesh(
-                    self.model.dim, self.model.angles, x, y, z
-                )
-            pos = xyz2pos(x, y, z, max_dim=self.model.dim)
-        chunk_pos = list(pos[: self.model.dim])
-        for i in range(self.model.dim):
-            chunk_pos[i] = chunk_pos[i][slice(*chunk_slice)]
+        if self.int_drift_no > 0:
+            pos = self.model.anisometrize(pos)
+        chunk_pos = pos[:, slice(*chunk_slice)]
         # apply functional drift
         for i, f in enumerate(self.drift_functions):
             res[-self.drift_no + i, :] = f(*chunk_pos)
@@ -300,13 +278,13 @@ class Krige(Field):
             res[ext_size:, :] = ext_drift[:, slice(*chunk_slice)]
         return res
 
-    def _pre_ext_drift(self, point_no, ext_drift=None, set_cond=False):
+    def _pre_ext_drift(self, pnt_cnt, ext_drift=None, set_cond=False):
         """
         Preprocessor for external drifts.
 
         Parameters
         ----------
-        point_no : :class:`numpy.ndarray`
+        pnt_cnt : :class:`numpy.ndarray`
             Number of points of the mesh.
         ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
             the external drift values at the given positions (only for EDK)
@@ -324,12 +302,12 @@ class Krige(Field):
         if ext_drift is not None:
             if set_cond:
                 ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
-                if len(ext_drift.shape) > 2 or ext_drift.shape[1] != point_no:
-                    raise ValueError("Krige: wrong number of cond. drifts.")
+                if len(ext_drift.shape) > 2 or ext_drift.shape[1] != pnt_cnt:
+                    raise ValueError("Krige: wrong number of ext. drifts.")
                 return ext_drift
             ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
             ext_shape = np.shape(ext_drift)
-            shape = (self.drift_no, point_no)
+            shape = (self.drift_no, pnt_cnt)
             if self.drift_no > 1 and ext_shape[0] != self.drift_no:
                 raise ValueError("Krige: wrong number of external drifts.")
             if np.prod(ext_shape) != np.prod(shape):
@@ -354,7 +332,7 @@ class Krige(Field):
             self.field = field
         else:
             self.field = field + eval_func(
-                self.trend_function, self.pos, self.mesh_type
+                self.trend_function, self.pos, self.model.dim, self.mesh_type
             )
         self.field += self.mean
         self.krige_var = self.model.sill - krige_var
@@ -377,12 +355,9 @@ class Krige(Field):
         :class:`numpy.ndarray`
             Matrix containing the pairwise distances.
         """
-        pos1_stack = np.column_stack(pos1[: self.model.dim])
         if pos2 is None:
-            return cdist(pos1_stack, pos1_stack)
-        p2s = slice(*pos2_slice)
-        pos2_stack = np.column_stack(pos2[: self.model.dim])[p2s, ...]
-        return cdist(pos1_stack, pos2_stack)
+            return cdist(pos1.T, pos1.T)
+        return cdist(pos1.T, pos2.T[slice(*pos2_slice), ...])
 
     def get_mean(self):
         """Calculate the estimated mean."""
@@ -478,9 +453,8 @@ class Krige(Field):
 
     def update(self):
         """Update the kriging settings."""
-        x, y, z, __, __, __, __ = self._pre_pos(self.cond_pos)
+        self._krige_pos = self.model.isometrize(self.cond_pos)
         # krige pos are the unrotated and isotropic condition positions
-        self._krige_pos = (x, y, z)[: self.model.dim]
         self._krige_mat = self._get_krige_mat()
         if self.trend_function is no_trend:
             self._cond_trend = 0.0

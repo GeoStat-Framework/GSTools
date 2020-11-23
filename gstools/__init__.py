@@ -104,7 +104,7 @@ Estimate the variogram of a given field
    vario_estimate
    vario_estimate_axis
 """
-
+# Hooray!
 from gstools import field, variogram, random, covmodel, tools, krige, transform
 from gstools.field import SRF
 from gstools.tools import (

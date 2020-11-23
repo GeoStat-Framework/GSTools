@@ -16,12 +16,8 @@ from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
-from gstools.field.summator import (
-    summate_unstruct,
-    summate_struct,
-    summate_incompr_unstruct,
-    summate_incompr_struct,
-)
+from gstools.field.summator import summate, summate_incompr
+
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
@@ -85,7 +81,7 @@ class RandMeth:
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
+    def __call__(self, pos):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -93,32 +89,16 @@ class RandMeth:
 
         Parameters
         ----------
-        x : :class:`float`, :class:`numpy.ndarray`
-            The x components of the pos. tuple.
-        y : :class:`float`, :class:`numpy.ndarray`, optional
-            The y components of the pos. tuple.
-        z : :class:`float`, :class:`numpy.ndarray`, optional
-            The z components of the pos. tuple.
-        mesh_type : :class:`str`, optional
-            'structured' / 'unstructured'
+        pos : (d, n), :class:`numpy.ndarray`
+            the position tuple with d dimensions and n points.
 
         Returns
         -------
         :class:`numpy.ndarray`
             the random modes
         """
-        if mesh_type == "unstructured":
-            pos = _reshape_pos(x, y, z, dtype=np.double)
-
-            summed_modes = summate_unstruct(
-                self._cov_sample, self._z_1, self._z_2, pos
-            )
-        else:
-            x, y, z = _set_dtype(x, y, z, dtype=np.double)
-            summed_modes = summate_struct(
-                self._cov_sample, self._z_1, self._z_2, x, y, z
-            )
-
+        pos = np.array(pos, dtype=np.double)
+        summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
         nugget = self._set_nugget(summed_modes.shape)
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
@@ -357,17 +337,16 @@ class IncomprRandMeth(RandMeth):
         verbose=False,
         **kwargs
     ):
-        if model.dim < 2:
+        if model.dim < 2 or model.dim > 3:
             raise ValueError(
-                "Only 2- and 3-dimensional incompressible fields "
-                + "can be generated."
+                "Only 2D and 3D incompressible fields can be generated."
             )
         super().__init__(model, mode_no, seed, verbose, **kwargs)
 
         self.mean_u = mean_velocity
         self._value_type = "vector"
 
-    def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
+    def __call__(self, pos):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods,
@@ -377,34 +356,18 @@ class IncomprRandMeth(RandMeth):
 
         Parameters
         ----------
-        x : :class:`float`, :class:`numpy.ndarray`
-            the x components of the position tuple, the shape has to be
-            (len(x), 1, 1) for 3d and accordingly shorter for lower
-            dimensions
-        y : :class:`float`, :class:`numpy.ndarray`, optional
-            the y components of the pos. tuples. Default: ``None``
-        z : :class:`float`, :class:`numpy.ndarray`, optional
-            the z components of the pos. tuple. Default: ``None``
-        mesh_type : :class:`str`, optional
-            'structured' / 'unstructured'
+        pos : (d, n), :class:`numpy.ndarray`
+            the position tuple with d dimensions and n points.
 
         Returns
         -------
         :class:`numpy.ndarray`
             the random modes
         """
-        if mesh_type == "unstructured":
-            pos = _reshape_pos(x, y, z, dtype=np.double)
-
-            summed_modes = summate_incompr_unstruct(
-                self._cov_sample, self._z_1, self._z_2, pos
-            )
-        else:
-            x, y, z = _set_dtype(x, y, z, dtype=np.double)
-            summed_modes = summate_incompr_struct(
-                self._cov_sample, self._z_1, self._z_2, x, y, z
-            )
-
+        pos = np.array(pos, dtype=np.double)
+        summed_modes = summate_incompr(
+            self._cov_sample, self._z_1, self._z_2, pos
+        )
         nugget = self._set_nugget(summed_modes.shape)
 
         e1 = self._create_unit_vector(summed_modes.shape)
@@ -441,62 +404,3 @@ class IncomprRandMeth(RandMeth):
         e1 = np.zeros(shape)
         e1[axis] = 1.0
         return e1
-
-
-def _reshape_pos(x, y=None, z=None, dtype=np.double):
-    """
-    Reshape the 1d x, y, z positions to a 2d position array.
-
-    Parameters
-    ----------
-    x : :class:`float`, :class:`numpy.ndarray`
-        the x components of the position tuple, the shape has to be
-        (len(x), 1, 1) for 3d and accordingly shorter for lower
-        dimensions
-    y : :class:`float`, :class:`numpy.ndarray`, optional
-        the y components of the pos. tuple
-    z : :class:`float`, :class:`numpy.ndarray`, optional
-        the z components of the pos. tuple
-    dtype : :class:`numpy.dtype`, optional
-        the numpy dtype to which the elements should be converted
-
-    Returns
-    -------
-    :class:`numpy.ndarray`
-        the positions in one convinient data structure
-    """
-    if y is None and z is None:
-        pos = np.array(x.reshape(1, len(x)), dtype=dtype)
-    elif z is None:
-        pos = np.array(np.vstack((x, y)), dtype=dtype)
-    else:
-        pos = np.array(np.vstack((x, y, z)), dtype=dtype)
-    return pos
-
-
-def _set_dtype(x, y=None, z=None, dtype=np.double):
-    """
-    Convert the dtypes of the input arrays to given dtype.
-
-    Parameters
-    ----------
-    x : :class:`float`, :class:`numpy.ndarray`
-        The array to be converted.
-    y : :class:`float`, :class:`numpy.ndarray`, optional
-        The array to be converted.
-    z : :class:`float`, :class:`numpy.ndarray`, optional
-        The array to be converted.
-    dtype : :class:`numpy.dtype`, optional
-        The numpy dtype to which the elements should be converted.
-
-    Returns
-    -------
-    :class:`numpy.ndarray`
-        The input lists/ arrays as numpy arrays with given dtype.
-    """
-    x = x.astype(dtype, copy=False)
-    if y is not None:
-        y = y.astype(dtype, copy=False)
-    if z is not None:
-        z = z.astype(dtype, copy=False)
-    return x, y, z

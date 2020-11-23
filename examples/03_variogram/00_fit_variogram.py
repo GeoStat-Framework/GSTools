@@ -30,5 +30,5 @@ fit_model.fit_variogram(bin_center, gamma, nugget=False)
 # Plot the fitting result.
 
 ax = fit_model.plot(x_max=40)
-ax.plot(bin_center, gamma)
+ax.scatter(bin_center, gamma)
 print(fit_model)
