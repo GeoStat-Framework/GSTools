@@ -25,7 +25,7 @@ __all__ = ["Field"]
 
 
 class Field:
-    """A field base class for random and kriging fields ect.
+    """A base class for random fields, kriging fields, etc.
 
     Parameters
     ----------
@@ -128,7 +128,7 @@ class Field:
                 length = []
                 mesh_dim = mesh.points.shape[1]
                 if mesh_dim < self.model.dim:
-                    raise ValueError("Field.mesh: mesh dimension to low!")
+                    raise ValueError("Field.mesh: mesh dimension too low!")
                 pnts = np.empty((0, mesh_dim), dtype=np.double)
                 for cell in mesh.cells:
                     pnt = np.mean(mesh.points[cell[1]], axis=1)
@@ -175,7 +175,7 @@ class Field:
         Returns
         -------
         iso_pos : (d, n), :class:`numpy.ndarray`
-            the isometrize position tuple
+            the isometrized position tuple
         shape : :class:`tuple`
             Shape of the resulting field.
         """

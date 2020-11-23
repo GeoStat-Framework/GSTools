@@ -386,7 +386,7 @@ def format_struct_pos_shape(pos, shape, check_stacked_shape=False):
     """
     Format a structured position tuple with given shape.
 
-    Shape could be stacked, when multiple fields were given.
+    Shape could be stacked, when multiple fields are given.
 
     Parameters
     ----------
