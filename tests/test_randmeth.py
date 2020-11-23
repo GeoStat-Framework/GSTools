@@ -44,28 +44,6 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[0], 0.55488481)
         self.assertAlmostEqual(modes[1], 1.18506639)
 
-    # def test_struct_1d(self):
-    #     modes = self.rm_1d(self.x_grid, mesh_type="structured")
-    #     self.assertAlmostEqual(modes[0], 3.19799030)
-    #     self.assertAlmostEqual(modes[1], 2.34788923)
-
-    # def test_struct_2d(self):
-    #     modes = self.rm_2d(self.x_grid, self.y_grid, mesh_type="structured")
-    #     self.assertAlmostEqual(modes[0, 0], 1.67318010)
-    #     self.assertAlmostEqual(modes[1, 0], 1.54740003)
-    #     self.assertAlmostEqual(modes[0, 1], 2.02106551)
-    #     self.assertAlmostEqual(modes[1, 1], 1.86883255)
-
-    # def test_struct_3d(self):
-    #     modes = self.rm_3d(
-    #         self.x_grid, self.y_grid, self.z_grid, mesh_type="structured"
-    #     )
-    #     self.assertAlmostEqual(modes[0, 0, 0], 0.55488481)
-    #     self.assertAlmostEqual(modes[0, 1, 0], 0.41858766)
-    #     self.assertAlmostEqual(modes[1, 1, 0], 0.95133855)
-    #     self.assertAlmostEqual(modes[0, 1, 1], 0.65475042)
-    #     self.assertAlmostEqual(modes[1, 1, 1], 1.40915120)
-
     def test_reset(self):
         modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], 1.67318010)

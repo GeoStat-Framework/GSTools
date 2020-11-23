@@ -16,7 +16,7 @@ from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
-from gstools.field.summator import summate_unstruct, summate_incompr_unstruct
+from gstools.field.summator import summate, summate_incompr
 
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
@@ -98,9 +98,7 @@ class RandMeth:
             the random modes
         """
         pos = np.array(pos, dtype=np.double)
-        summed_modes = summate_unstruct(
-            self._cov_sample, self._z_1, self._z_2, pos
-        )
+        summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
         nugget = self._set_nugget(summed_modes.shape)
 
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
@@ -367,7 +365,7 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         pos = np.array(pos, dtype=np.double)
-        summed_modes = summate_incompr_unstruct(
+        summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )
         nugget = self._set_nugget(summed_modes.shape)

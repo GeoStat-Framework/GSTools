@@ -16,7 +16,7 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-def summate_unstruct(
+def summate(
     const double[:,:] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
@@ -52,7 +52,7 @@ cdef (double) abs_square(const double[:] vec) nogil:
     return r
 
 
-def summate_incompr_unstruct(
+def summate_incompr(
     const double[:,:] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
