@@ -70,6 +70,7 @@ The following standard covariance models are provided by GSTools
     HyperSpherical
     SuperSpherical
     JBessel
+    TPLSimple
 
 As a special feature, we also provide truncated power law (TPL) covariance models
 
@@ -77,7 +78,9 @@ As a special feature, we also provide truncated power law (TPL) covariance model
     TPLGaussian
     TPLExponential
     TPLStable
-    TPLSimple
+
+These models provide a lower and upper length scale truncation
+for superpositioned models.
 
 .. only:: html
 
