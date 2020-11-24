@@ -20,8 +20,9 @@ from gstools.tools.geometric import (
     matrix_anisometrize,
     matrix_isometrize,
     rotated_main_axes,
+    latlon2pos,
+    pos2latlon,
 )
-from gstools.tools.misc import list_format
 from gstools.covmodel.tools import (
     InitSubclassMeta,
     _init_subclass,
@@ -33,6 +34,8 @@ from gstools.covmodel.tools import (
     set_arg_bounds,
     check_arg_bounds,
     set_dim,
+    compare,
+    model_repr,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -89,6 +92,17 @@ class CovModel(metaclass=InitSubclassMeta):
         to coincide with e.g. the integral scale.
         Will be set by each model individually.
         Default: :any:`None`
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude. When using this, the model will internally
+        use the associated 'Yadrenko' model to represent a valid model.
+        This means, the spatial distance :math:`r` will be replace with
+        :math:`2\sin(\alpha/2)`, where :math:`\alpha` is the great-circle
+        distance, which is equal to the spatial distance of two points in 3D.
+        As a consequence, `dim` will be set to `3` and anisotropy will be
+        disabled. `rescale` can be set to earths radius,
+        to have a meaningful `len_scale` parameter.
+        Default: False
     var_raw : :class:`float` or :any:`None`, optional
         raw variance of the model which will be multiplied with
         :any:`CovModel.var_factor` to result in the actual variance.
@@ -116,6 +130,7 @@ class CovModel(metaclass=InitSubclassMeta):
         angles=0.0,
         integral_scale=None,
         rescale=None,
+        latlon=False,
         var_raw=None,
         hankel_kw=None,
         **opt_arg
@@ -140,6 +155,8 @@ class CovModel(metaclass=InitSubclassMeta):
         self._nugget_bounds = None
         self._anis_bounds = None
         self._opt_arg_bounds = {}
+        # Set latlon first
+        self._latlon = bool(latlon)
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
         self.dim = dim
@@ -157,8 +174,14 @@ class CovModel(metaclass=InitSubclassMeta):
             self.default_rescale() if rescale is None else abs(float(rescale))
         )
         self._nugget = nugget
-        self._angles = set_angles(self.dim, angles)
-        self._len_scale, self._anis = set_len_anis(self.dim, len_scale, anis)
+        # set anisotropy and len_scale, disable anisotropy for latlon models
+        self._len_scale, anis = set_len_anis(self.dim, len_scale, anis)
+        if self.latlon:
+            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
+            self._angles = np.array(self.dim * [0], dtype=np.double)
+        else:
+            self._anis = anis
+            self._angles = set_angles(self.dim, angles)
         # set var at last, because of the var_factor (to be right initialized)
         if var_raw is None:
             self._var = None
@@ -225,6 +248,18 @@ class CovModel(metaclass=InitSubclassMeta):
             return self.correlation(r)
         return self.correlation(np.abs(r) / self.anis[axis - 1])
 
+    def vario_yadrenko(self, zeta):
+        r"""Yadrenko variogram for great-circle distance from geo-coords."""
+        return self.variogram(2 * np.sin(zeta / 2))
+
+    def cov_yadrenko(self, zeta):
+        r"""Yadrenko covariance for great-circle distance from geo-coords."""
+        return self.covariance(2 * np.sin(zeta / 2))
+
+    def cor_yadrenko(self, zeta):
+        r"""Yadrenko correlation for great-circle distance from geo-coords."""
+        return self.correlation(2 * np.sin(zeta / 2))
+
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
         return self.variogram(self._get_iso_rad(pos))
@@ -270,6 +305,9 @@ class CovModel(metaclass=InitSubclassMeta):
                 * "vario_spatial"
                 * "cov_spatial"
                 * "cor_spatial"
+                * "vario_yadrenko"
+                * "cov_yadrenko"
+                * "cor_yadrenko"
                 * "vario_axis"
                 * "cov_axis"
                 * "cor_axis"
@@ -493,12 +531,17 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def isometrize(self, pos):
         """Make a position tuple ready for isotropic operations."""
-        pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        dim = 2 if self.latlon else self.dim
+        pos = np.array(pos, dtype=np.double).reshape((dim, -1))
+        if self.latlon:
+            return latlon2pos(pos)
         return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
 
     def anisometrize(self, pos):
         """Bring a position tuple into the anisotropic coordinate-system."""
         pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        if self.latlon:
+            return pos2latlon(pos)
         return np.dot(
             matrix_anisometrize(self.dim, self.angles, self.anis), pos
         )
@@ -690,11 +733,7 @@ class CovModel(metaclass=InitSubclassMeta):
             Default: True
         **kwargs
             Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
-            and a list of 2 or 3 values as value:
-
-                * ``[a, b]`` or
-                * ``[a, b, <type>]``
-
+            and a list of 2 or 3 values: ``[a, b]`` or ``[a, b, <type>]`` where
             <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
             to define if the bounds are open ("o") or closed ("c").
         """
@@ -712,11 +751,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Notes
         -----
-        Is a list of 2 or 3 values:
-
-            * ``[a, b]`` or
-            * ``[a, b, <type>]``
-
+        Is a list of 2 or 3 values: ``[a, b]`` or ``[a, b, <type>]`` where
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
         """
@@ -726,9 +761,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def var_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'var' are not "
-                + "valid, got: "
-                + str(bounds)
+                "Given bounds for 'var' are not valid, got: " + str(bounds)
             )
         self._var_bounds = bounds
 
@@ -738,11 +771,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Notes
         -----
-        Is a list of 2 or 3 values:
-
-            * ``[a, b]`` or
-            * ``[a, b, <type>]``
-
+        Is a list of 2 or 3 values: ``[a, b]`` or ``[a, b, <type>]`` where
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
         """
@@ -752,8 +781,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def len_scale_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'len_scale' are not "
-                + "valid, got: "
+                "Given bounds for 'len_scale' are not valid, got: "
                 + str(bounds)
             )
         self._len_scale_bounds = bounds
@@ -764,11 +792,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Notes
         -----
-        Is a list of 2 or 3 values:
-
-            * ``[a, b]`` or
-            * ``[a, b, <type>]``
-
+        Is a list of 2 or 3 values: ``[a, b]`` or ``[a, b, <type>]`` where
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
         """
@@ -778,9 +802,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def nugget_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'nugget' are not "
-                + "valid, got: "
-                + str(bounds)
+                "Given bounds for 'nugget' are not valid, got: " + str(bounds)
             )
         self._nugget_bounds = bounds
 
@@ -790,11 +812,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Notes
         -----
-        Is a list of 2 or 3 values:
-
-            * ``[a, b]`` or
-            * ``[a, b, <type>]``
-
+        Is a list of 2 or 3 values: ``[a, b]`` or ``[a, b, <type>]`` where
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
         """
@@ -804,9 +822,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def anis_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'anis' are not "
-                + "valid, got: "
-                + str(bounds)
+                "Given bounds for 'anis' are not valid, got: " + str(bounds)
             )
         self._anis_bounds = bounds
 
@@ -817,10 +833,7 @@ class CovModel(metaclass=InitSubclassMeta):
         Notes
         -----
         Keys are the opt-arg names and values are lists of 2 or 3 values:
-
-            * ``[a, b]`` or
-            * ``[a, b, <type>]``
-
+        ``[a, b]`` or ``[a, b, <type>]`` where
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
         """
@@ -832,11 +845,8 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Notes
         -----
-        Keys are the opt-arg names and values are lists of 2 or 3 values:
-
-            * ``[a, b]`` or
-            * ``[a, b, <type>]``
-
+        Keys are the arg names and values are lists of 2 or 3 values:
+        ``[a, b]`` or ``[a, b, <type>]`` where
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
         """
@@ -848,6 +858,18 @@ class CovModel(metaclass=InitSubclassMeta):
         }
         res.update(self.opt_arg_bounds)
         return res
+
+    # geographical coordinates related
+
+    @property
+    def latlon(self):
+        """:class:`bool`: Whether the model depends on geographical coords."""
+        return self._latlon
+
+    @property
+    def plot_dim(self):
+        """:class:`int`: The plotting dimension of the model."""
+        return 2 if self.latlon else self.dim
 
     # standard parameters
 
@@ -900,9 +922,11 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @len_scale.setter
     def len_scale(self, len_scale):
-        self._len_scale, self._anis = set_len_anis(
-            self.dim, len_scale, self.anis
-        )
+        self._len_scale, anis = set_len_anis(self.dim, len_scale, self.anis)
+        if self.latlon:
+            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
+        else:
+            self._anis = anis
         self.check_arg_bounds()
 
     @property
@@ -922,9 +946,12 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @anis.setter
     def anis(self, anis):
-        self._len_scale, self._anis = set_len_anis(
-            self.dim, self.len_scale, anis
-        )
+        if self.latlon:
+            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
+        else:
+            self._len_scale, self._anis = set_len_anis(
+                self.dim, self.len_scale, anis
+            )
         self.check_arg_bounds()
 
     @property
@@ -934,7 +961,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
     @angles.setter
     def angles(self, angles):
-        self._angles = set_angles(self.dim, angles)
+        if self.latlon:
+            self._angles = np.array(self.dim * [0], dtype=np.double)
+        else:
+            self._angles = set_angles(self.dim, angles)
         self.check_arg_bounds()
 
     @property
@@ -1100,23 +1130,7 @@ class CovModel(metaclass=InitSubclassMeta):
         """Compare CovModels."""
         if not isinstance(other, CovModel):
             return False
-        # prevent attribute error in opt_arg if the are not equal
-        if set(self.opt_arg) != set(other.opt_arg):
-            return False
-        # prevent dim error in anis and angles
-        if self.dim != other.dim:
-            return False
-        equal = True
-        equal &= self.name == other.name
-        equal &= np.isclose(self.var, other.var)
-        equal &= np.isclose(self.var_raw, other.var_raw)  # ?! needless?
-        equal &= np.isclose(self.nugget, other.nugget)
-        equal &= np.isclose(self.len_scale, other.len_scale)
-        equal &= np.all(np.isclose(self.anis, other.anis))
-        equal &= np.all(np.isclose(self.angles, other.angles))
-        for opt in self.opt_arg:
-            equal &= np.isclose(getattr(self, opt), getattr(other, opt))
-        return equal
+        return compare(self, other)
 
     def __ne__(self, other):
         """Compare CovModels."""
@@ -1128,23 +1142,4 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def __repr__(self):
         """Return String representation."""
-        opt_str = ""
-        for opt in self.opt_arg:
-            opt_str += (
-                ", " + opt + "={0:.{1}}".format(getattr(self, opt), self._prec)
-            )
-        return (
-            "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}, anis={5}, angles={6}".format(
-                self.name,
-                self.dim,
-                self.var,
-                self.len_scale,
-                self.nugget,
-                list_format(self.anis, 3),
-                list_format(self.angles, 3),
-                p=self._prec,
-            )
-            + opt_str
-            + ")"
-        )
+        return model_repr(self)
