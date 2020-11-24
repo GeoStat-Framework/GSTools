@@ -4,3 +4,4 @@ matplotlib
 pyvista
 pykrige
 meshzoo
+cartopy
