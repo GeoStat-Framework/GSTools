@@ -25,12 +25,17 @@ class TestKrige(unittest.TestCase):
                 [4.7, 3.8, 2.5, 1.74],
             ]
         )
+        # redundant data for pseudo-inverse
+        self.p_data = np.zeros((3, 3))
+        self.p_vals = np.array([1.0, 2.0, 6.0])
+        self.p_meth = [1, 2, 3]  # method selector
         # indices for the date in the grid
         self.data_idx = tuple(np.array(self.data[:, :3] * 10, dtype=int).T)
         # x, y, z componentes for the conditon position
         self.cond_pos = (self.data[:, 0], self.data[:, 1], self.data[:, 2])
         # condition values
         self.cond_val = self.data[:, 3]
+        self.cond_err = np.array([0.01, 0.0, 0.1, 0.05, 0])
         # the arithmetic mean of the conditions
         self.mean = np.mean(self.cond_val)
         # the grid
@@ -192,6 +197,53 @@ class TestKrige(unittest.TestCase):
                     self.assertAlmostEqual(
                         field_2[self.data_idx[:dim]][i], val, places=2
                     )
+
+    def test_pseudo(self):
+
+        for Model in self.cov_models:
+            for dim in self.dims:
+                model = Model(
+                    dim=dim,
+                    var=2,
+                    len_scale=10,
+                    anis=[0.5, 0.2],
+                    angles=[0.4, 0.2, 0.1],
+                )
+                for meth in self.p_meth:
+                    krig = krige.Krige(
+                        model, self.p_data[:dim], self.p_vals, unbiased=False
+                    )
+                    field, __ = krig([0, 0, 0][:dim])
+                    # with the pseudo-inverse, the estimated value
+                    # should be the mean of the 3 redundant input values
+                    self.assertAlmostEqual(
+                        field[0], np.mean(self.p_vals), places=2
+                    )
+
+    def test_error(self):
+
+        for Model in self.cov_models:
+            for dim in self.dims:
+                model = Model(
+                    dim=dim,
+                    var=5,
+                    len_scale=10,
+                    nugget=0.1,
+                    anis=[0.9, 0.8],
+                    angles=[2, 1, 0.5],
+                )
+                ordinary = krige.Ordinary(
+                    model,
+                    self.cond_pos[:dim],
+                    self.cond_val,
+                    exact=False,
+                    cond_err=self.cond_err,
+                )
+                field, err = ordinary(self.cond_pos[:dim])
+                # when the given measurement error is 0, the kriging-var
+                # should equal the nugget of the model
+                self.assertAlmostEqual(err[1], model.nugget, places=2)
+                self.assertAlmostEqual(err[4], model.nugget, places=2)
 
 
 if __name__ == "__main__":

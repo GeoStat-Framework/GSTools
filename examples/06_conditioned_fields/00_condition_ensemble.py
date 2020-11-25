@@ -18,7 +18,7 @@ gridx = np.linspace(0.0, 15.0, 151)
 ###############################################################################
 
 # spatial random field class
-model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
+model = gs.Gaussian(dim=1, var=0.5, len_scale=1.5)
 srf = gs.SRF(model)
 srf.set_condition(cond_pos, cond_val, "ordinary")
 
@@ -34,6 +34,15 @@ plt.plot(gridx, np.full_like(gridx, srf.mean), label="estimated mean")
 plt.plot(gridx, np.mean(fields, axis=0), linestyle=":", label="Ensemble mean")
 plt.plot(gridx, srf.krige_field, linestyle="dashed", label="kriged field")
 plt.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
+# 99 percent confidence interval
+conf = gs.tools.confidence_scaling(0.99)
+plt.fill_between(
+    gridx,
+    srf.krige_field - conf * np.sqrt(srf.krige_var),
+    srf.krige_field + conf * np.sqrt(srf.krige_var),
+    alpha=0.3,
+    label="99% confidence interval",
+)
 plt.legend()
 plt.show()
 

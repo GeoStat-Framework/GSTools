@@ -4,7 +4,7 @@ GStools subpackage providing different covariance models.
 
 .. currentmodule:: gstools.covmodel.models
 
-The following classes and functions are provided
+The following classes are provided
 
 .. autosummary::
    Gaussian
@@ -15,13 +15,16 @@ The following classes and functions are provided
    Linear
    Circular
    Spherical
-   Intersection
+   HyperSpherical
+   SuperSpherical
+   JBessel
 """
-# pylint: disable=C0103, E1101, E1137
+# pylint: disable=C0103, E1101, E1137, R0201
 
 import warnings
 import numpy as np
 from scipy import special as sps
+from gstools.covmodel.tools import AttributeWarning
 from gstools.covmodel import CovModel
 
 __all__ = [
@@ -33,11 +36,10 @@ __all__ = [
     "Linear",
     "Circular",
     "Spherical",
-    "Intersection",
+    "HyperSpherical",
+    "SuperSpherical",
+    "JBessel",
 ]
-
-
-# Gaussian Model ##############################################################
 
 
 class Gaussian(CovModel):
@@ -45,47 +47,47 @@ class Gaussian(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following variogram:
 
     .. math::
-       \rho(r) =
-       \exp\left(- \frac{\pi}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+       \gamma(r)=
+       \sigma^{2}
+       \left(1-\exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)\right)+n
 
+    Where the standard rescale factor is :math:`s=\frac{\sqrt{\pi}}{2}`.
     """
 
-    def correlation(self, r):
-        r"""Gaussian correlation function.
+    def cor(self, h):
+        """Gaussian normalized correlation function."""
+        return np.exp(-(h ** 2))
 
-        .. math::
-           \rho(r) =
-           \exp\left(- \frac{\pi}{4}\cdot \left(\frac{r}{\ell}\right)^2\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.exp(-np.pi / 4 * (r / self.len_scale) ** 2)
+    def default_rescale(self):
+        """Gaussian rescaling factor to result in integral scale."""
+        return np.sqrt(np.pi) / 2.0
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
-        return (self.len_scale / np.pi) ** self.dim * np.exp(
-            -(k * self.len_scale) ** 2 / np.pi
+        return (self.len_rescaled / 2.0 / np.sqrt(np.pi)) ** self.dim * np.exp(
+            -((k * self.len_rescaled / 2.0) ** 2)
         )
 
     def spectral_rad_cdf(self, r):
-        """Radial spectral cdf."""
+        """Gaussian radial spectral cdf."""
         r = np.array(r, dtype=np.double)
         if self.dim == 1:
-            return sps.erf(self.len_scale * r / np.sqrt(np.pi))
+            return sps.erf(r * self.len_rescaled / 2.0)
         if self.dim == 2:
-            return 1.0 - np.exp(-(r * self.len_scale) ** 2 / np.pi)
+            return 1.0 - np.exp(-((r * self.len_rescaled / 2.0) ** 2))
         if self.dim == 3:
             return sps.erf(
-                self.len_scale * r / np.sqrt(np.pi)
-            ) - 2 * r * self.len_scale / np.pi * np.exp(
-                -(r * self.len_scale) ** 2 / np.pi
+                r * self.len_rescaled / 2.0
+            ) - r * self.len_rescaled / np.sqrt(np.pi) * np.exp(
+                -((r * self.len_rescaled / 2.0) ** 2)
             )
-        return None
+        return None  # pragma: no cover
 
     def spectral_rad_ppf(self, u):
-        """Radial spectral ppf.
+        """Gaussian radial spectral ppf.
 
         Notes
         -----
@@ -93,20 +95,19 @@ class Gaussian(CovModel):
         """
         u = np.array(u, dtype=np.double)
         if self.dim == 1:
-            return sps.erfinv(u) * np.sqrt(np.pi) / self.len_scale
+            return 2.0 / self.len_rescaled * sps.erfinv(u)
         if self.dim == 2:
-            return np.sqrt(np.pi) / self.len_scale * np.sqrt(-np.log(1.0 - u))
-        return None
+            return 2.0 / self.len_rescaled * np.sqrt(-np.log(1.0 - u))
+        return None  # pragma: no cover
+
+    def _has_cdf(self):
+        return self.dim in [1, 2, 3]
 
     def _has_ppf(self):
-        # since the ppf is not analytical for dim=3, we have to state that
-        return False if self.dim == 3 else True
+        return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_scale
-
-
-# Exponential Model ###########################################################
+        return self.len_rescaled * np.sqrt(np.pi) / 2.0
 
 
 class Exponential(CovModel):
@@ -114,53 +115,51 @@ class Exponential(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following variogram:
 
     .. math::
-       \rho(r) =
-       \exp\left(- \frac{r}{\ell} \right)
+       \gamma(r)=
+       \sigma^{2}
+       \left(1-\exp\left(-s\cdot\frac{r}{\ell}\right)\right)+n
 
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Exponential correlation function.
-
-        .. math::
-           \rho(r) =
-           \exp\left(- \frac{r}{\ell} \right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.exp(-1 * r / self.len_scale)
+    def cor(self, h):
+        """Exponential normalized correlation function."""
+        return np.exp(-h)
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         return (
-            self.len_scale ** self.dim
-            * sps.gamma((self.dim + 1) / 2)
-            / (np.pi * (1.0 + (k * self.len_scale) ** 2))
-            ** ((self.dim + 1) / 2)
+            self.len_rescaled ** self.dim
+            * sps.gamma((self.dim + 1) / 2.0)
+            / (np.pi * (1.0 + (k * self.len_rescaled) ** 2))
+            ** ((self.dim + 1) / 2.0)
         )
 
     def spectral_rad_cdf(self, r):
-        """Radial spectral cdf."""
+        """Exponential radial spectral cdf."""
         r = np.array(r, dtype=np.double)
         if self.dim == 1:
-            return np.arctan(r * self.len_scale) * 2 / np.pi
+            return np.arctan(r * self.len_rescaled) * 2.0 / np.pi
         if self.dim == 2:
-            return 1.0 - 1 / np.sqrt(1 + (r * self.len_scale) ** 2)
+            return 1.0 - 1.0 / np.sqrt(1.0 + (r * self.len_rescaled) ** 2)
         if self.dim == 3:
             return (
                 (
-                    np.arctan(r * self.len_scale)
-                    - r * self.len_scale / (1 + (r * self.len_scale) ** 2)
+                    np.arctan(r * self.len_rescaled)
+                    - r
+                    * self.len_rescaled
+                    / (1.0 + (r * self.len_rescaled) ** 2)
                 )
-                * 2
+                * 2.0
                 / np.pi
             )
-        return None
+        return None  # pragma: no cover
 
     def spectral_rad_ppf(self, u):
-        """Radial spectral ppf.
+        """Exponential radial spectral ppf.
 
         Notes
         -----
@@ -168,7 +167,7 @@ class Exponential(CovModel):
         """
         u = np.array(u, dtype=np.double)
         if self.dim == 1:
-            return np.tan(np.pi / 2 * u) / self.len_scale
+            return np.tan(np.pi / 2 * u) / self.len_rescaled
         if self.dim == 2:
             u_power = np.divide(
                 1,
@@ -176,90 +175,17 @@ class Exponential(CovModel):
                 out=np.full_like(u, np.inf),
                 where=np.logical_not(np.isclose(u, 0)),
             )
-            return np.sqrt(u_power - 1.0) / self.len_scale
-        return None
+            return np.sqrt(u_power - 1.0) / self.len_rescaled
+        return None  # pragma: no cover
+
+    def _has_cdf(self):
+        return self.dim in [1, 2, 3]
 
     def _has_ppf(self):
-        # since the ppf is not analytical for dim=3, we have to state that
-        return False if self.dim == 3 else True
+        return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_scale
-
-
-# Rational Model ##############################################################
-
-
-class Rational(CovModel):
-    r"""The rational quadratic covariance model.
-
-    Notes
-    -----
-    This model is given by the following correlation function:
-
-    .. math::
-       \rho(r) =
-       \left(1 + \frac{1}{2\alpha} \cdot
-       \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
-
-    :math:`\alpha` is a shape parameter and should be > 0.5.
-
-    Other Parameters
-    ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
-    alpha : :class:`float`, optional
-        Shape parameter. Standard range: ``(0, inf)``
-        Default: ``1.0``
-    """
-
-    def default_opt_arg(self):
-        """Defaults for the optional arguments.
-
-            * ``{"alpha": 1.0}``
-
-        Returns
-        -------
-        :class:`dict`
-            Defaults for optional arguments
-        """
-        return {"alpha": 1.0}
-
-    def default_opt_arg_bounds(self):
-        """Defaults for boundaries of the optional arguments.
-
-            * ``{"alpha": [0.5, inf]}``
-
-        Returns
-        -------
-        :class:`dict`
-            Boundaries for optional arguments
-        """
-        return {"alpha": [0.5, np.inf]}
-
-    def correlation(self, r):
-        r"""Rational correlation function.
-
-        .. math::
-           \rho(r) =
-           \left(1 + \frac{1}{2\alpha} \cdot
-           \left(\frac{r}{\ell}\right)^2\right)^{-\alpha}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.power(
-            1 + 0.5 / self.alpha * (r / self.len_scale) ** 2, -self.alpha
-        )
-
-    def calc_integral_scale(self):  # noqa: D102
-        return (
-            self.len_scale
-            * np.sqrt(np.pi * self.alpha * 0.5)
-            * sps.gamma(self.alpha - 0.5)
-            / sps.gamma(self.alpha)
-        )
-
-
-# Stable Model ################################################################
+        return self.len_rescaled
 
 
 class Stable(CovModel):
@@ -271,14 +197,13 @@ class Stable(CovModel):
 
     .. math::
        \rho(r) =
-       \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
+       \exp\left(- \left(s\cdot\frac{r}{\ell}\right)^{\alpha}\right)
 
+    Where the standard rescale factor is :math:`s=1`.
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     alpha : :class:`float`, optional
         Shape parameter. Standard range: ``(0, 2]``
         Default: ``1.5``
@@ -320,24 +245,16 @@ class Stable(CovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "Stable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results"
+                + "count with unstable results",
+                AttributeWarning,
             )
 
-    def correlation(self, r):
-        r"""Stable correlation function.
-
-        .. math::
-           \rho(r) =
-           \exp\left(- \left(\frac{r}{\ell}\right)^{\alpha}\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        return np.exp(-np.power(r / self.len_scale, self.alpha))
+    def cor(self, h):
+        r"""Stable normalized correlation function."""
+        return np.exp(-np.power(h, self.alpha))
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_scale * sps.gamma(1.0 + 1.0 / self.alpha)
-
-
-# Matérn Model ################################################################
+        return self.len_rescaled * sps.gamma(1.0 + 1.0 / self.alpha)
 
 
 class Matern(CovModel):
@@ -350,25 +267,24 @@ class Matern(CovModel):
     .. math::
        \rho(r) =
        \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-       \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
-       \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
+       \left(\sqrt{\nu}\cdot s\cdot\frac{r}{\ell}\right)^{\nu} \cdot
+       \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot s\cdot\frac{r}{\ell}\right)
 
-    Where :math:`\Gamma` is the gamma function and :math:`\mathrm{K}_{\nu}`
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\Gamma` is the gamma function and :math:`\mathrm{K}_{\nu}`
     is the modified Bessel function of the second kind.
 
     :math:`\nu` is a shape parameter and should be >= 0.2.
 
-    If :math:`\nu > 20`, a gaussian model is used, since it is the limit
-    case:
+    If :math:`\nu > 20`, a gaussian model is used, since it represents
+    the limiting case:
 
     .. math::
        \rho(r) =
-       \exp\left(- \frac{1}{4} \cdot \left(\frac{r}{\ell}\right)^2\right)
+       \exp\left(-\left(s\cdot\frac{r}{2\ell}\right)^2\right)
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     nu : :class:`float`, optional
         Shape parameter. Standard range: ``[0.2, 30]``
         Default: ``1.0``
@@ -398,28 +314,20 @@ class Matern(CovModel):
         """
         return {"nu": [0.2, 30.0, "cc"]}
 
-    def correlation(self, r):
-        r"""Matérn correlation function.
-
-        .. math::
-           \rho(r) =
-           \frac{2^{1-\nu}}{\Gamma\left(\nu\right)} \cdot
-           \left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)^{\nu} \cdot
-           \mathrm{K}_{\nu}\left(\sqrt{\nu}\cdot\frac{r}{\ell}\right)
-        """
-        r = np.array(np.abs(r), dtype=np.double)
+    def cor(self, h):
+        """Matérn normalized correlation function."""
+        h = np.array(np.abs(h), dtype=np.double)
         # for nu > 20 we just use the gaussian model
         if self.nu > 20.0:
-            return np.exp(-(r / self.len_scale) ** 2 / 4)
+            return np.exp(-((h / 2.0) ** 2))
         # calculate by log-transformation to prevent numerical errors
-        r_gz = r[r > 0.0]
-        res = np.ones_like(r)
-        # with np.errstate(over="ignore", invalid="ignore"):
-        res[r > 0.0] = np.exp(
+        h_gz = h[h > 0.0]
+        res = np.ones_like(h)
+        res[h > 0.0] = np.exp(
             (1.0 - self.nu) * np.log(2)
             - sps.loggamma(self.nu)
-            + self.nu * np.log(np.sqrt(self.nu) * r_gz / self.len_scale)
-        ) * sps.kv(self.nu, np.sqrt(self.nu) * r_gz / self.len_scale)
+            + self.nu * np.log(np.sqrt(self.nu) * h_gz)
+        ) * sps.kv(self.nu, np.sqrt(self.nu) * h_gz)
         # if nu >> 1 we get errors for the farfield, there 0 is approached
         res[np.logical_not(np.isfinite(res))] = 0.0
         # covariance is positiv
@@ -431,20 +339,20 @@ class Matern(CovModel):
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
             return (
-                (self.len_scale / np.sqrt(np.pi)) ** self.dim
-                * np.exp(-(k * self.len_scale) ** 2)
+                (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+                * np.exp(-((k * self.len_rescaled) ** 2))
                 * (
                     1
                     + (
-                        ((k * self.len_scale) ** 2 - self.dim / 2.0) ** 2
+                        ((k * self.len_rescaled) ** 2 - self.dim / 2.0) ** 2
                         - self.dim / 2.0
                     )
                     / self.nu
                 )
             )
-        return (self.len_scale / np.sqrt(np.pi)) ** self.dim * np.exp(
+        return (self.len_rescaled / np.sqrt(np.pi)) ** self.dim * np.exp(
             -(self.nu + self.dim / 2.0)
-            * np.log(1.0 + (k * self.len_scale) ** 2 / self.nu)
+            * np.log(1.0 + (k * self.len_rescaled) ** 2 / self.nu)
             + sps.loggamma(self.nu + self.dim / 2.0)
             - sps.loggamma(self.nu)
             - self.dim * np.log(np.sqrt(self.nu))
@@ -452,11 +360,77 @@ class Matern(CovModel):
 
     def calc_integral_scale(self):  # noqa: D102
         return (
-            self.len_scale * np.pi / np.sqrt(self.nu) / sps.beta(self.nu, 0.5)
+            self.len_rescaled
+            * np.pi
+            / np.sqrt(self.nu)
+            / sps.beta(self.nu, 0.5)
         )
 
 
-# Bounded linear Model ########################################################
+class Rational(CovModel):
+    r"""The rational quadratic covariance model.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \rho(r) =
+       \left(1 + \frac{1}{\alpha} \cdot
+       \left(s\cdot\frac{r}{\ell}\right)^2\right)^{-\alpha}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\alpha` is a shape parameter and should be > 0.5.
+
+    For :math:`\alpha\to\infty` this model converges to the Gaussian model:
+
+    .. math::
+       \rho(r)=
+       \exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)
+
+    Other Parameters
+    ----------------
+    alpha : :class:`float`, optional
+        Shape parameter. Standard range: ``(0, inf)``
+        Default: ``1.0``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"alpha": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"alpha": 1.0}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"alpha": [0.5, inf]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"alpha": [0.5, np.inf]}
+
+    def cor(self, h):
+        """Rational normalized correlation function."""
+        return np.power(1 + h ** 2 / self.alpha, -self.alpha)
+
+    def calc_integral_scale(self):  # noqa: D102
+        return (
+            self.len_rescaled
+            * np.sqrt(np.pi * self.alpha)
+            * sps.gamma(self.alpha - 0.5)
+            / sps.gamma(self.alpha)
+            / 2.0
+        )
 
 
 class Linear(CovModel):
@@ -473,33 +447,20 @@ class Linear(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{r}{\ell}
-       & r<\ell\\
-       0 & r\geq\ell
+       1-s\cdot\frac{r}{\ell} & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
 
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Linear correlation function.
+    def cor(self, h):
+        """Linear normalized correlation function."""
+        return np.maximum(1 - np.abs(h, dtype=np.double), 0.0)
 
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           1-\frac{r}{\ell}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        res[r_ll] = 1.0 - r_low / self.len_scale
-        return res
-
-
-# Circular Model ##############################################################
+    def check_dim(self, dim):
+        """Linear model is only valid in 1D."""
+        return dim < 2
 
 
 class Circular(CovModel):
@@ -516,49 +477,33 @@ class Circular(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       \frac{2}{\pi}\cdot\left(
-       \cos^{-1}\left(\frac{r}{\ell}\right) -
-       \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
+       \frac{2}{\pi}\cdot
+       \left(
+       \cos^{-1}\left(s\cdot\frac{r}{\ell}\right) -
+       s\cdot\frac{r}{\ell}\cdot\sqrt{1-\left(s\cdot\frac{r}{\ell}\right)^{2}}
        \right)
-       & r<\ell\\
-       0 & r\geq\ell
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
 
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Circular correlation function.
-
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           \frac{2}{\pi}\cdot\left(
-           \cos^{-1}\left(\frac{r}{\ell}\right) -
-           \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
-           \right)
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        res[r_ll] = (
-            2
-            / np.pi
-            * (
-                np.arccos(r_low / self.len_scale)
-                - r_low
-                / self.len_scale
-                * np.sqrt(1 - (r_low / self.len_scale) ** 2)
-            )
+    def cor(self, h):
+        """Circular normalized correlation function."""
+        h = np.array(np.abs(h), dtype=np.double)
+        res = np.zeros_like(h)
+        # arccos is instable around h=1
+        h_l1 = h < 1.0
+        h_low = h[h_l1]
+        res[h_l1] = (
+            2 / np.pi * (np.arccos(h_low) - h_low * np.sqrt(1 - h_low ** 2))
         )
         return res
 
-
-# Spherical Model #############################################################
+    def check_dim(self, dim):
+        """Circular model is only valid in 1D and 2D."""
+        return dim < 3
 
 
 class Spherical(CovModel):
@@ -575,137 +520,250 @@ class Spherical(CovModel):
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{3}{2}\cdot\frac{r}{\ell} +
-       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-       & r<\ell\\
-       0 & r\geq\ell
+       1-\frac{3}{2}\cdot s\cdot\frac{r}{\ell} +
+       \frac{1}{2}\cdot\left(s\cdot\frac{r}{\ell}\right)^{3}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
 
+    Where the standard rescale factor is :math:`s=1`.
     """
 
-    def correlation(self, r):
-        r"""Spherical correlation function.
+    def cor(self, h):
+        """Spherical normalized correlation function."""
+        h = np.minimum(np.abs(h, dtype=np.double), 1.0)
+        return 1.0 - 1.5 * h + 0.5 * h ** 3
 
-        .. math::
-           \rho(r) =
-           \begin{cases}
-           1-\frac{3}{2}\cdot\frac{r}{\ell} +
-           \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-           & r<\ell\\
-           0 & r\geq\ell
-           \end{cases}
-        """
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        res[r_ll] = (
-            1.0
-            - 3.0 / 2.0 * r_low / self.len_scale
-            + 1.0 / 2.0 * (r_low / self.len_scale) ** 3
-        )
-        return res
+    def check_dim(self, dim):
+        """Spherical model is only valid in 1D, 2D and 3D."""
+        return dim < 4
 
 
-class Intersection(CovModel):
-    r"""The Intersection covariance model.
+class HyperSpherical(CovModel):
+    r"""The Hyper-Spherical covariance model.
 
     This model is derived from the relative intersection area of
-    two d-dimensional spheres,
+    two d-dimensional hyperspheres,
     where the middle points have a distance of :math:`r`
     and the diameters are given by :math:`\ell`.
 
-    In 1D this is the Linear model, in 2D this is the Circular model
-    and in 3D this is the Spherical model.
+    In 1D this is the Linear model, in 2D the Circular model
+    and in 3D the Spherical model.
 
     Notes
     -----
     This model is given by the following correlation functions.
 
-    In 1D:
-
     .. math::
        \rho(r) =
        \begin{cases}
-       1-\frac{r}{\ell}
-       & r<\ell\\
-       0 & r\geq\ell
+       1-s\cdot\frac{r}{\ell}\cdot\frac{
+       _{2}F_{1}\left(\frac{1}{2},-\frac{d-1}{2},\frac{3}{2},
+       \left(s\cdot\frac{r}{\ell}\right)^{2}\right)}
+       {_{2}F_{1}\left(\frac{1}{2},-\frac{d-1}{2},\frac{3}{2},1\right)}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
        \end{cases}
 
-    In 2D:
-
-    .. math::
-       \rho(r) =
-       \begin{cases}
-       \frac{2}{\pi}\cdot\left(
-       \cos^{-1}\left(\frac{r}{\ell}\right) -
-       \frac{r}{\ell}\cdot\sqrt{1-\left(\frac{r}{\ell}\right)^{2}}
-       \right)
-       & r<\ell\\
-       0 & r\geq\ell
-       \end{cases}
-
-    In 3D:
-
-    .. math::
-       \rho(r) =
-       \begin{cases}
-       1-\frac{3}{2}\cdot\frac{r}{\ell} +
-       \frac{1}{2}\cdot\left(\frac{r}{\ell}\right)^{3}
-       & r<\ell\\
-       0 & r\geq\ell
-       \end{cases}
-
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`d` is the dimension.
     """
 
-    def correlation(self, r):  # noqa: D102
-        r = np.array(np.abs(r), dtype=np.double)
-        res = np.zeros_like(r)
-        r_ll = r < self.len_scale
-        r_low = r[r_ll]
-        if self.dim == 1:
-            res[r_ll] = 1.0 - r_low / self.len_scale
-        elif self.dim == 2:
-            res[r_ll] = (
-                2
-                / np.pi
-                * (
-                    np.arccos(r_low / self.len_scale)
-                    - r_low
-                    / self.len_scale
-                    * np.sqrt(1 - (r_low / self.len_scale) ** 2)
-                )
-            )
-        else:
-            res[r_ll] = (
-                1.0
-                - 3.0 / 2.0 * r_low / self.len_scale
-                + 1.0 / 2.0 * (r_low / self.len_scale) ** 3
-            )
+    def cor(self, h):
+        """Hyper-Spherical normalized correlation function."""
+        h = np.array(h, dtype=np.double)
+        res = np.zeros_like(h)
+        h_l1 = h < 1
+        nu = (self.dim - 1.0) / 2.0
+        fac = 1.0 / sps.hyp2f1(0.5, -nu, 1.5, 1)
+        res[h_l1] = 1 - h[h_l1] * fac * sps.hyp2f1(0.5, -nu, 1.5, h[h_l1] ** 2)
         return res
 
     def spectral_density(self, k):  # noqa: D102
         k = np.array(k, dtype=np.double)
         res = np.empty_like(k)
-        kl = k * self.len_scale
-        kl_gz = kl > 0
-        # for k=0 we calculate the limit by hand
-        if self.dim == 1:
-            res[kl_gz] = (1.0 - np.cos(kl[kl_gz])) / (
-                np.pi * k[kl_gz] * kl[kl_gz]
+        kl = k * self.len_rescaled
+        kl_gz = np.logical_not(np.isclose(k, 0))
+        res[kl_gz] = sps.gamma(self.dim / 2 + 1) / np.sqrt(np.pi) ** self.dim
+        res[kl_gz] *= sps.jv(self.dim / 2, kl[kl_gz] / 2) ** 2
+        res[kl_gz] /= k[kl_gz] ** self.dim
+        res[np.logical_not(kl_gz)] = (
+            (self.len_rescaled / 4) ** self.dim
+            / sps.gamma(self.dim / 2 + 1)
+            / np.sqrt(np.pi) ** self.dim
+        )
+        return res
+
+
+class SuperSpherical(CovModel):
+    r"""The Super-Spherical covariance model.
+
+    This model is derived from the relative intersection area of
+    two d-dimensional hyperspheres,
+    where the middle points have a distance of :math:`r`
+    and the diameters are given by :math:`\ell`.
+    It is than valid in all lower dimensions.
+    By default it coincides with the Hyper-Spherical model.
+
+    Notes
+    -----
+    This model is given by the following correlation functions.
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       1-s\cdot\frac{r}{\ell}\cdot\frac{
+       _{2}F_{1}\left(\frac{1}{2},-\nu,\frac{3}{2},
+       \left(s\cdot\frac{r}{\ell}\right)^{2}\right)}
+       {_{2}F_{1}\left(\frac{1}{2},-\nu,\frac{3}{2},1\right)}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\nu\geq\frac{d-1}{2}` is a shape parameter.
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[(dim-1)/2, inf)``
+        Default: ``(dim-1)/2``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": (dim-1)/2}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": (self.dim - 1) / 2}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [(dim-1)/2, inf, "co"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [(self.dim - 1) / 2, np.inf, "co"]}
+
+    def cor(self, h):
+        """Super-Spherical normalized correlation function."""
+        h = np.array(h, dtype=np.double)
+        res = np.zeros_like(h)
+        h_l1 = h < 1
+        fac = 1.0 / sps.hyp2f1(0.5, -self.nu, 1.5, 1.0)
+        res[h_l1] = 1.0 - h[h_l1] * fac * sps.hyp2f1(
+            0.5, -self.nu, 1.5, h[h_l1] ** 2
+        )
+        return res
+
+
+class JBessel(CovModel):
+    r"""The J-Bessel hole model.
+
+    This covariance model is a valid hole model, meaning it has areas
+    of negative correlation but a valid spectral density.
+
+    Notes
+    -----
+    This model is given by the following correlation functions.
+
+    .. math::
+       \rho(r) =
+       \Gamma(\nu+1) \cdot
+       \frac{\mathrm{J}_{\nu}\left(s\cdot\frac{r}{\ell}\right)}
+       {\left(s\cdot\frac{r}{2\ell}\right)^{\nu}}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\Gamma` is the gamma function and :math:`\mathrm{J}_{\nu}`
+    is the Bessel functions of the first kind.
+    :math:`\nu\geq\frac{d}{2}-1` is a shape parameter,
+    which defaults to :math:`\nu=\frac{d}{2}`,
+    since the spectrum of the model gets instable for
+    :math:`\nu\to\frac{d}{2}-1`.
+
+    For :math:`\nu=\frac{1}{2}` (valid in d=1,2,3)
+    we get the so-called 'Wave' model:
+
+    .. math::
+       \rho(r) =
+       \frac{\sin\left(s\cdot\frac{r}{\ell}\right)}{s\cdot\frac{r}{\ell}}
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[dim/2 - 1, inf)``
+        Default: ``dim/2``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": dim/2}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": self.dim / 2}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [self.dim / 2 - 1, np.inf, "co"]}
+
+    def check_opt_arg(self):
+        """Check the optional arguments.
+
+        Warns
+        -----
+        nu
+            If nu is close to dim/2 - 1, the model tends to get unstable.
+        """
+        if abs(self.nu - self.dim / 2 + 1) < 0.01:
+            warnings.warn(
+                "JBessel: parameter 'nu' is close to d/2-1, "
+                + "count with unstable results",
+                AttributeWarning,
             )
-            res[np.logical_not(kl_gz)] = self.len_scale / 2.0 / np.pi
-        elif self.dim == 2:
-            res[kl_gz] = sps.j1(kl[kl_gz] / 2.0) ** 2 / np.pi / k[kl_gz] ** 2
-            res[np.logical_not(kl_gz)] = self.len_scale ** 2 / 16.0 / np.pi
-        else:
-            res[kl_gz] = -(
-                12 * kl[kl_gz] * np.sin(kl[kl_gz])
-                + (12 - 3 * kl[kl_gz] ** 2) * np.cos(kl[kl_gz])
-                - 3 * kl[kl_gz] ** 2
-                - 12
-            ) / (2 * np.pi ** 2 * kl[kl_gz] ** 3 * k[kl_gz] ** 3)
-            res[np.logical_not(kl_gz)] = (
-                self.len_scale ** 3 / 48.0 / np.pi ** 2
-            )
+
+    def cor(self, h):
+        """J-Bessel correlation."""
+        h = np.array(h, dtype=np.double)
+        h_gz = np.logical_not(np.isclose(h, 0))
+        hh = h[h_gz]
+        res = np.ones_like(h)
+        nu = self.nu
+        res[h_gz] = sps.gamma(nu + 1) * sps.jv(nu, hh) / (hh / 2.0) ** nu
+        return res
+
+    def spectral_density(self, k):  # noqa: D102
+        k = np.array(k, dtype=np.double)
+        k_ll = k < 1.0 / self.len_rescaled
+        kk = k[k_ll]
+        res = np.zeros_like(k)
+        # the model is degenerated for nu=d/2-1, so we tweak the spectral pdf
+        # and cut of the divisor at nu-(d/2-1)=0.01 (gamma(0.01) about 100)
+        res[k_ll] = (
+            (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+            * sps.gamma(self.nu + 1.0)
+            / np.minimum(sps.gamma(self.nu - self.dim / 2 + 1), 100.0)
+            * (1.0 - (kk * self.len_rescaled) ** 2) ** (self.nu - self.dim / 2)
+        )
         return res

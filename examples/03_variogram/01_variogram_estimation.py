@@ -146,7 +146,7 @@ plt.show()
 
 
 bins = np.linspace(0, 10, 50)
-bin_center, gamma = gs.vario_estimate_unstructured(
+bin_center, gamma = gs.vario_estimate(
     (x_u, y_u),
     herten_log_trans.reshape(-1),
     bins,
@@ -209,8 +209,8 @@ herten_trans_skip = herten_log_trans[::10, ::10]
 # With this much smaller data set, we can immediately estimate the variogram in
 # the x- and y-axis
 
-gamma_x = gs.vario_estimate_structured(herten_trans_skip, direction="x")
-gamma_y = gs.vario_estimate_structured(herten_trans_skip, direction="y")
+gamma_x = gs.vario_estimate_axis(herten_trans_skip, direction="x")
+gamma_y = gs.vario_estimate_axis(herten_trans_skip, direction="y")
 
 ###############################################################################
 # With these two estimated variograms, we can start fitting :any:`Exponential`
@@ -230,7 +230,7 @@ fit_model_y.fit_variogram(y_plot, gamma_y[:21], nugget=False)
 # dashed lines.
 
 plt.figure()  # new figure
-line, = plt.plot(bin_center, gamma, label="estimated variogram (isotropic)")
+(line,) = plt.plot(bin_center, gamma, label="estimated variogram (isotropic)")
 plt.plot(
     bin_center,
     fit_model.variogram(bin_center),
@@ -239,7 +239,7 @@ plt.plot(
     label="exp. variogram (isotropic)",
 )
 
-line, = plt.plot(x_plot, gamma_x[:21], label="estimated variogram in x-dir")
+(line,) = plt.plot(x_plot, gamma_x[:21], label="estimated variogram in x-dir")
 plt.plot(
     x_plot,
     fit_model_x.variogram(x_plot),
@@ -248,7 +248,7 @@ plt.plot(
     label="exp. variogram in x-dir",
 )
 
-line, = plt.plot(y_plot, gamma_y[:21], label="estimated variogram in y-dir")
+(line,) = plt.plot(y_plot, gamma_y[:21], label="estimated variogram in y-dir")
 plt.plot(
     y_plot,
     fit_model_y.variogram(y_plot),

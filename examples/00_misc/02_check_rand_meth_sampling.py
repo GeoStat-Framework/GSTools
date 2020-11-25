@@ -58,7 +58,7 @@ def plot_rand_meth_samples(generator):
     ax.set_xlim([0, np.max(x)])
     ax.set_title("Radius samples shown {}/{}".format(sample_in, len(rad)))
     ax.legend()
-    fig.show()
+    plt.show()
 
 
 model = gs.Stable(dim=3, alpha=1.5)
