@@ -293,7 +293,8 @@ def vario_estimate(
     cython_estimator = _set_estimator(estimator)
     # run
     if dir_no == 0:
-        distance_type = "s" if latlon else "e"
+        # "h"aversine or "e"uclidean distance type
+        distance_type = "h" if latlon else "e"
         estimates, counts = unstructured(
             dim,
             field,
