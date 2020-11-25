@@ -54,4 +54,4 @@ print(model)
 #    which means it depends on the great-circle distance.
 #
 #    Keep that in mind when defining bins: The range is at most
-#    :math:`\pi\approx 3.14`.
+#    :math:`\pi\approx 3.14`, which corresponds to the half globe.

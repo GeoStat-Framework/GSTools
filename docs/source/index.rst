@@ -97,7 +97,7 @@ showing the most important use cases of GSTools, which are
 - `Kriging <examples/05_kriging/index.html>`__
 - `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
 - `Field transformations <examples/07_transformations/index.html>`__
-- `Field transformations <examples/08_geo_coordinates/index.html>`__
+- `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.
