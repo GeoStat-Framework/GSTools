@@ -63,9 +63,5 @@ when using the `Yadrenko` model.
    be 3 (see :any:`CovModel.dim`) but the `plot_dim` will be 2 in this case
    (see :any:`CovModel.plot_dim`).
 
-.. only:: html
-
-   Gallery
-   -------
-
-   Below is a gallery of examples
+Examples
+--------

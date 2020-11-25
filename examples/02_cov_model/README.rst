@@ -82,9 +82,5 @@ As a special feature, we also provide truncated power law (TPL) covariance model
 These models provide a lower and upper length scale truncation
 for superpositioned models.
 
-.. only:: html
-
-   Gallery
-   -------
-
-   Below is a gallery of examples
+Examples
+--------

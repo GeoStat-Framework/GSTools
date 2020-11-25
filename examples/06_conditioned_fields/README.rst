@@ -30,9 +30,5 @@ or:
 
     srf.set_condition(cond_pos, cond_val, "ordinary")
 
-.. only:: html
-
-   Gallery
-   -------
-
-   Below is a gallery of examples
+Examples
+--------
