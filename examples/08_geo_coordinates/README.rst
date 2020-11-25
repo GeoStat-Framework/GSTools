@@ -60,8 +60,8 @@ when using the `Yadrenko` model.
    or :any:`CovModel.angles`, they will be ignored.
 
    Since the Yadrenko model comes from a 3D model, the model dimension will
-   be 3 (see :any:`CovModel.dim`) but the `plot_dim` will be 2 in this case
-   (see :any:`CovModel.plot_dim`).
+   be 3 (see :any:`CovModel.dim`) but the `field_dim` will be 2 in this case
+   (see :any:`CovModel.field_dim`).
 
 Examples
 --------

@@ -181,7 +181,7 @@ class Field:
         """
         # save mesh-type
         self.mesh_type = mesh_type
-        dim = 2 if self.model.latlon else self.model.dim
+        dim = self.model.field_dim
         # save pos tuple
         if mesh_type != "unstructured":
             pos, shape = format_struct_pos_dim(pos, dim)

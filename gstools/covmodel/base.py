@@ -531,8 +531,7 @@ class CovModel(metaclass=InitSubclassMeta):
 
     def isometrize(self, pos):
         """Make a position tuple ready for isotropic operations."""
-        dim = 2 if self.latlon else self.dim
-        pos = np.array(pos, dtype=np.double).reshape((dim, -1))
+        pos = np.array(pos, dtype=np.double).reshape((self.field_dim, -1))
         if self.latlon:
             return latlon2pos(pos)
         return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
@@ -867,8 +866,8 @@ class CovModel(metaclass=InitSubclassMeta):
         return self._latlon
 
     @property
-    def plot_dim(self):
-        """:class:`int`: The plotting dimension of the model."""
+    def field_dim(self):
+        """:class:`int`: The field dimension of the model."""
         return 2 if self.latlon else self.dim
 
     # standard parameters
