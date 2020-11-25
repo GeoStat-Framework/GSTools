@@ -81,6 +81,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Kriging][tut5_link]
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
+- [Geographic Coordinates][tut8_link]
 - [Miscellaneous examples][tut0_link]
 
 The associated python scripts are provided in the `examples` folder.
@@ -112,23 +113,47 @@ srf.plot()
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
+GSTools also provides support for [geographic coordinates](https://en.wikipedia.org/wiki/Geographic_coordinate_system).
+This works perfectly well with [cartopy](https://scitools.org.uk/cartopy/docs/latest/index.html).
+
+```python
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import gstools as gs
+# define a structured field by latitude and longitude
+lat = lon = range(-80, 81)
+model = gs.Gaussian(latlon=True, len_scale=777, rescale=gs.EARTH_RADIUS)
+srf = gs.SRF(model, seed=12345)
+field = srf.structured((lat, lon))
+# Orthographic plotting with cartopy
+ax = plt.subplot(projection=ccrs.Orthographic(-45, 45))
+cont = ax.contourf(lon, lat, field, transform=ccrs.PlateCarree())
+ax.coastlines()
+ax.set_global()
+plt.colorbar(cont)
+```
+
+<p align="center">
+<img src="https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_globe.png" alt="lat-lon random field" width="600px"/>
+</p>
+
 A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/) or [PyVista](https://docs.pyvista.org) in Python:
 
 ```python
 import gstools as gs
 # structured field with a size 100x100x100 and a grid-size of 1x1x1
 x = y = z = range(100)
-model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
+model = gs.Gaussian(dim=3, len_scale=[16, 8, 4], angles=(0.8, 0.4, 0.2))
 srf = gs.SRF(model)
 srf((x, y, z), mesh_type='structured')
 srf.vtk_export('3d_field') # Save to a VTK file for ParaView
 
 mesh = srf.to_pyvista() # Create a PyVista mesh for plotting in Python
-mesh.threshold_percent(0.5).plot()
+mesh.contour(isosurfaces=8).plot()
 ```
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png" alt="3d Random field" width="600px"/>
+<img src="https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista.png" alt="3d Random field" width="600px"/>
 </p>
 
 
@@ -335,6 +360,7 @@ You can contact us via <info@geostat-framework.org>.
 [tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/05_kriging/index.html
 [tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/06_conditioned_fields/index.html
 [tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
+[tut8_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/08_geo_coordinates/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/

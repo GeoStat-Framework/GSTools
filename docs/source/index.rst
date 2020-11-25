@@ -97,6 +97,7 @@ showing the most important use cases of GSTools, which are
 - `Kriging <examples/05_kriging/index.html>`__
 - `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
 - `Field transformations <examples/07_transformations/index.html>`__
+- `Field transformations <examples/08_geo_coordinates/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.
@@ -133,6 +134,30 @@ with a :any:`Gaussian` covariance model.
    :width: 400px
    :align: center
 
+GSTools also provides support for `geographic coordinates <https://en.wikipedia.org/wiki/Geographic_coordinate_system>`_.
+This works perfectly well with `cartopy <https://scitools.org.uk/cartopy/docs/latest/index.html>`_.
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+    import cartopy.crs as ccrs
+    import gstools as gs
+    # define a structured field by latitude and longitude
+    lat = lon = range(-80, 81)
+    model = gs.Gaussian(latlon=True, len_scale=777, rescale=gs.EARTH_RADIUS)
+    srf = gs.SRF(model, seed=12345)
+    field = srf.structured((lat, lon))
+    # Orthographic plotting with cartopy
+    ax = plt.subplot(projection=ccrs.Orthographic(-45, 45))
+    cont = ax.contourf(lon, lat, field, transform=ccrs.PlateCarree())
+    ax.coastlines()
+    ax.set_global()
+    plt.colorbar(cont)
+
+.. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_globe.png
+   :width: 400px
+   :align: center
+
 A similar example but for a three dimensional field is exported to a
 `VTK <https://vtk.org/>`__ file, which can be visualized with
 `ParaView <https://www.paraview.org/>`_ or
@@ -143,15 +168,15 @@ A similar example but for a three dimensional field is exported to a
     import gstools as gs
     # structured field with a size 100x100x100 and a grid-size of 1x1x1
     x = y = z = range(100)
-    model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
+    model = gs.Gaussian(dim=3, len_scale=[16, 8, 4], angles=(0.8, 0.4, 0.2))
     srf = gs.SRF(model)
     srf((x, y, z), mesh_type='structured')
     srf.vtk_export('3d_field') # Save to a VTK file for ParaView
 
     mesh = srf.to_pyvista() # Create a PyVista mesh for plotting in Python
-    mesh.threshold_percent(0.5).plot()
+    mesh.contour(isosurfaces=8).plot()
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
+.. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista.png
    :width: 400px
    :align: center
 
