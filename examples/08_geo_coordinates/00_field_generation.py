@@ -14,7 +14,6 @@ to have a meaningful length scale in km.
 To generate the field, we simply pass ``(lat, lon)`` as position tuple
 to the :any:`SRF` class.
 """
-# sphinx_gallery_thumbnail_number = 3
 import gstools as gs
 
 model = gs.Gaussian(latlon=True, var=1, len_scale=777, rescale=gs.EARTH_RADIUS)
@@ -49,15 +48,10 @@ ax.scatter(bin_center, emp_vario, color="k")
 print(model)
 
 ###############################################################################
-# The resulting field can also be easily visualized with the aid of
-# `cartopy <https://scitools.org.uk/cartopy/docs/latest/index.html>`_.
-
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-
-fig, ax = plt.subplots(subplot_kw={"projection": ccrs.Orthographic(-45, 45)})
-cont = ax.contourf(lon, lat, field, transform=ccrs.PlateCarree())
-ax.set_title("lat-lon random field generated with GSTools")
-ax.coastlines()
-ax.set_global()
-fig.colorbar(cont)
+# .. note::
+#
+#    Note, that the estimated variogram coincides with the yadrenko variogram,
+#    which means it depends on the great-circle distance.
+#
+#    Keep that in mind when defining bins: The range is at most
+#    :math:`\pi\approx 3.14`.
