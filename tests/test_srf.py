@@ -13,6 +13,7 @@ import meshio
 HAS_PYVISTA = False
 try:
     import pyvista as pv
+
     HAS_PYVISTA = True
 except ImportError:
     pass
@@ -237,7 +238,6 @@ class TestSRF(unittest.TestCase):
         field2 = srf.structured((self.x_tuple, self.y_tuple), seed=self.seed)
         self.assertAlmostEqual(field[0, 0], srf.field[0, 0])
         self.assertAlmostEqual(field[0, 0], field2[0, 0])
-
 
     @unittest.skipIf(not HAS_PYVISTA, "PyVista is not installed")
     def test_mesh_pyvista(self):
