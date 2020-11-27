@@ -38,7 +38,7 @@ jobs:
       - name: Build
         run: |
           python setup.py sdist -d dist
-          python setup.py --openmp build_exty --inplace
+          python setup.py --openmp build_ext --inplace
 
       - name: Run tests
         run: |
