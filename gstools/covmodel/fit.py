@@ -328,7 +328,7 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
                 _init_guess(
                     bounds=[low_bounds[-1], top_bounds[-1]],
                     current=getattr(model, par),
-                    default=1.0,
+                    default=model.rescale if par == "len_scale" else 1.0,
                     typ=init_guess,
                     para_name=par,
                 )
