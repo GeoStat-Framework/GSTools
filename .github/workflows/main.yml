@@ -1,11 +1,6 @@
 name: Continuous Integration
 
-on:
-  # TODO
-  push:
-    branches: [master, develop]
-  pull_request:
-    branches: [master, develop]
+on: [push, pull_request]
 
 env:
   # needed by coveralls
@@ -22,6 +17,8 @@ jobs:
   build_wheels:
     name: wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
+    # only run on internal push's or external PRs, not on internal PRs
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -50,6 +47,8 @@ jobs:
   build_sdist:
     name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
     runs-on: ${{matrix.os}}
+    # only run on internal push's or external PRs, not on internal PRs
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +87,8 @@ jobs:
   upload_to_pypi:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    # only run on internal push's or external PRs, not on internal PRs
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
 
     steps:
       - uses: actions/download-artifact@v2
