@@ -41,6 +41,7 @@ jobs:
           pip install -r requirements_setup.txt
           pip install -r requirements.txt
           pip install -r requirements_test.txt
+          echo PYVERSION WITHOUT DOT ${{ matrix.python-version//./ }}
 
       - name: Build wheels
         run: python -m cibuildwheel --output-dir dist
