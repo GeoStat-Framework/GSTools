@@ -8,6 +8,7 @@ on:
     branches: [master, develop]
 
 env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   CIBW_BUILD: "cp37-* cp38-*"
   CIBW_BEFORE_BUILD: "pip install numpy==1.17.3 cython>=0.29.14 setuptools"
   CIBW_TEST_REQUIRES: pytest
@@ -100,7 +101,8 @@ jobs:
 
       - name: Publish to Test PyPI
         # only if working on develop
-        if: github.ref == 'refs/head/develop'
+        # TODO change from master to develop
+        if: github.ref == 'refs/head/master'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
