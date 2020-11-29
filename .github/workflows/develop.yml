@@ -19,7 +19,7 @@ env:
 
 jobs:
   build_wheels:
-    name: Wheels on ${{matrix.os}}
+    name: wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
     strategy:
       # TODO set to false
@@ -101,5 +101,5 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
-          password: ${{ secrets.pypi_password }}
+          password: ${{ secrets.test_pypi_password }}
           repository_url: https://test.pypi.org/legacy/
