@@ -1,8 +1,7 @@
 name: Development
 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
-  # TODO remove master
+  # TODO
   push:
     branches: [master, develop]
   pull_request:
@@ -83,6 +82,7 @@ jobs:
       - name: Run tests
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
+          python -m coveralls
 
       - uses: actions/upload-artifact@v2
         with:
@@ -107,6 +107,7 @@ jobs:
           password: ${{ secrets.test_pypi_password }}
           repository_url: https://test.pypi.org/legacy/
           skip_existing: true
+
       - name: Publish to PyPI
         # only if tagged
         if: startsWith(github.ref, 'refs/tags')
