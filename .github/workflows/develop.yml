@@ -1,7 +1,8 @@
-name: Testing
+name: Development
 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
+  # TODO remove master
   push:
     branches: [master, develop]
   pull_request:
@@ -11,10 +12,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  build_and_test:
     name: ${{matrix.os}} with py ${{ matrix.python-version }}
     runs-on: ${{matrix.os}}
     strategy:
+      # TODO set to false
+      fail-fast: true
       matrix:
         #os: [ubuntu-latest, windows-latest, macos-latest]
         os: [ubuntu-latest, windows-latest]
@@ -36,7 +39,14 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements_test.txt
 
-      - name: Build
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir dist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: .dist/*.whl
+
+      - name: Build sdist
         run: |
           python setup.py sdist -d dist
           python setup.py --openmp build_ext --inplace
