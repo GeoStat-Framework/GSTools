@@ -19,7 +19,7 @@ env:
 
 jobs:
   build_wheels:
-    name: ${{matrix.os}}
+    name: Wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
     strategy:
       # TODO set to false
@@ -49,7 +49,7 @@ jobs:
           path: .dist/*.whl
 
   build_sdist:
-    name: ${{matrix.os}} with py ${{ matrix.python-version }}
+    name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
     runs-on: ${{matrix.os}}
     strategy:
       # TODO set to false
@@ -83,3 +83,7 @@ jobs:
       - name: Run tests
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
