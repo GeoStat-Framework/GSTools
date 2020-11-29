@@ -1,4 +1,4 @@
-name: Development
+name: Continuous Integration
 
 on:
   # TODO
@@ -8,10 +8,11 @@ on:
     branches: [master, develop]
 
 env:
+  # needed by coveralls
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  CIBW_BUILD: "cp37-* cp38-*"
+  CIBW_BUILD: "cp35-* cp36-* cp37-* cp38-*"
   CIBW_BEFORE_BUILD: "pip install numpy==1.17.3 cython>=0.29.14 setuptools"
-  CIBW_TEST_REQUIRES: pytest
+  CIBW_TEST_REQUIRES: "pytest"
   CIBW_TEST_COMMAND: "pytest -v {project}/tests"
 
   # Allows you to run this workflow manually from the Actions tab
@@ -22,11 +23,9 @@ jobs:
     name: wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
     strategy:
-      # TODO set to false
-      fail-fast: true
+      fail-fast: false
       matrix:
-        #os: [ubuntu-latest, windows-latest, macos-latest]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v2
@@ -52,13 +51,10 @@ jobs:
     name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
     runs-on: ${{matrix.os}}
     strategy:
-      # TODO set to false
-      fail-fast: true
+      fail-fast: false
       matrix:
-        #os: [ubuntu-latest, windows-latest, macos-latest]
-        os: [ubuntu-latest, windows-latest]
-        #python-version: [3.5, 3.6, 3.7, 3.8]
-        python-version: [3.7, 3.8]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.5, 3.6, 3.7, 3.8]
 
     steps:
       - uses: actions/checkout@v2
