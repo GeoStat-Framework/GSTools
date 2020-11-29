@@ -10,7 +10,7 @@ on:
 
 env:
   CIBW_BUILD: "cp37-*"
-  CIBW_BEFORE_BUILD: pip install cython>=0.28.3
+  CIBW_BEFORE_BUILD: pip install cython>=0.28.3, numpy>=1.14.5
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
