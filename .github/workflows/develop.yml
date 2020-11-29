@@ -9,14 +9,15 @@ on:
     branches: [master, develop]
 
 env:
-  CIBW_BUILD: "cp37-* cp38-*"
+  CIBW_BUILD: "cp37-*"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   build_and_test:
-    name: ${{matrix.os}} with py ${{ matrix.python-version }}
+    #name: ${{matrix.os}} with py ${{ matrix.python-version }}
+    name: ${{matrix.os}} with py 3.7
     runs-on: ${{matrix.os}}
     strategy:
       # TODO set to false
@@ -25,15 +26,17 @@ jobs:
         #os: [ubuntu-latest, windows-latest, macos-latest]
         os: [ubuntu-latest, windows-latest]
         #python-version: [3.5, 3.6, 3.7, 3.8]
-        python-version: [3.7, 3.8]
+        #python-version: [3.7, 3.8]
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      #- name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.7
         uses: actions\setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          #python-version: ${{ matrix.python-version }}
+          python-version: "3.7"
 
       - name: Install dependencies
         run: |
@@ -41,10 +44,11 @@ jobs:
           pip install -r requirements_setup.txt
           pip install -r requirements.txt
           pip install -r requirements_test.txt
-          echo PYVERSION WITHOUT DOT ${{ matrix.python-version//./ }}
 
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir dist
+        run: |
+          pip install cython>=0.28.3
+          python -m cibuildwheel --output-dir dist
 
       - uses: actions/upload-artifact@v2
         with:
