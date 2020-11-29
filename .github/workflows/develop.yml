@@ -1,21 +1,24 @@
-name: Build and upload to PyPI
+# Automatically build binary wheels and source packages.
+name: cibuildwheel
 
 # Build on every branch push, tag push, and pull request change:
 on: [push, pull_request]
-# Alternatively, to publish when a (published) GitHub Release is created, use the following:
-# on:
-#   push:
-#   pull_request:
-#   release:
-#     types:
-#       - published
 
+# Do not build Python <=2.7, <=3.5, or PyPy.
+# Install Linux and MacOS required libraries / tools.
+env:
+  CIBW_SKIP: "cp27-* cp35-* pp*"
+  CIBW_TEST_REQUIRES: pytest
+  CIBW_TEST_COMMAND: "pytest {project}"
+  
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        #os: [ubuntu-18.04, windows-latest, macos-latest]
         os: [ubuntu-18.04, windows-latest]
 
     steps:
@@ -26,21 +29,16 @@ jobs:
         with:
           python-version: '3.7'
 
-      - name: Install cibuildwheel
+      - name: Install cibuildwheel & build wheels
         run: |
-          python -m pip install cibuildwheel==1.7.0
-      - name: Install Visual C++ for Python 2.7
-        if: runner.os == 'Windows'
-        run: |
-          choco install vcpython27 -f -y
-      - name: Build wheels
-        run: |
+          python -m pip --disable-pip-version-check install cibuildwheel==1.6.1
           python -m cibuildwheel --output-dir wheelhouse
+        
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
 
-  build_sdist:
+  build_sdist_and_test:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
@@ -51,20 +49,19 @@ jobs:
         with:
           python-version: '3.7'
 
-      - name: Build sdist
-        run: python setup.py sdist
-
+      - name: Build sdist and run tests
+        run: |
+          python -m pip --disable-pip-version-check install -r requirements.txt
+          invoke test coverage
       - uses: actions/upload-artifact@v2
         with:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [build_wheels, build_sdist_and_test]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-    # alternatively, to publish when a GitHub Release is created, use the following rule:
-    # if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -75,4 +72,3 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.pypi_password }}
-          repository_url: https://test.pypi.org/legacy/
