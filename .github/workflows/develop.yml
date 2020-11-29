@@ -32,6 +32,7 @@ jobs:
       - name: Install cibuildwheel & build wheels
         run: |
           python -m pip --disable-pip-version-check install cibuildwheel==1.6.1
+          python -m pip install cython>=0.28.3
           python -m cibuildwheel --output-dir wheelhouse
         
       - uses: actions/upload-artifact@v2
