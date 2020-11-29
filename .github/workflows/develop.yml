@@ -46,7 +46,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          path: .dist/*.whl
+          path: ./dist/*.whl
 
   build_sdist:
     name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
