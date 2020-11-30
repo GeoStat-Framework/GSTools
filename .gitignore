@@ -111,6 +111,8 @@ info/
 *.c
 *.cpp
 
+# generated version file
+gstools/_version.py
 
 # generated docs
 docs/source/examples/

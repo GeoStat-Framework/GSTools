@@ -14,23 +14,18 @@ The following classes are provided
 from functools import partial
 
 import numpy as np
+import meshio
 
 from gstools.covmodel.base import CovModel
+from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
 from gstools.tools.export import to_vtk, vtk_export
-from gstools.field.tools import (
-    _get_select,
-    check_mesh,
-    make_isotropic,
-    unrotate_mesh,
-    reshape_axis_from_struct_to_unstruct,
-)
-from gstools.tools.geometric import pos2xyz, xyz2pos
+
 
 __all__ = ["Field"]
 
 
 class Field:
-    """A field base class for random and kriging fields ect.
+    """A base class for random fields, kriging fields, etc.
 
     Parameters
     ----------
@@ -73,8 +68,8 @@ class Field:
         return call(*args, **kwargs)
 
     def mesh(
-        self, mesh, points="centroids", direction="xyz", name="field", **kwargs
-    ):  # pragma: no cover
+        self, mesh, points="centroids", direction="all", name="field", **kwargs
+    ):
         """Generate a field on a given meshio or ogs5py mesh.
 
         Parameters
@@ -87,11 +82,12 @@ class Field:
             (calculated as mean of the cell vertices) or the "points"
             of the given mesh.
             Default: "centroids"
-        direction : :class:`str`, optional
+        direction : :class:`str` or :class:`list`, optional
             Here you can state which direction should be choosen for
             lower dimension. For example, if you got a 2D mesh in xz direction,
-            you have to pass "xz"
-            Default: "xyz"
+            you have to pass "xz". By default, all directions are used.
+            One can also pass a list of indices.
+            Default: "all"
         name : :class:`str`, optional
             Name to store the field in the given mesh as point_data or
             cell_data. Default: "field"
@@ -107,7 +103,12 @@ class Field:
 
         See: :any:`Field.__call__`
         """
-        select = _get_select(direction)
+        if isinstance(direction, str) and direction == "all":
+            select = list(range(self.model.dim))
+        elif isinstance(direction, str):
+            select = _get_select(direction)[: self.model.dim]
+        else:
+            select = direction[: self.model.dim]
         if len(select) < self.model.dim:
             raise ValueError(
                 "Field.mesh: need at least {} direction(s), got '{}'".format(
@@ -120,15 +121,17 @@ class Field:
             else:
                 pnts = mesh.NODES.T[select]
             out = self.unstructured(pos=pnts, **kwargs)
-        else:
+        elif isinstance(mesh, meshio.Mesh):
             if points == "centroids":
                 # define unique order of cells
-                cells = list(mesh.cells)
                 offset = []
                 length = []
-                pnts = np.empty((0, 3), dtype=np.double)
-                for cell in cells:
-                    pnt = np.mean(mesh.points[mesh.cells[cell]], axis=1)
+                mesh_dim = mesh.points.shape[1]
+                if mesh_dim < self.model.dim:
+                    raise ValueError("Field.mesh: mesh dimension too low!")
+                pnts = np.empty((0, mesh_dim), dtype=np.double)
+                for cell in mesh.cells:
+                    pnt = np.mean(mesh.points[cell[1]], axis=1)
                     offset.append(pnts.shape[0])
                     length.append(pnt.shape[0])
                     pnts = np.vstack((pnts, pnt))
@@ -140,10 +143,10 @@ class Field:
                 else:
                     # if multiple values are returned, take the first one
                     field = out[0]
-                field_dict = {}
-                for i, cell in enumerate(cells):
-                    field_dict[cell] = field[offset[i] : offset[i] + length[i]]
-                mesh.cell_data[name] = field_dict
+                field_list = []
+                for i in range(len(offset)):
+                    field_list.append(field[offset[i] : offset[i] + length[i]])
+                mesh.cell_data[name] = field_list
             else:
                 out = self.unstructured(pos=mesh.points.T[select], **kwargs)
                 if isinstance(out, np.ndarray):
@@ -152,9 +155,11 @@ class Field:
                     # if multiple values are returned, take the first one
                     field = out[0]
                 mesh.point_data[name] = field
+        else:
+            raise ValueError("Field.mesh: Unknown mesh format!")
         return out
 
-    def _pre_pos(self, pos, mesh_type="unstructured", make_unstruct=False):
+    def pre_pos(self, pos, mesh_type="unstructured"):
         """
         Preprocessing positions and mesh_type.
 
@@ -163,48 +168,33 @@ class Field:
         pos : :any:`iterable`
             the position tuple, containing main direction and transversal
             directions
-        mesh_type : :class:`str`
+        mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
-        make_unstruct: :class:`bool`
-            State if mesh_type should be made unstructured.
+            Default: `"unstructured"`
 
         Returns
         -------
-        x : :class:`numpy.ndarray`
-            first components of unrotated and isotropic position vectors
-        y : :class:`numpy.ndarray` or None
-            analog to x
-        z : :class:`numpy.ndarray` or None
-            analog to x
-        pos : :class:`tuple` of :class:`numpy.ndarray`
-            the normalized position tuple
-        mesh_type_gen : :class:`str`
-            'structured' / 'unstructured' for the generator
-        mesh_type_changed : :class:`bool`
-            State if the mesh_type was changed.
-        axis_lens : :class:`tuple` or :any:`None`
-            axis lengths of the structured mesh if mesh type was changed.
+        iso_pos : (d, n), :class:`numpy.ndarray`
+            the isometrized position tuple
+        shape : :class:`tuple`
+            Shape of the resulting field.
         """
-        x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-        pos = xyz2pos(x, y, z)
-        mesh_type_gen = mesh_type
-        # format the positional arguments of the mesh
-        check_mesh(self.model.dim, x, y, z, mesh_type)
-        mesh_type_changed = False
-        axis_lens = None
-        if (
-            self.model.do_rotation or make_unstruct
-        ) and mesh_type == "structured":
-            mesh_type_changed = True
-            mesh_type_gen = "unstructured"
-            x, y, z, axis_lens = reshape_axis_from_struct_to_unstruct(
-                self.model.dim, x, y, z
-            )
-        if self.model.do_rotation:
-            x, y, z = unrotate_mesh(self.model.dim, self.model.angles, x, y, z)
-        if not self.model.is_isotropic:
-            y, z = make_isotropic(self.model.dim, self.model.anis, y, z)
-        return x, y, z, pos, mesh_type_gen, mesh_type_changed, axis_lens
+        # save mesh-type
+        self.mesh_type = mesh_type
+        # save pos tuple
+        if mesh_type != "unstructured":
+            pos, shape = format_struct_pos_dim(pos, self.model.dim)
+            self.pos = pos
+            pos = gen_mesh(pos)
+        else:
+            pos = np.array(pos, dtype=np.double).reshape(self.model.dim, -1)
+            self.pos = pos
+            shape = np.shape(pos[0])
+        # prepend dimension if we have a vector field
+        if self.value_type == "vector":
+            shape = (self.model.dim,) + shape
+        # return isometrized pos tuple and resulting field shape
+        return self.model.isometrize(pos), shape
 
     def _to_vtk_helper(
         self, filename=None, field_select="field", fieldname="field"
@@ -264,11 +254,7 @@ class Field:
                         filename, self.pos, {fieldname: field}, self.mesh_type
                     )
             else:
-                print(
-                    "Field.to_vtk: No "
-                    + field_select
-                    + " stored in the class."
-                )
+                print("Field.to_vtk: '{}' not available.".format(field_select))
         else:
             raise ValueError(
                 "Unknown field value type: {}".format(self.value_type)
@@ -393,10 +379,38 @@ class Field:
 
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0}, mean={1})".format(self.model, self.mean)
+        return "Field(model={0}, mean={1:.{p}})".format(
+            self.model, self.mean, p=self.model._prec
+        )
 
 
-if __name__ == "__main__":  # pragma: no cover
-    import doctest
-
-    doctest.testmod()
+def _get_select(direction):
+    select = []
+    if not (0 < len(direction) < 4):
+        raise ValueError(
+            "Field.mesh: need 1 to 3 direction(s), got '{}'".format(direction)
+        )
+    for axis in direction:
+        if axis == "x":
+            if 0 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(0)
+        elif axis == "y":
+            if 1 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(1)
+        elif axis == "z":
+            if 2 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(2)
+        else:
+            raise ValueError(
+                "Field.mesh: got unknown direction {}".format(axis)
+            )
+    return select

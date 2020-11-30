@@ -60,7 +60,9 @@ Standard Covariance Models
    Linear
    Circular
    Spherical
-   Intersection
+   HyperSpherical
+   SuperSpherical
+   JBessel
 
 Truncated Power Law Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -70,6 +72,7 @@ Truncated Power Law Covariance Models
    TPLGaussian
    TPLExponential
    TPLStable
+   TPLSimple
 
 Functions
 =========
@@ -82,26 +85,30 @@ Routines to export fields to the vtk format
 
 .. autosummary::
    vtk_export
-   vtk_export_structured
-   vtk_export_unstructured
    to_vtk
-   to_vtk_structured
-   to_vtk_unstructured
 
-variogram estimation
+Geometric
+^^^^^^^^^
+Some convenient functions for geometric operations
+
+.. autosummary::
+   rotated_main_axes
+
+Variogram Estimation
 ^^^^^^^^^^^^^^^^^^^^
 Estimate the variogram of a given field
 
 .. currentmodule:: gstools.variogram
 
 .. autosummary::
-   vario_estimate_structured
-   vario_estimate_unstructured
+   vario_estimate
+   vario_estimate_axis
 """
-
+# Hooray!
 from gstools import field, variogram, random, covmodel, tools, krige, transform
 from gstools.field import SRF
 from gstools.tools import (
+    rotated_main_axes,
     vtk_export,
     vtk_export_structured,
     vtk_export_unstructured,
@@ -110,6 +117,8 @@ from gstools.tools import (
     to_vtk_unstructured,
 )
 from gstools.variogram import (
+    vario_estimate,
+    vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
 )
@@ -123,10 +132,13 @@ from gstools.covmodel import (
     Linear,
     Circular,
     Spherical,
-    Intersection,
+    HyperSpherical,
+    SuperSpherical,
+    JBessel,
     TPLGaussian,
     TPLExponential,
     TPLStable,
+    TPLSimple,
 )
 
 try:
@@ -148,16 +160,25 @@ __all__ += [
     "Linear",
     "Circular",
     "Spherical",
-    "Intersection",
+    "HyperSpherical",
+    "SuperSpherical",
+    "JBessel",
     "TPLGaussian",
     "TPLExponential",
     "TPLStable",
+    "TPLSimple",
 ]
 
-__all__ += ["vario_estimate_structured", "vario_estimate_unstructured"]
+__all__ += [
+    "vario_estimate",
+    "vario_estimate_axis",
+    "vario_estimate_structured",
+    "vario_estimate_unstructured",
+]
 
 __all__ += [
     "SRF",
+    "rotated_main_axes",
     "vtk_export",
     "vtk_export_structured",
     "vtk_export_unstructured",

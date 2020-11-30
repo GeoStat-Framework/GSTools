@@ -11,8 +11,6 @@ The following functions are provided
    simple
 """
 # pylint: disable=C0103
-from gstools.field.tools import make_isotropic, unrotate_mesh
-from gstools.tools.geometric import pos2xyz
 from gstools.krige import Ordinary, Simple
 
 
@@ -43,18 +41,14 @@ def ordinary(srf):
     krige_field, krige_var = krige_ok(srf.pos, srf.mesh_type)
 
     # evaluate the field at the conditional points
-    x, y, z = pos2xyz(srf.cond_pos, max_dim=srf.model.dim)
-    if srf.model.do_rotation:
-        x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
-    y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
-    err_data = srf.generator.__call__(x, y, z, "unstructured")
+    err_data = srf.generator(srf.model.isometrize(srf.cond_pos))
 
     err_ok = Ordinary(
         model=srf.model, cond_pos=srf.cond_pos, cond_val=err_data
     )
     err_field, __ = err_ok(srf.pos, srf.mesh_type)
     cond_field = srf.raw_field + krige_field - err_field
-    info = {"mean": krige_ok.mean}
+    info = {"mean": krige_ok.get_mean()}
     return cond_field, krige_field, err_field, krige_var, info
 
 
@@ -88,11 +82,7 @@ def simple(srf):
     krige_field, krige_var = krige_sk(srf.pos, srf.mesh_type)
 
     # evaluate the field at the conditional points
-    x, y, z = pos2xyz(srf.cond_pos, max_dim=srf.model.dim)
-    if srf.model.do_rotation:
-        x, y, z = unrotate_mesh(srf.model.dim, srf.model.angles, x, y, z)
-    y, z = make_isotropic(srf.model.dim, srf.model.anis, y, z)
-    err_data = srf.generator.__call__(x, y, z, "unstructured") + srf.mean
+    err_data = srf.generator(srf.model.isometrize(srf.cond_pos)) + srf.mean
 
     err_sk = Simple(
         model=srf.model,

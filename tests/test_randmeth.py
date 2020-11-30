@@ -30,64 +30,42 @@ class TestRandMeth(unittest.TestCase):
         self.rm_3d = RandMeth(self.cov_model_3d, 100, self.seed)
 
     def test_unstruct_1d(self):
-        modes = self.rm_1d(self.x_tuple)
+        modes = self.rm_1d((self.x_tuple,))
         self.assertAlmostEqual(modes[0], 3.19799030)
         self.assertAlmostEqual(modes[1], 2.44848295)
 
     def test_unstruct_2d(self):
-        modes = self.rm_2d(self.x_tuple, self.y_tuple)
+        modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], 1.67318010)
         self.assertAlmostEqual(modes[1], 2.12310269)
 
     def test_unstruct_3d(self):
-        modes = self.rm_3d(self.x_tuple, self.y_tuple, self.z_tuple)
+        modes = self.rm_3d((self.x_tuple, self.y_tuple, self.z_tuple))
         self.assertAlmostEqual(modes[0], 0.55488481)
         self.assertAlmostEqual(modes[1], 1.18506639)
 
-    def test_struct_1d(self):
-        modes = self.rm_1d(self.x_grid, mesh_type="structured")
-        self.assertAlmostEqual(modes[0], 3.19799030)
-        self.assertAlmostEqual(modes[1], 2.34788923)
-
-    def test_struct_2d(self):
-        modes = self.rm_2d(self.x_grid, self.y_grid, mesh_type="structured")
-        self.assertAlmostEqual(modes[0, 0], 1.67318010)
-        self.assertAlmostEqual(modes[1, 0], 1.54740003)
-        self.assertAlmostEqual(modes[0, 1], 2.02106551)
-        self.assertAlmostEqual(modes[1, 1], 1.86883255)
-
-    def test_struct_3d(self):
-        modes = self.rm_3d(
-            self.x_grid, self.y_grid, self.z_grid, mesh_type="structured"
-        )
-        self.assertAlmostEqual(modes[0, 0, 0], 0.55488481)
-        self.assertAlmostEqual(modes[0, 1, 0], 0.41858766)
-        self.assertAlmostEqual(modes[1, 1, 0], 0.95133855)
-        self.assertAlmostEqual(modes[0, 1, 1], 0.65475042)
-        self.assertAlmostEqual(modes[1, 1, 1], 1.40915120)
-
     def test_reset(self):
-        modes = self.rm_2d(self.x_tuple, self.y_tuple)
+        modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], 1.67318010)
         self.assertAlmostEqual(modes[1], 2.12310269)
 
         self.rm_2d.seed = self.rm_2d.seed
-        modes = self.rm_2d(self.x_tuple, self.y_tuple)
+        modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], 1.67318010)
         self.assertAlmostEqual(modes[1], 2.12310269)
 
         self.rm_2d.seed = 74893621
-        modes = self.rm_2d(self.x_tuple, self.y_tuple)
+        modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], -1.94278053)
         self.assertAlmostEqual(modes[1], -1.12401651)
 
         self.rm_1d.model = self.cov_model_3d
-        modes = self.rm_1d(self.x_tuple, self.y_tuple, self.z_tuple)
+        modes = self.rm_1d((self.x_tuple, self.y_tuple, self.z_tuple))
         self.assertAlmostEqual(modes[0], 0.55488481)
         self.assertAlmostEqual(modes[1], 1.18506639)
 
         self.rm_2d.mode_no = 800
-        modes = self.rm_2d(self.x_tuple, self.y_tuple)
+        modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], -3.20809251)
         self.assertAlmostEqual(modes[1], -2.62032778)
 
