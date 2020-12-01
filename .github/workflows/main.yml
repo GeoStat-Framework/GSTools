@@ -103,7 +103,7 @@ jobs:
 
       - name: Publish to Test PyPI
         # only if working on develop
-        if: github.ref == 'refs/head/develop'
+        if: github.ref == 'refs/heads/develop'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
