@@ -15,7 +15,7 @@ to properply describe the rotated axes of anisotropy.
 By design the first rotation angles coincide with the lower ones:
 
 - 2D (rotation in x-y plane) -> 3D: first angle describes xy-plane rotation
-- 3D (tait-bryan angles) -> 4D: first 3 angles coincide with tait-bryan angles
+- 3D (Tait-Bryan angles) -> 4D: first 3 angles coincide with Tait-Bryan angles
 
 By increasing the dimension from `n` to `(n+1)`, `n` angles are added:
 
@@ -34,7 +34,7 @@ angles in the model:
 7. ...
 
 The rotation direction in these planes have alternating signs
-in order to match tait-bryan in 3D.
+in order to match Tait-Bryan in 3D.
 
 Let's have a look at a 4D example, where we naively add a 4th dimension.
 """
@@ -50,7 +50,7 @@ srf = gs.SRF(model, seed=20170519)
 field = srf.structured(pos)
 
 ###############################################################################
-# In order to "prove" correctnes, we can calculate an empirical variogram
+# In order to "prove" correctness, we can calculate an empirical variogram
 # of the generated field and fit our model to it.
 
 bin_edges = range(size)
@@ -62,7 +62,7 @@ print(model)
 
 ###############################################################################
 # As you can see, the estimated variance and length scale match our input
-# quite good.
+# quite well.
 #
 # Let's have a look at the fit and a x-y cross-section of the 4D field:
 
