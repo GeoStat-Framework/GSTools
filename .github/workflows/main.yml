@@ -1,6 +1,18 @@
 name: Continuous Integration
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "master"
+      - "develop"
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 env:
   # needed by coveralls
@@ -10,15 +22,10 @@ env:
   CIBW_TEST_REQUIRES: "pytest"
   CIBW_TEST_COMMAND: "pytest -v {project}/tests"
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
 jobs:
   build_wheels:
     name: wheels on ${{matrix.os}}
     runs-on: ${{matrix.os}}
-    # only run on internal push's or external PRs, not on internal PRs
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -49,8 +56,6 @@ jobs:
   build_sdist:
     name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
     runs-on: ${{matrix.os}}
-    # only run on internal push's or external PRs, not on internal PRs
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -92,8 +97,6 @@ jobs:
   upload_to_pypi:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
-    # only run on internal push's or external PRs, not on internal PRs
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
 
     steps:
       - uses: actions/download-artifact@v2
@@ -103,7 +106,7 @@ jobs:
 
       - name: Publish to Test PyPI
         # only if working on develop
-        if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
