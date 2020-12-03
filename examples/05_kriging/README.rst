@@ -42,7 +42,7 @@ the features you want:
   one can set `exact` to `False` and provide either individual measurement errors
   for each point or set the nugget as a constant measurement error everywhere.
 * `pseudo_inv`: Sometimes the inversion of the kriging matrix can be numerically unstable.
-  This occures for examples in cases of redundant input values. In this case we provide a switch to
+  This occurs for examples in cases of redundant input values. In this case we provide a switch to
   use the pseudo-inverse of the matrix. Then redundant conditional values will automatically
   be averaged.
 
@@ -87,5 +87,9 @@ submodule :any:`gstools.krige`.
     ExtDrift
     Detrended
 
-Gallery
--------
+.. only:: html
+
+   Gallery
+   -------
+
+   Below is a gallery of examples

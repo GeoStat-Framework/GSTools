@@ -10,12 +10,14 @@ The following classes and functions are provided
    TPLGaussian
    TPLExponential
    TPLStable
+   TPLSimple
 """
 # pylint: disable=C0103, E1101
 
 import warnings
 import numpy as np
-from gstools.covmodel.base import CovModel
+from gstools.covmodel import CovModel
+from gstools.covmodel.tools import AttributeWarning
 from gstools.tools.special import (
     tplstable_cor,
     tpl_gau_spec_dens,
@@ -23,13 +25,54 @@ from gstools.tools.special import (
 )
 
 
-__all__ = ["TPLGaussian", "TPLExponential", "TPLStable"]
+__all__ = ["TPLGaussian", "TPLExponential", "TPLStable", "TPLSimple"]
+
+
+class TPLCovModel(CovModel):
+    """Truncated-Power-Law Covariance Model base class for super-position."""
+
+    @property
+    def len_up(self):
+        """:class:`float`: Upper length scale truncation of the model.
+
+        * ``len_up = len_low + len_scale``
+        """
+        return self.len_low + self.len_scale
+
+    @property
+    def len_up_rescaled(self):
+        """:class:`float`: Upper length scale truncation rescaled.
+
+        * ``len_up_rescaled = (len_low + len_scale) / rescale``
+        """
+        return self.len_up / self.rescale
+
+    @property
+    def len_low_rescaled(self):
+        """:class:`float`: Lower length scale truncation rescaled.
+
+        * ``len_low_rescaled = len_low / rescale``
+        """
+        return self.len_low / self.rescale
+
+    def var_factor(self):
+        """Factor for C (intensity of variation) to result in variance."""
+        return (
+            self.len_up_rescaled ** (2 * self.hurst)
+            - self.len_low_rescaled ** (2 * self.hurst)
+        ) / (2 * self.hurst)
+
+    def cor(self, h):
+        """TPL - normalized correlation function."""
+
+    def correlation(self, r):
+        """TPL - correlation function."""
 
 
 # Truncated power law #########################################################
 
 
-class TPLGaussian(CovModel):
+class TPLGaussian(TPLCovModel):
     r"""Truncated-Power-Law with Gaussian modes.
 
     Notes
@@ -77,9 +120,10 @@ class TPLGaussian(CovModel):
     If you want to define an upper scale truncation, you should set ``len_low``
     and ``len_scale`` accordingly.
 
-    The following Parameters occure:
+    The following Parameters occur:
 
-        * :math:`C>0` : scaling factor from the Power-Law
+        * :math:`C>0` :
+          scaling factor from the Power-Law (intensity of variation)
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
         * :math:`0<H<1` : hurst coefficient (``model.hurst``)
@@ -98,8 +142,6 @@ class TPLGaussian(CovModel):
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     hurst : :class:`float`, optional
         Hurst coefficient of the power law.
         Standard range: ``(0, 1)``.
@@ -109,32 +151,6 @@ class TPLGaussian(CovModel):
         Standard range: ``[0, 1000]``.
         Default: ``0.0``
     """
-
-    @property
-    def len_up(self):
-        """:class:`float`: Upper length scale truncation of the model.
-
-        * ``len_up = len_low + len_scale``
-        """
-        return self.len_low + self.len_scale
-
-    def var_factor(self):
-        r"""Factor for C (Power-Law factor) to result in variance.
-
-        This is used to result in the right variance, which is depending
-        on the hurst coefficient and the length-scale extents
-
-        .. math::
-           \frac{\ell_{\mathrm{up}}^{2H} - \ell_{\mathrm{low}}^{2H}}{2H}
-
-        Returns
-        -------
-        :class:`float`
-            factor
-        """
-        return (
-            self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
-        ) / (2 * self.hurst)
 
     def default_opt_arg(self):
         """Defaults for the optional arguments.
@@ -160,51 +176,32 @@ class TPLGaussian(CovModel):
         """
         return {"hurst": (0.1, 1, "oo"), "len_low": (0.0, np.inf, "co")}
 
+    def cor(self, h):
+        """TPL with Gaussian modes - normalized correlation function."""
+        return tplstable_cor(h, 1.0, self.hurst, 2)
+
     def correlation(self, r):
-        r"""Truncated-Power-Law with Gaussian modes - correlation function.
-
-        If ``len_low=0`` we have a simple representation:
-
-        .. math::
-           \rho(r) =
-           H \cdot
-           E_{1+H}
-           \left[
-           \left(\frac{r}{\ell}\right)^{2}
-           \right]
-
-        The general case:
-
-        .. math::
-           \rho(r) =
-           H \cdot
-           \frac{\ell_{\mathrm{up}}^{2H} \cdot
-           E_{1+H}
-           \left[\left(\frac{r}{\ell_{\mathrm{up}}}\right)^{2}\right]
-           - \ell_{\mathrm{low}}^{2H} \cdot
-           E_{1+H}
-           \left[\left(\frac{r}{\ell_{\mathrm{low}}}\right)^{2}\right]}
-           {\ell_{\mathrm{up}}^{2H}-\ell_{\mathrm{low}}^{2H}}
-        """
+        """TPL with Gaussian modes - correlation function."""
         # if lower limit is 0 we use the simplified version (faster)
-        if np.isclose(self.len_low, 0.0):
-            return tplstable_cor(r, self.len_scale, self.hurst, 2)
+        if np.isclose(self.len_low_rescaled, 0.0):
+            return tplstable_cor(r, self.len_rescaled, self.hurst, 2)
         return (
-            self.len_up ** (2 * self.hurst)
-            * tplstable_cor(r, self.len_up, self.hurst, 2)
-            - self.len_low ** (2 * self.hurst)
-            * tplstable_cor(r, self.len_low, self.hurst, 2)
+            self.len_up_rescaled ** (2 * self.hurst)
+            * tplstable_cor(r, self.len_up_rescaled, self.hurst, 2)
+            - self.len_low_rescaled ** (2 * self.hurst)
+            * tplstable_cor(r, self.len_low_rescaled, self.hurst, 2)
         ) / (
-            self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
+            self.len_up_rescaled ** (2 * self.hurst)
+            - self.len_low_rescaled ** (2 * self.hurst)
         )
 
     def spectral_density(self, k):  # noqa: D102
         return tpl_gau_spec_dens(
-            k, self.dim, self.len_scale, self.hurst, self.len_low
+            k, self.dim, self.len_rescaled, self.hurst, self.len_low_rescaled
         )
 
 
-class TPLExponential(CovModel):
+class TPLExponential(TPLCovModel):
     r"""Truncated-Power-Law with Exponential modes.
 
     Notes
@@ -250,9 +247,10 @@ class TPLExponential(CovModel):
     If you want to define an upper scale truncation, you should set ``len_low``
     and ``len_scale`` accordingly.
 
-    The following Parameters occure:
+    The following Parameters occur:
 
-        * :math:`C>0` : scaling factor from the Power-Law
+        * :math:`C>0` :
+          scaling factor from the Power-Law (intensity of variation)
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
         * :math:`0<H<\frac{1}{2}` : hurst coefficient (``model.hurst``)
@@ -271,8 +269,6 @@ class TPLExponential(CovModel):
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     hurst : :class:`float`, optional
         Hurst coefficient of the power law.
         Standard range: ``(0, 1)``.
@@ -282,32 +278,6 @@ class TPLExponential(CovModel):
         Standard range: ``[0, 1000]``.
         Default: ``0.0``
     """
-
-    @property
-    def len_up(self):
-        """:class:`float`: Upper length scale truncation of the model.
-
-        * ``len_up = len_low + len_scale``
-        """
-        return self.len_low + self.len_scale
-
-    def var_factor(self):
-        r"""Factor for C (Power-Law factor) to result in variance.
-
-        This is used to result in the right variance, which is depending
-        on the hurst coefficient and the length-scale extents
-
-        .. math::
-           \frac{\ell_{\mathrm{up}}^{2H} - \ell_{\mathrm{low}}^{2H}}{2H}
-
-        Returns
-        -------
-        :class:`float`
-            factor
-        """
-        return (
-            self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
-        ) / (2 * self.hurst)
 
     def default_opt_arg(self):
         """Defaults for the optional arguments.
@@ -333,49 +303,32 @@ class TPLExponential(CovModel):
         """
         return {"hurst": (0.1, 1, "oo"), "len_low": (0.0, np.inf, "co")}
 
+    def cor(self, h):
+        """TPL with Exponential modes - normalized correlation function."""
+        return tplstable_cor(h, 1.0, self.hurst, 1)
+
     def correlation(self, r):
-        r"""Truncated-Power-Law with Exponential modes - correlation function.
-
-        If ``len_low=0`` we have a simple representation:
-
-        .. math::
-           \rho(r) =
-           H \cdot
-           E_{1+H}
-           \left[
-           \frac{r}{\ell}
-           \right]
-
-        The general case:
-
-        .. math::
-           \rho(r) =
-           2H \cdot
-           \frac{\ell_{\mathrm{up}}^{2H} \cdot
-           E_{1+2H}\left[\frac{r}{\ell_{\mathrm{up}}}\right]
-           - \ell_{\mathrm{low}}^{2H} \cdot
-           E_{1+2H}\left[\frac{r}{\ell_{\mathrm{low}}}\right]}
-           {\ell_{\mathrm{up}}^{2H}-\ell_{\mathrm{low}}^{2H}}
-        """
+        """TPL with Exponential modes - correlation function."""
         # if lower limit is 0 we use the simplified version (faster)
-        if np.isclose(self.len_low, 0.0):
-            return tplstable_cor(r, self.len_scale, self.hurst, 1)
+        if np.isclose(self.len_low_rescaled, 0.0):
+            return tplstable_cor(r, self.len_rescaled, self.hurst, 1)
         return (
-            self.len_up ** (2 * self.hurst)
-            * tplstable_cor(r, self.len_up, self.hurst, 1)
-            - self.len_low ** (2 * self.hurst)
-            * tplstable_cor(r, self.len_low, self.hurst, 1)
+            self.len_up_rescaled ** (2 * self.hurst)
+            * tplstable_cor(r, self.len_up_rescaled, self.hurst, 1)
+            - self.len_low_rescaled ** (2 * self.hurst)
+            * tplstable_cor(r, self.len_low_rescaled, self.hurst, 1)
         ) / (
-            self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
+            self.len_up_rescaled ** (2 * self.hurst)
+            - self.len_low_rescaled ** (2 * self.hurst)
         )
 
     def spectral_density(self, k):  # noqa: D102
         return tpl_exp_spec_dens(
-            k, self.dim, self.len_scale, self.hurst, self.len_low
+            k, self.dim, self.len_rescaled, self.hurst, self.len_low_rescaled
         )
 
 
-class TPLStable(CovModel):
+class TPLStable(TPLCovModel):
     r"""Truncated-Power-Law with Stable modes.
 
     Notes
@@ -423,14 +376,15 @@ class TPLStable(CovModel):
     If you want to define an upper scale truncation, you should set ``len_low``
     and ``len_scale`` accordingly.
 
-    The following Parameters occure:
+    The following Parameters occur:
 
         * :math:`0<\alpha\leq 2` : The shape parameter of the Stable model.
 
             * :math:`\alpha=1` : Exponential modes
             * :math:`\alpha=2` : Gaussian modes
 
-        * :math:`C>0` : scaling factor from the Power-Law
+        * :math:`C>0` :
+          scaling factor from the Power-Law (intensity of variation)
           This parameter will be calculated internally by the given variance.
           You can access C directly by ``model.var_raw``
         * :math:`0<H<\frac{\alpha}{2}` : hurst coefficient (``model.hurst``)
@@ -449,8 +403,6 @@ class TPLStable(CovModel):
 
     Other Parameters
     ----------------
-    **opt_arg
-        The following parameters are covered by these keyword arguments
     hurst : :class:`float`, optional
         Hurst coefficient of the power law.
         Standard range: ``(0, 1)``.
@@ -464,32 +416,6 @@ class TPLStable(CovModel):
         Standard range: ``[0, 1000]``.
         Default: ``0.0``
     """
-
-    @property
-    def len_up(self):
-        """:class:`float`: Upper length scale truncation of the model.
-
-        * ``len_up = len_low + len_scale``
-        """
-        return self.len_low + self.len_scale
-
-    def var_factor(self):
-        r"""Factor for C (Power-Law factor) to result in variance.
-
-        This is used to result in the right variance, which is depending
-        on the hurst coefficient and the length-scale extents
-
-        .. math::
-           \frac{\ell_{\mathrm{up}}^{2H} - \ell_{\mathrm{low}}^{2H}}{2H}
-
-        Returns
-        -------
-        :class:`float`
-            factor
-        """
-        return (
-            self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
-        ) / (2 * self.hurst)
 
     def default_opt_arg(self):
         """Defaults for the optional arguments.
@@ -533,43 +459,93 @@ class TPLStable(CovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "TPLStable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results"
+                + "count with unstable results",
+                AttributeWarning,
             )
 
+    def cor(self, h):
+        """TPL with Stable modes - normalized correlation function."""
+        return tplstable_cor(h, 1.0, self.hurst, self.alpha)
+
     def correlation(self, r):
-        r"""Truncated-Power-Law with Stable modes - correlation function.
-
-        If ``len_low=0`` we have a simple representation:
-
-        .. math::
-           \rho(r) =
-           \frac{2H}{\alpha} \cdot
-           E_{1+\frac{2H}{\alpha}}
-           \left[
-           \left(\frac{r}{\ell}\right)^{\alpha}
-           \right]
-
-        The general case:
-
-        .. math::
-           \rho(r) =
-           \frac{2H}{\alpha} \cdot
-           \frac{\ell_{\mathrm{up}}^{2H} \cdot
-           E_{1+\frac{2H}{\alpha}}
-           \left[\left(\frac{r}{\ell_{\mathrm{up}}}\right)^{\alpha}\right]
-           - \ell_{\mathrm{low}}^{2H} \cdot
-           E_{1+\frac{2H}{\alpha}}
-           \left[\left(\frac{r}{\ell_{\mathrm{low}}}\right)^{\alpha}\right]}
-           {\ell_{\mathrm{up}}^{2H}-\ell_{\mathrm{low}}^{2H}}
-        """
+        """TPL with Stable modes - correlation function."""
         # if lower limit is 0 we use the simplified version (faster)
-        if np.isclose(self.len_low, 0.0):
-            return tplstable_cor(r, self.len_scale, self.hurst, self.alpha)
+        if np.isclose(self.len_low_rescaled, 0.0):
+            return tplstable_cor(r, self.len_rescaled, self.hurst, self.alpha)
         return (
-            self.len_up ** (2 * self.hurst)
-            * tplstable_cor(r, self.len_up, self.hurst, self.alpha)
-            - self.len_low ** (2 * self.hurst)
-            * tplstable_cor(r, self.len_low, self.hurst, self.alpha)
+            self.len_up_rescaled ** (2 * self.hurst)
+            * tplstable_cor(r, self.len_up_rescaled, self.hurst, self.alpha)
+            - self.len_low_rescaled ** (2 * self.hurst)
+            * tplstable_cor(r, self.len_low_rescaled, self.hurst, self.alpha)
         ) / (
-            self.len_up ** (2 * self.hurst) - self.len_low ** (2 * self.hurst)
+            self.len_up_rescaled ** (2 * self.hurst)
+            - self.len_low_rescaled ** (2 * self.hurst)
         )
+
+
+class TPLSimple(CovModel):
+    r"""The simply truncated power law model.
+
+    This model describes a simple truncated power law
+    with a finite length scale. In contrast to other models,
+    this one is not derived from super-positioning modes.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       \left(1-s\cdot\frac{r}{\ell}\right)^{\nu} & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`\nu\geq\frac{d+1}{2}` is a shape parameter,
+    which defaults to :math:`\nu=\frac{d+1}{2}`,
+
+    For :math:`\nu=1` (valid only in d=1)
+    this coincides with the truncated linear model:
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       1-s\cdot\frac{r}{\ell} & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``[(dim+1)/2, inf)``
+        Default: ``dim/2``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": dim/2}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": (self.dim + 1) / 2}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [(self.dim + 1) / 2, np.inf, "co"]}
+
+    def cor(self, h):
+        """TPL Simple - normalized correlation function."""
+        return np.maximum(1 - np.abs(h, dtype=np.double), 0.0) ** self.nu

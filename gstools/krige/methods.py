@@ -412,9 +412,3 @@ class Detrended(Krige):
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
         )
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()

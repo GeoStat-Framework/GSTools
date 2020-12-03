@@ -10,6 +10,9 @@ The following classes and functions are provided
    plot_variogram
    plot_covariance
    plot_correlation
+   plot_vario_axis
+   plot_cov_axis
+   plot_cor_axis
    plot_vario_spatial
    plot_cov_spatial
    plot_cor_spatial
@@ -17,16 +20,19 @@ The following classes and functions are provided
    plot_spectral_density
    plot_spectral_rad_pdf
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, C0415
 import numpy as np
 
 import gstools
-from gstools.field.tools import reshape_axis_from_struct_to_unstruct
+
 
 __all__ = [
     "plot_variogram",
     "plot_covariance",
     "plot_correlation",
+    "plot_vario_axis",
+    "plot_cov_axis",
+    "plot_cor_axis",
     "plot_vario_spatial",
     "plot_cov_spatial",
     "plot_cor_spatial",
@@ -64,13 +70,11 @@ def plot_vario_spatial(
     field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.len_scale
-    field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
-    pos = [x_s] * model.dim
-    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
-    vario = model.vario_spatial([x, y, z][: model.dim]).reshape(shape)
-    field.pos = pos
-    field.field = vario
+    iso_pos, shape = field.pre_pos([x_s] * model.dim, "structured")
+    field.field = model.vario_spatial(model.anisometrize(iso_pos)).reshape(
+        shape
+    )
     return field.plot(fig=fig, ax=ax)
 
 
@@ -82,13 +86,9 @@ def plot_cov_spatial(
     field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.len_scale
-    field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
-    pos = [x_s] * model.dim
-    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
-    vario = model.cov_spatial([x, y, z][: model.dim]).reshape(shape)
-    field.pos = pos
-    field.field = vario
+    iso_pos, shape = field.pre_pos([x_s] * model.dim, "structured")
+    field.field = model.cov_spatial(model.anisometrize(iso_pos)).reshape(shape)
     return field.plot(fig=fig, ax=ax)
 
 
@@ -100,107 +100,154 @@ def plot_cor_spatial(
     field._value_type = "scalar"
     if x_max is None:
         x_max = 3 * model.len_scale
-    field.mesh_type = "structured"
     x_s = np.linspace(-x_max, x_max) + x_min
-    pos = [x_s] * model.dim
-    x, y, z, shape = reshape_axis_from_struct_to_unstruct(model.dim, *pos)
-    vario = model.cor_spatial([x, y, z][: model.dim]).reshape(shape)
-    field.pos = pos
-    field.field = vario
+    iso_pos, shape = field.pre_pos([x_s] * model.dim, "structured")
+    field.field = model.cor_spatial(model.anisometrize(iso_pos)).reshape(shape)
     return field.plot(fig=fig, ax=ax)
 
 
 def plot_variogram(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
     """Plot variogram of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(x_s, model.variogram(x_s), label=model.name + " variogram")
+    kwargs.setdefault("label", model.name + " variogram")
+    ax.plot(x_s, model.variogram(x_s), **kwargs)
     ax.legend()
     fig.show()
     return ax
 
 
 def plot_covariance(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
     """Plot covariance of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(x_s, model.covariance(x_s), label=model.name + " covariance")
+    kwargs.setdefault("label", model.name + " covariance")
+    ax.plot(x_s, model.covariance(x_s), **kwargs)
     ax.legend()
     fig.show()
     return ax
 
 
 def plot_correlation(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
     """Plot correlation function of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(x_s, model.correlation(x_s), label=model.name + " correlation")
+    kwargs.setdefault("label", model.name + " correlation")
+    ax.plot(x_s, model.correlation(x_s), **kwargs)
+    ax.legend()
+    fig.show()
+    return ax
+
+
+def plot_vario_axis(
+    model, axis=0, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
+):  # pragma: no cover
+    """Plot variogram of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
+    if x_max is None:
+        x_max = 3 * model.len_scale
+    x_s = np.linspace(x_min, x_max)
+    kwargs.setdefault(
+        "label", model.name + " variogram on axis {}".format(axis)
+    )
+    ax.plot(x_s, model.vario_axis(x_s, axis), **kwargs)
+    ax.legend()
+    fig.show()
+    return ax
+
+
+def plot_cov_axis(
+    model, axis=0, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
+):  # pragma: no cover
+    """Plot variogram of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
+    if x_max is None:
+        x_max = 3 * model.len_scale
+    x_s = np.linspace(x_min, x_max)
+    kwargs.setdefault(
+        "label", model.name + " covariance on axis {}".format(axis)
+    )
+    ax.plot(x_s, model.cov_axis(x_s, axis), **kwargs)
+    ax.legend()
+    fig.show()
+    return ax
+
+
+def plot_cor_axis(
+    model, axis=0, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
+):  # pragma: no cover
+    """Plot variogram of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
+    if x_max is None:
+        x_max = 3 * model.len_scale
+    x_s = np.linspace(x_min, x_max)
+    kwargs.setdefault(
+        "label", model.name + " correlation on axis {}".format(axis)
+    )
+    ax.plot(x_s, model.cor_axis(x_s, axis), **kwargs)
     ax.legend()
     fig.show()
     return ax
 
 
 def plot_spectrum(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
     """Plot specturm of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(
-        x_s,
-        model.spectrum(x_s),
-        label=model.name + " " + str(model.dim) + "D spectrum",
+    kwargs.setdefault(
+        "label", model.name + " " + str(model.dim) + "D spectrum"
     )
+    ax.plot(x_s, model.spectrum(x_s), **kwargs)
     ax.legend()
     fig.show()
     return ax
 
 
 def plot_spectral_density(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
     """Plot spectral density of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(
-        x_s,
-        model.spectral_density(x_s),
-        label=model.name + " " + str(model.dim) + "D spectral-density",
+    kwargs.setdefault(
+        "label", model.name + " " + str(model.dim) + "D spectral-density"
     )
+    ax.plot(x_s, model.spectral_density(x_s), **kwargs)
     ax.legend()
     fig.show()
     return ax
 
 
 def plot_spectral_rad_pdf(
-    model, x_min=0.0, x_max=None, fig=None, ax=None
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
     """Plot radial spectral pdf of a given CovModel."""
     fig, ax = _get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
-    ax.plot(
-        x_s,
-        model.spectral_rad_pdf(x_s),
-        label=model.name + " " + str(model.dim) + "D spectral-rad-pdf",
+    kwargs.setdefault(
+        "label", model.name + " " + str(model.dim) + "D spectral-rad-pdf"
     )
+    ax.plot(x_s, model.spectral_rad_pdf(x_s), **kwargs)
     ax.legend()
     fig.show()
     return ax

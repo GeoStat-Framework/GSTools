@@ -201,8 +201,8 @@ latex_elements = {
     "pointsize": "10pt",
     "papersize": "a4paper",
     "fncychap": "\\usepackage[Glenn]{fncychap}",
+    # 'inputenc': r'\usepackage[utf8]{inputenc}',
 }
-
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).

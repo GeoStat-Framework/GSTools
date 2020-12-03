@@ -193,11 +193,11 @@ class RNG:
 
     @property
     def random(self):
-        """:any:`numpy.random.mtrand.RandomState`: Randomstate.
+        """:any:`numpy.random.RandomState`: Randomstate.
 
         Get a stream to the numpy Random number generator.
         You can use this, to call any provided distribution
-        from :any:`numpy.random.mtrand.RandomState`.
+        from :any:`numpy.random.RandomState`.
         """
         return rand.RandomState(self._master_rng())
 
@@ -221,9 +221,3 @@ class RNG:
     def __repr__(self):
         """Return String representation."""
         return "RNG(seed={})".format(self.seed)
-
-
-if __name__ == "__main__":
-    import doctest
-
-    doctest.testmod()
