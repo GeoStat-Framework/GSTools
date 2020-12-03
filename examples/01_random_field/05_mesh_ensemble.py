@@ -6,10 +6,10 @@ GSTools provides an interface for meshes, to support
 `meshio <https://github.com/nschloe/meshio>`_ and
 `ogs5py <https://github.com/GeoStat-Framework/ogs5py>`_ meshes.
 
-When using `meshio`, the generated fields will be stored imediatly in the mesh
-container.
+When using `meshio`, the generated fields will be stored immediately in the
+mesh container.
 
-One has two options to generate a field on a given mesh:
+There are two options to generate a field on a given mesh:
 
 - `points="points"` will generate a field on the mesh points
 - `points="centroids"` will generate a field on the cell centroids
@@ -56,7 +56,6 @@ for i in range(fields_no):
 ###############################################################################
 # To get an impression we now want to plot the generated fields.
 # Luckily, matplotlib supports triangular meshes.
-
 
 triangulation = tri.Triangulation(points[:, 0], points[:, 1], cells)
 # figure setup
