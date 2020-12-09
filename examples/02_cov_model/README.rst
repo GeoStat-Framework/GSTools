@@ -64,6 +64,7 @@ The following standard covariance models are provided by GSTools
     Matern
     Stable
     Rational
+    Cubic
     Linear
     Circular
     Spherical
