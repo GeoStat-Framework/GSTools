@@ -12,6 +12,7 @@ The following classes are provided
    Matern
    Stable
    Rational
+   Cubic
    Linear
    Circular
    Spherical
@@ -33,6 +34,7 @@ __all__ = [
     "Matern",
     "Stable",
     "Rational",
+    "Cubic",
     "Linear",
     "Circular",
     "Spherical",
@@ -431,6 +433,36 @@ class Rational(CovModel):
             / sps.gamma(self.alpha)
             / 2.0
         )
+
+
+class Cubic(CovModel):
+    r"""The Cubic covariance model.
+
+    A model with reverse curvature near the origin and a finite range of
+    correlation.
+
+    Notes
+    -----
+    This model is given by the following correlation function:
+
+    .. math::
+       \rho(r) =
+       \begin{cases}
+       1- 7 \left(s\cdot\frac{r}{\ell}\right)^{2}
+       + \frac{35}{4} \left(s\cdot\frac{r}{\ell}\right)^{3}
+       - \frac{7}{2} \left(s\cdot\frac{r}{\ell}\right)^{5}
+       + \frac{3}{4} \left(s\cdot\frac{r}{\ell}\right)^{7}
+       & r<\frac{\ell}{s}\\
+       0 & r\geq\frac{\ell}{s}
+       \end{cases}
+
+    Where the standard rescale factor is :math:`s=1`.
+    """
+
+    def cor(self, h):
+        """Spherical normalized correlation function."""
+        h = np.minimum(np.abs(h, dtype=np.double), 1.0)
+        return 1.0 - 7 * h ** 2 + 8.75 * h ** 3 - 3.5 * h ** 5 + 0.75 * h ** 7
 
 
 class Linear(CovModel):
