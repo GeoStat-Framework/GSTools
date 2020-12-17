@@ -29,8 +29,9 @@ Standard Covariance Models
    Gaussian
    Exponential
    Matern
-   Rational
    Stable
+   Rational
+   Cubic
    Linear
    Circular
    Spherical
@@ -54,8 +55,9 @@ from gstools.covmodel.models import (
     Gaussian,
     Exponential,
     Matern,
-    Rational,
     Stable,
+    Rational,
+    Cubic,
     Linear,
     Circular,
     Spherical,
@@ -75,8 +77,9 @@ __all__ = [
     "Gaussian",
     "Exponential",
     "Matern",
-    "Rational",
     "Stable",
+    "Rational",
+    "Cubic",
     "Linear",
     "Circular",
     "Spherical",
