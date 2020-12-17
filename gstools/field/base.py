@@ -122,15 +122,15 @@ class Field:
             pass
 
         if isinstance(direction, str) and direction == "all":
-            select = list(range(self.model.dim))
+            select = list(range(self.model.field_dim))
         elif isinstance(direction, str):
-            select = _get_select(direction)[: self.model.dim]
+            select = _get_select(direction)[: self.model.field_dim]
         else:
-            select = direction[: self.model.dim]
-        if len(select) < self.model.dim:
+            select = direction[: self.model.field_dim]
+        if len(select) < self.model.field_dim:
             raise ValueError(
                 "Field.mesh: need at least {} direction(s), got '{}'".format(
-                    self.model.dim, direction
+                    self.model.field_dim, direction
                 )
             )
         # convert pyvista mesh
@@ -158,7 +158,7 @@ class Field:
                 offset = []
                 length = []
                 mesh_dim = mesh.points.shape[1]
-                if mesh_dim < self.model.dim:
+                if mesh_dim < self.model.field_dim:
                     raise ValueError("Field.mesh: mesh dimension too low!")
                 pnts = np.empty((0, mesh_dim), dtype=np.double)
                 for cell in mesh.cells:
