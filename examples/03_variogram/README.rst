@@ -1,5 +1,5 @@
-Tutorial 3: Variogram Estimation
-================================
+Variogram Estimation
+====================
 
 Estimating the spatial correlations is an important part of geostatistics.
 These spatial correlations can be expressed by the variogram, which can be

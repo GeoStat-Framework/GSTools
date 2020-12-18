@@ -1,7 +1,7 @@
 .. _tutorial_05_kriging:
 
-Tutorial 5: Kriging
-===================
+Kriging
+=======
 
 The subpackage :py:mod:`gstools.krige` provides routines for Gaussian process regression,
 also known as kriging.
