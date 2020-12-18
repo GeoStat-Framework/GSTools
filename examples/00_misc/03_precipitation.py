@@ -54,7 +54,8 @@ gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0)
 
 ###############################################################################
 # As a last step, the amount of precipitation is set. This should of course be
-# calibrated towards observations (the same goes for the threshold).
+# calibrated towards observations (the same goes for the threshold, the
+# variance, correlation length, and so on).
 
 amount = 3.0
 srf.field *= amount
@@ -111,4 +112,46 @@ plt.tight_layout()
 
 ###############################################################################
 # In this example we have created precipitation fields which have one spatial
-# dimension, but it is very easy to add a second spatial dimension.
+# dimension, but it is very easy do the same steps with two spatial dimension.
+# For the 2d case, we will not save the field after every step, making the
+# workflow a little bit easier.
+
+import numpy as np
+import matplotlib.pyplot as plt
+import gstools as gs
+
+# fix the seed for reproducibility
+seed = 20170521
+# half daily timesteps over three months
+t = np.arange(0., 90., 0.5)
+# 1st spatial axis of 50km with a resolution of 1km
+x = np.arange(0, 50, 1.0)
+# 2nd spatial axis of 40km with a resolution of 1km
+y = np.arange(0, 40, 1.0)
+
+# an exponential variogram with a corr. lengths of 2d, 5km, and 5km
+model = gs.Exponential(dim=3, var=1.0, len_scale=2., anis=(2.5, 2.5))
+# create a spatial random field instance
+srf = gs.SRF(model)
+
+# the Gaussian random field
+srf.structured((t, x, y), seed=seed)
+
+# the dry periods
+threshold = 0.4
+srf.field[srf.field <= threshold] = 0.0
+
+# account for the skewness
+gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0)
+
+# adjust the amount of precipitation
+amount = 3.0
+srf.field *= amount
+
+###############################################################################
+# plot the 2d precipitation field together with the time axis as a 3d plot.
+# We will cut out the volumes with low precipitation in order to have a look
+# inside the cuboid.
+
+mesh = srf.to_pyvista()
+mesh.threshold_percent(0.25).plot()
