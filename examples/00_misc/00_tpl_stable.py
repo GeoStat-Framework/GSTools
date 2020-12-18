@@ -1,6 +1,6 @@
 r"""
-TPL Stable
-----------
+Truncated Power Law Variograms
+------------------------------
 
 GSTools also implements truncated power law variograms,
 which can be represented as a superposition of scale dependant modes

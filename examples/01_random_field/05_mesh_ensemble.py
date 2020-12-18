@@ -1,5 +1,5 @@
 """
-Generating fields on meshes
+Generating Fields on Meshes
 ---------------------------
 
 GSTools provides an interface for meshes, to support
