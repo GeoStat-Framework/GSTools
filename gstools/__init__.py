@@ -21,6 +21,7 @@ Subpackages
     random
     tools
     transform
+    normalize
 
 Classes
 =======
@@ -106,7 +107,9 @@ Estimate the variogram of a given field
    vario_estimate_axis
 """
 # Hooray!
-from gstools import field, variogram, random, covmodel, tools, krige, transform
+from gstools import (
+    field, variogram, random, covmodel, tools, krige, transform, normalize
+)
 from gstools.field import SRF
 from gstools.tools import (
     rotated_main_axes,
@@ -151,7 +154,7 @@ except ImportError:  # pragma: nocover
 
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
-__all__ += ["transform"]
+__all__ += ["transform", "normalize"]
 __all__ += [
     "CovModel",
     "Gaussian",
