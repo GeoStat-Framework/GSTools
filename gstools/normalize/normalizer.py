@@ -43,7 +43,7 @@ class LogNormal(Normalizer):
 
 
 class BoxCox(Normalizer):
-    r"""Box-Cox (1964) transformed fields [1]_.
+    r"""Box-Cox (1964) transformed fields.
 
     Parameters
     ----------
@@ -55,7 +55,7 @@ class BoxCox(Normalizer):
 
     Notes
     -----
-    This transformation is given by:
+    This transformation is given by  [1]_:
 
     .. math::
        y=\begin{cases}
@@ -91,7 +91,7 @@ class BoxCox(Normalizer):
 
 
 class BoxCoxShift(Normalizer):
-    r"""Box-Cox (1964) transformed fields including shifting [1]_.
+    r"""Box-Cox (1964) transformed fields including shifting.
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ class BoxCoxShift(Normalizer):
 
     Notes
     -----
-    This transformation is given by:
+    This transformation is given by [1]_:
 
     .. math::
        y=\begin{cases}
@@ -151,7 +151,7 @@ class BoxCoxShift(Normalizer):
 
 
 class YeoJohnson(Normalizer):
-    r"""Yeo-Johnson (2000) transformed fields [1]_.
+    r"""Yeo-Johnson (2000) transformed fields.
 
     Parameters
     ----------
@@ -163,7 +163,7 @@ class YeoJohnson(Normalizer):
 
     Notes
     -----
-    This transformation is given by:
+    This transformation is given by [1]_:
 
     .. math::
        y=\begin{cases}
@@ -235,7 +235,7 @@ class YeoJohnson(Normalizer):
 
 
 class Modulus(Normalizer):
-    r"""Modulus or John-Draper (1980) transformed fields [1]_.
+    r"""Modulus or John-Draper (1980) transformed fields.
 
     Parameters
     ----------
@@ -247,7 +247,7 @@ class Modulus(Normalizer):
 
     Notes
     -----
-    This transformation is given by:
+    This transformation is given by [1]_:
 
     .. math::
        y=\begin{cases}
@@ -290,7 +290,7 @@ class Modulus(Normalizer):
 
 
 class Manly(Normalizer):
-    r"""Manly (1971) transformed fields [1]_.
+    r"""Manly (1971) transformed fields.
 
     Parameters
     ----------
@@ -302,7 +302,7 @@ class Manly(Normalizer):
 
     Notes
     -----
-    This transformation is given by:
+    This transformation is given by [1]_:
 
     .. math::
        y=\begin{cases}

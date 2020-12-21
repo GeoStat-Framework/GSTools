@@ -8,20 +8,22 @@ Base-Normalizer
 ^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    Normalizer
 
 Field-Normalizer
 ^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    LogNormal
    BoxCox
    BoxCoxShift
    YeoJohnson
    Modulus
    Manly
-
-----
 """
 
 from gstools.normalize.base import Normalizer

@@ -108,7 +108,14 @@ Estimate the variogram of a given field
 """
 # Hooray!
 from gstools import (
-    field, variogram, random, covmodel, tools, krige, transform, normalize
+    field,
+    variogram,
+    random,
+    covmodel,
+    tools,
+    krige,
+    transform,
+    normalize,
 )
 from gstools.field import SRF
 from gstools.tools import (
