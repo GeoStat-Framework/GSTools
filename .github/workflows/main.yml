@@ -90,7 +90,7 @@ jobs:
           python -m coveralls
 
       - uses: actions/upload-artifact@v2
-        if: ${{ matrix.python-version }} == 3.9 && ${{ matrix.os }} == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
         with:
           path: dist/*.tar.gz
 
