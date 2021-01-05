@@ -23,8 +23,8 @@ env:
 
 jobs:
   build_wheels:
-    name: wheels on ${{matrix.os}}
-    runs-on: ${{matrix.os}}
+    name: wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -53,8 +53,8 @@ jobs:
           path: ./dist/*.whl
 
   build_sdist:
-    name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
-    runs-on: ${{matrix.os}}
+    name: sdist on ${{ matrix.os }} with py ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -90,6 +90,7 @@ jobs:
           python -m coveralls
 
       - uses: actions/upload-artifact@v2
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
         with:
           path: dist/*.tar.gz
 
