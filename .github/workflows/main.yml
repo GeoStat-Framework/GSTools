@@ -91,6 +91,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
+          python-version: 3.9
           path: dist/*.tar.gz
 
   upload_to_pypi:
