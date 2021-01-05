@@ -23,8 +23,8 @@ env:
 
 jobs:
   build_wheels:
-    name: wheels on ${{matrix.os}}
-    runs-on: ${{matrix.os}}
+    name: wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -53,8 +53,8 @@ jobs:
           path: ./dist/*.whl
 
   build_sdist:
-    name: sdist on ${{matrix.os}} with py ${{ matrix.python-version }}
-    runs-on: ${{matrix.os}}
+    name: sdist on ${{ matrix.os }} with py ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
