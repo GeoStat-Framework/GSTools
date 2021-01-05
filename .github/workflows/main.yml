@@ -49,6 +49,7 @@ jobs:
           python -m cibuildwheel --output-dir dist
 
       - uses: actions/upload-artifact@v2
+        if: python-version == '3.9'
         with:
           path: ./dist/*.whl
 
