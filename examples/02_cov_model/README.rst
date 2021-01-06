@@ -1,7 +1,7 @@
 .. _tutorial_02_cov:
 
-Tutorial 2: The Covariance Model
-================================
+The Covariance Model
+====================
 
 One of the core-features of GSTools is the powerful :any:`CovModel`
 class, which allows you to easily define arbitrary covariance models by
