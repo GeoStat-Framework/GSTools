@@ -21,7 +21,7 @@ class Normalizer:
     Parameters
     ----------
     data : array_like, optional
-        Input data to fit the transformation in order to gain normality.
+        Input data to fit the transformation to in order to gain normality.
         The default is None.
     **parameter
         Specified parameters given by name. If not given, default values
@@ -92,27 +92,57 @@ class Normalizer:
         """
         return spm.derivative(self.normalize, np.asanyarray(values), dx=1e-6)
 
+    def likelihood(self, data):
+        """Likelihood for given data with current parameters.
+
+        Parameters
+        ----------
+        data : array_like
+            Input data to fit the transformation to in order to gain normality.
+
+        Returns
+        -------
+        :class:`float`
+            Likelihood of the given data.
+        """
+        return np.exp(self.loglikelihood(data))
+
     def loglikelihood(self, data):
         """Log-Likelihood for given data with current parameters.
 
         Parameters
         ----------
         data : array_like
-            Input data to fit the transformation in order to gain normality.
+            Input data to fit the transformation to in order to gain normality.
 
         Returns
         -------
         :class:`float`
             Log-Likelihood of the given data.
+        """
+        add = -0.5 * np.size(data) * np.log(2 * np.pi) - 0.5
+        return self.kernel_loglikelihood(data) + add
+
+    def kernel_loglikelihood(self, data):
+        """Kernel Log-Likelihood for given data with current parameters.
+
+        Parameters
+        ----------
+        data : array_like
+            Input data to fit the transformation to in order to gain normality.
+
+        Returns
+        -------
+        :class:`float`
+            Kernel Log-Likelihood of the given data.
 
         Notes
         -----
-        This loglikelihood function could be missing additive constants,
+        This loglikelihood function is neglecting additive constants,
         that are not needed for optimization.
         """
         res = -0.5 * np.size(data) * np.log(np.var(self.normalize(data)))
-        res += np.sum(np.log(np.maximum(1e-16, self.derivative(data))))
-        return res
+        return res + np.sum(np.log(np.maximum(1e-16, self.derivative(data))))
 
     def fit(self, data, skip=None, **kwargs):
         """Fitting the transformation to data by maximizing Log-Likelihood.
@@ -120,7 +150,7 @@ class Normalizer:
         Parameters
         ----------
         data : array_like
-            Input data to fit the transformation in order to gain normality.
+            Input data to fit the transformation to in order to gain normality.
         skip : :class:`list` of :class:`str` or :any:`None`, optional
             Names of parameters to be skiped in fitting.
             The default is None.
@@ -134,41 +164,35 @@ class Normalizer:
             Optimal paramters given by names.
         """
         skip = [] if skip is None else skip
-        all_names = list(self.default_parameter().keys())
-        para_names = [p for p in all_names if p not in skip]
+        all_names = sorted(self.default_parameter())
+        para_names = [name for name in all_names if name not in skip]
 
-        def _neg_llf(par, dat):
+        def _neg_kllf(par, dat):
             for name, val in zip(para_names, np.atleast_1d(par)):
                 setattr(self, name, val)
-            return -self.loglikelihood(dat)
+            return -self.kernel_loglikelihood(dat)
 
         if len(para_names) == 0:  # transformations without para. (no opti.)
-            warnings.warn("Normalizer.fit: no parameters for fitting.")
+            warnings.warn(self.__class__.__name__ + ".fit: no parameters!")
             return {}
         if len(para_names) == 1:  # one-para. transformations (simple opti.)
             # default bracket like in scipy's boxcox (if not given)
             kwargs.setdefault("bracket", (-2, 2))
-            out = spo.minimize_scalar(_neg_llf, args=(data,), **kwargs)
+            out = spo.minimize_scalar(_neg_kllf, args=(data,), **kwargs)
         else:  # general case
             # init guess from current values (if x0 not given)
             kwargs.setdefault("x0", [getattr(self, p) for p in para_names])
-            out = spo.minimize(_neg_llf, args=(data,), **kwargs)
+            out = spo.minimize(_neg_kllf, args=(data,), **kwargs)
         # save optimization results
         self._opti = out
         for name, val in zip(para_names, np.atleast_1d(out.x)):
             setattr(self, name, val)
         return {name: getattr(self, name) for name in all_names}
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
-        out_str = self.__class__.__name__
-        para_strs = []
-        for p in self.default_parameter():
-            para_strs.append(
-                "{0}={1:.{2}}".format(p, float(getattr(self, p)), self._prec)
-            )
-        return out_str + "(" + ", ".join(para_strs) + ")"
+        para_strs = [
+            "{0}={1:.{2}}".format(p, float(getattr(self, p)), self._prec)
+            for p in sorted(self.default_parameter())
+        ]
+        return self.__class__.__name__ + "(" + ", ".join(para_strs) + ")"
