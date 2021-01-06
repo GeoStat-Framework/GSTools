@@ -1,5 +1,5 @@
-Tutorial 6: Conditioned Fields
-==============================
+Conditioned Fields
+==================
 
 Kriged fields tend to approach the field mean outside the area of observations.
 To generate random fields, that coincide with given observations, but are still

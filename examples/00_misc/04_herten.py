@@ -1,6 +1,6 @@
 """
-An Example with Actual Data
----------------------------
+Analyzing the Herten Aquifer with GSTools
+-----------------------------------------
 
 This example is going to be a bit more extensive and we are going to do some
 basic data preprocessing for the actual variogram estimation. But this example
