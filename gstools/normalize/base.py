@@ -123,7 +123,7 @@ class Normalizer:
         :class:`float`
             Log-Likelihood of the given data.
         """
-        add = -0.5 * np.size(data) * np.log(2 * np.pi) - 0.5
+        add = -0.5 * np.size(data) * (np.log(2 * np.pi) + 1)
         return self.kernel_loglikelihood(data) + add
 
     def kernel_loglikelihood(self, data):
