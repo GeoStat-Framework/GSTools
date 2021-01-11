@@ -144,8 +144,8 @@ class TestCondition(unittest.TestCase):
 
     def error_test(self):
         # try fitting directional variogram
+        mod = gs.Gaussian(latlon=True)
         with self.assertRaises(ValueError):
-            mod = gs.Gaussian(latlon=True)
             mod.fit_variogram([0, 1], [[0, 1], [0, 1], [0, 1]])
         # try to use fixed dim=2 with latlon
         with self.assertRaises(ValueError):
