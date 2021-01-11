@@ -212,7 +212,7 @@ class RandMeth:
             rad = self._rng.sample_ln_pdf(
                 ln_pdf=self.model.ln_spectral_rad_pdf,
                 size=self._mode_no,
-                sample_around=1.0 / self.model.len_scale,
+                sample_around=1.0 / self.model.len_rescaled,
             )
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
