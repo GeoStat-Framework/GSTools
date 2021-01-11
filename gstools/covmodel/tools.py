@@ -610,7 +610,7 @@ def compare(this, that):
     return equal
 
 
-def model_repr(model):
+def model_repr(model):  # pragma: no cover
     """
     Generate the model string representation.
 
