@@ -171,7 +171,7 @@ class YeoJohnson(Normalizer):
        & x\geq 0,\, \lambda\neq 0 \\
        \log(x+1)
        & x\geq 0,\, \lambda = 0 \\
-       \frac{(|x|+1)^{2-\lambda} - 1}{2-\lambda}
+       -\frac{(|x|+1)^{2-\lambda} - 1}{2-\lambda}
        & x<0,\, \lambda\neq 2 \\
        -\log(|x|+1)
        & x<0,\, \lambda = 2
