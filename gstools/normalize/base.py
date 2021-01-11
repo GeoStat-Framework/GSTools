@@ -29,11 +29,14 @@ class Normalizer:
     """
 
     def __init__(self, data=None, **parameter):
-        # only use values, that have a provided default value
+        # only use parameter, that have a provided default value
         for key, value in self.default_parameter().items():
             setattr(self, key, parameter.get(key, value))
+        # fit parameters if data is given
         if data is not None:
             self.fit(data)
+        # optimization results
+        self._opti = None
         # precision for printing
         self._prec = 3
 
