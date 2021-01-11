@@ -12,6 +12,14 @@ def _rel_err(a, b):
     return np.abs(a / ((a + b) / 2) - 1)
 
 
+class ErrMod(gs.CovModel):
+    def cor(self, h):
+        return np.exp(-(h ** 2))
+
+    def fix_dim(self):
+        return 2
+
+
 class TestCondition(unittest.TestCase):
     def setUp(self):
         self.cov_model = gs.Gaussian(
@@ -44,6 +52,13 @@ class TestCondition(unittest.TestCase):
             ]
         )
 
+    def test_conv(self):
+        p_ll = gs.tools.geometric.latlon2pos((self.lat, self.lon), 2.56)
+        ll_p = gs.tools.geometric.pos2latlon(p_ll, 2.56)
+        for i, v in enumerate(self.lat):
+            self.assertAlmostEqual(v, ll_p[0, i])
+            self.assertAlmostEqual(v, ll_p[1, i])
+
     def test_cov_model(self):
         self.assertAlmostEqual(
             self.cov_model.vario_yadrenko(1.234),
@@ -53,6 +68,18 @@ class TestCondition(unittest.TestCase):
             self.cov_model.cov_yadrenko(1.234),
             self.cov_model.var * self.cov_model.cor_yadrenko(1.234),
         )
+        self.assertAlmostEqual(
+            8, self.cov_model.anisometrize(self.cov_model.isometrize((8, 6)))[0, 0]
+        )
+        self.assertAlmostEqual(
+            6, self.cov_model.anisometrize(self.cov_model.isometrize((8, 6)))[1, 0]
+        )
+        self.assertAlmostEqual(
+            1, self.cov_model.isometrize(self.cov_model.anisometrize((1, 0, 0)))[0, 0]
+        )
+        # test if callable
+        self.cov_model.anis = [1, 2]
+        self.cov_model.angles = [1, 2, 3]
 
     def test_vario_est(self):
 
@@ -109,6 +136,25 @@ class TestCondition(unittest.TestCase):
         field = srf((self.data[:, 0], self.data[:, 1]))
         for i, dat in enumerate(self.data[:, 2]):
             self.assertAlmostEqual(field[i], dat)
+
+    def error_test(self):
+        # try fitting directional variogram
+        with self.assertRaises(ValueError):
+            mod = gs.Gaussian(latlon=True)
+            mod.fit_variogram([0, 1], [[0, 1], [0, 1], [0, 1]])
+        # try to use fixed dim=2 with latlon
+        with self.assertRaises(ValueError):
+            ErrMod(latlon=True)
+        # try to estimate latlon vario on wrong dim
+        with self.assertRaises(ValueError):
+            gs.vario_estimate([[1], [1], [1]], [1], [0, 1], latlon=True)
+        # try to estimate directional vario with latlon
+        with self.assertRaises(ValueError):
+            gs.vario_estimate([[1], [1]], [1], [0, 1], latlon=True, angles=1)
+        # try to create a vector field with latlon
+        with self.assertRaises(ValueError):
+            srf = gs.SRF(mod, generator="VectorField", mode_no=2)
+            srf([1, 2])
 
 
 if __name__ == "__main__":
