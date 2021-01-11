@@ -41,8 +41,9 @@ class TestRandMeth(unittest.TestCase):
 
     def test_unstruct_3d(self):
         modes = self.rm_3d((self.x_tuple, self.y_tuple, self.z_tuple))
-        self.assertAlmostEqual(modes[0], 0.55488481)
-        self.assertAlmostEqual(modes[1], 1.18506639)
+        # print(modes[:2])
+        self.assertAlmostEqual(modes[0], 1.3240234883187239)
+        self.assertAlmostEqual(modes[1], 1.6367244277732766)
 
     def test_reset(self):
         modes = self.rm_2d((self.x_tuple, self.y_tuple))
@@ -61,8 +62,9 @@ class TestRandMeth(unittest.TestCase):
 
         self.rm_1d.model = self.cov_model_3d
         modes = self.rm_1d((self.x_tuple, self.y_tuple, self.z_tuple))
-        self.assertAlmostEqual(modes[0], 0.55488481)
-        self.assertAlmostEqual(modes[1], 1.18506639)
+        # print(modes[:2])
+        self.assertAlmostEqual(modes[0], 1.3240234883187239)
+        self.assertAlmostEqual(modes[1], 1.6367244277732766)
 
         self.rm_2d.mode_no = 800
         modes = self.rm_2d((self.x_tuple, self.y_tuple))
