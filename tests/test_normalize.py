@@ -16,8 +16,10 @@ class TestNormalizer(unittest.TestCase):
     def setUp(self):
         self.seed = 20210111
         self.rng = gs.random.RNG(self.seed)
-        self.samp = self.rng.random.normal(11.1, 2.25, 1000)
-        self.lmb = 2.5
+        self.mean = 11.1
+        self.std = 2.25
+        self.samp = self.rng.random.normal(self.mean, self.std, 1000)
+        self.lmb = 1.5
 
     def test_fitting(self):
         # boxcox with given data to init
@@ -55,6 +57,106 @@ class TestNormalizer(unittest.TestCase):
         #     ma_norm.likelihood(ma_samples),
         #     np.exp(ma_norm.loglikelihood(ma_samples)),
         # )  # this is comparing infs
+
+    def test_boxcox(self):
+        # without shift
+        bc = gs.normalize.BoxCox(lmbda=0)
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, bc.normalize(bc.denormalize(self.samp)))
+            )
+        )
+        bc.lmbda = self.lmb
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, bc.normalize(bc.denormalize(self.samp)))
+            )
+        )
+        # with shift
+        bc = gs.normalize.BoxCoxShift(lmbda=0, shift=1.1)
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, bc.normalize(bc.denormalize(self.samp)))
+            )
+        )
+        bc.lmbda = self.lmb
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, bc.normalize(bc.denormalize(self.samp)))
+            )
+        )
+
+    def test_yeojohnson(self):
+        yj = gs.normalize.YeoJohnson(lmbda=0)
+        self.assertTrue(
+            np.all(
+                np.isclose(
+                    self.samp - self.mean,
+                    yj.normalize(yj.denormalize(self.samp - self.mean)),
+                )
+            )
+        )
+        yj.lmbda = 2
+        self.assertTrue(
+            np.all(
+                np.isclose(
+                    self.samp - self.mean,
+                    yj.normalize(yj.denormalize(self.samp - self.mean)),
+                )
+            )
+        )
+        # with shift
+        yj.lmbda = self.lmb
+        self.assertTrue(
+            np.all(
+                np.isclose(
+                    self.samp - self.mean,
+                    yj.normalize(yj.denormalize(self.samp - self.mean)),
+                )
+            )
+        )
+
+    def test_modulus(self):
+        mo = gs.normalize.Modulus(lmbda=0)
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, mo.normalize(mo.denormalize(self.samp)))
+            )
+        )
+        mo.lmbda = self.lmb
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, mo.normalize(mo.denormalize(self.samp)))
+            )
+        )
+
+    def test_manly(self):
+        ma = gs.normalize.Manly(lmbda=0)
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, ma.normalize(ma.denormalize(self.samp)))
+            )
+        )
+        ma.lmbda = self.lmb
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, ma.normalize(ma.denormalize(self.samp)))
+            )
+        )
+
+    def test_parameterless(self):
+        no = gs.normalize.LogNormal()
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, no.normalize(no.denormalize(self.samp)))
+            )
+        )
+        no = gs.normalize.Normalizer()
+        self.assertTrue(
+            np.all(
+                np.isclose(self.samp, no.normalize(no.denormalize(self.samp)))
+            )
+        )
 
 
 if __name__ == "__main__":
