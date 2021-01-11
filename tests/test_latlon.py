@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This is the unittest of CovModel class.
+This is the unittest for latlon related routines.
 """
 
 import numpy as np
@@ -22,7 +22,7 @@ class ErrMod(gs.CovModel):
 
 class TestCondition(unittest.TestCase):
     def setUp(self):
-        self.cov_model = gs.Gaussian(
+        self.cmod = gs.Gaussian(
             latlon=True, var=2, len_scale=777, rescale=gs.EARTH_RADIUS
         )
         self.lat = self.lon = range(-80, 81)
@@ -58,32 +58,37 @@ class TestCondition(unittest.TestCase):
         for i, v in enumerate(self.lat):
             self.assertAlmostEqual(v, ll_p[0, i])
             self.assertAlmostEqual(v, ll_p[1, i])
+        self.assertAlmostEqual(
+            8, self.cmod.anisometrize(self.cmod.isometrize((8, 6)))[0, 0]
+        )
+        self.assertAlmostEqual(
+            6, self.cmod.anisometrize(self.cmod.isometrize((8, 6)))[1, 0]
+        )
+        self.assertAlmostEqual(
+            1, self.cmod.isometrize(self.cmod.anisometrize((1, 0, 0)))[0, 0]
+        )
 
     def test_cov_model(self):
         self.assertAlmostEqual(
-            self.cov_model.vario_yadrenko(1.234),
-            self.cov_model.sill - self.cov_model.cov_yadrenko(1.234),
+            self.cmod.vario_yadrenko(1.234),
+            self.cmod.sill - self.cmod.cov_yadrenko(1.234),
         )
         self.assertAlmostEqual(
-            self.cov_model.cov_yadrenko(1.234),
-            self.cov_model.var * self.cov_model.cor_yadrenko(1.234),
+            self.cmod.cov_yadrenko(1.234),
+            self.cmod.var * self.cmod.cor_yadrenko(1.234),
         )
-        self.assertAlmostEqual(
-            8, self.cov_model.anisometrize(self.cov_model.isometrize((8, 6)))[0, 0]
-        )
-        self.assertAlmostEqual(
-            6, self.cov_model.anisometrize(self.cov_model.isometrize((8, 6)))[1, 0]
-        )
-        self.assertAlmostEqual(
-            1, self.cov_model.isometrize(self.cov_model.anisometrize((1, 0, 0)))[0, 0]
-        )
-        # test if callable
-        self.cov_model.anis = [1, 2]
-        self.cov_model.angles = [1, 2, 3]
+        # test if correctly handling tries to set anisotropy
+        self.cmod.anis = [1, 2]
+        self.cmod.angles = [1, 2, 3]
+        self.assertAlmostEqual(self.cmod.anis[0], 1)
+        self.assertAlmostEqual(self.cmod.anis[1], 1)
+        self.assertAlmostEqual(self.cmod.angles[0], 0)
+        self.assertAlmostEqual(self.cmod.angles[1], 0)
+        self.assertAlmostEqual(self.cmod.angles[2], 0)
 
     def test_vario_est(self):
 
-        srf = gs.SRF(self.cov_model, seed=12345)
+        srf = gs.SRF(self.cmod, seed=12345)
         field = srf.structured((self.lat, self.lon))
 
         bin_edges = [0.01 * i for i in range(30)]
@@ -97,8 +102,8 @@ class TestCondition(unittest.TestCase):
         mod = gs.Gaussian(latlon=True, rescale=gs.EARTH_RADIUS)
         mod.fit_variogram(bin_center, emp_vario, nugget=False)
         # allow 10 percent relative error
-        self.assertLess(_rel_err(mod.var, self.cov_model.var), 0.1)
-        self.assertLess(_rel_err(mod.len_scale, self.cov_model.len_scale), 0.1)
+        self.assertLess(_rel_err(mod.var, self.cmod.var), 0.1)
+        self.assertLess(_rel_err(mod.len_scale, self.cmod.len_scale), 0.1)
 
     def test_krige(self):
         bin_max = np.deg2rad(8)
