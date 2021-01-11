@@ -20,12 +20,12 @@ import gstools as gs
 # fix the seed for reproducibility
 seed = 20170521
 # half daily timesteps over three months
-t = np.arange(0., 90., 0.5)
+t = np.arange(0.0, 90.0, 0.5)
 # spatial axis of 50km with a resolution of 1km
 x = np.arange(0, 50, 1.0)
 
 # an exponential variogram with a corr. lengths of 2d and 5km
-model = gs.Exponential(dim=2, var=1.0, len_scale=2., anis=2.5)
+model = gs.Exponential(dim=2, var=1.0, len_scale=2.0, anis=2.5)
 # create a spatial random field instance
 srf = gs.SRF(model)
 
@@ -68,46 +68,46 @@ P_ana = srf.field
 
 fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
 
-axs[0,0].set_title('Gaussian')
-axs[0,0].plot(t, P_gau[:, 20])
-axs[0,0].set_ylabel(r'$P$ / mm')
+axs[0, 0].set_title("Gaussian")
+axs[0, 0].plot(t, P_gau[:, 20])
+axs[0, 0].set_ylabel(r"$P$ / mm")
 
-axs[0,1].set_title('Cut Gaussian')
-axs[0,1].plot(t, P_cut[:, 20])
+axs[0, 1].set_title("Cut Gaussian")
+axs[0, 1].plot(t, P_cut[:, 20])
 
-axs[1,0].set_title('Cut Gaussian Anamorphosis')
-axs[1,0].plot(t, P_ana[:, 20])
-axs[1,0].set_xlabel(r'$t$ / d')
-axs[1,0].set_ylabel(r'$P$ / mm')
+axs[1, 0].set_title("Cut Gaussian Anamorphosis")
+axs[1, 0].plot(t, P_ana[:, 20])
+axs[1, 0].set_xlabel(r"$t$ / d")
+axs[1, 0].set_ylabel(r"$P$ / mm")
 
-axs[1,1].set_title('Different Cross Section')
-axs[1,1].plot(t, P_ana[:, 10])
-axs[1,1].set_xlabel(r'$t$ / d')
+axs[1, 1].set_title("Different Cross Section")
+axs[1, 1].plot(t, P_ana[:, 10])
+axs[1, 1].set_xlabel(r"$t$ / d")
 
 plt.tight_layout()
 
 fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
 
-axs[0,0].set_title('Gaussian')
-cont = axs[0,0].contourf(t, x, P_gau.T, cmap='PuBu')
-cbar = fig.colorbar(cont, ax=axs[0,0])
-cbar.ax.set_ylabel(r'$P$ / mm')
-axs[0,0].set_ylabel(r'$x$ / km')
+axs[0, 0].set_title("Gaussian")
+cont = axs[0, 0].contourf(t, x, P_gau.T, cmap="PuBu")
+cbar = fig.colorbar(cont, ax=axs[0, 0])
+cbar.ax.set_ylabel(r"$P$ / mm")
+axs[0, 0].set_ylabel(r"$x$ / km")
 
-axs[0,1].set_title('Cut Gaussian')
-cont = axs[0,1].contourf(t, x, P_cut.T, cmap='PuBu')
-cbar = fig.colorbar(cont, ax=axs[0,1])
-cbar.ax.set_ylabel(r'$P$ / mm')
-axs[0,1].set_xlabel(r'$t$ / d')
+axs[0, 1].set_title("Cut Gaussian")
+cont = axs[0, 1].contourf(t, x, P_cut.T, cmap="PuBu")
+cbar = fig.colorbar(cont, ax=axs[0, 1])
+cbar.ax.set_ylabel(r"$P$ / mm")
+axs[0, 1].set_xlabel(r"$t$ / d")
 
-axs[1,0].set_title('Cut Gaussian Anamorphosis')
-cont = axs[1,0].contourf(t, x, P_ana.T, cmap='PuBu')
-cbar = fig.colorbar(cont, ax=axs[1,0])
-cbar.ax.set_ylabel(r'$P$ / mm')
-axs[1,0].set_xlabel(r'$t$ / d')
-axs[1,0].set_ylabel(r'$x$ / km')
+axs[1, 0].set_title("Cut Gaussian Anamorphosis")
+cont = axs[1, 0].contourf(t, x, P_ana.T, cmap="PuBu")
+cbar = fig.colorbar(cont, ax=axs[1, 0])
+cbar.ax.set_ylabel(r"$P$ / mm")
+axs[1, 0].set_xlabel(r"$t$ / d")
+axs[1, 0].set_ylabel(r"$x$ / km")
 
-fig.delaxes(axs[1,1])
+fig.delaxes(axs[1, 1])
 plt.tight_layout()
 
 ###############################################################################
@@ -123,14 +123,14 @@ import gstools as gs
 # fix the seed for reproducibility
 seed = 20170521
 # half daily timesteps over three months
-t = np.arange(0., 90., 0.5)
+t = np.arange(0.0, 90.0, 0.5)
 # 1st spatial axis of 50km with a resolution of 1km
 x = np.arange(0, 50, 1.0)
 # 2nd spatial axis of 40km with a resolution of 1km
 y = np.arange(0, 40, 1.0)
 
 # an exponential variogram with a corr. lengths of 2d, 5km, and 5km
-model = gs.Exponential(dim=3, var=1.0, len_scale=2., anis=(2.5, 2.5))
+model = gs.Exponential(dim=3, var=1.0, len_scale=2.0, anis=(2.5, 2.5))
 # create a spatial random field instance
 srf = gs.SRF(model)
 
