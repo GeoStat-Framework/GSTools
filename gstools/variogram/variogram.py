@@ -233,7 +233,7 @@ def vario_estimate(
             pos, field.shape, check_stacked_shape=True
         )
     if latlon and dim != 2:
-        raise ValueError("Variogram: given field to be 2D for lat-lon.")
+        raise ValueError("Variogram: given field needs to be 2D for lat-lon.")
     # prepare the field
     pnt_cnt = len(pos[0])
     field = field.reshape((-1, pnt_cnt))
