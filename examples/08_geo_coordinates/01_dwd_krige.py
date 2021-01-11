@@ -27,7 +27,7 @@ def get_borders_germany():
     import geopandas as gp  # 0.8.1
 
     shpfile = shp_read.natural_earth("50m", "cultural", "admin_0_countries")
-    df = gp.read_file(shpfile)  # only use the simples polygon
+    df = gp.read_file(shpfile)  # only use the simplest polygon
     poly = df.loc[df["ADMIN"] == "Germany"]["geometry"].values[0][0]
     np.savetxt("de_borders.txt", list(poly.exterior.coords))
 

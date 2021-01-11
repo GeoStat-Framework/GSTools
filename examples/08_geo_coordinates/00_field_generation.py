@@ -42,7 +42,7 @@ bin_center, emp_vario = gs.vario_estimate(
 )
 
 ax = model.plot("vario_yadrenko", x_max=0.3)
-model.fit_variogram(bin_center, emp_vario, init_guess="current", nugget=False)
+model.fit_variogram(bin_center, emp_vario, nugget=False)
 model.plot("vario_yadrenko", ax=ax, label="fitted", x_max=0.3)
 ax.scatter(bin_center, emp_vario, color="k")
 print(model)
