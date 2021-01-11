@@ -188,7 +188,7 @@ class SRF(Field):
         """
         if cond_pos is not None:
             self._cond_pos, self._cond_val = set_condition(
-                cond_pos, cond_val, self.model.dim
+                cond_pos, cond_val, self.model.field_dim
             )
         else:
             self._cond_pos = self._cond_val = None
