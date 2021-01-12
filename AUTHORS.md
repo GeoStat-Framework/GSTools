@@ -14,3 +14,4 @@ and was created by following people.
 
 - Falk Heße, Email: <falk.hesse@ufz.de>
 - Bane Sullivan, GitHub: [@banesullivan](https://github.com/banesullivan)
+- Tobias Glaubach, GitHub: [@TobiasGlaubach](https://github.com/TobiasGlaubach)

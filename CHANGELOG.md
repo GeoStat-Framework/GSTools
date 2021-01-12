@@ -2,6 +2,124 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.3.0] - Pure Pink - 2021-02
+
+### Topics
+
+#### Geographical Coordinates Support
+- added boolean init parameter `latlon` to indicate a geographic model. When given, spatial dimension is fixed to `dim=3`, `anis` and `angles` will be ignored, since anisotropy is not well-defined on a sphere.
+- add property `field_dim` to indicate the dimension of the resulting field. Will be 2 if `latlon=True`
+- added yadrenko variogram, covariance and correlation method, since the geographic models are derived from standard models in 3D by plugging in the chordal distance of two points on a sphere derived from there great-circle distance `zeta`:
+  - `vario_yadrenko`: given by `variogram(2 * np.sin(zeta / 2))`
+  - `cov_yadrenko`: given by `covariance(2 * np.sin(zeta / 2))`
+  - `cor_yadrenko`: given by `correlation(2 * np.sin(zeta / 2))`
+- added plotting routines for yadrenko methods described above
+- the `isometrize` and `anisometrize` methods will convert `latlon` tuples (given in degree) to points on the unit-sphere in 3D and vice versa
+- representation of geographical models don't display the `dim`, `anis` and `angles` parameters, but `latlon=True`
+- `fit_variogram` will expect an estimated variogram with great-circle distances given in radians
+- **Variogram estimation**
+    - `latlon` switch implemented in `estimate_vario` routine
+    - will return a variogram estimated by the great-circle distance (haversine formula) given in radians
+- **Field**
+    - added plotting routines for latlon fields
+    - no vector fields possible on latlon fields
+    - corretly handle pos tuple for latlon fields
+
+#### Krige Unification (#97)
+- Swiss Army Knife for kriging: The `Krige` class now provides everything in one place
+- "Kriging the mean" is now possible with the switch `only_mean` in the call routine
+- `Simple`/`Ordinary`/`Universal`/`ExtDrift`/`Detrended` are only shortcuts to `Krige` with limited input parameter list
+- We now use the `covariance` function to build up the kriging matrix (instead of variogram)
+- An `unbiased` switch was added to enable simple kriging (where the unbiased condition is not given)
+- An `exact` switch was added to allow smother results, if a `nugget` is present in the model
+- An `cond_err` parameter was added, where measurement error variances can be given for each conditional point
+- pseudo-inverse matrix is now used to solve the kriging system (can be disabled by the new switch `pseudo_inv`), this is equal to solving the system with least-squares and prevents numerical errors
+
+#### Directional Variograms (#87, #106)
+- new routine name `vario_estimate` instead of `vario_estimate_unstructured` (old kept for legacy code) for simplicity
+- new routine name `vario_estimate_axis` instead of `vario_estimate_structured` (old kept for legacy code) for simplicity
+- **`vario_estimate`**
+  - allow to pass multiple fields for joint variogram estimation (e.g. for daily precipitation) on same mesh
+  - `no_data` option added to allow missing values
+  - **masked fields**
+    - user can now pass a masked array (or a list of masked arrays) to deselect data points.
+    - in addition, a `mask` keyword was added to provide an external mask
+  - **directional variograms**
+    - diretional variograms can now be estimated
+    - either provide a list of direction vectors or angles for directions (spherical coordinates)
+    - can be controlled by given angle tolerance and (optional) bandwidth
+    - prepared for nD
+  - structured fields (pos tuple describes axes) can now be passed to estimate an isotropic or directional variogram
+  - distance calculation in cython routines in now independent of dimension
+- **`vario_estimate_axis`**
+  - estimation along array axis now possible in arbitrary dimensions
+  - `no_data` option added to allow missing values (sovles #83)
+  - axis can be given by name (`"x"`, `"y"`, `"z"`) or axis number (`0`, `1`, `2`, `3`, ...)
+
+#### Better Variogram fitting (#78)
+- fixing sill possible now
+- `loss` is now selectable for smoother handling of outliers
+- r2 score can now be returned to get an impression of the goodness of fitting
+- weights can be passed
+- instead of deselecting parameters, one can also give fix values for each parameter
+
+#### CovModel update (#109, #122)
+- add new `rescale` argument and attribute to the `CovModel` class to be able to rescale the `len_scale` (usefull for unit conversion or rescaling `len_scale` to coincide with the `integral_scale` like it's the case with the Gaussian model)
+  See: #90, https://github.com/GeoStat-Framework/PyKrige/issues/119
+- added new `len_rescaled` attribute to the `CovModel` class, which is the rescaled `len_scale`: `len_rescaled = len_scale / rescale`
+- new method `default_rescale` to provide default rescale factor (can be overridden)
+- remove `doctest` calls
+- docstring updates in CovModel and derived models
+- updated all models to use the `cor` routine and make use of the `rescale` argument (See: #90)
+- TPL models got a separate base class to not repeat code
+- added **new models** (See: #88):
+  -  `HyperSpherical`: (Replaces the old `Intersection` model) Derived from the intersection of hyper-spheres in arbitrary dimensions. Coincides with the linear model in 1D, the circular model in 2D and the classical spherical model in 3D
+  - `SuperSpherical`: like the HyperSpherical, but the shape parameter derived from dimension can be set by the user. Coincides with the HyperSpherical model by default
+  - `JBessel`: a hole model valid in all dimensions. The shape parameter controls the dimension it was derived from. For `nu=0.5` this model coincides with the well known `wave` hole model.
+  - `TPLSimple`: a simple truncated power law controlled by a shape parameter `nu`. Coincides with the truncated linear model for `nu=1`
+  - `Cubic`: to be compatible with scikit-gstat in the future
+- string representation of the `CovModel` class is now using a float precision (`CovModel._prec=3`) to truncate longish output
+- dimension validity check: raise a warning, if given model is not valid in the desired dimension (See: #86)
+
+#### Normalizer (#124)
+
+- new `normalize` submodule containing power-transforms for data to gain normality
+- Base-Class: `Normalizer` providing basic functionality including maximum likelihood fitting
+- added: `LogNormal`, `BoxCox`, `BoxCoxShift`, `YeoJohnson`, `Modulus` and `Manly`
+- normalizer can be passed to SRF, Krige and variogram estimation routines
+
+#### Arbitrary dimensions (#112)
+- allow arbitrary dimensions in all routines (CovModel, Krige, SRF, variogram)
+- anisotropy and rotation following a generalization of tait-bryan angles
+- CovModel provides `isometrize` and `anisometrize` routines to convert points
+
+### Enhancements
+- Python 3.9 Support #107
+- add routines to format struct. pos tuple by given `dim` or `shape`
+- add routine to format struct. pos tuple by given `shape` (variogram helper)
+- remove `field.tools` subpackage
+- support `meshio>=4.0` and add as dependency
+- PyVista mesh support #59
+- added `EARTH_RADIUS` as constant providing earths radius in km (can be used to rescale models)
+- add routines `latlon2pos` and `pos2latlon` to convert lat-lon coordinates to points on unit-sphere and vice versa
+- a lot of new examples and tutorials
+
+### Changes
+- drop usage of `pos2xyz` and `xyz2pos`
+- remove structured option from generators (structured pos need to be converted first)
+- explicitly assert dim=2,3 when generating vector fields
+- simplify `pre_pos` routine to save pos tuple and reformat it an unstructured tuple
+- simplify field shaping
+- simplify plotting routines
+- only the `"unstructured"` keyword is recognized everywhere, everything else is interpreted as `"structured"` (e.g. `"rectilinear"`)
+- use GitHub-Actions instead of TravisCI
+
+### Bugfixes
+- typo in keyword argument for vario_estimate_structured #80
+- isotropic rotation of SRF was not possible #100
+- `CovModel.opt_arg` now sorted #103
+- CovModel.fit: check if weights are given as a string (numpy comparison error) #111
+
 ## [1.2.1] - Volatile Violet - 2020-04-14
 
 ### Bugfixes
@@ -122,7 +240,8 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.0...v1.1.1
