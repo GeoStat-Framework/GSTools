@@ -38,7 +38,6 @@ class TestIncomprRandMeth(unittest.TestCase):
 
     def test_unstruct_3d(self):
         modes = self.rm_3d((self.x_tuple, self.y_tuple, self.z_tuple))
-        # print(modes[0, 0], modes[0, 1], modes[1, 0])
         self.assertAlmostEqual(modes[0, 0], 0.7924546333550331)
         self.assertAlmostEqual(modes[0, 1], 1.660747056686244)
         self.assertAlmostEqual(modes[1, 0], -0.28049855754819514)

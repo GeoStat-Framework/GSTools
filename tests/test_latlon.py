@@ -87,7 +87,6 @@ class TestCondition(unittest.TestCase):
         self.assertAlmostEqual(self.cmod.angles[2], 0)
 
     def test_vario_est(self):
-
         srf = gs.SRF(self.cmod, seed=12345)
         field = srf.structured((self.lat, self.lon))
 
