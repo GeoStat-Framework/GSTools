@@ -112,7 +112,10 @@ print(model)
 # by assuming a linear correlation with the latitude.
 # This can be done as follows:
 
-north_south_drift = lambda lat, lon: lat
+
+def north_south_drift(lat, lon):
+    return lat
+
 
 uk = gs.krige.Universal(
     model=model,
