@@ -34,7 +34,9 @@ srf.plot()
 
 bin_edges = [0.01 * i for i in range(30)]
 bin_center, emp_vario = gs.vario_estimate(
-    *((lat, lon), field, bin_edges),
+    (lat, lon),
+    field,
+    bin_edges,
     latlon=True,
     mesh_type="structured",
     sampling_size=2000,
