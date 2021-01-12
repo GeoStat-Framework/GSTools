@@ -87,7 +87,7 @@ jobs:
       - name: Run tests
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
-          python -m coveralls
+          python -m coveralls --service=github
 
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
