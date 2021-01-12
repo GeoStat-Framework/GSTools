@@ -96,11 +96,11 @@ class CovModel(metaclass=InitSubclassMeta):
         Whether the model is describing 2D fields on earths surface described
         by latitude and longitude. When using this, the model will internally
         use the associated 'Yadrenko' model to represent a valid model.
-        This means, the spatial distance :math:`r` will be replace with
+        This means, the spatial distance :math:`r` will be replaced by
         :math:`2\sin(\alpha/2)`, where :math:`\alpha` is the great-circle
         distance, which is equal to the spatial distance of two points in 3D.
         As a consequence, `dim` will be set to `3` and anisotropy will be
-        disabled. `rescale` can be set to earths radius,
+        disabled. `rescale` can be set to e.g. earth's radius,
         to have a meaningful `len_scale` parameter.
         Default: False
     var_raw : :class:`float` or :any:`None`, optional

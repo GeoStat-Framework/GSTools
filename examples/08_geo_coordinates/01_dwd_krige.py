@@ -3,16 +3,16 @@ Kriging geographical data
 -------------------------
 
 In this example we are going to interpolate actual temperature data from
-the german weather service `DWD <https://www.dwd.de/EN>`_.
+the German weather service `DWD <https://www.dwd.de/EN>`_.
 
-Data is retrieved utilizing the beatiful package
+Data is retrieved utilizing the beautiful package
 `wetterdienst <https://github.com/earthobservations/wetterdienst>`_,
 which serves as an API for the DWD data.
 
-For better visualization, we also download a simple shapefile of the german
+For better visualization, we also download a simple shapefile of the German
 borderline with `cartopy <https://github.com/SciTools/cartopy>`_.
 
-In order to hold the number of dependecies low, the calls of both functions
+In order to keep the number of dependecies low, the calls of both functions
 shown beneath are commented out.
 """
 # sphinx_gallery_thumbnail_number = 2
@@ -86,7 +86,7 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 ###############################################################################
 # Now we can use this estimated variogram to fit a model to it.
 # Here we will use a :any:`Spherical` model. We select the ``latlon`` option
-# to use the `Yadrenko` variant of the model to gain a vaild model for lat-lon
+# to use the `Yadrenko` variant of the model to gain a valid model for lat-lon
 # coordinates and we rescale it to the earth-radius. Otherwise the length
 # scale would be given in radians representing the great-circle distance.
 #
@@ -94,7 +94,7 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 #
 # .. note::
 #
-#    You need to plot the yadrenko variogram, since the standard variogram
+#    You need to plot the Yadrenko variogram, since the standard variogram
 #    still holds the ordinary routine that is not respecting the great-circle
 #    distance.
 
@@ -109,7 +109,7 @@ print(model)
 #
 # Now we want to interpolate the data using :any:`Universal` kriging.
 # In order to tinker around with the data, we will use a north-south drift
-# by assuming a linear correlation to the latitude.
+# by assuming a linear correlation with the latitude.
 # This can be done as follows:
 
 north_south_drift = lambda lat, lon: lat
@@ -123,8 +123,8 @@ uk = gs.krige.Universal(
 
 ###############################################################################
 # Now we generate the kriging field, by defining a lat-lon grid that covers
-# whole germany. The :any:`Krige` class provides the option to only krige the
-# mean field, so one can have a glimpse at the estimated drift.
+# the whole of Germany. The :any:`Krige` class provides the option to only
+# krige the mean field, so one can have a glimpse at the estimated drift.
 
 g_lat = np.arange(47, 56.1, 0.1)
 g_lon = np.arange(5, 16.1, 0.1)
@@ -155,7 +155,7 @@ fmt = dict(orientation="horizontal", shrink=0.5, fraction=0.1, pad=0.2)
 fig.colorbar(co2, ax=ax, **fmt).set_label("T in [°C]")
 
 ###############################################################################
-# To get a better impression of the estimated north-south drift, well take
+# To get a better impression of the estimated north-south drift, we'll take
 # a look at a cross-section at a longitude of 10 degree:
 
 fig, ax = plt.subplots()

@@ -8,10 +8,10 @@ geographical coordinates.
 First we setup a model, with ``latlon=True``, to get the associated
 Yadrenko model.
 
-In addition we will use the earth radius provided by :any:`EARTH_RADIUS`,
+In addition, we will use the earth radius provided by :any:`EARTH_RADIUS`,
 to have a meaningful length scale in km.
 
-To generate the field, we simply pass ``(lat, lon)`` as position tuple
+To generate the field, we simply pass ``(lat, lon)`` as the position tuple
 to the :any:`SRF` class.
 """
 import gstools as gs
@@ -30,7 +30,7 @@ srf.plot()
 # The :any:`vario_estimate` routine also provides a ``latlon`` switch to
 # indicate, that the given field is defined on geographical variables.
 #
-# As we will see, everthing went well... Phew!
+# As we will see, everthing went well... phew!
 
 bin_edges = [0.01 * i for i in range(30)]
 bin_center, emp_vario = gs.vario_estimate(

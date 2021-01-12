@@ -146,8 +146,8 @@ def vario_estimate(
         Whether the data is representing 2D fields on earths surface described
         by latitude and longitude. When using this, the estimator will
         use great-circle distance for variogram estimation.
-        Note, that only an isotropic variogram can be estimated and an
-        ValueError will be raised, if direction were specified.
+        Note, that only an isotropic variogram can be estimated and a
+        ValueError will be raised, if a direction was specified.
         Bin edges need to be given in radians in this case.
         Default: False
     direction : :class:`list` of :class:`numpy.ndarray`, optional
