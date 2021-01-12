@@ -9,7 +9,7 @@ given by:
 - longitude ``lon``: specifies the east–west position of a point on the Earth's surface
 
 If you want to use this feature for field generation or Kriging, you
-have to setup a geographical covariance Model by setting ``latlon=True``
+have to set up a geographical covariance Model by setting ``latlon=True``
 in your desired model (see :any:`CovModel`):
 
 .. code-block:: python
