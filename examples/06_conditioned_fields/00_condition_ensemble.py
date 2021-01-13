@@ -16,30 +16,35 @@ cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 gridx = np.linspace(0.0, 15.0, 151)
 
 ###############################################################################
+# The conditioned spatial random field class depends on a Krige class in order
+# to handle the conditions.
+# This is created as described in the kriging tutorial.
+#
+# Here we use a Gaussian covariance model and ordinary kriging for conditioning
+# the spatial random field.
 
-# spatial random field class
 model = gs.Gaussian(dim=1, var=0.5, len_scale=1.5)
-srf = gs.SRF(model)
-srf.set_condition(cond_pos, cond_val, "ordinary")
+krige = gs.krige.Ordinary(model, cond_pos, cond_val)
+csrf = gs.CondSRF(krige)
 
 ###############################################################################
 
 fields = []
 for i in range(100):
     # print(i) if i % 10 == 0 else None
-    fields.append(srf(gridx, seed=i))
+    fields.append(csrf(gridx, seed=i))
     label = "Conditioned ensemble" if i == 0 else None
     plt.plot(gridx, fields[i], color="k", alpha=0.1, label=label)
-plt.plot(gridx, np.full_like(gridx, srf.mean), label="estimated mean")
+plt.plot(gridx, csrf.krige(gridx, only_mean=True), label="estimated mean")
 plt.plot(gridx, np.mean(fields, axis=0), linestyle=":", label="Ensemble mean")
-plt.plot(gridx, srf.krige_field, linestyle="dashed", label="kriged field")
+plt.plot(gridx, csrf.krige.field, linestyle="dashed", label="kriged field")
 plt.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
 # 99 percent confidence interval
 conf = gs.tools.confidence_scaling(0.99)
 plt.fill_between(
     gridx,
-    srf.krige_field - conf * np.sqrt(srf.krige_var),
-    srf.krige_field + conf * np.sqrt(srf.krige_var),
+    csrf.krige.field - conf * np.sqrt(csrf.krige.krige_var),
+    csrf.krige.field + conf * np.sqrt(csrf.krige.krige_var),
     alpha=0.3,
     label="99% confidence interval",
 )
