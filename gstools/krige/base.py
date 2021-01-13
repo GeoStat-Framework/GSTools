@@ -16,7 +16,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import scipy.linalg as spl
 from gstools.field.base import Field
-from gstools.krige.krigesum import krigesum
+from gstools.krige.krigesum import krigesum, krigesumfast
 from gstools.krige.tools import (
     set_condition,
     get_drift_functions,
@@ -109,6 +109,7 @@ class Krige(Field):
         pseudo_inv_type=1,
     ):
         super().__init__(model)
+        self.mean_field = None
         self.krige_var = None
         self._unbiased = bool(unbiased)
         self._exact = bool(exact)
@@ -140,6 +141,7 @@ class Krige(Field):
         ext_drift=None,
         chunk_size=None,
         only_mean=False,
+        return_var=True,
     ):
         """
         Generate the kriging field.
@@ -163,23 +165,27 @@ class Krige(Field):
         only_mean : :class:`bool`, optional
             Whether to only calculate the mean of the kriging field.
             Default: `False`
+        return_var : :class:`bool`, optional
+            Whether to return the variance along with the field.
+            Default: `True`
 
         Returns
         -------
         field : :class:`numpy.ndarray`
-            the kriged field
-        krige_var : :class:`numpy.ndarray`
+            the kriged field or mean_field
+        krige_var : :class:`numpy.ndarray`, optional
             the kriging error variance
+            (if return_var is True and only_mean is False)
         """
+        return_var &= not only_mean  # don't return variance when calc. mean
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         pnt_cnt = len(iso_pos[0])
 
         field = np.empty(pnt_cnt, dtype=np.double)
-        krige_var = np.empty(pnt_cnt, dtype=np.double)
+        krige_var = np.empty(pnt_cnt, dtype=np.double) if return_var else None
         # set constant mean if present and wanted
         if only_mean and self.has_const_mean:
             field[...] = self.get_mean() - self.mean  # mean is added later
-            krige_var[...] = self.model.sill  # will result in 0 var. later
         # execute the kriging routine
         else:
             # set chunk size
@@ -199,14 +205,25 @@ class Krige(Field):
                     iso_pos, chunk_slice, ext_drift, only_mean
                 )
                 # generate the raw kriging field and error variance
-                field[c_slice], krige_var[c_slice] = krigesum(
-                    self._krige_mat, k_vec, self._krige_cond
-                )
+                if return_var:
+                    field[c_slice], krige_var[c_slice] = krigesum(
+                        self._krige_mat, k_vec, self._krige_cond
+                    )
+                else:
+                    field[c_slice] = krigesumfast(
+                        self._krige_mat, k_vec, self._krige_cond
+                    )
         # reshape field if we got a structured mesh
         field = np.reshape(field, shape)
-        krige_var = np.reshape(krige_var, shape)
-        self._post_field(field, krige_var)
-        return self.field, self.krige_var
+        if only_mean:
+            self._post_field(field, "mean_field")
+            return self.mean_field
+        self._post_field(field)
+        if return_var:
+            krige_var = np.reshape(krige_var, shape)
+            self.krige_var = np.maximum(self.model.sill - krige_var, 0)
+            return self.field, self.krige_var
+        return self.field
 
     def _inv(self, mat):
         # return pseudo-inverted matrix if wanted (numerically more stable)
@@ -318,7 +335,7 @@ class Krige(Field):
             raise ValueError("Krige: wrong number of ext. drift values.")
         return np.array([])
 
-    def _post_field(self, field, krige_var):
+    def _post_field(self, field, name="field"):
         """
         Postprocessing and saving of kriging field and error variance.
 
@@ -329,17 +346,15 @@ class Krige(Field):
         krige_var : :class:`numpy.ndarray`
             Raw kriging error variance.
         """
-        if self.trend_function is no_trend:
-            self.field = field
-        else:
-            self.field = field + eval_func(
+        field += self.mean
+        if self.trend_function is not no_trend:
+            field += eval_func(
                 self.trend_function,
                 self.pos,
                 self.model.field_dim,
                 self.mesh_type,
             )
-        self.field += self.mean
-        self.krige_var = np.maximum(self.model.sill - krige_var, 0)
+        setattr(self, name, field)
 
     def _get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
         """
@@ -364,7 +379,17 @@ class Krige(Field):
         return cdist(pos1.T, pos2.T[slice(*pos2_slice), ...])
 
     def get_mean(self):
-        """Calculate the estimated mean."""
+        """Calculate the estimated mean.
+
+        Returns
+        -------
+        mean : :class:`float` or :any:`None`
+            Mean of the Kriging System.
+
+        Notes
+        -----
+        Only if the Kriging System has a constant mean.
+        """
         # if there are drift-terms, no constant mean can be calculated -> None
         if not self.has_const_mean:
             return None
