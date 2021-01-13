@@ -81,7 +81,7 @@ class RandMeth:
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, pos):
+    def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -91,6 +91,8 @@ class RandMeth:
         ----------
         pos : (d, n), :class:`numpy.ndarray`
             the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Wheater to add nugget noise to the field.
 
         Returns
         -------
@@ -99,11 +101,10 @@ class RandMeth:
         """
         pos = np.array(pos, dtype=np.double)
         summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
-        nugget = self._set_nugget(summed_modes.shape)
-
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
-    def _set_nugget(self, shape):
+    def get_nugget(self, shape):
         """
         Generate normal distributed values for the nugget simulation.
 
@@ -111,6 +112,7 @@ class RandMeth:
         ----------
         shape : :class:`tuple`
             the shape of the summed modes
+
         Returns
         -------
         nugget : :class:`numpy.ndarray`
@@ -368,7 +370,7 @@ class IncomprRandMeth(RandMeth):
         summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )
-        nugget = self._set_nugget(summed_modes.shape)
+        nugget = self.get_nugget(summed_modes.shape)
 
         e1 = self._create_unit_vector(summed_modes.shape)
 
