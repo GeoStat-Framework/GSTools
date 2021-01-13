@@ -22,6 +22,9 @@ from gstools.field.summator import summate, summate_incompr
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
 
+SAMPLING = ["auto", "inversion", "mcmc"]
+
+
 class RandMeth:
     r"""Randomization method for calculating isotropic spatial random fields.
 
@@ -37,6 +40,13 @@ class RandMeth:
     verbose : :class:`bool`, optional
         Be chatty during the generation.
         Default: :any:`False`
+    sampling :class:`str`, optional
+        Sampling strategy. Either
+
+            * "auto": select best strategy depending on given model
+            * "inversion": use inversion method
+            * "mcmc": use mcmc sampling
+
     **kwargs
         Placeholder for keyword-args
 
@@ -63,7 +73,13 @@ class RandMeth:
     """
 
     def __init__(
-        self, model, mode_no=1000, seed=None, verbose=False, **kwargs
+        self,
+        model,
+        mode_no=1000,
+        seed=None,
+        verbose=False,
+        sampling="auto",
+        **kwargs
     ):
         if kwargs:
             print("gstools.RandMeth: **kwargs are ignored")
@@ -78,6 +94,9 @@ class RandMeth:
         self._z_2 = None
         self._cov_sample = None
         self._value_type = "scalar"
+        # set sampling strategy
+        self._sampling = None
+        self.sampling = sampling
         # set model and seed
         self.update(model, seed)
 
@@ -205,7 +224,9 @@ class RandMeth:
         # sample uniform on a sphere
         sphere_coord = self._rng.sample_sphere(self.model.dim, self._mode_no)
         # sample radii acording to radial spectral density of the model
-        if self.model.has_ppf:
+        if self.sampling == "inversion" or (
+            self.sampling == "auto" and self.model.has_ppf
+        ):
             pdf, cdf, ppf = self.model.dist_func
             rad = self._rng.sample_dist(
                 size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
@@ -218,6 +239,17 @@ class RandMeth:
             )
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
+
+    @property
+    def sampling(self):
+        """:class:`str`: Sampling strategy."""
+        return self._sampling
+
+    @sampling.setter
+    def sampling(self, sampling):
+        if sampling not in ["auto", "inversion", "mcmc"]:
+            raise ValueError("RandMeth: sampling not in {}.".format(SAMPLING))
+        self._sampling = sampling
 
     @property
     def seed(self):
@@ -302,6 +334,13 @@ class IncomprRandMeth(RandMeth):
     verbose : :class:`bool`, optional
         State if there should be output during the generation.
         Default: :any:`False`
+    sampling :class:`str`, optional
+        Sampling strategy. Either
+
+            * "auto": select best strategy depending on given model
+            * "inversion": use inversion method
+            * "mcmc": use mcmc sampling
+
     **kwargs
         Placeholder for keyword-args
 
@@ -337,13 +376,14 @@ class IncomprRandMeth(RandMeth):
         mode_no=1000,
         seed=None,
         verbose=False,
+        sampling="auto",
         **kwargs
     ):
         if model.dim < 2 or model.dim > 3:
             raise ValueError(
                 "Only 2D and 3D incompressible fields can be generated."
             )
-        super().__init__(model, mode_no, seed, verbose, **kwargs)
+        super().__init__(model, mode_no, seed, verbose, sampling, **kwargs)
 
         self.mean_u = mean_velocity
         self._value_type = "vector"
