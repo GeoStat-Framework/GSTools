@@ -71,6 +71,7 @@ def vario_estimate(
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    latlon=False,
     direction=None,
     angles=None,
     angles_tol=np.pi / 8,
@@ -141,6 +142,14 @@ def vario_estimate(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    latlon : :class:`bool`, optional
+        Whether the data is representing 2D fields on earths surface described
+        by latitude and longitude. When using this, the estimator will
+        use great-circle distance for variogram estimation.
+        Note, that only an isotropic variogram can be estimated and a
+        ValueError will be raised, if a direction was specified.
+        Bin edges need to be given in radians in this case.
+        Default: False
     direction : :class:`list` of :class:`numpy.ndarray`, optional
         directions to evaluate a directional variogram.
         Anglular tolerance is given by `angles_tol`.
@@ -223,6 +232,8 @@ def vario_estimate(
         pos, __, dim = format_unstruct_pos_shape(
             pos, field.shape, check_stacked_shape=True
         )
+    if latlon and dim != 2:
+        raise ValueError("Variogram: given field needs to be 2D for lat-lon.")
     # prepare the field
     pnt_cnt = len(pos[0])
     field = field.reshape((-1, pnt_cnt))
@@ -261,6 +272,8 @@ def vario_estimate(
         dir_no = direction.shape[0]
     # prepare directional variogram
     if dir_no > 0:
+        if latlon:
+            raise ValueError("Directional variogram not allowed for lat-lon.")
         norms = np.linalg.norm(direction, axis=1)
         if np.any(np.isclose(norms, 0)):
             raise ValueError("Zero length direction {}".format(direction))
@@ -280,12 +293,15 @@ def vario_estimate(
     cython_estimator = _set_estimator(estimator)
     # run
     if dir_no == 0:
+        # "h"aversine or "e"uclidean distance type
+        distance_type = "h" if latlon else "e"
         estimates, counts = unstructured(
             dim,
             field,
             bin_edges,
             pos,
             estimator_type=cython_estimator,
+            distance_type=distance_type,
         )
     else:
         estimates, counts = directional(

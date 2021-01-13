@@ -38,7 +38,7 @@ Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
 Class to construct user defined covariance models
 
-.. currentmodule:: gstools.covmodel.base
+.. currentmodule:: gstools.covmodel
 
 .. autosummary::
    CovModel
@@ -48,8 +48,6 @@ Covariance Models
 
 Standard Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. currentmodule:: gstools.covmodel.models
 
 .. autosummary::
    Gaussian
@@ -68,7 +66,6 @@ Standard Covariance Models
 Truncated Power Law Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. currentmodule:: gstools.covmodel.tpl_models
 .. autosummary::
    TPLGaussian
    TPLExponential
@@ -104,12 +101,22 @@ Estimate the variogram of a given field
 .. autosummary::
    vario_estimate
    vario_estimate_axis
+
+Misc
+====
+
+.. currentmodule:: gstools.tools
+
+.. autosummary::
+   EARTH_RADIUS
+
 """
 # Hooray!
 from gstools import field, variogram, random, covmodel, tools, krige, transform
 from gstools.field import SRF
 from gstools.tools import (
     rotated_main_axes,
+    EARTH_RADIUS,
     vtk_export,
     vtk_export_structured,
     vtk_export_unstructured,
@@ -182,6 +189,7 @@ __all__ += [
 __all__ += [
     "SRF",
     "rotated_main_axes",
+    "EARTH_RADIUS",
     "vtk_export",
     "vtk_export_structured",
     "vtk_export_unstructured",

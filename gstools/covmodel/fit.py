@@ -286,6 +286,13 @@ def _check_vario(model, x_data, y_data):
             + "Either provide only one variogram to fit an isotropic model, "
             + "or directional ones for all main axes to fit anisotropy."
         )
+    if is_dir_vario and model.latlon:
+        raise ValueError(
+            "CovModel.fit_variogram: lat-lon models don't support anisotropy."
+        )
+    elif model.latlon:
+        # convert to yadrenko model
+        x_data = 2 * np.sin(x_data / 2)
     return x_data, y_data, is_dir_vario
 
 
@@ -321,7 +328,7 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
                 _init_guess(
                     bounds=[low_bounds[-1], top_bounds[-1]],
                     current=getattr(model, par),
-                    default=1.0,
+                    default=model.rescale if par == "len_scale" else 1.0,
                     typ=init_guess,
                     para_name=par,
                 )

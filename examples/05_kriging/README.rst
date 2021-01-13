@@ -87,9 +87,5 @@ submodule :any:`gstools.krige`.
     ExtDrift
     Detrended
 
-.. only:: html
-
-   Gallery
-   -------
-
-   Below is a gallery of examples
+Examples
+--------

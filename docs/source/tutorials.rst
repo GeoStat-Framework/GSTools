@@ -19,4 +19,5 @@ explore its whole beauty and power.
    examples/05_kriging/index
    examples/06_conditioned_fields/index
    examples/07_transformations/index
+   examples/08_geo_coordinates/index
    examples/00_misc/index

@@ -265,6 +265,7 @@ intersphinx_mapping = {
 from sphinx_gallery.sorting import FileNameSortKey
 
 sphinx_gallery_conf = {
+    "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
     # path to your examples scripts
@@ -277,6 +278,7 @@ sphinx_gallery_conf = {
         "../../examples/05_kriging/",
         "../../examples/06_conditioned_fields/",
         "../../examples/07_transformations/",
+        "../../examples/08_geo_coordinates/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -288,6 +290,7 @@ sphinx_gallery_conf = {
         "examples/05_kriging/",
         "examples/06_conditioned_fields/",
         "examples/07_transformations/",
+        "examples/08_geo_coordinates/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",

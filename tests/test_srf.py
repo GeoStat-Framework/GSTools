@@ -243,6 +243,7 @@ class TestSRF(unittest.TestCase):
     def test_mesh_pyvista(self):
         """Test the `.mesh` call with various PyVista meshes."""
         # Create model
+        self.cov_model.dim = 3
         srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         # Get the field the normal way for comparison
         field = srf((self.x_tuple, self.y_tuple, self.z_tuple), seed=self.seed)

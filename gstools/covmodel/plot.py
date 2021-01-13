@@ -10,6 +10,9 @@ The following classes and functions are provided
    plot_variogram
    plot_covariance
    plot_correlation
+   plot_vario_yadrenko
+   plot_cov_yadrenko
+   plot_cor_yadrenko
    plot_vario_axis
    plot_cov_axis
    plot_cor_axis
@@ -30,6 +33,9 @@ __all__ = [
     "plot_variogram",
     "plot_covariance",
     "plot_correlation",
+    "plot_vario_yadrenko",
+    "plot_cov_yadrenko",
+    "plot_cor_yadrenko",
     "plot_vario_axis",
     "plot_cov_axis",
     "plot_cor_axis",
@@ -146,6 +152,51 @@ def plot_correlation(
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", model.name + " correlation")
     ax.plot(x_s, model.correlation(x_s), **kwargs)
+    ax.legend()
+    fig.show()
+    return ax
+
+
+def plot_vario_yadrenko(
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
+):  # pragma: no cover
+    """Plot Yadrenko variogram of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
+    if x_max is None:
+        x_max = min(3 * model.len_rescaled, np.pi)
+    x_s = np.linspace(x_min, x_max)
+    kwargs.setdefault("label", model.name + " Yadrenko variogram")
+    ax.plot(x_s, model.vario_yadrenko(x_s), **kwargs)
+    ax.legend()
+    fig.show()
+    return ax
+
+
+def plot_cov_yadrenko(
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
+):  # pragma: no cover
+    """Plot Yadrenko covariance of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
+    if x_max is None:
+        x_max = min(3 * model.len_rescaled, np.pi)
+    x_s = np.linspace(x_min, x_max)
+    kwargs.setdefault("label", model.name + " Yadrenko covariance")
+    ax.plot(x_s, model.cov_yadrenko(x_s), **kwargs)
+    ax.legend()
+    fig.show()
+    return ax
+
+
+def plot_cor_yadrenko(
+    model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
+):  # pragma: no cover
+    """Plot Yadrenko correlation function of a given CovModel."""
+    fig, ax = _get_fig_ax(fig, ax)
+    if x_max is None:
+        x_max = min(3 * model.len_rescaled, np.pi)
+    x_s = np.linspace(x_min, x_max)
+    kwargs.setdefault("label", model.name + " Yadrenko correlation")
+    ax.plot(x_s, model.cor_yadrenko(x_s), **kwargs)
     ax.legend()
     fig.show()
     return ax

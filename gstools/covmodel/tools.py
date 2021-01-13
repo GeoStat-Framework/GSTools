@@ -20,6 +20,8 @@ The following classes and functions are provided
    set_arg_bounds
    check_arg_bounds
    set_dim
+   compare
+   model_repr
 """
 
 # pylint: disable=C0103, W0212
@@ -28,6 +30,7 @@ import numpy as np
 from scipy.optimize import root
 from scipy import special as sps
 from hankel import SymmetricFourierTransform as SFT
+from gstools.tools.misc import list_format
 from gstools.tools.geometric import set_anis, set_angles
 
 __all__ = [
@@ -44,6 +47,8 @@ __all__ = [
     "set_arg_bounds",
     "check_arg_bounds",
     "set_dim",
+    "compare",
+    "model_repr",
 ]
 
 
@@ -539,17 +544,25 @@ def set_dim(model, dim):
         When dimension is < 1.
     """
     # check if a fixed dimension should be used
-    if model.fix_dim() is not None:
+    if model.fix_dim() is not None and model.fix_dim() != dim:
         warnings.warn(
             model.name + ": using fixed dimension " + str(model.fix_dim()),
             AttributeWarning,
         )
         dim = model.fix_dim()
+        if model.latlon and dim != 3:
+            raise ValueError(
+                model.name
+                + ": using fixed dimension "
+                + str(model.fix_dim())
+                + ", which is not compatible with a latlon model."
+            )
+    # force dim=3 for latlon models
+    dim = 3 if model.latlon else dim
     # set the dimension
     if dim < 1:
         raise ValueError("Only dimensions of d >= 1 are supported.")
-    check = model.check_dim(dim)
-    if not check:
+    if not model.check_dim(dim):
         warnings.warn(
             "Dimension {} is not appropriate for this model.".format(dim),
             AttributeWarning,
@@ -565,3 +578,80 @@ def set_dim(model, dim):
     if model._angles is not None:
         model._angles = set_angles(model.dim, model._angles)
     model.check_arg_bounds()
+
+
+def compare(this, that):
+    """
+    Compare CovModels.
+
+    Parameters
+    ----------
+    this / that : :any:`CovModel`
+        The covariance models to compare.
+    """
+    # prevent attribute error in opt_arg if the are not equal
+    if set(this.opt_arg) != set(that.opt_arg):
+        return False
+    # prevent dim error in anis and angles
+    if this.dim != that.dim:
+        return False
+    equal = True
+    equal &= this.name == that.name
+    equal &= np.isclose(this.var, that.var)
+    equal &= np.isclose(this.var_raw, that.var_raw)  # ?! needless?
+    equal &= np.isclose(this.nugget, that.nugget)
+    equal &= np.isclose(this.len_scale, that.len_scale)
+    equal &= np.all(np.isclose(this.anis, that.anis))
+    equal &= np.all(np.isclose(this.angles, that.angles))
+    equal &= np.isclose(this.rescale, that.rescale)
+    equal &= this.latlon == that.latlon
+    for opt in this.opt_arg:
+        equal &= np.isclose(getattr(this, opt), getattr(that, opt))
+    return equal
+
+
+def model_repr(model):  # pragma: no cover
+    """
+    Generate the model string representation.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        The covariance model in use.
+    """
+    opt_str = ""
+    for opt in model.opt_arg:
+        opt_str += (
+            ", " + opt + "={0:.{1}}".format(getattr(model, opt), model._prec)
+        )
+    if model.latlon:
+        std_str = (
+            "{0}(latlon={1}, var={2:.{p}}, len_scale={3:.{p}}, "
+            "nugget={4:.{p}}".format(
+                model.name,
+                model.latlon,
+                model.var,
+                model.len_scale,
+                model.nugget,
+                p=model._prec,
+            )
+            + opt_str
+            + ")"
+        )
+    else:
+        std_str = (
+            "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
+            "nugget={4:.{p}}, anis={5}, angles={6}".format(
+                model.name,
+                model.dim,
+                model.var,
+                model.len_scale,
+                model.nugget,
+                list_format(model.anis, 3),
+                list_format(model.angles, 3),
+                p=model._prec,
+            )
+            + opt_str
+            + ")"
+        )
+    return std_str

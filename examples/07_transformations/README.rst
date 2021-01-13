@@ -33,9 +33,5 @@ Simply import the transform submodule and apply a transformation to the srf clas
     ...
     tf.normal_to_lognormal(srf)
 
-.. only:: html
-
-   Gallery
-   -------
-
-   Below is a gallery of examples
+Examples
+--------

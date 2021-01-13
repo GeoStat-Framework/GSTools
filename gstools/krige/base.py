@@ -267,8 +267,7 @@ class Krige(Field):
             res[self.cond_no, :] = 1
         # drift function need the anisotropic and rotated positions
         if self.int_drift_no > 0:
-            pos = self.model.anisometrize(pos)
-        chunk_pos = pos[:, slice(*chunk_slice)]
+            chunk_pos = self.model.anisometrize(pos)[:, slice(*chunk_slice)]
         # apply functional drift
         for i, f in enumerate(self.drift_functions):
             res[-self.drift_no + i, :] = f(*chunk_pos)
@@ -332,7 +331,10 @@ class Krige(Field):
             self.field = field
         else:
             self.field = field + eval_func(
-                self.trend_function, self.pos, self.model.dim, self.mesh_type
+                self.trend_function,
+                self.pos,
+                self.model.field_dim,
+                self.mesh_type,
             )
         self.field += self.mean
         self.krige_var = self.model.sill - krige_var
@@ -403,7 +405,7 @@ class Krige(Field):
         """
         # correctly format cond_pos and cond_val
         self._cond_pos, self._cond_val = set_condition(
-            cond_pos, cond_val, self.model.dim
+            cond_pos, cond_val, self.model.field_dim
         )
         # set the measurement errors
         self.cond_err = cond_err
@@ -436,7 +438,7 @@ class Krige(Field):
             self._drift_functions = []
         elif isinstance(drift_functions, (str, int)):
             self._drift_functions = get_drift_functions(
-                self.model.dim, drift_functions
+                self.model.field_dim, drift_functions
             )
         else:
             if isinstance(drift_functions, collections.abc.Iterator):
