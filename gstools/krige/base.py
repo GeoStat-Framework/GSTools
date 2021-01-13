@@ -644,11 +644,8 @@ class Krige(Field):
 
     def __repr__(self):
         """Return String representation."""
-        return (
-            "{0}(model={1}, cond_no={2}".format(
-                self.name,
-                self.model.name,
-                self.cond_no,
-            )
-            + ")"
+        return "{0}(model={1}, cond_no={2})".format(
+            self.name,
+            self.model.name,
+            self.cond_no,
         )
