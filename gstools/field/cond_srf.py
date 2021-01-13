@@ -49,20 +49,19 @@ class CondSRF(Field):
     """
 
     def __init__(self, krige, generator="RandMeth", **generator_kwargs):
+        if not isinstance(krige, Krige):
+            raise ValueError("CondSRF: krige should be an instance of Krige.")
+        self.krige = krige
         # initialize attributes
         self.pos = None
         self.mesh_type = None
         self.field = None
         self.raw_field = None
-        if not isinstance(krige, Krige):
-            raise ValueError("CondSRF: krige should be an instance of Krige.")
-        self.krige = krige
         # initialize private attributes
+        self._value_type = None
         self._generator = None
         # initialize attributes
         self.set_generator(generator, **generator_kwargs)
-        if self._value_type != "scalar":
-            raise ValueError("CondSRF: only scalar field value type allowed.")
 
     def __call__(self, pos, seed=np.nan, mesh_type="unstructured", **kwargs):
         """Generate the conditioned spatial random field.
@@ -88,14 +87,15 @@ class CondSRF(Field):
         """
         kwargs["mesh_type"] = mesh_type
         kwargs["only_mean"] = False  # overwrite if given
+        kwargs["return_var"] = True  # overwrite if given
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         # generate the field
         self.raw_field = np.reshape(self.generator(iso_pos), shape)
-        field, k_var = self.krige(pos, **kwargs)
-        var_scale, nugget = self.get_scaling(k_var, shape)
+        field, krige_var = self.krige(pos, **kwargs)
+        var_scale, nugget = self.get_scaling(krige_var, shape)
         self.field = field + var_scale * self.raw_field + nugget
         return self.field
 
@@ -141,9 +141,16 @@ class CondSRF(Field):
         if generator in GENERATOR:
             gen = GENERATOR[generator]
             self._generator = gen(self.model, **generator_kwargs)
-            self._value_type = self._generator.value_type
+            self.value_type = self._generator.value_type
         else:
-            raise ValueError("gstools.SRF: Unknown generator: " + generator)
+            raise ValueError("gstools.CondSRF: Unknown generator " + generator)
+        if self.value_type != "scalar":
+            raise ValueError("CondSRF: only scalar field value type allowed.")
+
+    @property
+    def generator(self):
+        """:any:`callable`: The generator of the field."""
+        return self._generator
 
     @property
     def model(self):
@@ -153,11 +160,6 @@ class CondSRF(Field):
     @model.setter
     def model(self, model):
         pass
-
-    @property
-    def generator(self):
-        """:any:`callable`: The generator of the field."""
-        return self._generator
 
     def __repr__(self):
         """Return String representation."""
