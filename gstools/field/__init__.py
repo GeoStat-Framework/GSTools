@@ -17,10 +17,12 @@ Spatial Random Field
 
 .. autosummary::
    SRF
+   CondSRF
 
 ----
 """
 
 from gstools.field.srf import SRF
+from gstools.field.cond_srf import CondSRF
 
-__all__ = ["SRF"]
+__all__ = ["SRF", "CondSRF"]
