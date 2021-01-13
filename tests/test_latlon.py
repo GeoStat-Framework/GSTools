@@ -135,11 +135,13 @@ class TestCondition(unittest.TestCase):
         )
         mod = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
         mod.fit_variogram(*emp_vario, nugget=False)
-        srf = gs.SRF(mod)
-        srf.set_condition((self.data[:, 0], self.data[:, 1]), self.data[:, 2])
-        field = srf((self.data[:, 0], self.data[:, 1]))
+        krige = gs.krige.Ordinary(
+            mod, (self.data[:, 0], self.data[:, 1]), self.data[:, 2]
+        )
+        crf = gs.CondSRF(krige)
+        field = crf((self.data[:, 0], self.data[:, 1]))
         for i, dat in enumerate(self.data[:, 2]):
-            self.assertAlmostEqual(field[i], dat)
+            self.assertAlmostEqual(field[i], dat, 3)
 
     def error_test(self):
         # try fitting directional variogram

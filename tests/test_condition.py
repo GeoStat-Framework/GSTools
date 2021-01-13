@@ -5,20 +5,14 @@ This is the unittest of CovModel class.
 
 import numpy as np
 import unittest
-from gstools import (
-    Gaussian,
-    Exponential,
-    # Spherical,
-    SRF,
-)
+import gstools as gs
 
 
 class TestCondition(unittest.TestCase):
     def setUp(self):
         self.cov_models = [
-            Gaussian,
-            Exponential,
-            # Spherical,
+            gs.Gaussian,
+            gs.Exponential,
         ]
         self.dims = range(1, 4)
         self.data = np.array(
@@ -44,10 +38,12 @@ class TestCondition(unittest.TestCase):
             model = Model(
                 dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
-            srf = SRF(model, self.mean, seed=19970221)
-            srf.set_condition(self.cond_pos[0], self.cond_val, "simple")
-            field_1 = srf.unstructured(self.pos[0])
-            field_2 = srf.structured(self.pos[0])
+            krige = gs.krige.Simple(
+                model, self.cond_pos[0], self.cond_val, self.mean
+            )
+            crf = gs.CondSRF(krige, seed=19970221)
+            field_1 = crf.unstructured(self.pos[0])
+            field_2 = crf.structured(self.pos[0])
             for i, val in enumerate(self.cond_val):
                 self.assertAlmostEqual(val, field_1[i], places=2)
                 self.assertAlmostEqual(val, field_2[(i,)], places=2)
@@ -60,10 +56,12 @@ class TestCondition(unittest.TestCase):
                     anis=[0.1, 1],
                     angles=[0.5, 0, 0],
                 )
-                srf = SRF(model, self.mean, seed=19970221)
-                srf.set_condition(self.cond_pos[:dim], self.cond_val, "simple")
-                field_1 = srf.unstructured(self.pos[:dim])
-                field_2 = srf.structured(self.pos[:dim])
+                krige = gs.krige.Simple(
+                    model, self.cond_pos[:dim], self.cond_val, self.mean
+                )
+                crf = gs.CondSRF(krige, seed=19970221)
+                field_1 = crf.unstructured(self.pos[:dim])
+                field_2 = crf.structured(self.pos[:dim])
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
                     self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
@@ -73,10 +71,10 @@ class TestCondition(unittest.TestCase):
             model = Model(
                 dim=1, var=0.5, len_scale=2, anis=[0.1, 1], angles=[0.5, 0, 0]
             )
-            srf = SRF(model, seed=19970221)
-            srf.set_condition(self.cond_pos[0], self.cond_val, "ordinary")
-            field_1 = srf.unstructured(self.pos[0])
-            field_2 = srf.structured(self.pos[0])
+            krige = gs.krige.Ordinary(model, self.cond_pos[0], self.cond_val)
+            crf = gs.CondSRF(krige, seed=19970221)
+            field_1 = crf.unstructured(self.pos[0])
+            field_2 = crf.structured(self.pos[0])
             for i, val in enumerate(self.cond_val):
                 self.assertAlmostEqual(val, field_1[i], places=2)
                 self.assertAlmostEqual(val, field_2[(i,)], places=2)
@@ -89,12 +87,12 @@ class TestCondition(unittest.TestCase):
                     anis=[0.1, 1],
                     angles=[0.5, 0, 0],
                 )
-                srf = SRF(model, seed=19970221)
-                srf.set_condition(
-                    self.cond_pos[:dim], self.cond_val, "ordinary"
+                krige = gs.krige.Ordinary(
+                    model, self.cond_pos[:dim], self.cond_val
                 )
-                field_1 = srf.unstructured(self.pos[:dim])
-                field_2 = srf.structured(self.pos[:dim])
+                crf = gs.CondSRF(krige, seed=19970221)
+                field_1 = crf.unstructured(self.pos[:dim])
+                field_2 = crf.structured(self.pos[:dim])
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
                     self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
