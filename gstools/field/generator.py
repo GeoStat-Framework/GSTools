@@ -12,6 +12,7 @@ The following classes are provided
 """
 # pylint: disable=C0103
 
+import warnings
 from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
@@ -82,7 +83,7 @@ class RandMeth:
         **kwargs
     ):
         if kwargs:
-            print("gstools.RandMeth: **kwargs are ignored")
+            warnings.warn("gstools.RandMeth: **kwargs are ignored")
         # initialize atributes
         self._mode_no = int(mode_no)
         self._verbose = bool(verbose)
