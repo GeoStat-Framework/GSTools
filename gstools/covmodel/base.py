@@ -1135,10 +1135,6 @@ class CovModel(metaclass=InitSubclassMeta):
         """Compare CovModels."""
         return not self.__eq__(other)
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
         return model_repr(self)

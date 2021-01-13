@@ -306,10 +306,6 @@ class RandMeth:
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(

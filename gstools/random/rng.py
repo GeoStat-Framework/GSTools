@@ -214,10 +214,6 @@ class RNG:
     def seed(self, new_seed=None):
         self._master_rng = MasterRNG(new_seed)
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
         return "RNG(seed={})".format(self.seed)
