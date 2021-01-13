@@ -2,9 +2,9 @@
 Conditioning with Ordinary Kriging
 ----------------------------------
 
-Here we use ordinary kriging in 1D (for plotting reasons) with 5 given observations/conditions,
+Here we use ordinary kriging in 1D (for plotting reasons)
+with 5 given observations/conditions,
 to generate an ensemble of conditioned random fields.
-The estimated mean can be accessed by ``srf.mean``.
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,7 +20,7 @@ gridx = np.linspace(0.0, 15.0, 151)
 # to handle the conditions.
 # This is created as described in the kriging tutorial.
 #
-# Here we use a Gaussian covariance model and ordinary kriging for conditioning
+# Here we use a gaussian covariance model and ordinary kriging for conditioning
 # the spatial random field.
 
 model = gs.Gaussian(dim=1, var=0.5, len_scale=1.5)
@@ -53,4 +53,5 @@ plt.show()
 
 ###############################################################################
 # As you can see, the kriging field coincides with the ensemble mean of the
-# conditioned random fields and the estimated mean is the mean of the far-field.
+# conditioned random fields and the estimated mean
+# is the mean of the far-field.
