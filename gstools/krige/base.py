@@ -339,7 +339,7 @@ class Krige(Field):
                 self.mesh_type,
             )
         self.field += self.mean
-        self.krige_var = self.model.sill - krige_var
+        self.krige_var = np.maximum(self.model.sill - krige_var, 0)
 
     def _get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
         """
