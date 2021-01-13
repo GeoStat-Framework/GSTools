@@ -23,6 +23,8 @@ from gstools.tools.export import to_vtk, vtk_export
 
 __all__ = ["Field"]
 
+VALUE_TYPES = ["scalar", "vector"]
+
 
 class Field:
     """A base class for random fields, kriging fields, etc.
@@ -33,7 +35,7 @@ class Field:
         Covariance Model related to the field.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, value_type="scalar"):
         # initialize attributes
         self.pos = None
         self.mesh_type = None
@@ -42,6 +44,7 @@ class Field:
         self._model = None
         self.model = model
         self._value_type = None
+        self.value_type = value_type
 
     def __call__(*args, **kwargs):
         """Generate the field."""
@@ -390,6 +393,13 @@ class Field:
     def value_type(self):
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
+
+    @value_type.setter
+    def value_type(self, value_type):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+        if value_type not in VALUE_TYPES:
+            raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
+        self._value_type = value_type
 
     def __repr__(self):
         """Return String representation."""
