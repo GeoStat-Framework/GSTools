@@ -86,11 +86,13 @@ class SRF(Field):
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
+        self._mean = None
         # condition related
         self._cond_pos = None
         self._cond_val = None
         self._krige_type = None
         # initialize attributes
+        self.mean = mean
         self.raw_field = None
         self.krige_field = None
         self.err_field = None
@@ -273,6 +275,15 @@ class SRF(Field):
             raise ValueError(
                 "gstools.SRF: Unknown upscaling method: " + upscaling
             )
+
+    @property
+    def mean(self):
+        """:class:`float`: The mean of the field."""
+        return self._mean
+
+    @mean.setter
+    def mean(self, mean):
+        self._mean = float(mean)
 
     def __repr__(self):
         """Return String representation."""

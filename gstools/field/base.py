@@ -31,19 +31,15 @@ class Field:
     ----------
     model : :any:`CovModel`
         Covariance Model related to the field.
-    mean : :class:`float`, optional
-        Mean value of the field.
     """
 
-    def __init__(self, model, mean=0.0):
+    def __init__(self, model):
         # initialize attributes
         self.pos = None
         self.mesh_type = None
         self.field = None
         # initialize private attributes
-        self._mean = None
         self._model = None
-        self.mean = mean
         self.model = model
         self._value_type = None
 
@@ -377,15 +373,6 @@ class Field:
         return r
 
     @property
-    def mean(self):
-        """:class:`float`: The mean of the field."""
-        return self._mean
-
-    @mean.setter
-    def mean(self, mean):
-        self._mean = float(mean)
-
-    @property
     def model(self):
         """:any:`CovModel`: The covariance model of the field."""
         return self._model
@@ -404,15 +391,9 @@ class Field:
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0}, mean={1:.{p}})".format(
-            self.model, self.mean, p=self.model._prec
-        )
+        return "Field(model={0})".format(self.model)
 
 
 def _names(name, cnt):

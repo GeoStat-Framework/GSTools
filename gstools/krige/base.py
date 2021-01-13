@@ -108,13 +108,15 @@ class Krige(Field):
         pseudo_inv=True,
         pseudo_inv_type=1,
     ):
-        super().__init__(model, mean)
+        super().__init__(model)
         self.krige_var = None
         self._unbiased = bool(unbiased)
         self._exact = bool(exact)
         self._pseudo_inv = bool(pseudo_inv)
         self._pseudo_inv_type = None
         self.pseudo_inv_type = pseudo_inv_type
+        self._mean = None
+        self.mean = mean
         # initialize private attributes
         self._value_type = "scalar"
         self._cond_pos = None
@@ -600,6 +602,15 @@ class Krige(Field):
                 self._cond_trend = 0.0
             else:
                 self._cond_trend = self._trend_function(*self.cond_pos)
+
+    @property
+    def mean(self):
+        """:class:`float`: The mean of the field."""
+        return self._mean
+
+    @mean.setter
+    def mean(self, mean):
+        self._mean = float(mean)
 
     @property
     def name(self):
