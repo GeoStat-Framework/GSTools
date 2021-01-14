@@ -297,6 +297,15 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertRaises(  # wrong dimension of angles
             ValueError, gs.vario_estimate, pos, fld, bns, angles=[[1, 1]]
         )
+        self.assertRaises(  # direction on latlon
+            ValueError,
+            gs.vario_estimate,
+            pos,
+            fld,
+            bns,
+            direction=[1, 0],
+            latlon=True,
+        )
 
     def test_mask_no_data(self):
         pos = [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5]]
@@ -356,6 +365,35 @@ class TestVariogramUnstructured(unittest.TestCase):
         # catch wrong dim for dir.-vario
         with self.assertRaises(ValueError):
             model.fit_variogram(bin_center, emp_vario[:2])
+
+    def test_auto_binning(self):
+        # structured mesh
+        bin_center, emp_vario = gs.vario_estimate(
+            self.pos,
+            self.field,
+            mesh_type="structured",
+        )
+        self.assertEqual(len(bin_center), 21)
+        self.assertTrue(np.all(bin_center[1:] > bin_center[:-1]))
+        self.assertTrue(np.all(bin_center > 0))
+        # unstructured mesh
+        bin_center, emp_vario = gs.vario_estimate(
+            self.pos,
+            self.field[:, 0, 0],
+        )
+        self.assertEqual(len(bin_center), 8)
+        self.assertTrue(np.all(bin_center[1:] > bin_center[:-1]))
+        self.assertTrue(np.all(bin_center > 0))
+        # latlon coords
+        bin_center, emp_vario = gs.vario_estimate(
+            self.pos[:2],
+            self.field[..., 0],
+            mesh_type="structured",
+            latlon=True,
+        )
+        self.assertEqual(len(bin_center), 15)
+        self.assertTrue(np.all(bin_center[1:] > bin_center[:-1]))
+        self.assertTrue(np.all(bin_center > 0))
 
 
 if __name__ == "__main__":
