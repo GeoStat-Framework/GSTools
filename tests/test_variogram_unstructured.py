@@ -395,6 +395,15 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertTrue(np.all(bin_center[1:] > bin_center[:-1]))
         self.assertTrue(np.all(bin_center > 0))
 
+    def test_standard_bins(self):
+        # structured mesh
+        bins = gs.standard_bins(self.pos, dim=3, mesh_type="structured")
+        self.assertEqual(len(bins), 22)
+        self.assertTrue(np.all(bins[1:] > bins[:-1]))
+        self.assertTrue(np.all(bins[1:] > 0))
+        # no pos given
+        self.assertRaises(ValueError, gs.standard_bins)
+
 
 if __name__ == "__main__":
     unittest.main()
