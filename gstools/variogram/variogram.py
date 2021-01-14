@@ -26,6 +26,7 @@ from gstools.variogram.estimator import (
     ma_structured,
     directional,
 )
+from gstools.variogram.binning import standard_bins
 
 __all__ = [
     "vario_estimate",
@@ -67,7 +68,7 @@ def _separate_dirs_test(direction, angles_tol):
 def vario_estimate(
     pos,
     field,
-    bin_edges,
+    bin_edges=None,
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
@@ -208,14 +209,16 @@ def vario_estimate(
     -----
     Internally uses double precision and also returns doubles.
     """
-    bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    if bin_edges is not None:
+        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double)
     masked = np.ma.is_masked(field) or np.any(mask)
     # catch special case if everything is masked
     if masked and np.all(mask):
+        bin_centres = np.zeros(1) if bin_edges is None else bin_centres
         estimates = np.zeros_like(bin_centres)
         if return_counts:
             return bin_centres, estimates, np.zeros_like(estimates, dtype=int)
@@ -289,6 +292,10 @@ def vario_estimate(
         )
         field = field[:, sampled_idx]
         pos = pos[:, sampled_idx]
+    # create bining if not given
+    if bin_edges is None:
+        bin_edges = standard_bins(pos, dim, latlon)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run

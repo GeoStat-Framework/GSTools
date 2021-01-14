@@ -94,13 +94,14 @@ Some convenient functions for geometric operations
 
 Variogram Estimation
 ^^^^^^^^^^^^^^^^^^^^
-Estimate the variogram of a given field
+Estimate the variogram of a given field with these routines
 
 .. currentmodule:: gstools.variogram
 
 .. autosummary::
    vario_estimate
    vario_estimate_axis
+   standard_bins
 
 Misc
 ====
@@ -129,6 +130,7 @@ from gstools.variogram import (
     vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
+    standard_bins,
 )
 from gstools.covmodel import (
     CovModel,
@@ -184,6 +186,7 @@ __all__ += [
     "vario_estimate_axis",
     "vario_estimate_structured",
     "vario_estimate_unstructured",
+    "standard_bins",
 ]
 
 __all__ += [
