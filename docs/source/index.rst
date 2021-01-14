@@ -205,24 +205,23 @@ model again.
     model = gs.Exponential(dim=2, var=2, len_scale=8)
     srf = gs.SRF(model, mean=0, seed=19970221)
     field = srf((x, y))
-    # estimate the variogram of the field with 40 bins
-    bins = np.arange(40)
-    bin_center, gamma = gs.vario_estimate((x, y), field, bins)
+    # estimate the variogram of the field
+    bin_center, gamma = gs.vario_estimate((x, y), field)
     # fit the variogram with a stable model. (no nugget fitted)
     fit_model = gs.Stable(dim=2)
     fit_model.fit_variogram(bin_center, gamma, nugget=False)
     # output
-    ax = fit_model.plot(x_max=40)
-    ax.plot(bin_center, gamma)
+    ax = fit_model.plot(x_max=bin_center[-1])
+    ax.scatter(bin_center, gamma)
     print(fit_model)
 
 Which gives:
 
 .. code-block:: python
 
-    Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)
+    Stable(dim=2, var=1.85, len_scale=7.42, nugget=0.0, anis=[1.0], angles=[0.0], alpha=1.09)
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/exp_vario_fit.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GeoStat-Framework.github.io/master/img/GS_vario_est.png
    :width: 400px
    :align: center
 
