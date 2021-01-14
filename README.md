@@ -178,7 +178,7 @@ model = gs.Exponential(dim=2, var=2, len_scale=8)
 srf = gs.SRF(model, mean=0, seed=19970221)
 field = srf((x, y))
 # estimate the variogram of the field
-bin_center, gamma = gs.vario_estimate((x, y), field, bins)
+bin_center, gamma = gs.vario_estimate((x, y), field)
 # fit the variogram with a stable model. (no nugget fitted)
 fit_model = gs.Stable(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
@@ -324,6 +324,7 @@ in memory for immediate 3D plotting in Python.
 - [hankel >= 1.0.2](https://github.com/steven-murray/hankel)
 - [emcee >= 3.0.0](https://github.com/dfm/emcee)
 - [pyevtk >= 1.1.1](https://github.com/pyscience-projects/pyevtk)
+- [meshio>=4.0.3, <5.0](https://github.com/nschloe/meshio)
 
 ### Optional
 
