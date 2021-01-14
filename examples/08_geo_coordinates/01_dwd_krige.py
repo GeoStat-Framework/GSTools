@@ -133,7 +133,7 @@ g_lat = np.arange(47, 56.1, 0.1)
 g_lon = np.arange(5, 16.1, 0.1)
 
 field, k_var = uk((g_lat, g_lon), mesh_type="structured")
-mean, m_var = uk((g_lat, g_lon), mesh_type="structured", only_mean=True)
+mean = uk((g_lat, g_lon), mesh_type="structured", only_mean=True)
 
 ###############################################################################
 # And that's it. Now let's have a look at the generated field and the input

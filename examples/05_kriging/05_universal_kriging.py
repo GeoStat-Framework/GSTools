@@ -33,7 +33,7 @@ ax.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
 ax.plot(gridx, gridx * 0.1 + 1, ":", label="linear drift")
 ax.plot(gridx, drift_field, "--", label="original field")
 
-mean, mean_err = krig(gridx, only_mean=True)
+mean = krig(gridx, only_mean=True)
 ax.plot(gridx, mean, label="estimated drift")
 
 ax.legend()
