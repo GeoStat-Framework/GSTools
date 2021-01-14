@@ -79,8 +79,7 @@ ids, lat, lon, temp = np.loadtxt("temp_obs.txt").T
 # As the maximal bin distance we choose 8 degrees, which corresponds to a
 # chordal length of about 900 km.
 
-bin_max = np.deg2rad(8)
-bins = np.linspace(0, bin_max, 20)
+bins = gs.standard_bins((lat, lon), max_dist=np.deg2rad(8), latlon=True)
 bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 
 ###############################################################################
@@ -100,7 +99,7 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 
 model = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
 model.fit_variogram(bin_c, vario, nugget=False)
-ax = model.plot("vario_yadrenko", x_max=bin_max)
+ax = model.plot("vario_yadrenko", x_max=bins[-1])
 ax.scatter(bin_c, vario)
 print(model)
 

@@ -19,7 +19,7 @@ import gstools as gs
 model = gs.Gaussian(latlon=True, var=1, len_scale=777, rescale=gs.EARTH_RADIUS)
 
 lat = lon = range(-80, 81)
-srf = gs.SRF(model, seed=12345)
+srf = gs.SRF(model, seed=1234)
 field = srf.structured((lat, lon))
 srf.plot()
 
@@ -53,7 +53,7 @@ print(model)
 # .. note::
 #
 #    Note, that the estimated variogram coincides with the yadrenko variogram,
-#    which means it depends on the great-circle distance.
+#    which means it depends on the great-circle distance given in radians.
 #
 #    Keep that in mind when defining bins: The range is at most
 #    :math:`\pi\approx 3.14`, which corresponds to the half globe.
