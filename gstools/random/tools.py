@@ -48,7 +48,7 @@ class MasterRNG:
 
     def __repr__(self):
         """Return String representation."""
-        return "RNG(seed={})".format(self.seed)
+        return "MasterRNG(seed={})".format(self.seed)
 
 
 def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
