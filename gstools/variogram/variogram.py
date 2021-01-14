@@ -218,7 +218,7 @@ def vario_estimate(
     masked = np.ma.is_masked(field) or np.any(mask)
     # catch special case if everything is masked
     if masked and np.all(mask):
-        bin_centres = np.zeros(1) if bin_edges is None else bin_centres
+        bin_centres = np.empty(0) if bin_edges is None else bin_centres
         estimates = np.zeros_like(bin_centres)
         if return_counts:
             return bin_centres, estimates, np.zeros_like(estimates, dtype=int)
