@@ -223,6 +223,7 @@ class Krige(Field):
             krige_var = np.reshape(krige_var, shape)
             self.krige_var = np.maximum(self.model.sill - krige_var, 0)
             return self.field, self.krige_var
+        self.krige_var = None
         return self.field
 
     def _inv(self, mat):
