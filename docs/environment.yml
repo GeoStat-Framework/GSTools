@@ -1,0 +1,22 @@
+name: readthedocs
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - numpydoc
+  - sphinx-gallery
+  - matplotlib
+  - pyvista
+  - pykrige
+  - setuptools
+  - setuptools_scm
+  - cython
+  - numpy
+  - scipy
+  - hankel
+  - emcee
+  - pyevtk
+  - meshio
+  - pip:
+    - meshzoo

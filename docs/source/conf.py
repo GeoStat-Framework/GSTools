@@ -277,7 +277,7 @@ pyvista.BUILDING_GALLERY = True
 pyvista.set_plot_theme("document")
 
 sphinx_gallery_conf = {
-    "image_scrapers": (pyvista.Scraper(), "matplotlib"),
+    "image_scrapers": ("pyvista", "matplotlib"),
     "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
