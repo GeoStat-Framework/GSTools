@@ -2,9 +2,9 @@
 Using PyVista meshes
 --------------------
 
-PyVista is a helper module for the Visualization Toolkit (VTK)
-that takes a different approach on interfacing with VTK through
-NumPy and direct array access.
+`PyVista <https://www.pyvista.org>`__ is a helper module for the
+Visualization Toolkit (VTK) that takes a different approach on interfacing with
+VTK through NumPy and direct array access.
 
 It provides mesh data structures and filtering methods for spatial datasets,
 makes 3D plotting simple and is built for large/complex data geometries.
