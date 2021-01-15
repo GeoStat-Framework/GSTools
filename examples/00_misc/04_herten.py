@@ -145,7 +145,7 @@ plt.show()
 # results reproducible, we can also set a seed.
 
 
-bins = np.linspace(0, 10, 50)
+bins = gs.standard_bins(pos=(x_u, y_u), max_dist=10)
 bin_center, gamma = gs.vario_estimate(
     (x_u, y_u),
     herten_log_trans.reshape(-1),
