@@ -1,6 +1,7 @@
 numpydoc
 sphinx-gallery
 matplotlib
+vtk<9.0
 pyvista
 pykrige
 meshzoo
