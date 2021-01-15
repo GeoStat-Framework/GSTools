@@ -20,10 +20,18 @@
 # NOTE:
 # pip install sphinx_rtd_theme
 # is needed in order to build the documentation
-# import os
 # import sys
+import os
 import datetime
 import warnings
+
+# https://github.com/tkoyama010/pyvista-doc-translations/blob/85c835a3ada3a2adefac06ba70e15a101ffa9162/conf.py#L21
+os.environ["PYVISTA_VIRTUAL_DISPLAY"] = "True"
+os.environ["PYVISTA_OFF_SCREEN"] = "true"
+os.environ["PYVISTA_USE_PANEL"] = "true"
+os.environ["PYVISTA_PLOT_THEME"] = "document"
+os.environ["PYVISTA_AUTO_CLOSE"] = "false"
+
 import pyvista
 
 # necessary when building the sphinx gallery
