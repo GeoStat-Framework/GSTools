@@ -20,27 +20,11 @@
 # NOTE:
 # pip install sphinx_rtd_theme
 # is needed in order to build the documentation
+# import os
 # import sys
-import os
 import datetime
 import warnings
 
-# https://github.com/tkoyama010/pyvista-doc-translations/blob/85c835a3ada3a2adefac06ba70e15a101ffa9162/conf.py#L21
-os.environ["PYVISTA_VIRTUAL_DISPLAY"] = "True"
-os.environ["PYVISTA_OFF_SCREEN"] = "true"
-os.environ["PYVISTA_USE_PANEL"] = "true"
-os.environ["PYVISTA_PLOT_THEME"] = "document"
-os.environ["PYVISTA_AUTO_CLOSE"] = "false"
-
-import pyvista
-
-# necessary when building the sphinx gallery
-pyvista.BUILDING_GALLERY = True
-pyvista.OFF_SCREEN = True
-
-# Optional - set parameters like theme or window size
-pyvista.set_plot_theme("document")
-pyvista.rcParams["window_size"] = [1024 * 2, 768 * 2]
 
 warnings.filterwarnings(
     "ignore",
@@ -280,8 +264,20 @@ intersphinx_mapping = {
 # -- Sphinx Gallery Options
 from sphinx_gallery.sorting import FileNameSortKey
 
+# Use pyvista's image scraper for example gallery
+import pyvista
+
+# https://github.com/tkoyama010/pyvista-doc-translations/blob/85c835a3ada3a2adefac06ba70e15a101ffa9162/conf.py#L21
+# https://github.com/simpeg/discretize/blob/f414dd7ee7c5ba9a141cb2c37d4b71fdc531eae8/docs/conf.py#L334
+# Make sure off screen is set to true when building locally
+pyvista.OFF_SCREEN = True
+# necessary when building the sphinx gallery
+pyvista.BUILDING_GALLERY = True
+# Optional - set parameters like theme or window size
+pyvista.set_plot_theme("document")
+
 sphinx_gallery_conf = {
-    "image_scrapers": ("pyvista", "matplotlib"),
+    "image_scrapers": (pyvista.Scraper(), "matplotlib"),
     "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
