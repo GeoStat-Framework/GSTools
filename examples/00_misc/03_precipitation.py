@@ -153,5 +153,5 @@ srf.field *= amount
 # We will cut out the volumes with low precipitation in order to have a look
 # inside the cuboid.
 
-mesh = srf.to_pyvista()
-mesh.threshold_percent(0.25).plot()
+# mesh = srf.to_pyvista()
+# mesh.threshold_percent(0.25).plot()
