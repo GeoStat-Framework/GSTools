@@ -24,6 +24,11 @@
 # import sys
 import datetime
 import warnings
+from pyvista.utilities import xvfb
+
+# https://github.com/pyvista/pyvista/issues/1009#issuecomment-726819073
+xvfb.start_xvfb()
+
 import pyvista
 
 # necessary when building the sphinx gallery
