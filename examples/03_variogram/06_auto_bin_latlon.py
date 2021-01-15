@@ -3,7 +3,7 @@ Automatic binning with lat-lon data
 -----------------------------------
 
 In this example we demonstrate automatic binning for a tiny data set
-containing temperature records from germany
+containing temperature records from Germany
 (See the detailed DWD example for more information on the data).
 
 We use a data set from 20 meteo-stations choosen randomly.
@@ -40,8 +40,8 @@ pos = data.T[:2]  # lat, lon
 field = data.T[2]  # temperature
 
 ###############################################################################
-# Since the overall range of these meteo-stations is to low, we can use the
-# data-variance as additional information during fitting the variogram.
+# Since the overall range of these meteo-stations is too low, we can use the
+# data-variance as additional information during the fit of the variogram.
 
 emp_v = gs.vario_estimate(pos, field, latlon=True)
 sph = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
@@ -52,10 +52,10 @@ ax.legend()
 print(sph)
 
 ###############################################################################
-# As we see, the variogram fitting was successful and providing the data
+# As we can see, the variogram fitting was successful and providing the data
 # variance helped finding the right length-scale.
 #
-# Now we'll use this covariance model to interpolate the given data with
+# Now, we'll use this covariance model to interpolate the given data with
 # ordinary kriging.
 
 # enclosing box for data points
