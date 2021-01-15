@@ -24,6 +24,15 @@
 # import sys
 import datetime
 import warnings
+import pyvista
+
+# necessary when building the sphinx gallery
+pyvista.BUILDING_GALLERY = True
+pyvista.OFF_SCREEN = True
+
+# Optional - set parameters like theme or window size
+pyvista.set_plot_theme("document")
+pyvista.rcParams["window_size"] = [1024 * 2, 768 * 2]
 
 warnings.filterwarnings(
     "ignore",
@@ -260,11 +269,11 @@ intersphinx_mapping = {
     "emcee": ("https://emcee.readthedocs.io/en/latest/", None),
 }
 
-
 # -- Sphinx Gallery Options
 from sphinx_gallery.sorting import FileNameSortKey
 
 sphinx_gallery_conf = {
+    "image_scrapers": ("pyvista",),
     "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
