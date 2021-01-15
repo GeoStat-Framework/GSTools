@@ -26,6 +26,7 @@ The following functions are provided
    ang2dir
    latlon2pos
    pos2latlon
+   chordal_to_great_circle
 """
 # pylint: disable=C0103
 
@@ -51,6 +52,7 @@ __all__ = [
     "ang2dir",
     "latlon2pos",
     "pos2latlon",
+    "chordal_to_great_circle",
 ]
 
 
@@ -641,3 +643,24 @@ def pos2latlon(pos, radius=1.0, dtype=np.double):
     lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
     lon = np.arctan2(pos[1], pos[0])
     return np.rad2deg((lat, lon), dtype=dtype)
+
+
+def chordal_to_great_circle(dist):
+    """
+    Calculate great circle distance corresponding to given chordal distance.
+
+    Parameters
+    ----------
+    dist : array_like
+        Chordal distance of two points on the unit-sphere.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Great circle distance corresponding to given chordal distance.
+
+    Notes
+    -----
+    If given values are not in [0, 1], they will be truncated.
+    """
+    return 2 * np.arcsin(np.maximum(np.minimum(np.divide(dist, 2), 1), 0))

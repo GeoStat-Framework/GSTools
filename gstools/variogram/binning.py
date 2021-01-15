@@ -17,6 +17,7 @@ from gstools.tools.geometric import (
     gen_mesh,
     format_struct_pos_dim,
     latlon2pos,
+    chordal_to_great_circle,
 )
 
 __all__ = ["standard_bins"]
@@ -24,10 +25,6 @@ __all__ = ["standard_bins"]
 
 def _sturges(pnt_cnt):
     return int(np.ceil(2 * np.log2(pnt_cnt) + 1))
-
-
-def _chordal_to_great_circle(dist):
-    return 2 * np.arcsin(np.minimum(np.maximum(np.divide(dist, 2), 0), 1))
 
 
 def standard_bins(
@@ -94,7 +91,7 @@ def standard_bins(
         box = np.array(box)
         diam = np.linalg.norm(box[:, 0] - box[:, 1])
         # convert diameter to great-circle distance if using latlon
-        diam = _chordal_to_great_circle(diam) if latlon else diam
+        diam = chordal_to_great_circle(diam) if latlon else diam
         bin_no = _sturges(pnt_cnt) if bin_no is None else int(bin_no)
         max_dist = diam / 3 if max_dist is None else float(max_dist)
     return np.linspace(0, max_dist, num=bin_no + 1, dtype=np.double)
