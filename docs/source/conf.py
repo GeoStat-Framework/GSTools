@@ -265,19 +265,18 @@ intersphinx_mapping = {
 from sphinx_gallery.sorting import FileNameSortKey
 
 # Use pyvista's image scraper for example gallery
-import pyvista
-
+# import pyvista
 # https://github.com/tkoyama010/pyvista-doc-translations/blob/85c835a3ada3a2adefac06ba70e15a101ffa9162/conf.py#L21
 # https://github.com/simpeg/discretize/blob/f414dd7ee7c5ba9a141cb2c37d4b71fdc531eae8/docs/conf.py#L334
 # Make sure off screen is set to true when building locally
-pyvista.OFF_SCREEN = True
-# necessary when building the sphinx gallery
-pyvista.BUILDING_GALLERY = True
-# Optional - set parameters like theme or window size
-pyvista.set_plot_theme("document")
+# pyvista.OFF_SCREEN = True
+# # necessary when building the sphinx gallery
+# pyvista.BUILDING_GALLERY = True
+# # Optional - set parameters like theme or window size
+# pyvista.set_plot_theme("document")
 
 sphinx_gallery_conf = {
-    "image_scrapers": ("pyvista", "matplotlib"),
+    # "image_scrapers": ("pyvista", "matplotlib"),
     "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
@@ -315,9 +314,9 @@ sphinx_gallery_conf = {
     "backreferences_dir": None,
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
-    "first_notebook_cell": (
-        "%matplotlib inline\n"
-        "from pyvista import set_plot_theme\n"
-        "set_plot_theme('document')"
-    ),
+    # "first_notebook_cell": (
+    #     "%matplotlib inline\n"
+    #     "from pyvista import set_plot_theme\n"
+    #     "set_plot_theme('document')"
+    # ),
 }
