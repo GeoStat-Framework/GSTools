@@ -273,7 +273,7 @@ intersphinx_mapping = {
 from sphinx_gallery.sorting import FileNameSortKey
 
 sphinx_gallery_conf = {
-    "image_scrapers": ("pyvista",),
+    "image_scrapers": ("pyvista", "matplotlib"),
     "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
@@ -311,8 +311,4 @@ sphinx_gallery_conf = {
     "backreferences_dir": None,
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
-    # "image_scrapers": ('pyvista', 'matplotlib'),
-    # "first_notebook_cell": ("%matplotlib inline\n"
-    #                         "from pyvista import set_plot_theme\n"
-    #                         "set_plot_theme('document')"),
 }
