@@ -40,5 +40,10 @@ srf.mesh(grid, points="points", name="random-field")
 
 ###############################################################################
 # Now we have access to PyVista abundancy of methods to explore the field.
+#
+# Notes
+# -----
+# PyVista is not working on readthedocs, but you can try it yourself by
+# uncommenting the following line of code.
 
-grid.contour(isosurfaces=8).plot()
+# grid.contour(isosurfaces=8).plot()
