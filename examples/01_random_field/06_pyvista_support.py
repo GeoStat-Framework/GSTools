@@ -12,6 +12,7 @@ makes 3D plotting simple and is built for large/complex data geometries.
 The :any:`Field.mesh` method enables easy field creation on PyVista meshes
 used by the :any:`SRF` or :any:`Krige` class.
 """
+# sphinx_gallery_thumbnail_path = 'https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista.png'
 import pyvista as pv
 import gstools as gs
 
@@ -47,3 +48,10 @@ srf.mesh(grid, points="points", name="random-field")
 # uncommenting the following line of code.
 
 # grid.contour(isosurfaces=8).plot()
+
+###############################################################################
+# The result should look like this:
+#
+# .. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista.png
+#    :width: 400px
+#    :align: center
