@@ -15,6 +15,7 @@ series.
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as ani
 import gstools as gs
 
 # fix the seed for reproducibility
@@ -149,9 +150,17 @@ amount = 3.0
 srf.field *= amount
 
 ###############################################################################
-# plot the 2d precipitation field together with the time axis as a 3d plot.
-# We will cut out the volumes with low precipitation in order to have a look
-# inside the cuboid.
+# plot the 2d precipitation field over time as an animation.
 
-mesh = srf.to_pyvista()
-mesh.threshold_percent(0.25).plot()
+def _update_ani(idx):
+    quad.set_array(srf.field[idx, :, :].T.ravel())
+    return quad,
+
+fig, ax = plt.subplots()
+quad = ax.pcolormesh(x, y, srf.field[0,:,:].T, cmap="Blues", shading="gouraud")
+cbar = fig.colorbar(quad)
+cbar.ax.set_ylabel(r"Precipitation $P$ / mm")
+ax.set_xlabel(r"$x$ / km")
+ax.set_ylabel(r"$y$ / km")
+
+ani = ani.FuncAnimation(fig, _update_ani, len(t), interval=100, blit=True)
