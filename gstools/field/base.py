@@ -246,12 +246,7 @@ class Field:
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        if self.value_type is None:
-            raise ValueError(
-                "Field value type not set! "
-                + "Specify 'scalar' or 'vector' before plotting."
-            )
-        elif self.value_type == "vector":
+        if self.value_type == "vector":
             if hasattr(self, field_select):
                 field = getattr(self, field_select)
             else:
@@ -355,7 +350,7 @@ class Field:
         if self.value_type is None:
             raise ValueError(
                 "Field value type not set! "
-                + "Specify 'scalar' or 'vector' before plotting."
+                "Specify 'scalar' or 'vector' before plotting."
             )
 
         elif self.value_type == "scalar":
@@ -403,7 +398,9 @@ class Field:
 
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0})".format(self.model)
+        return "Field(model={0}, value_type={1})".format(
+            self.model, self.value_type
+        )
 
 
 def _names(name, cnt):
