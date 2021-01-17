@@ -93,7 +93,9 @@ class CondSRF(Field):
         # get isometrized positions and the resulting field-shape
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         # generate the field
-        self.raw_field = np.reshape(self.generator(iso_pos), shape)
+        self.raw_field = np.reshape(
+            self.generator(iso_pos, add_nugget=False), shape
+        )
         field, krige_var = self.krige(pos, **kwargs)
         var_scale, nugget = self.get_scaling(krige_var, shape)
         self.field = field + var_scale * self.raw_field + nugget
