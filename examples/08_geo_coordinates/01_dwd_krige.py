@@ -32,32 +32,31 @@ def get_borders_germany():
     np.savetxt("de_borders.txt", list(poly.exterior.coords))
 
 
-def get_dwd_temperature():
+def get_dwd_temperature(date="2020-06-09 12:00:00"):
     """Get air temperature from german weather stations from 9.6.20 12:00."""
-    from wetterdienst.dwd import observations as obs  # version 0.10.1
+    from wetterdienst.dwd import observations as obs  # version 0.13.0
 
-    sites = obs.DWDObservationSites(
-        parameter_set=obs.DWDObservationParameterSet.TEMPERATURE_AIR,
+    settings = dict(
         resolution=obs.DWDObservationResolution.HOURLY,
-        period=obs.DWDObservationPeriod.RECENT,
-        start_date="2020-06-09 12:00:00",
-        end_date="2020-06-09 12:00:00",
+        start_date=date,
+        end_date=date,
     )
-    df0 = sites.all()
-    ids, lat, lon = map(np.array, [df0.STATION_ID, df0.LAT, df0.LON])
+    sites = obs.DWDObservationStations(
+        parameter_set=obs.DWDObservationParameterSet.TEMPERATURE_AIR,
+        period=obs.DWDObservationPeriod.RECENT,
+        **settings
+    )
+    ids, lat, lon = sites.all().loc[:, ["STATION_ID", "LAT", "LON"]].values.T
     observations = obs.DWDObservationData(
         station_ids=ids,
         parameters=obs.DWDObservationParameter.HOURLY.TEMPERATURE_AIR_200,
-        resolution=obs.DWDObservationResolution.HOURLY,
-        start_date="2020-06-09 12:00:00",
-        end_date="2020-06-09 12:00:00",
+        periods=obs.DWDObservationPeriod.RECENT,
+        **settings
     )
-    df1 = observations.collect_safe()
-    temp, ids1 = map(np.array, [df1.VALUE, df1.STATION_ID])
-    select = np.isfinite(temp)  # care about missing values
-    sorter = np.argsort(ids)  # care about missing stations
-    sort = sorter[np.searchsorted(ids, ids1[select], sorter=np.argsort(ids))]
-    ids, lat, lon, temp = ids[sort], lat[sort], lon[sort], temp[select]
+    temp = observations.all().VALUE.values
+    sel = np.isfinite(temp)
+    # select only valid temperature data
+    ids, lat, lon, temp = ids.astype(float)[sel], lat[sel], lon[sel], temp[sel]
     head = "id, lat, lon, temp"  # add a header to the file
     np.savetxt("temp_obs.txt", np.array([ids, lat, lon, temp]).T, header=head)
 
@@ -69,7 +68,7 @@ def get_dwd_temperature():
 # the station locations given by lat-lon values.
 
 # get_borders_germany()
-# get_dwd_temperature()
+# get_dwd_temperature(date="2020-06-09 12:00:00")
 
 border = np.loadtxt("de_borders.txt")
 ids, lat, lon, temp = np.loadtxt("temp_obs.txt").T
