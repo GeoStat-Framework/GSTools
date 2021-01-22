@@ -1,8 +1,8 @@
 """
-Creating Synthetic Precipitation Fields
----------------------------------------
+Creating a 1D Synthetic Precipitation Field
+-------------------------------------------
 
-In this example we want to create a time series of a synthetic precipitation
+In this example we will create a time series of a 1D synthetic precipitation
 field.
 
 We'll start off by creating a Gaussian random field with an exponential
@@ -15,30 +15,36 @@ series.
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as ani
 import gstools as gs
 
 # fix the seed for reproducibility
 seed = 20170521
-# half daily timesteps over three months
-t = np.arange(0.0, 90.0, 0.5)
 # spatial axis of 50km with a resolution of 1km
 x = np.arange(0, 50, 1.0)
+# half daily timesteps over three months
+t = np.arange(0.0, 90.0, 0.5)
+
+# total spatio-temporal dimension
+st_dim = 1 + 1
+# space-time anisotropy ratio given in units d / km
+st_anis = 0.4
 
 # an exponential variogram with a corr. lengths of 2d and 5km
-model = gs.Exponential(dim=2, var=1.0, len_scale=2.0, anis=2.5)
+model = gs.Exponential(dim=st_dim, var=1.0, len_scale=5.0, anis=st_anis)
 # create a spatial random field instance
-srf = gs.SRF(model)
+srf = gs.SRF(model, seed=seed)
+
+pos, time = [x], [t]
 
 # a Gaussian random field which is also saved internally for the transformations
-srf.structured((t, x), seed=seed)
+srf.structured(pos + time)
 P_gau = copy.deepcopy(srf.field)
 
 ###############################################################################
 # Now we should take care of the dry periods. Therefore we simply introduce a
 # lower threshold value.
 
-threshold = 0.4
+threshold = 0.7
 srf.field[srf.field <= threshold] = 0.0
 P_cut = srf.field
 
@@ -70,19 +76,19 @@ P_ana = srf.field
 fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
 
 axs[0, 0].set_title("Gaussian")
-axs[0, 0].plot(t, P_gau[:, 20])
+axs[0, 0].plot(t, P_gau[20, :])
 axs[0, 0].set_ylabel(r"$P$ / mm")
 
 axs[0, 1].set_title("Cut Gaussian")
-axs[0, 1].plot(t, P_cut[:, 20])
+axs[0, 1].plot(t, P_cut[20, :])
 
 axs[1, 0].set_title("Cut Gaussian Anamorphosis")
-axs[1, 0].plot(t, P_ana[:, 20])
+axs[1, 0].plot(t, P_ana[20, :])
 axs[1, 0].set_xlabel(r"$t$ / d")
 axs[1, 0].set_ylabel(r"$P$ / mm")
 
 axs[1, 1].set_title("Different Cross Section")
-axs[1, 1].plot(t, P_ana[:, 10])
+axs[1, 1].plot(t, P_ana[10, :])
 axs[1, 1].set_xlabel(r"$t$ / d")
 
 plt.tight_layout()
@@ -90,19 +96,19 @@ plt.tight_layout()
 fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
 
 axs[0, 0].set_title("Gaussian")
-cont = axs[0, 0].contourf(t, x, P_gau.T, cmap="PuBu")
+cont = axs[0, 0].contourf(t, x, P_gau, cmap="PuBu")
 cbar = fig.colorbar(cont, ax=axs[0, 0])
 cbar.ax.set_ylabel(r"$P$ / mm")
 axs[0, 0].set_ylabel(r"$x$ / km")
 
 axs[0, 1].set_title("Cut Gaussian")
-cont = axs[0, 1].contourf(t, x, P_cut.T, cmap="PuBu")
+cont = axs[0, 1].contourf(t, x, P_cut, cmap="PuBu")
 cbar = fig.colorbar(cont, ax=axs[0, 1])
 cbar.ax.set_ylabel(r"$P$ / mm")
 axs[0, 1].set_xlabel(r"$t$ / d")
 
 axs[1, 0].set_title("Cut Gaussian Anamorphosis")
-cont = axs[1, 0].contourf(t, x, P_ana.T, cmap="PuBu")
+cont = axs[1, 0].contourf(t, x, P_ana, cmap="PuBu")
 cbar = fig.colorbar(cont, ax=axs[1, 0])
 cbar.ax.set_ylabel(r"$P$ / mm")
 axs[1, 0].set_xlabel(r"$t$ / d")
@@ -110,57 +116,3 @@ axs[1, 0].set_ylabel(r"$x$ / km")
 
 fig.delaxes(axs[1, 1])
 plt.tight_layout()
-
-###############################################################################
-# In this example we have created precipitation fields which have one spatial
-# dimension, but it is very easy do the same steps with two spatial dimension.
-# For the 2d case, we will not save the field after every step, making the
-# workflow a little bit easier.
-
-import numpy as np
-import matplotlib.pyplot as plt
-import gstools as gs
-
-# fix the seed for reproducibility
-seed = 20170521
-# half daily timesteps over three months
-t = np.arange(0.0, 90.0, 0.5)
-# 1st spatial axis of 50km with a resolution of 1km
-x = np.arange(0, 50, 1.0)
-# 2nd spatial axis of 40km with a resolution of 1km
-y = np.arange(0, 40, 1.0)
-
-# an exponential variogram with a corr. lengths of 2d, 5km, and 5km
-model = gs.Exponential(dim=3, var=1.0, len_scale=2.0, anis=(2.5, 2.5))
-# create a spatial random field instance
-srf = gs.SRF(model)
-
-# the Gaussian random field
-srf.structured((t, x, y), seed=seed)
-
-# the dry periods
-threshold = 0.4
-srf.field[srf.field <= threshold] = 0.0
-
-# account for the skewness
-gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0)
-
-# adjust the amount of precipitation
-amount = 3.0
-srf.field *= amount
-
-###############################################################################
-# plot the 2d precipitation field over time as an animation.
-
-def _update_ani(idx):
-    quad.set_array(srf.field[idx, :, :].T.ravel())
-    return quad,
-
-fig, ax = plt.subplots()
-quad = ax.pcolormesh(x, y, srf.field[0,:,:].T, cmap="Blues", shading="gouraud")
-cbar = fig.colorbar(quad)
-cbar.ax.set_ylabel(r"Precipitation $P$ / mm")
-ax.set_xlabel(r"$x$ / km")
-ax.set_ylabel(r"$y$ / km")
-
-ani = ani.FuncAnimation(fig, _update_ani, len(t), interval=100, blit=True)

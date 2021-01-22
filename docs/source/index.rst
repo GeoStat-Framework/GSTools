@@ -98,6 +98,7 @@ showing the most important use cases of GSTools, which are
 - `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
 - `Field transformations <examples/07_transformations/index.html>`__
 - `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
+- `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.

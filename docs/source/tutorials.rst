@@ -20,4 +20,5 @@ explore its whole beauty and power.
    examples/06_conditioned_fields/index
    examples/07_transformations/index
    examples/08_geo_coordinates/index
+   examples/09_spatio_temporal/index
    examples/00_misc/index
