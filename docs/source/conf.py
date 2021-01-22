@@ -279,6 +279,7 @@ sphinx_gallery_conf = {
         "../../examples/06_conditioned_fields/",
         "../../examples/07_transformations/",
         "../../examples/08_geo_coordinates/",
+        "../../examples/09_spatio_temporal/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -291,6 +292,7 @@ sphinx_gallery_conf = {
         "examples/06_conditioned_fields/",
         "examples/07_transformations/",
         "examples/08_geo_coordinates/",
+        "examples/09_spatio_temporal/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",
@@ -302,6 +304,7 @@ sphinx_gallery_conf = {
     "backreferences_dir": None,
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
+    "matplotlib_animations": True,
     # "image_scrapers": ('pyvista', 'matplotlib'),
     # "first_notebook_cell": ("%matplotlib inline\n"
     #                         "from pyvista import set_plot_theme\n"
