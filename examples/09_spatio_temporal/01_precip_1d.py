@@ -58,8 +58,9 @@ P_cut[P_cut <= threshold] = 0.0
 # account for the skewness of precipitation fields. Different values have been
 # suggested for the transformation parameter lambda, but we will stick to 1/2.
 # As already mentioned, we will perform the cutoff for the dry periods with
-# this transformation implicitly with the shift. We call the resulting field
-# Gaussian anamorphosis.
+# this transformation implicitly with the shift. The warning will tell you
+# that values have indeed been cut off and it can be ignored. We call the
+# resulting field Gaussian anamorphosis.
 
 # the lower this value, the more will be cut off, a value of 0.2 cuts off
 # nearly everything in this example.
