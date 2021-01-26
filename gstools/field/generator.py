@@ -112,7 +112,7 @@ class RandMeth:
         pos : (d, n), :class:`numpy.ndarray`
             the position tuple with d dimensions and n points.
         add_nugget : :class:`bool`
-            Wheater to add nugget noise to the field.
+            Whether to add nugget noise to the field.
 
         Returns
         -------

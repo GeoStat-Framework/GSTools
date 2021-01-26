@@ -20,7 +20,7 @@ gridx = np.linspace(0.0, 15.0, 151)
 # to handle the conditions.
 # This is created as described in the kriging tutorial.
 #
-# Here we use a gaussian covariance model and ordinary kriging for conditioning
+# Here we use a Gaussian covariance model and ordinary kriging for conditioning
 # the spatial random field.
 
 model = gs.Gaussian(dim=1, var=0.5, len_scale=1.5)
