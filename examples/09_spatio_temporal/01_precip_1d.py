@@ -41,37 +41,46 @@ srf.structured(pos + time)
 P_gau = copy.deepcopy(srf.field)
 
 ###############################################################################
-# Now we should take care of the dry periods. Therefore we simply introduce a
-# lower threshold value.
+# Next, we could take care of the dry periods. Therefore we would simply
+# introduce a lower threshold value. But we will combine this step with the
+# next one. Anyway, for demonstration purposes, we will also do it with the
+# threshold value now.
 
-threshold = 0.7
-srf.field[srf.field <= threshold] = 0.0
-P_cut = srf.field
+threshold = 0.85
+P_cut = copy.deepcopy(srf.field)
+P_cut[P_cut <= threshold] = 0.0
 
 ###############################################################################
 # With the above lines of code we have created a cut off Gaussian spatial
 # random field with an exponential variogram. But precipitation fields are not
-# distributed Gaussian. Thus, we will now transform the field with a box-cox
-# transformation, which is often used to account for the skewness of
-# precipitation fields. Different values have been suggested for the
-# transformation parameter lambda, but we will stick to 1/2. We call the
-# resulting field Gaussian anamorphosis.
+# distributed Gaussian. Thus, we will now transform the field with an inverse
+# box-cox transformation (create a non-Gaussian field) , which is often used to
+# account for the skewness of precipitation fields. Different values have been
+# suggested for the transformation parameter lambda, but we will stick to 1/2.
+# As already mentioned, we will perform the cutoff for the dry periods with
+# this transformation implicitly with the shift. We call the resulting field
+# Gaussian anamorphosis.
 
-gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0)
+# the lower this value, the more will be cut off, a value of 0.2 cuts off
+# nearly everything in this example.
+cutoff = 0.55
+gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0 / cutoff)
 
 ###############################################################################
 # As a last step, the amount of precipitation is set. This should of course be
 # calibrated towards observations (the same goes for the threshold, the
 # variance, correlation length, and so on).
 
-amount = 3.0
+amount = 2.0
 srf.field *= amount
 P_ana = srf.field
 
 ###############################################################################
-# Finally we can have a look at the fields resulting from each step. For a
-# closer look, we will examine a cross section at an arbitrary location. And
-# afterwards we will create a contour plot for visual candy.
+# Finally we can have a look at the fields resulting from each step. Note, that
+# the cutoff of the cut Gaussian only approximates the cutoff values from the
+# box-cox transformation. For a closer look, we will examine a cross section
+# at an arbitrary location. And afterwards we will create a contour plot for
+# visual candy.
 
 fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
 
@@ -96,19 +105,19 @@ plt.tight_layout()
 fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
 
 axs[0, 0].set_title("Gaussian")
-cont = axs[0, 0].contourf(t, x, P_gau, cmap="PuBu")
+cont = axs[0, 0].contourf(t, x, P_gau, cmap="PuBu", levels=10)
 cbar = fig.colorbar(cont, ax=axs[0, 0])
 cbar.ax.set_ylabel(r"$P$ / mm")
 axs[0, 0].set_ylabel(r"$x$ / km")
 
 axs[0, 1].set_title("Cut Gaussian")
-cont = axs[0, 1].contourf(t, x, P_cut, cmap="PuBu")
+cont = axs[0, 1].contourf(t, x, P_cut, cmap="PuBu", levels=10)
 cbar = fig.colorbar(cont, ax=axs[0, 1])
 cbar.ax.set_ylabel(r"$P$ / mm")
 axs[0, 1].set_xlabel(r"$t$ / d")
 
 axs[1, 0].set_title("Cut Gaussian Anamorphosis")
-cont = axs[1, 0].contourf(t, x, P_ana, cmap="PuBu")
+cont = axs[1, 0].contourf(t, x, P_ana, cmap="PuBu", levels=10)
 cbar = fig.colorbar(cont, ax=axs[1, 0])
 cbar.ax.set_ylabel(r"$P$ / mm")
 axs[1, 0].set_xlabel(r"$t$ / d")
