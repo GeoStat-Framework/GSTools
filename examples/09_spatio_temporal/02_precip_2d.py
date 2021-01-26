@@ -41,12 +41,9 @@ pos, time = [x, y], [t]
 # the Gaussian random field
 srf.structured(pos + time)
 
-# the dry periods
-threshold = 0.4
-srf.field[srf.field <= threshold] = 0.0
-
-# account for the skewness
-gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0)
+# account for the skewness and the dry periods
+cutoff = 0.55
+gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0 / cutoff)
 
 # adjust the amount of precipitation
 amount = 4.0
