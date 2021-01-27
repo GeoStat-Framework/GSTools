@@ -17,8 +17,8 @@ import pyvista as pv
 import gstools as gs
 
 ###############################################################################
-# We create a structured grid with PyVista containing of 50 segments
-# on all three axis each with a length of 2 (whatever unit).
+# We create a structured grid with PyVista containing 50 segments on all three
+# axes each with a length of 2 (whatever unit).
 
 dim, spacing = (50, 50, 50), (2, 2, 2)
 grid = pv.UniformGrid(dim, spacing)
@@ -32,7 +32,7 @@ srf = gs.SRF(model, seed=19970221)
 ###############################################################################
 # The PyVista mesh can now be directly passed to the :any:`SRF.mesh` method.
 # When dealing with meshes, one can choose if the field should be generated
-# on the mesh-points (`"points"`) of the cell-centroids (`"centroids"`).
+# on the mesh-points (`"points"`) or the cell-centroids (`"centroids"`).
 #
 # In addition we can set a name, under which the resulting field is stored
 # in the mesh.
