@@ -55,7 +55,7 @@ class BoxCox(Normalizer):
 
     Notes
     -----
-    This transformation is given by  [1]_:
+    This transformation is given by [1]_:
 
     .. math::
        y=\begin{cases}
