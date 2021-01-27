@@ -21,6 +21,7 @@ __all__ = ["CondSRF"]
 GENERATOR = {
     "RandMeth": RandMeth,
 }
+"""dict: Standard generators for conditioned spatial random fields."""
 
 
 class CondSRF(Field):
@@ -32,15 +33,10 @@ class CondSRF(Field):
         Covariance Model of the spatial random field.
     generator : :class:`str`, optional
         Name of the field generator to be used.
-        At the moment, the following generators are provided:
+        At the moment, only the following generator is provided:
 
             * "RandMeth" : The Randomization Method.
               See: :any:`RandMeth`
-            * "IncomprRandMeth" : The incompressible Randomization Method.
-              This is the original algorithm proposed by Kraichnan 1970
-              See: :any:`IncomprRandMeth`
-            * "VectorField" : an alias for "IncomprRandMeth"
-            * "VelocityField" : an alias for "IncomprRandMeth"
 
         Default: "RandMeth"
     **generator_kwargs

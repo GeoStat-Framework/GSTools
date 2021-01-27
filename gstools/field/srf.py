@@ -24,10 +24,13 @@ GENERATOR = {
     "VectorField": IncomprRandMeth,
     "VelocityField": IncomprRandMeth,
 }
+"""dict: Standard generators for spatial random fields."""
+
 UPSCALING = {
     "coarse_graining": var_coarse_graining,
     "no_scaling": var_no_scaling,
 }
+"""dict: Upscaling routines for spatial random fields."""
 
 
 class SRF(Field):
