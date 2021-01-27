@@ -27,12 +27,13 @@ Classes
 
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^
-Class for random field generation
+Classes for (conditioned) random field generation
 
 .. currentmodule:: gstools.field
 
 .. autosummary::
    SRF
+   CondSRF
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
@@ -114,7 +115,7 @@ Misc
 """
 # Hooray!
 from gstools import field, variogram, random, covmodel, tools, krige, transform
-from gstools.field import SRF
+from gstools.field import SRF, CondSRF
 from gstools.tools import (
     rotated_main_axes,
     EARTH_RADIUS,
@@ -191,6 +192,7 @@ __all__ += [
 
 __all__ += [
     "SRF",
+    "CondSRF",
     "rotated_main_axes",
     "EARTH_RADIUS",
     "vtk_export",

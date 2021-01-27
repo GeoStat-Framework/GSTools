@@ -72,8 +72,7 @@ def plot_vario_spatial(
     model, x_min=0.0, x_max=None, fig=None, ax=None
 ):  # pragma: no cover
     """Plot spatial variogram of a given CovModel."""
-    field = gstools.field.base.Field(model)
-    field._value_type = "scalar"
+    field = gstools.field.base.Field(model, "scalar")
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(-x_max, x_max) + x_min
@@ -88,8 +87,7 @@ def plot_cov_spatial(
     model, x_min=0.0, x_max=None, fig=None, ax=None
 ):  # pragma: no cover
     """Plot spatial covariance of a given CovModel."""
-    field = gstools.field.base.Field(model)
-    field._value_type = "scalar"
+    field = gstools.field.base.Field(model, "scalar")
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(-x_max, x_max) + x_min
@@ -102,8 +100,7 @@ def plot_cor_spatial(
     model, x_min=0.0, x_max=None, fig=None, ax=None
 ):  # pragma: no cover
     """Plot spatial correlation of a given CovModel."""
-    field = gstools.field.base.Field(model)
-    field._value_type = "scalar"
+    field = gstools.field.base.Field(model, "scalar")
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(-x_max, x_max) + x_min

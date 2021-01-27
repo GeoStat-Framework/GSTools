@@ -61,10 +61,10 @@ class RNG:
         nwalkers : :class:`int`, optional
             The number of walkers in the mcmc sampler. Used for the
             emcee.EnsembleSampler class.
-            Default: 100
+            Default: 50
         burn_in : :class:`int`, optional
             Number of burn-in runs in the mcmc algorithm.
-            Default: 100
+            Default: 20
         oversampling_factor : :class:`int`, optional
             To guess the sample number needed for proper results, we use a
             factor for oversampling. The intern used sample-size is
@@ -213,10 +213,6 @@ class RNG:
     @seed.setter
     def seed(self, new_seed=None):
         self._master_rng = MasterRNG(new_seed)
-
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
 
     def __repr__(self):
         """Return String representation."""

@@ -12,6 +12,7 @@ The following classes are provided
 """
 # pylint: disable=C0103
 
+import warnings
 from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
@@ -20,6 +21,9 @@ from gstools.field.summator import summate, summate_incompr
 
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
+
+
+SAMPLING = ["auto", "inversion", "mcmc"]
 
 
 class RandMeth:
@@ -37,6 +41,13 @@ class RandMeth:
     verbose : :class:`bool`, optional
         Be chatty during the generation.
         Default: :any:`False`
+    sampling :class:`str`, optional
+        Sampling strategy. Either
+
+            * "auto": select best strategy depending on given model
+            * "inversion": use inversion method
+            * "mcmc": use mcmc sampling
+
     **kwargs
         Placeholder for keyword-args
 
@@ -63,10 +74,16 @@ class RandMeth:
     """
 
     def __init__(
-        self, model, mode_no=1000, seed=None, verbose=False, **kwargs
+        self,
+        model,
+        mode_no=1000,
+        seed=None,
+        verbose=False,
+        sampling="auto",
+        **kwargs
     ):
         if kwargs:
-            print("gstools.RandMeth: **kwargs are ignored")
+            warnings.warn("gstools.RandMeth: **kwargs are ignored")
         # initialize atributes
         self._mode_no = int(mode_no)
         self._verbose = bool(verbose)
@@ -78,10 +95,13 @@ class RandMeth:
         self._z_2 = None
         self._cov_sample = None
         self._value_type = "scalar"
+        # set sampling strategy
+        self._sampling = None
+        self.sampling = sampling
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, pos):
+    def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -91,6 +111,8 @@ class RandMeth:
         ----------
         pos : (d, n), :class:`numpy.ndarray`
             the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Whether to add nugget noise to the field.
 
         Returns
         -------
@@ -99,11 +121,10 @@ class RandMeth:
         """
         pos = np.array(pos, dtype=np.double)
         summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
-        nugget = self._set_nugget(summed_modes.shape)
-
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
-    def _set_nugget(self, shape):
+    def get_nugget(self, shape):
         """
         Generate normal distributed values for the nugget simulation.
 
@@ -111,6 +132,7 @@ class RandMeth:
         ----------
         shape : :class:`tuple`
             the shape of the summed modes
+
         Returns
         -------
         nugget : :class:`numpy.ndarray`
@@ -203,7 +225,9 @@ class RandMeth:
         # sample uniform on a sphere
         sphere_coord = self._rng.sample_sphere(self.model.dim, self._mode_no)
         # sample radii acording to radial spectral density of the model
-        if self.model.has_ppf:
+        if self.sampling == "inversion" or (
+            self.sampling == "auto" and self.model.has_ppf
+        ):
             pdf, cdf, ppf = self.model.dist_func
             rad = self._rng.sample_dist(
                 size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
@@ -216,6 +240,17 @@ class RandMeth:
             )
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
+
+    @property
+    def sampling(self):
+        """:class:`str`: Sampling strategy."""
+        return self._sampling
+
+    @sampling.setter
+    def sampling(self, sampling):
+        if sampling not in ["auto", "inversion", "mcmc"]:
+            raise ValueError("RandMeth: sampling not in {}.".format(SAMPLING))
+        self._sampling = sampling
 
     @property
     def seed(self):
@@ -272,10 +307,6 @@ class RandMeth:
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
@@ -300,6 +331,13 @@ class IncomprRandMeth(RandMeth):
     verbose : :class:`bool`, optional
         State if there should be output during the generation.
         Default: :any:`False`
+    sampling :class:`str`, optional
+        Sampling strategy. Either
+
+            * "auto": select best strategy depending on given model
+            * "inversion": use inversion method
+            * "mcmc": use mcmc sampling
+
     **kwargs
         Placeholder for keyword-args
 
@@ -335,13 +373,14 @@ class IncomprRandMeth(RandMeth):
         mode_no=1000,
         seed=None,
         verbose=False,
+        sampling="auto",
         **kwargs
     ):
         if model.dim < 2 or model.dim > 3:
             raise ValueError(
                 "Only 2D and 3D incompressible fields can be generated."
             )
-        super().__init__(model, mode_no, seed, verbose, **kwargs)
+        super().__init__(model, mode_no, seed, verbose, sampling, **kwargs)
 
         self.mean_u = mean_velocity
         self._value_type = "vector"
@@ -368,7 +407,7 @@ class IncomprRandMeth(RandMeth):
         summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )
-        nugget = self._set_nugget(summed_modes.shape)
+        nugget = self.get_nugget(summed_modes.shape)
 
         e1 = self._create_unit_vector(summed_modes.shape)
 

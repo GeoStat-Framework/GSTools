@@ -15,8 +15,6 @@ import numpy as np
 from gstools.field.generator import RandMeth, IncomprRandMeth
 from gstools.field.base import Field
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
-from gstools.field.condition import ordinary, simple
-from gstools.krige.tools import set_condition
 
 __all__ = ["SRF"]
 
@@ -26,11 +24,13 @@ GENERATOR = {
     "VectorField": IncomprRandMeth,
     "VelocityField": IncomprRandMeth,
 }
+"""dict: Standard generators for spatial random fields."""
+
 UPSCALING = {
     "coarse_graining": var_coarse_graining,
     "no_scaling": var_no_scaling,
 }
-CONDITION = {"ordinary": ordinary, "simple": simple}
+"""dict: Upscaling routines for spatial random fields."""
 
 
 class SRF(Field):
@@ -81,27 +81,16 @@ class SRF(Field):
         generator="RandMeth",
         **generator_kwargs
     ):
-        super().__init__(model, mean)
+        super().__init__(model)
         # initialize private attributes
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
-        # condition related
-        self._cond_pos = None
-        self._cond_val = None
-        self._krige_type = None
+        self._mean = None
         # initialize attributes
-        self.raw_field = None
-        self.krige_field = None
-        self.err_field = None
-        self.krige_var = None
-        self.set_generator(generator, **generator_kwargs)
+        self.mean = mean
         self.upscaling = upscaling
-        if self._value_type is None:
-            raise ValueError(
-                "Unknown field value type, "
-                + "specify 'scalar' or 'vector' before calling SRF."
-            )
+        self.set_generator(generator, **generator_kwargs)
 
     def __call__(
         self, pos, seed=np.nan, point_volumes=0.0, mesh_type="unstructured"
@@ -136,94 +125,15 @@ class SRF(Field):
         # get isometrized positions and the resulting field-shape
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         # generate the field
-        self.raw_field = np.reshape(self.generator(iso_pos), shape)
-        # apply given conditions to the field
-        if self.condition:
-            (
-                cond_field,
-                krige_field,
-                err_field,
-                krigevar,
-                info,
-            ) = self.cond_func(self)
-            # store everything in the class
-            self.field = cond_field
-            self.krige_field = krige_field
-            self.err_field = err_field
-            self.krige_var = krigevar
-            if "mean" in info:  # ordinary krging estimates mean
-                self.mean = info["mean"]
-        else:
-            self.field = self.raw_field + self.mean
+        self.field = np.reshape(self.generator(iso_pos), shape)
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
             if np.size(scaled_var) > 1:
                 scaled_var = np.reshape(scaled_var, shape)
-            self.field -= self.mean
             self.field *= np.sqrt(scaled_var / self.model.sill)
-            self.field += self.mean
+        self.field += self.mean
         return self.field
-
-    def set_condition(
-        self, cond_pos=None, cond_val=None, krige_type="ordinary"
-    ):
-        """Condition a given spatial random field with measurements.
-
-        Parameters
-        ----------
-        cond_pos : :class:`list`
-            the position tuple of the conditions
-        cond_val : :class:`numpy.ndarray`
-            the values of the conditions
-        krige_type : :class:`str`, optional
-            Used kriging type for conditioning.
-            Either 'ordinary' or 'simple'.
-            Default: 'ordinary'
-
-        Notes
-        -----
-        When using "ordinary" as ``krige_type``, the ``mean`` attribute of the
-        spatial random field will be overwritten with the estimated mean.
-        """
-        if cond_pos is not None:
-            self._cond_pos, self._cond_val = set_condition(
-                cond_pos, cond_val, self.model.field_dim
-            )
-        else:
-            self._cond_pos = self._cond_val = None
-        self._krige_type = krige_type
-        if krige_type not in CONDITION:
-            raise ValueError(
-                "gstools.SRF: Unknown kriging method: " + krige_type
-            )
-
-    def del_condition(self):
-        """Delete Conditions."""
-        self._cond_pos = None
-        self._cond_val = None
-        self._krige_type = None
-
-    @property
-    def cond_pos(self):
-        """:class:`list`: The position tuple of the conditions."""
-        return self._cond_pos
-
-    @property
-    def cond_val(self):
-        """:class:`list`: The values of the conditions."""
-        return self._cond_val
-
-    @property
-    def condition(self):
-        """:any:`bool`: State if conditions ar given."""
-        return self._cond_pos is not None
-
-    def cond_func(self, *args, **kwargs):
-        """Conditioning method applied to the field."""
-        if self.condition:
-            return CONDITION[self._krige_type](*args, **kwargs)
-        return None
 
     def upscaling_func(self, *args, **kwargs):
         """Upscaling method applied to the field variance."""
@@ -243,7 +153,7 @@ class SRF(Field):
         if generator in GENERATOR:
             gen = GENERATOR[generator]
             self._generator = gen(self.model, **generator_kwargs)
-            self._value_type = self._generator.value_type
+            self.value_type = self._generator.value_type
         else:
             raise ValueError("gstools.SRF: Unknown generator: " + generator)
 
@@ -273,6 +183,15 @@ class SRF(Field):
             raise ValueError(
                 "gstools.SRF: Unknown upscaling method: " + upscaling
             )
+
+    @property
+    def mean(self):
+        """:class:`float`: The mean of the field."""
+        return self._mean
+
+    @mean.setter
+    def mean(self, mean):
+        self._mean = float(mean)
 
     def __repr__(self):
         """Return String representation."""
