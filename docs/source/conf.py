@@ -291,6 +291,7 @@ sphinx_gallery_conf = {
         "../../examples/06_conditioned_fields/",
         "../../examples/07_transformations/",
         "../../examples/08_geo_coordinates/",
+        "../../examples/09_spatio_temporal/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -303,6 +304,7 @@ sphinx_gallery_conf = {
         "examples/06_conditioned_fields/",
         "examples/07_transformations/",
         "examples/08_geo_coordinates/",
+        "examples/09_spatio_temporal/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",
@@ -319,4 +321,5 @@ sphinx_gallery_conf = {
     #     "from pyvista import set_plot_theme\n"
     #     "set_plot_theme('document')"
     # ),
+    "matplotlib_animations": True,
 }

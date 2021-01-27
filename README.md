@@ -3,9 +3,9 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1313628.svg)](https://doi.org/10.5281/zenodo.1313628)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/gstools.svg)](https://anaconda.org/conda-forge/gstools)
-[![Build Status](https://github.com/GeoStat-Framework/GSTools/workflows/Continuous%20Integration/badge.svg?branch=master)](https://github.com/GeoStat-Framework/GSTools/actions)
-[![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=master)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/gstools/badge/?version=stable)](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/?badge=stable)
+[![Build Status](https://github.com/GeoStat-Framework/GSTools/workflows/Continuous%20Integration/badge.svg?branch=develop)](https://github.com/GeoStat-Framework/GSTools/actions)
+[![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=develop)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=develop)
+[![Documentation Status](https://readthedocs.org/projects/gstools/badge/?version=latest)](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/?badge=stable)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
@@ -82,6 +82,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
 - [Geographic Coordinates][tut8_link]
+- [Spatio-Temporal Modelling][tut9_link]
 - [Miscellaneous examples][tut0_link]
 
 The associated python scripts are provided in the `examples` folder.
@@ -361,6 +362,7 @@ You can contact us via <info@geostat-framework.org>.
 [tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/06_conditioned_fields/index.html
 [tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
 [tut8_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/08_geo_coordinates/index.html
+[tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/09_spatio_temporal/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
