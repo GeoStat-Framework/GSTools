@@ -1,5 +1,5 @@
-Tutorial 8: Geographic Coordinates
-==================================
+Geographic Coordinates
+======================
 
 GSTools provides support for
 `geographic coordinates <https://en.wikipedia.org/wiki/Geographic_coordinate_system>`_
