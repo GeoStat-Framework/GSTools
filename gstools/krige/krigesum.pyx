@@ -11,7 +11,7 @@ from cython.parallel import prange
 cimport numpy as np
 
 
-def krigesum(
+def calc_field_krige_and_variance(
     const double[:,:] krig_mat,
     const double[:,:] krig_vecs,
     const double[:] cond
@@ -39,7 +39,7 @@ def krigesum(
     return np.asarray(field), np.asarray(error)
 
 
-def krigesumfast(
+def calc_field_krige(
     const double[:,:] krig_mat,
     const double[:,:] krig_vecs,
     const double[:] cond

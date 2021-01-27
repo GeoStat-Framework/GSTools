@@ -16,7 +16,10 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import scipy.linalg as spl
 from gstools.field.base import Field
-from gstools.krige.krigesum import krigesum, krigesumfast
+from gstools.krige.krigesum import (
+    calc_field_krige_and_variance,
+    calc_field_krige,
+)
 from gstools.krige.tools import (
     set_condition,
     get_drift_functions,
@@ -28,6 +31,7 @@ __all__ = ["Krige"]
 
 
 P_INV = {1: spl.pinv, 2: spl.pinv2, 3: spl.pinvh}
+"""dict: Standard pseudo-inverse routines"""
 
 
 class Krige(Field):
@@ -205,14 +209,7 @@ class Krige(Field):
                     iso_pos, chunk_slice, ext_drift, only_mean
                 )
                 # generate the raw kriging field and error variance
-                if return_var:
-                    field[c_slice], krige_var[c_slice] = krigesum(
-                        self._krige_mat, k_vec, self._krige_cond
-                    )
-                else:
-                    field[c_slice] = krigesumfast(
-                        self._krige_mat, k_vec, self._krige_cond
-                    )
+                self._summate(field, krige_var, c_slice, k_vec, return_var)
         # reshape field if we got a structured mesh
         field = np.reshape(field, shape)
         if only_mean:
@@ -225,6 +222,16 @@ class Krige(Field):
             return self.field, self.krige_var
         self.krige_var = None
         return self.field
+
+    def _summate(self, field, krige_var, c_slice, k_vec, return_var):
+        if return_var:
+            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
+                self._krige_mat, k_vec, self._krige_cond
+            )
+        else:
+            field[c_slice] = calc_field_krige(
+                self._krige_mat, k_vec, self._krige_cond
+            )
 
     def _inv(self, mat):
         # return pseudo-inverted matrix if wanted (numerically more stable)
