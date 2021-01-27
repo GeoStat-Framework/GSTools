@@ -25,26 +25,25 @@ gridx = np.linspace(0.0, 15.0, 151)
 
 model = gs.Gaussian(dim=1, var=0.5, len_scale=1.5)
 krige = gs.krige.Ordinary(model, cond_pos, cond_val)
-csrf = gs.CondSRF(krige)
+cond_srf = gs.CondSRF(krige)
 
 ###############################################################################
 
 fields = []
 for i in range(100):
-    # print(i) if i % 10 == 0 else None
-    fields.append(csrf(gridx, seed=i))
+    fields.append(cond_srf(gridx, seed=i))
     label = "Conditioned ensemble" if i == 0 else None
     plt.plot(gridx, fields[i], color="k", alpha=0.1, label=label)
-plt.plot(gridx, csrf.krige(gridx, only_mean=True), label="estimated mean")
+plt.plot(gridx, cond_srf.krige(gridx, only_mean=True), label="estimated mean")
 plt.plot(gridx, np.mean(fields, axis=0), linestyle=":", label="Ensemble mean")
-plt.plot(gridx, csrf.krige.field, linestyle="dashed", label="kriged field")
+plt.plot(gridx, cond_srf.krige.field, linestyle="dashed", label="kriged field")
 plt.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
 # 99 percent confidence interval
 conf = gs.tools.confidence_scaling(0.99)
 plt.fill_between(
     gridx,
-    csrf.krige.field - conf * np.sqrt(csrf.krige.krige_var),
-    csrf.krige.field + conf * np.sqrt(csrf.krige.krige_var),
+    cond_srf.krige.field - conf * np.sqrt(cond_srf.krige.krige_var),
+    cond_srf.krige.field + conf * np.sqrt(cond_srf.krige.krige_var),
     alpha=0.3,
     label="99% confidence interval",
 )
