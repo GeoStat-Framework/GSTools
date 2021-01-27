@@ -45,6 +45,12 @@ Geometric
    matrix_anisometrize
    ang2dir
 
+Misc
+^^^^
+
+.. autosummary::
+   EARTH_RADIUS
+
 ----
 """
 
@@ -83,6 +89,11 @@ from gstools.tools.geometric import (
     ang2dir,
 )
 
+
+EARTH_RADIUS = 6371.0
+"""float: earth radius for WGS84 ellipsoid in km"""
+
+
 __all__ = [
     "vtk_export",
     "vtk_export_structured",
@@ -110,4 +121,5 @@ __all__ = [
     "matrix_anisometrize",
     "rotated_main_axes",
     "ang2dir",
+    "EARTH_RADIUS",
 ]

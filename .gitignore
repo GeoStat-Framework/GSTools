@@ -125,3 +125,4 @@ docs/source/generated/
 
 *.vtu
 *.vtr
+*.vtk

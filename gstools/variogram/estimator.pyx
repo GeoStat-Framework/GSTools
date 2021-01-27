@@ -10,7 +10,7 @@ import numpy as np
 cimport cython
 from cython.parallel import prange, parallel
 from libcpp.vector cimport vector
-from libc.math cimport fabs, sqrt, isnan, acos, M_PI
+from libc.math cimport fabs, sqrt, isnan, acos, pow, sin, cos, atan2, M_PI
 cimport numpy as np
 
 
@@ -18,7 +18,7 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 
 
-cdef inline double distance(
+cdef inline double dist_euclid(
     const int dim,
     const double[:,:] pos,
     const int i,
@@ -29,6 +29,33 @@ cdef inline double distance(
     for d in range(dim):
         dist_squared += ((pos[d,i] - pos[d,j]) * (pos[d,i] - pos[d,j]))
     return sqrt(dist_squared)
+
+
+cdef inline double dist_haversine(
+    const int dim,
+    const double[:,:] pos,
+    const int i,
+    const int j
+) nogil:
+    # pos holds lat-lon in deg
+    cdef double deg_2_rad = M_PI / 180.0
+    cdef double diff_lat = (pos[0, j] - pos[0, i]) * deg_2_rad
+    cdef double diff_lon = (pos[1, j] - pos[1, i]) * deg_2_rad
+    cdef double arg = (
+        pow(sin(diff_lat/2.0), 2) +
+        cos(pos[0, i]*deg_2_rad) *
+        cos(pos[0, j]*deg_2_rad) *
+        pow(sin(diff_lon/2.0), 2)
+    )
+    return 2.0 * atan2(sqrt(arg), sqrt(1.0-arg))
+
+
+ctypedef double (*_dist_func)(
+    const int,
+    const double[:,:],
+    const int,
+    const int
+) nogil
 
 
 cdef inline bint dir_test(
@@ -203,7 +230,7 @@ def directional(
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
             for k in range(j+1, k_max):
-                dist = distance(dim, pos, j, k)
+                dist = dist_euclid(dim, pos, j, k)
                 if dist < bin_edges[i] or dist >= bin_edges[i+1]:
                     continue  # skip if not in current bin
                 for d in range(d_max):
@@ -227,8 +254,18 @@ def unstructured(
     const double[:,:] f,
     const double[:] bin_edges,
     const double[:,:] pos,
-    str estimator_type='m'
+    str estimator_type='m',
+    str distance_type='e'
 ):
+    cdef _dist_func distance
+
+    if distance_type == 'e':
+        distance = dist_euclid
+    else:
+        distance = dist_haversine
+        if dim != 2:
+            raise ValueError('Haversine: dim = {0} != 2'.format(dim))
+
     if pos.shape[1] != f.shape[1]:
         raise ValueError('len(pos) = {0} != len(f) = {1} '.
                          format(pos.shape[1], f.shape[1]))

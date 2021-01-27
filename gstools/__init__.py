@@ -28,18 +28,19 @@ Classes
 
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^
-Class for random field generation
+Classes for (conditioned) random field generation
 
 .. currentmodule:: gstools.field
 
 .. autosummary::
    SRF
+   CondSRF
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
 Class to construct user defined covariance models
 
-.. currentmodule:: gstools.covmodel.base
+.. currentmodule:: gstools.covmodel
 
 .. autosummary::
    CovModel
@@ -49,8 +50,6 @@ Covariance Models
 
 Standard Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. currentmodule:: gstools.covmodel.models
 
 .. autosummary::
    Gaussian
@@ -69,7 +68,6 @@ Standard Covariance Models
 Truncated Power Law Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. currentmodule:: gstools.covmodel.tpl_models
 .. autosummary::
    TPLGaussian
    TPLExponential
@@ -98,13 +96,23 @@ Some convenient functions for geometric operations
 
 Variogram Estimation
 ^^^^^^^^^^^^^^^^^^^^
-Estimate the variogram of a given field
+Estimate the variogram of a given field with these routines
 
 .. currentmodule:: gstools.variogram
 
 .. autosummary::
    vario_estimate
    vario_estimate_axis
+   standard_bins
+
+Misc
+====
+
+.. currentmodule:: gstools.tools
+
+.. autosummary::
+   EARTH_RADIUS
+
 """
 # Hooray!
 from gstools import (
@@ -117,9 +125,10 @@ from gstools import (
     transform,
     normalize,
 )
-from gstools.field import SRF
+from gstools.field import SRF, CondSRF
 from gstools.tools import (
     rotated_main_axes,
+    EARTH_RADIUS,
     vtk_export,
     vtk_export_structured,
     vtk_export_unstructured,
@@ -132,6 +141,7 @@ from gstools.variogram import (
     vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
+    standard_bins,
 )
 from gstools.covmodel import (
     CovModel,
@@ -187,11 +197,14 @@ __all__ += [
     "vario_estimate_axis",
     "vario_estimate_structured",
     "vario_estimate_unstructured",
+    "standard_bins",
 ]
 
 __all__ += [
     "SRF",
+    "CondSRF",
     "rotated_main_axes",
+    "EARTH_RADIUS",
     "vtk_export",
     "vtk_export_structured",
     "vtk_export_unstructured",

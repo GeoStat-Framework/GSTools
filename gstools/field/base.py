@@ -23,6 +23,8 @@ from gstools.tools.export import to_vtk, vtk_export
 
 __all__ = ["Field"]
 
+VALUE_TYPES = ["scalar", "vector"]
+
 
 class Field:
     """A base class for random fields, kriging fields, etc.
@@ -31,21 +33,18 @@ class Field:
     ----------
     model : :any:`CovModel`
         Covariance Model related to the field.
-    mean : :class:`float`, optional
-        Mean value of the field.
     """
 
-    def __init__(self, model, mean=0.0):
+    def __init__(self, model, value_type="scalar"):
         # initialize attributes
         self.pos = None
         self.mesh_type = None
         self.field = None
         # initialize private attributes
-        self._mean = None
         self._model = None
-        self.mean = mean
         self.model = model
         self._value_type = None
+        self.value_type = value_type
 
     def __call__(*args, **kwargs):
         """Generate the field."""
@@ -122,15 +121,15 @@ class Field:
             pass
 
         if isinstance(direction, str) and direction == "all":
-            select = list(range(self.model.dim))
+            select = list(range(self.model.field_dim))
         elif isinstance(direction, str):
-            select = _get_select(direction)[: self.model.dim]
+            select = _get_select(direction)[: self.model.field_dim]
         else:
-            select = direction[: self.model.dim]
-        if len(select) < self.model.dim:
+            select = direction[: self.model.field_dim]
+        if len(select) < self.model.field_dim:
             raise ValueError(
                 "Field.mesh: need at least {} direction(s), got '{}'".format(
-                    self.model.dim, direction
+                    self.model.field_dim, direction
                 )
             )
         # convert pyvista mesh
@@ -158,7 +157,7 @@ class Field:
                 offset = []
                 length = []
                 mesh_dim = mesh.points.shape[1]
-                if mesh_dim < self.model.dim:
+                if mesh_dim < self.model.field_dim:
                     raise ValueError("Field.mesh: mesh dimension too low!")
                 pnts = np.empty((0, mesh_dim), dtype=np.double)
                 for cell in mesh.cells:
@@ -209,18 +208,21 @@ class Field:
         """
         # save mesh-type
         self.mesh_type = mesh_type
+        dim = self.model.field_dim
         # save pos tuple
         if mesh_type != "unstructured":
-            pos, shape = format_struct_pos_dim(pos, self.model.dim)
+            pos, shape = format_struct_pos_dim(pos, dim)
             self.pos = pos
             pos = gen_mesh(pos)
         else:
-            pos = np.array(pos, dtype=np.double).reshape(self.model.dim, -1)
+            pos = np.array(pos, dtype=np.double).reshape(dim, -1)
             self.pos = pos
             shape = np.shape(pos[0])
         # prepend dimension if we have a vector field
         if self.value_type == "vector":
             shape = (self.model.dim,) + shape
+            if self.model.latlon:
+                raise ValueError("Field: Vector fields not allowed for latlon")
         # return isometrized pos tuple and resulting field shape
         return self.model.isometrize(pos), shape
 
@@ -244,12 +246,7 @@ class Field:
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        if self.value_type is None:
-            raise ValueError(
-                "Field value type not set! "
-                + "Specify 'scalar' or 'vector' before plotting."
-            )
-        elif self.value_type == "vector":
+        if self.value_type == "vector":
             if hasattr(self, field_select):
                 field = getattr(self, field_select)
             else:
@@ -353,7 +350,7 @@ class Field:
         if self.value_type is None:
             raise ValueError(
                 "Field value type not set! "
-                + "Specify 'scalar' or 'vector' before plotting."
+                "Specify 'scalar' or 'vector' before plotting."
             )
 
         elif self.value_type == "scalar":
@@ -374,15 +371,6 @@ class Field:
         return r
 
     @property
-    def mean(self):
-        """:class:`float`: The mean of the field."""
-        return self._mean
-
-    @mean.setter
-    def mean(self, mean):
-        self._mean = float(mean)
-
-    @property
     def model(self):
         """:any:`CovModel`: The covariance model of the field."""
         return self._model
@@ -401,14 +389,17 @@ class Field:
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
+    @value_type.setter
+    def value_type(self, value_type):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+        if value_type not in VALUE_TYPES:
+            raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
+        self._value_type = value_type
 
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0}, mean={1:.{p}})".format(
-            self.model, self.mean, p=self.model._prec
+        return "Field(model={0}, value_type={1})".format(
+            self.model, self.value_type
         )
 
 

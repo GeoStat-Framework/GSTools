@@ -206,7 +206,7 @@ def to_vtk(pos, fields, mesh_type="unstructured"):  # pragma: no cover
         :class:`pyvista.RectilinearGrid` and unstructured meshes will return
         an :class:`pyvista.UnstructuredGrid` object.
     """
-    if mesh_type == "structured":
+    if mesh_type != "unstructured":
         grid = to_vtk_structured(pos=pos, fields=fields)
     else:
         grid = to_vtk_unstructured(pos=pos, fields=fields)
@@ -233,6 +233,6 @@ def vtk_export(
     mesh_type : :class:`str`, optional
         'structured' / 'unstructured'. Default: structured
     """
-    if mesh_type == "structured":
+    if mesh_type != "unstructured":
         return vtk_export_structured(filename=filename, pos=pos, fields=fields)
     return vtk_export_unstructured(filename=filename, pos=pos, fields=fields)

@@ -42,11 +42,13 @@ def plot_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     """
     plot_field = getattr(fld, field)
     assert not (fld.pos is None or plot_field is None)
-    if fld.model.dim == 1:
+    if fld.model.field_dim == 1:
         ax = _plot_1d(fld.pos, plot_field, fig, ax)
-    elif fld.model.dim == 2:
-        ax = _plot_2d(fld.pos, plot_field, fld.mesh_type, fig, ax)
-    elif fld.model.dim == 3:
+    elif fld.model.field_dim == 2:
+        ax = _plot_2d(
+            fld.pos, plot_field, fld.mesh_type, fig, ax, fld.model.latlon
+        )
+    elif fld.model.field_dim == 3:
         ax = _plot_3d(fld.pos, plot_field, fld.mesh_type, fig, ax)
     else:
         raise ValueError("Field.plot: only possible for dim=1,2,3!")
@@ -68,21 +70,28 @@ def _plot_1d(pos, field, fig=None, ax=None):  # pragma: no cover
     return ax
 
 
-def _plot_2d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
+def _plot_2d(
+    pos, field, mesh_type, fig=None, ax=None, latlon=False
+):  # pragma: no cover
     """Plot a 2d field."""
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 2D " + mesh_type + ": " + str(field.shape)
-    x = pos[0]
-    y = pos[1]
+    y = pos[0] if latlon else pos[1]
+    x = pos[1] if latlon else pos[0]
     if mesh_type == "unstructured":
         cont = ax.tricontourf(x, y, field.ravel(), levels=256)
     else:
+        plot_field = field if latlon else field.T
         try:
-            cont = ax.contourf(x, y, field.T, levels=256)
+            cont = ax.contourf(x, y, plot_field, levels=256)
         except TypeError:
-            cont = ax.contourf(x, y, field.T, 256)
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
+            cont = ax.contourf(x, y, plot_field, 256)
+    if latlon:
+        ax.set_ylabel("Lat in deg")
+        ax.set_xlabel("Lon in deg")
+    else:
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
     ax.set_title(title)
     fig.colorbar(cont)
     fig.show()
@@ -147,7 +156,7 @@ def _plot_3d(pos, field, mesh_type, fig=None, ax=None):  # pragma: no cover
             z_io = dir2 * z_range + z_min
             x_io = np.full_like(y_io, z_val_in)
 
-        if mesh_type == "structured":
+        if mesh_type != "unstructured":
             # contourf plots image like for griddata, therefore transpose
             plane = inter.interpn(
                 pos, field, np.array((x_io, y_io, z_io)).T, bounds_error=False
@@ -231,7 +240,7 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
         Axes to plot on. If `None`, a new one will be added to the figure.
         Default: `None`
     """
-    if fld.mesh_type != "structured":
+    if fld.mesh_type == "unstructured":
         raise RuntimeError(
             "Only structured vector fields are supported"
             + " for plotting. Please create one on a structured grid."
