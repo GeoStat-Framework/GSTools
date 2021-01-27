@@ -23,7 +23,7 @@ Field Base Class
 ^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   Feild
+   Field
 
 ----
 """
