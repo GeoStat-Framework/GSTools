@@ -192,10 +192,15 @@ class Normalizer:
             setattr(self, name, val)
         return {name: getattr(self, name) for name in all_names}
 
+    @property
+    def name(self):
+        """:class:`str`: The name of the normalizer class."""
+        return self.__class__.__name__
+
     def __repr__(self):
         """Return String representation."""
         para_strs = [
             "{0}={1:.{2}}".format(p, float(getattr(self, p)), self._prec)
             for p in sorted(self.default_parameter())
         ]
-        return self.__class__.__name__ + "(" + ", ".join(para_strs) + ")"
+        return self.name + "(" + ", ".join(para_strs) + ")"
