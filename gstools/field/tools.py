@@ -1,0 +1,235 @@
+# -*- coding: utf-8 -*-
+"""
+GStools subpackage providing tools for Fields.
+
+.. currentmodule:: gstools.field.tools
+
+The following classes and functions are provided
+
+.. autosummary::
+   to_vtk_helper
+   mesh_call
+"""
+import numpy as np
+import meshio
+
+from gstools.tools.export import to_vtk, vtk_export
+
+
+__all__ = ["to_vtk_helper", "mesh_call"]
+
+
+def to_vtk_helper(
+    f_cls, filename=None, field_select="field", fieldname="field"
+):  # pragma: no cover
+    """Create a VTK/PyVista grid of the field or save it as a VTK file.
+
+    This is an internal helper that will handle saving or creating objects
+
+    Parameters
+    ----------
+    f_cls : :any:`Field`
+        Field class in use.
+    filename : :class:`str`
+        Filename of the file to be saved, including the path. Note that an
+        ending (.vtr or .vtu) will be added to the name. If ``None`` is
+        passed, a PyVista dataset of the appropriate type will be returned.
+    field_select : :class:`str`, optional
+        Field that should be stored. Can be:
+        "field", "raw_field", "krige_field", "err_field" or "krige_var".
+        Default: "field"
+    fieldname : :class:`str`, optional
+        Name of the field in the VTK file. Default: "field"
+    """
+    if f_cls.value_type == "vector":
+        if hasattr(f_cls, field_select):
+            field = getattr(f_cls, field_select)
+        else:
+            field = None
+        if not (f_cls.pos is None or field is None or f_cls.mesh_type is None):
+            suf = ["_X", "_Y", "_Z"]
+            fields = {}
+            for i in range(f_cls.model.dim):
+                fields[fieldname + suf[i]] = field[i]
+            if filename is None:
+                return to_vtk(f_cls.pos, fields, f_cls.mesh_type)
+            else:
+                return vtk_export(filename, f_cls.pos, fields, f_cls.mesh_type)
+    elif f_cls.value_type == "scalar":
+        if hasattr(f_cls, field_select):
+            field = getattr(f_cls, field_select)
+        else:
+            field = None
+        if not (f_cls.pos is None or field is None or f_cls.mesh_type is None):
+            if filename is None:
+                return to_vtk(f_cls.pos, {fieldname: field}, f_cls.mesh_type)
+            else:
+                return vtk_export(
+                    filename, f_cls.pos, {fieldname: field}, f_cls.mesh_type
+                )
+        else:
+            print("Field.to_vtk: '{}' not available.".format(field_select))
+    else:
+        raise ValueError(
+            "Unknown field value type: {}".format(f_cls.value_type)
+        )
+
+
+def mesh_call(
+    f_cls, mesh, points="centroids", direction="all", name="field", **kwargs
+):
+    """Generate a field on a given meshio or ogs5py mesh.
+
+    Parameters
+    ----------
+    mesh : meshio.Mesh or ogs5py.MSH or PyVista mesh
+        The given meshio, ogs5py, or PyVista mesh
+    points : :class:`str`, optional
+        The points to evaluate the field at.
+        Either the "centroids" of the mesh cells
+        (calculated as mean of the cell vertices) or the "points"
+        of the given mesh.
+        Default: "centroids"
+    direction : :class:`str` or :class:`list`, optional
+        Here you can state which direction should be choosen for
+        lower dimension. For example, if you got a 2D mesh in xz direction,
+        you have to pass "xz". By default, all directions are used.
+        One can also pass a list of indices.
+        Default: "all"
+    name : :class:`str` or :class:`list` of :class:`str`, optional
+        Name(s) to store the field(s) in the given mesh as point_data or
+        cell_data. If to few names are given, digits will be appended.
+        Default: "field"
+    **kwargs
+        Keyword arguments forwareded to `Field.__call__`.
+
+    Notes
+    -----
+    This will store the field in the given mesh under the given name,
+    if a meshio or PyVista mesh was given.
+
+    See: https://github.com/nschloe/meshio
+    See: https://github.com/pyvista/pyvista
+
+    See: :any:`Field.__call__`
+    """
+    has_pyvista = False
+    has_ogs5py = False
+
+    try:
+        import pyvista as pv
+
+        has_pyvista = True
+    except ImportError:
+        pass
+    try:
+        import ogs5py as ogs
+
+        has_ogs5py = True
+    except ImportError:
+        pass
+
+    if isinstance(direction, str) and direction == "all":
+        select = list(range(f_cls.model.field_dim))
+    elif isinstance(direction, str):
+        select = _get_select(direction)[: f_cls.model.field_dim]
+    else:
+        select = direction[: f_cls.model.field_dim]
+    if len(select) < f_cls.model.field_dim:
+        raise ValueError(
+            "Field.mesh: need at least {} direction(s), got '{}'".format(
+                f_cls.model.field_dim, direction
+            )
+        )
+    # convert pyvista mesh
+    if has_pyvista and pv.is_pyvista_dataset(mesh):
+        if points == "centroids":
+            pnts = mesh.cell_centers().points.T[select]
+        else:
+            pnts = mesh.points.T[select]
+        out = f_cls.unstructured(pos=pnts, **kwargs)
+        # Deal with the output
+        fields = [out] if isinstance(out, np.ndarray) else out
+        for f_name, field in zip(_names(name, len(fields)), fields):
+            mesh[f_name] = field
+    # convert ogs5py mesh
+    elif has_ogs5py and isinstance(mesh, ogs.MSH):
+        if points == "centroids":
+            pnts = mesh.centroids_flat.T[select]
+        else:
+            pnts = mesh.NODES.T[select]
+        out = f_cls.unstructured(pos=pnts, **kwargs)
+    # convert meshio mesh
+    elif isinstance(mesh, meshio.Mesh):
+        if points == "centroids":
+            # define unique order of cells
+            offset = []
+            length = []
+            mesh_dim = mesh.points.shape[1]
+            if mesh_dim < f_cls.model.field_dim:
+                raise ValueError("Field.mesh: mesh dimension too low!")
+            pnts = np.empty((0, mesh_dim), dtype=np.double)
+            for cell in mesh.cells:
+                pnt = np.mean(mesh.points[cell[1]], axis=1)
+                offset.append(pnts.shape[0])
+                length.append(pnt.shape[0])
+                pnts = np.vstack((pnts, pnt))
+            # generate pos for __call__
+            pnts = pnts.T[select]
+            out = f_cls.unstructured(pos=pnts, **kwargs)
+            fields = [out] if isinstance(out, np.ndarray) else out
+            f_lists = []
+            for field in fields:
+                f_list = []
+                for of, le in zip(offset, length):
+                    f_list.append(field[of : of + le])
+                f_lists.append(f_list)
+            for f_name, f_list in zip(_names(name, len(f_lists)), f_lists):
+                mesh.cell_data[f_name] = f_list
+        else:
+            out = f_cls.unstructured(pos=mesh.points.T[select], **kwargs)
+            fields = [out] if isinstance(out, np.ndarray) else out
+            for f_name, field in zip(_names(name, len(fields)), fields):
+                mesh.point_data[f_name] = field
+    else:
+        raise ValueError("Field.mesh: Unknown mesh format!")
+    return out
+
+
+def _names(name, cnt):
+    name = [name] if isinstance(name, str) else list(name)[:cnt]
+    if len(name) < cnt:
+        name += [name[-1] + str(i + 1) for i in range(cnt - len(name))]
+    return name
+
+
+def _get_select(direction):
+    select = []
+    if not (0 < len(direction) < 4):
+        raise ValueError(
+            "Field.mesh: need 1 to 3 direction(s), got '{}'".format(direction)
+        )
+    for axis in direction:
+        if axis == "x":
+            if 0 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(0)
+        elif axis == "y":
+            if 1 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(1)
+        elif axis == "z":
+            if 2 in select:
+                raise ValueError(
+                    "Field.mesh: got duplicate directions {}".format(direction)
+                )
+            select.append(2)
+        else:
+            raise ValueError(
+                "Field.mesh: got unknown direction {}".format(axis)
+            )
+    return select
