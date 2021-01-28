@@ -57,6 +57,7 @@ class Field:
         # initialize attributes
         self.pos = None
         self.mesh_type = None
+        self.field = None
         # initialize private attributes
         self._model = None
         self._value_type = None
@@ -198,7 +199,7 @@ class Field:
                 raise ValueError("post_field: no 'pos' tuple set for field.")
             kwargs = dict(
                 pos=self.pos,
-                dim=self.model.dim,
+                dim=self.model.field_dim,
                 mesh_type=self.mesh_type,
                 value_type=self.value_type,
                 broadcast=True,
