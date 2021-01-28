@@ -56,7 +56,11 @@ class CondSRF(Field):
         # initialize private attributes
         self._value_type = None
         self._generator = None
+        self._mean = None
+        self._normalizer = None
+        self._trend = None
         # initialize attributes
+        self.normalizer = None
         self.set_generator(generator, **generator_kwargs)
 
     def __call__(self, pos, seed=np.nan, mesh_type="unstructured", **kwargs):
@@ -84,6 +88,7 @@ class CondSRF(Field):
         kwargs["mesh_type"] = mesh_type
         kwargs["only_mean"] = False  # overwrite if given
         kwargs["return_var"] = True  # overwrite if given
+        kwargs["post_process"] = False  # overwrite if given
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape
@@ -94,8 +99,12 @@ class CondSRF(Field):
         )
         field, krige_var = self.krige(pos, **kwargs)
         var_scale, nugget = self.get_scaling(krige_var, shape)
-        self.field = field + var_scale * self.raw_field + nugget
-        return self.field
+        field = self.krige.post_field(
+            field=field + var_scale * self.raw_field + nugget, save=False
+        )
+        self.krige.post_field(self.krige.field)
+        # processing is done in the kriging class
+        return self.post_field(field, process=False)
 
     def get_scaling(self, krige_var, shape):
         """
@@ -159,8 +168,31 @@ class CondSRF(Field):
     def model(self, model):
         pass
 
+    @property
+    def mean(self):
+        """:class:`float` or :any:`callable`: The mean of the field."""
+        return self.krige.mean
+
+    @mean.setter
+    def mean(self, mean):
+        pass
+
+    @property
+    def normalizer(self):
+        """:any:`Normalizer`: Normalizer of the field."""
+        return self.krige.normalizer
+
+    @normalizer.setter
+    def normalizer(self, normalizer):
+        pass
+
+    @property
+    def trend(self):
+        """:class:`float` or :any:`callable`: The trend of the field."""
+        return self._trend
+
     def __repr__(self):
         """Return String representation."""
         return "CondSRF(krige={0}, generator={1})".format(
-            self.krige, self.generator
+            self.krige, self.generator.name
         )
