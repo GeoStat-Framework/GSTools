@@ -40,8 +40,16 @@ class SRF(Field):
     ----------
     model : :any:`CovModel`
         Covariance Model of the spatial random field.
-    mean : :class:`float`, optional
-        mean value of the SRF
+    mean : :class:`float` or :any:`callable`, optional
+        Mean of the SRF (in normal form). Could also be a callable.
+        The default is 0.0.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the SRF to transform the field values.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        Trend of the SRF (in transformed form).
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
     upscaling : :class:`str`, optional
         Method to be used for upscaling the variance at each point
         depending on the related element volume.
@@ -77,18 +85,18 @@ class SRF(Field):
         self,
         model,
         mean=0.0,
+        normalizer=None,
+        trend=None,
         upscaling="no_scaling",
         generator="RandMeth",
         **generator_kwargs
     ):
-        super().__init__(model)
+        super().__init__(model, mean=mean, normalizer=normalizer, trend=trend)
         # initialize private attributes
         self._generator = None
         self._upscaling = None
         self._upscaling_func = None
-        self._mean = None
         # initialize attributes
-        self.mean = mean
         self.upscaling = upscaling
         self.set_generator(generator, **generator_kwargs)
 
@@ -125,15 +133,14 @@ class SRF(Field):
         # get isometrized positions and the resulting field-shape
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         # generate the field
-        self.field = np.reshape(self.generator(iso_pos), shape)
+        field = np.reshape(self.generator(iso_pos), shape)
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)
             if np.size(scaled_var) > 1:
                 scaled_var = np.reshape(scaled_var, shape)
-            self.field *= np.sqrt(scaled_var / self.model.sill)
-        self.field += self.mean
-        return self.field
+            field *= np.sqrt(scaled_var / self.model.sill)
+        return self.post_field(field)
 
     def upscaling_func(self, *args, **kwargs):
         """Upscaling method applied to the field variance."""
@@ -184,17 +191,16 @@ class SRF(Field):
                 "gstools.SRF: Unknown upscaling method: " + upscaling
             )
 
-    @property
-    def mean(self):
-        """:class:`float`: The mean of the field."""
-        return self._mean
-
-    @mean.setter
-    def mean(self, mean):
-        self._mean = float(mean)
-
     def __repr__(self):
         """Return String representation."""
-        return "SRF(model={0}, mean={1:.{p}}, generator={2}".format(
-            self.model, self.mean, self.generator, p=self.model._prec
+        return (
+            "{0}(model={1}, "
+            "mean={2}, normalizer={3}, trend={4}, generator={5})".format(
+                self.name,
+                self.model.name,
+                self._fmt_func_val(self.mean),
+                self._fmt_normalizer(),
+                self._fmt_func_val(self.trend),
+                self.generator.name,
+            )
         )
