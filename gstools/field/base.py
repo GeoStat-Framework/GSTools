@@ -10,20 +10,18 @@ The following classes are provided
    Field
 """
 # pylint: disable=C0103
-
 from functools import partial
-
 import numpy as np
-import meshio
-
 from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
-from gstools.tools.export import to_vtk, vtk_export
-
+from gstools.tools.misc import eval_func
+from gstools.normalize import Normalizer
+from gstools.field.tools import mesh_call, to_vtk_helper
 
 __all__ = ["Field"]
 
 VALUE_TYPES = ["scalar", "vector"]
+""":class:`list` of :class:`str`: valid field value types."""
 
 
 class Field:
@@ -33,18 +31,44 @@ class Field:
     ----------
     model : :any:`CovModel`
         Covariance Model related to the field.
+    value_type : :class:`str`, optional
+        Value type of the field. Either "scalar" or "vector".
+        The default is "scalar".
+    mean : :any:`None` or :class:`float` or :any:`callable`, optional
+        Mean of the field if wanted. Could also be a callable.
+        The default is None.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the field.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        Trend of the denormalized fields. If no normalizer is applied,
+        this behaves equal to 'mean'.
+        The default is None.
     """
 
-    def __init__(self, model, value_type="scalar"):
+    def __init__(
+        self,
+        model,
+        value_type="scalar",
+        mean=None,
+        normalizer=None,
+        trend=None,
+    ):
         # initialize attributes
         self.pos = None
         self.mesh_type = None
-        self.field = None
         # initialize private attributes
         self._model = None
-        self.model = model
         self._value_type = None
+        self._mean = None
+        self._normalizer = None
+        self._trend = None
+        # set properties
+        self.model = model
         self.value_type = value_type
+        self.mean = mean
+        self.normalizer = normalizer
+        self.trend = trend
 
     def __call__(*args, **kwargs):
         """Generate the field."""
@@ -104,87 +128,7 @@ class Field:
 
         See: :any:`Field.__call__`
         """
-        has_pyvista = False
-        has_ogs5py = False
-
-        try:
-            import pyvista as pv
-
-            has_pyvista = True
-        except ImportError:
-            pass
-        try:
-            import ogs5py as ogs
-
-            has_ogs5py = True
-        except ImportError:
-            pass
-
-        if isinstance(direction, str) and direction == "all":
-            select = list(range(self.model.field_dim))
-        elif isinstance(direction, str):
-            select = _get_select(direction)[: self.model.field_dim]
-        else:
-            select = direction[: self.model.field_dim]
-        if len(select) < self.model.field_dim:
-            raise ValueError(
-                "Field.mesh: need at least {} direction(s), got '{}'".format(
-                    self.model.field_dim, direction
-                )
-            )
-        # convert pyvista mesh
-        if has_pyvista and pv.is_pyvista_dataset(mesh):
-            if points == "centroids":
-                pnts = mesh.cell_centers().points.T[select]
-            else:
-                pnts = mesh.points.T[select]
-            out = self.unstructured(pos=pnts, **kwargs)
-            # Deal with the output
-            fields = [out] if isinstance(out, np.ndarray) else out
-            for f_name, field in zip(_names(name, len(fields)), fields):
-                mesh[f_name] = field
-        # convert ogs5py mesh
-        elif has_ogs5py and isinstance(mesh, ogs.MSH):
-            if points == "centroids":
-                pnts = mesh.centroids_flat.T[select]
-            else:
-                pnts = mesh.NODES.T[select]
-            out = self.unstructured(pos=pnts, **kwargs)
-        # convert meshio mesh
-        elif isinstance(mesh, meshio.Mesh):
-            if points == "centroids":
-                # define unique order of cells
-                offset = []
-                length = []
-                mesh_dim = mesh.points.shape[1]
-                if mesh_dim < self.model.field_dim:
-                    raise ValueError("Field.mesh: mesh dimension too low!")
-                pnts = np.empty((0, mesh_dim), dtype=np.double)
-                for cell in mesh.cells:
-                    pnt = np.mean(mesh.points[cell[1]], axis=1)
-                    offset.append(pnts.shape[0])
-                    length.append(pnt.shape[0])
-                    pnts = np.vstack((pnts, pnt))
-                # generate pos for __call__
-                pnts = pnts.T[select]
-                out = self.unstructured(pos=pnts, **kwargs)
-                fields = [out] if isinstance(out, np.ndarray) else out
-                f_lists = []
-                for field in fields:
-                    f_list = []
-                    for of, le in zip(offset, length):
-                        f_list.append(field[of : of + le])
-                    f_lists.append(f_list)
-                for f_name, f_list in zip(_names(name, len(f_lists)), f_lists):
-                    mesh.cell_data[f_name] = f_list
-            else:
-                out = self.unstructured(pos=mesh.points.T[select], **kwargs)
-                fields = [out] if isinstance(out, np.ndarray) else out
-                for f_name, field in zip(_names(name, len(fields)), fields):
-                    mesh.point_data[f_name] = field
-        else:
-            raise ValueError("Field.mesh: Unknown mesh format!")
-        return out
+        return mesh_call(self, mesh, points, direction, name, **kwargs)
 
     def pre_pos(self, pos, mesh_type="unstructured"):
         """
@@ -226,64 +170,46 @@ class Field:
         # return isometrized pos tuple and resulting field shape
         return self.model.isometrize(pos), shape
 
-    def _to_vtk_helper(
-        self, filename=None, field_select="field", fieldname="field"
-    ):  # pragma: no cover
-        """Create a VTK/PyVista grid of the field or save it as a VTK file.
-
-        This is an internal helper that will handle saving or creating objects
+    def post_field(self, field, name="field", process=True, save=True):
+        """
+        Postprocessing field values.
 
         Parameters
         ----------
-        filename : :class:`str`
-            Filename of the file to be saved, including the path. Note that an
-            ending (.vtr or .vtu) will be added to the name. If ``None`` is
-            passed, a PyVista dataset of the appropriate type will be returned.
-        field_select : :class:`str`, optional
-            Field that should be stored. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
-            Default: "field"
-        fieldname : :class:`str`, optional
-            Name of the field in the VTK file. Default: "field"
+        field : :class:`numpy.ndarray`
+            Field values.
+        name : :class:`str`, optional
+            Name. to store the field.
+            The default is "field".
+        process : :class:`bool`, optional
+            Whether to process field to apply mean, normalizer and trend.
+            The default is True.
+        save : :class:`bool`, optional
+            Whether to store the field under the given name.
+            The default is True.
+
+        Returns
+        -------
+        field : :class:`numpy.ndarray`
+            Processed field values.
         """
-        if self.value_type == "vector":
-            if hasattr(self, field_select):
-                field = getattr(self, field_select)
-            else:
-                field = None
-            if not (
-                self.pos is None or field is None or self.mesh_type is None
-            ):
-                suf = ["_X", "_Y", "_Z"]
-                fields = {}
-                for i in range(self.model.dim):
-                    fields[fieldname + suf[i]] = field[i]
-                if filename is None:
-                    return to_vtk(self.pos, fields, self.mesh_type)
-                else:
-                    return vtk_export(
-                        filename, self.pos, fields, self.mesh_type
-                    )
-        elif self.value_type == "scalar":
-            if hasattr(self, field_select):
-                field = getattr(self, field_select)
-            else:
-                field = None
-            if not (
-                self.pos is None or field is None or self.mesh_type is None
-            ):
-                if filename is None:
-                    return to_vtk(self.pos, {fieldname: field}, self.mesh_type)
-                else:
-                    return vtk_export(
-                        filename, self.pos, {fieldname: field}, self.mesh_type
-                    )
-            else:
-                print("Field.to_vtk: '{}' not available.".format(field_select))
-        else:
-            raise ValueError(
-                "Unknown field value type: {}".format(self.value_type)
+        if process:
+            if self.pos is None:
+                raise ValueError("post_field: no 'pos' tuple set for field.")
+            kwargs = dict(
+                pos=self.pos,
+                dim=self.model.dim,
+                mesh_type=self.mesh_type,
+                value_type=self.value_type,
+                broadcast=True,
             )
+            # apply mean - normalizer - trend
+            field += eval_func(func_val=self.mean, **kwargs)
+            field = self.normalizer.denormalize(field)
+            field += eval_func(self.trend, **kwargs)
+        if save:
+            setattr(self, name, field)
+        return field
 
     def to_pyvista(
         self, field_select="field", fieldname="field"
@@ -299,8 +225,8 @@ class Field:
         fieldname : :class:`str`, optional
             Name of the field in the VTK file. Default: "field"
         """
-        grid = self._to_vtk_helper(
-            filename=None, field_select=field_select, fieldname=fieldname
+        grid = to_vtk_helper(
+            self, filename=None, field_select=field_select, fieldname=fieldname
         )
         return grid
 
@@ -323,8 +249,11 @@ class Field:
         """
         if not isinstance(filename, str):
             raise TypeError("Please use a string filename.")
-        return self._to_vtk_helper(
-            filename=filename, field_select=field_select, fieldname=fieldname
+        return to_vtk_helper(
+            self,
+            filename=filename,
+            field_select=field_select,
+            fieldname=fieldname,
         )
 
     def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
@@ -334,8 +263,7 @@ class Field:
         Parameters
         ----------
         field : :class:`str`, optional
-            Field that should be plotted. Can be:
-            "field", "raw_field", "krige_field", "err_field" or "krige_var".
+            Field that should be plotted.
             Default: "field"
         fig : :class:`Figure` or :any:`None`
             Figure to plot the axes on. If `None`, a new one will be created.
@@ -385,6 +313,38 @@ class Field:
             )
 
     @property
+    def mean(self):
+        """:class:`float` or :any:`callable`: The mean of the field."""
+        return self._mean
+
+    @mean.setter
+    def mean(self, mean):
+        self._mean = mean if (callable(mean) or mean is None) else float(mean)
+
+    @property
+    def normalizer(self):
+        """:any:`Normalizer`: Normalizer of the field."""
+        return self._normalizer
+
+    @normalizer.setter
+    def normalizer(self, normalizer):
+        if isinstance(normalizer, Normalizer):
+            self._normalizer = normalizer
+        elif normalizer is None:
+            self._normalizer = Normalizer()
+        else:
+            raise ValueError("Field: 'normalizer' not of type 'Normalizer'.")
+
+    @property
+    def trend(self):
+        """:class:`float` or :any:`callable`: The trend of the field."""
+        return self._trend
+
+    @trend.setter
+    def trend(self, tren):
+        self._trend = tren if (callable(tren) or tren is None) else float(tren)
+
+    @property
     def value_type(self):
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
@@ -396,47 +356,32 @@ class Field:
             raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
         self._value_type = value_type
 
+    def _fmt_func_val(self, func_val):
+        if func_val is None:
+            return str(None)
+        if callable(func_val):
+            return "<function>"
+        return "{0:.{p}}".format(float(func_val), p=self.model._prec)
+
+    def _fmt_normalizer(self):
+        norm = self.normalizer
+        return str(None) if norm.__class__ is Normalizer else norm.name
+
+    @property
+    def name(self):
+        """:class:`str`: The name of the class."""
+        return self.__class__.__name__
+
     def __repr__(self):
         """Return String representation."""
-        return "Field(model={0}, value_type={1})".format(
-            self.model, self.value_type
-        )
-
-
-def _names(name, cnt):
-    name = [name] if isinstance(name, str) else list(name)[:cnt]
-    if len(name) < cnt:
-        name += [name[-1] + str(i + 1) for i in range(cnt - len(name))]
-    return name
-
-
-def _get_select(direction):
-    select = []
-    if not (0 < len(direction) < 4):
-        raise ValueError(
-            "Field.mesh: need 1 to 3 direction(s), got '{}'".format(direction)
-        )
-    for axis in direction:
-        if axis == "x":
-            if 0 in select:
-                raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(direction)
-                )
-            select.append(0)
-        elif axis == "y":
-            if 1 in select:
-                raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(direction)
-                )
-            select.append(1)
-        elif axis == "z":
-            if 2 in select:
-                raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(direction)
-                )
-            select.append(2)
-        else:
-            raise ValueError(
-                "Field.mesh: got unknown direction {}".format(axis)
+        return (
+            "{0}(model={1}, value_type='{2}', "
+            "mean={3}, normalizer={4}, trend={5})".format(
+                self.name,
+                self.model.name,
+                self.value_type,
+                self._fmt_func_val(self.mean),
+                self._fmt_normalizer(),
+                self._fmt_func_val(self.trend),
             )
-    return select
+        )
