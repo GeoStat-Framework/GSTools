@@ -84,7 +84,10 @@ class TestKrige(unittest.TestCase):
                         angles=[2, 1, 0.5],
                     )
                     ordinary = krige.Ordinary(
-                        model, self.cond_pos[:dim], self.cond_val, trend_func
+                        model,
+                        self.cond_pos[:dim],
+                        self.cond_val,
+                        trend=trend_func,
                     )
                     field_1, __ = ordinary.unstructured(self.grids[dim - 1])
                     field_1 = field_1.reshape(self.grid_shape[:dim])
