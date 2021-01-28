@@ -34,13 +34,19 @@ class Simple(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
     mean : :class:`float`, optional
-        mean value of the kriging field
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+        mean value used to shift normalized conditioning data.
+        Could also be a callable. The default is None.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the SRF to transform the field values.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
     exact : :class:`bool`, optional
         Whether the interpolator should reproduce the exact input values.
         If `False`, `cond_err` is interpreted as measurement error
@@ -68,6 +74,9 @@ class Simple(Krige):
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
     """
 
     def __init__(
@@ -76,23 +85,27 @@ class Simple(Krige):
         cond_pos,
         cond_val,
         mean=0.0,
-        trend_function=None,
+        normalizer=None,
+        trend=None,
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
         pseudo_inv_type=1,
+        fit_normalizer=False,
     ):
         super().__init__(
             model,
             cond_pos,
             cond_val,
             mean=mean,
-            trend_function=trend_function,
+            normalizer=normalizer,
+            trend=trend,
             unbiased=False,
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
         )
 
 
@@ -110,12 +123,17 @@ class Ordinary(Krige):
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the SRF to transform the field values.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
     exact : :class:`bool`, optional
         Whether the interpolator should reproduce the exact input values.
         If `False`, `cond_err` is interpreted as measurement error
@@ -143,6 +161,9 @@ class Ordinary(Krige):
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
     """
 
     def __init__(
@@ -150,21 +171,25 @@ class Ordinary(Krige):
         model,
         cond_pos,
         cond_val,
-        trend_function=None,
+        normalizer=None,
+        trend=None,
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
         pseudo_inv_type=1,
+        fit_normalizer=False,
     ):
         super().__init__(
             model,
             cond_pos,
             cond_val,
-            trend_function=trend_function,
+            trend=trend,
+            normalizer=normalizer,
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
         )
 
 
@@ -195,12 +220,17 @@ class Universal(Krige):
             * "linear" : regional linear drift (equals order=1)
             * "quadratic" : regional quadratic drift (equals order=2)
 
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the SRF to transform the field values.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
     exact : :class:`bool`, optional
         Whether the interpolator should reproduce the exact input values.
         If `False`, `cond_err` is interpreted as measurement error
@@ -228,6 +258,9 @@ class Universal(Krige):
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
     """
 
     def __init__(
@@ -236,22 +269,26 @@ class Universal(Krige):
         cond_pos,
         cond_val,
         drift_functions,
-        trend_function=None,
+        normalizer=None,
+        trend=None,
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
         pseudo_inv_type=1,
+        fit_normalizer=False,
     ):
         super().__init__(
             model,
             cond_pos,
             cond_val,
             drift_functions=drift_functions,
-            trend_function=trend_function,
+            normalizer=normalizer,
+            trend=trend,
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
         )
 
 
@@ -277,12 +314,17 @@ class ExtDrift(Krige):
         the values of the conditions
     ext_drift : :class:`numpy.ndarray`
         the external drift values at the given condition positions.
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the SRF to transform the field values.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
     exact : :class:`bool`, optional
         Whether the interpolator should reproduce the exact input values.
         If `False`, `cond_err` is interpreted as measurement error
@@ -310,6 +352,9 @@ class ExtDrift(Krige):
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
     """
 
     def __init__(
@@ -318,22 +363,26 @@ class ExtDrift(Krige):
         cond_pos,
         cond_val,
         ext_drift,
-        trend_function=None,
+        normalizer=None,
+        trend=None,
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
         pseudo_inv_type=1,
+        fit_normalizer=False,
     ):
         super().__init__(
             model,
             cond_pos,
             cond_val,
             ext_drift=ext_drift,
-            trend_function=trend_function,
+            normalizer=normalizer,
+            trend=trend,
             exact=exact,
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
         )
 
 
@@ -348,8 +397,10 @@ class Detrended(Krige):
     This can be used for regression kriging, where the trend function
     is determined by an external regression algorithm.
 
-    This is just a shortcut for simple kriging with a given trend function
-    and zero mean. A trend can be given with EVERY provided kriging routine.
+    This is just a shortcut for simple kriging with a given trend function,
+    zero mean and no normalizer.
+
+    A trend can be given with EVERY provided kriging routine.
 
     Parameters
     ----------
@@ -395,7 +446,7 @@ class Detrended(Krige):
         model,
         cond_pos,
         cond_val,
-        trend_function,
+        trend,
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
@@ -405,7 +456,7 @@ class Detrended(Krige):
             model,
             cond_pos,
             cond_val,
-            trend_function=trend_function,
+            trend=trend,
             unbiased=False,
             exact=exact,
             cond_err=cond_err,
