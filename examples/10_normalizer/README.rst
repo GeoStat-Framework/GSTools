@@ -23,13 +23,13 @@ All Field classes (:any:`SRF` or :any:`Krige`) provide the input of `mean`,
 `normalizer` and `trend`:
 
 * A `trend` can be a callable function, that represents a trend in input data.
-For example a linear decrease of temperature with height.
+  For example a linear decrease of temperature with height.
 
 * The `normalizer` will be applied after the data was detrended, i.e. the trend
-was substracted from the data.
+  was substracted from the data, in order to gain normality.
 
-* The `mean` is now interpreted as the mean of the normalized data. Users
-could also provide a callable mean, but it is mostly meant to be constant.
+* The `mean` is now interpreted as the mean of the normalized data. The user
+  could also provide a callable mean, but it is mostly meant to be constant.
 
 When no normalizer is given, `trend` and `mean` basically behave the same.
 We just decided that a trend is associated with raw data and a mean is used
