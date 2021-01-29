@@ -77,6 +77,12 @@ class Simple(Krige):
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`variogram` submodule.
+        Default: False
     """
 
     def __init__(
@@ -92,6 +98,7 @@ class Simple(Krige):
         pseudo_inv=True,
         pseudo_inv_type=1,
         fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
@@ -106,6 +113,7 @@ class Simple(Krige):
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
             fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -164,6 +172,12 @@ class Ordinary(Krige):
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`variogram` submodule.
+        Default: False
     """
 
     def __init__(
@@ -178,6 +192,7 @@ class Ordinary(Krige):
         pseudo_inv=True,
         pseudo_inv_type=1,
         fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
@@ -190,6 +205,7 @@ class Ordinary(Krige):
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
             fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -261,6 +277,12 @@ class Universal(Krige):
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`variogram` submodule.
+        Default: False
     """
 
     def __init__(
@@ -276,6 +298,7 @@ class Universal(Krige):
         pseudo_inv=True,
         pseudo_inv_type=1,
         fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
@@ -289,6 +312,7 @@ class Universal(Krige):
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
             fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -355,6 +379,12 @@ class ExtDrift(Krige):
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`variogram` submodule.
+        Default: False
     """
 
     def __init__(
@@ -370,6 +400,7 @@ class ExtDrift(Krige):
         pseudo_inv=True,
         pseudo_inv_type=1,
         fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
@@ -383,6 +414,7 @@ class ExtDrift(Krige):
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
             fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -439,6 +471,12 @@ class Detrended(Krige):
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`variogram` submodule.
+        Default: False
     """
 
     def __init__(
@@ -451,6 +489,7 @@ class Detrended(Krige):
         cond_err="nugget",
         pseudo_inv=True,
         pseudo_inv_type=1,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
@@ -462,4 +501,5 @@ class Detrended(Krige):
             cond_err=cond_err,
             pseudo_inv=pseudo_inv,
             pseudo_inv_type=pseudo_inv_type,
+            fit_variogram=fit_variogram,
         )

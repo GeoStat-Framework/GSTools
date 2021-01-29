@@ -22,6 +22,8 @@ from gstools.krige.krigesum import (
 )
 from gstools.krige.tools import set_condition, get_drift_functions
 from gstools.tools.misc import eval_func
+from gstools.tools.geometric import rotated_main_axes
+from gstools.variogram import vario_estimate
 
 __all__ = ["Krige"]
 
@@ -99,6 +101,17 @@ class Krige(Field):
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`variogram` submodule.
+        Default: False
+
+    Notes
+    -----
+    If you have changed any properties in the class, you can update the kriging
+    setup by calling :any:`Krige.set_condition` without any arguments.
     """
 
     def __init__(
@@ -117,6 +130,7 @@ class Krige(Field):
         pseudo_inv=True,
         pseudo_inv_type=1,
         fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(model, mean=mean, normalizer=normalizer, trend=trend)
         self.mean_field = None
@@ -138,7 +152,12 @@ class Krige(Field):
         if drift_functions is not None:
             self.set_drift_functions(drift_functions)
         self.set_condition(
-            cond_pos, cond_val, ext_drift, cond_err, fit_normalizer
+            cond_pos,
+            cond_val,
+            ext_drift,
+            cond_err,
+            fit_normalizer,
+            fit_variogram,
         )
 
     def __call__(
@@ -410,6 +429,7 @@ class Krige(Field):
         ext_drift=None,
         cond_err=None,
         fit_normalizer=False,
+        fit_variogram=False,
     ):
         """Set the conditions for kriging.
 
@@ -437,6 +457,12 @@ class Krige(Field):
         fit_normalizer : :class:`bool`, optional
             Wheater to fit the data-normalizer to the given conditioning data.
             Default: False
+        fit_variogram : :class:`bool`, optional
+            Wheater to fit the given variogram model to the data.
+            This is done by using isotropy settings of the given model,
+            assuming the sill to be the data variance and with the
+            standard bins provided by the :any:`variogram` submodule.
+            Default: False
 
         Notes
         -----
@@ -458,6 +484,21 @@ class Krige(Field):
         )
         if fit_normalizer:  # fit normalizer to detrended data
             self.normalizer.fit(self.cond_val - self.cond_trend)
+        if fit_variogram:  # fitting model to empirical variogram of data
+            # normalize field
+            field = self.normalizer.normalize(self.cond_val - self.cond_trend)
+            field -= self.cond_mean
+            sill = np.var(field)
+            if self.model.is_isotropic:
+                emp_vario = vario_estimate(
+                    self.cond_pos, field, latlon=self.model.latlon
+                )
+            else:
+                axes = rotated_main_axes(self.model.dim, self.model.angles)
+                emp_vario = vario_estimate(
+                    self.cond_pos, field, direction=axes
+                )
+            self.model.fit_variogram(*emp_vario, sill=sill)
         # set the measurement errors
         self.cond_err = cond_err
         # set the external drift values and the conditioning points
