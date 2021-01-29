@@ -37,7 +37,7 @@ class Simple(Krige):
         mean value used to shift normalized conditioning data.
         Could also be a callable. The default is None.
     normalizer : :any:`None` or :any:`Normalizer`, optional
-        Normalizer to be applied to the SRF to transform the field values.
+        Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z, ...])
@@ -132,7 +132,7 @@ class Ordinary(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
     normalizer : :any:`None` or :any:`Normalizer`, optional
-        Normalizer to be applied to the SRF to transform the field values.
+        Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z, ...])
@@ -237,7 +237,7 @@ class Universal(Krige):
             * "quadratic" : regional quadratic drift (equals order=2)
 
     normalizer : :any:`None` or :any:`Normalizer`, optional
-        Normalizer to be applied to the SRF to transform the field values.
+        Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z, ...])
@@ -339,7 +339,7 @@ class ExtDrift(Krige):
     ext_drift : :class:`numpy.ndarray`
         the external drift values at the given condition positions.
     normalizer : :any:`None` or :any:`Normalizer`, optional
-        Normalizer to be applied to the SRF to transform the field values.
+        Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z, ...])
