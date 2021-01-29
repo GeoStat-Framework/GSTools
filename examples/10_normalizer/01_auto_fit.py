@@ -1,9 +1,14 @@
 """
-Automatically fitting
----------------------
+Automatic fitting
+-----------------
 
-Here we generate synthetic lognormal data, that should be interpolated
-Here we transform a field to a log-normal distribution:
+In order to demonstrate how to automatically fit normalizer and variograms,
+we generate synthetic lognormal data, that should be interpolated with
+ordinary kriging.
+
+Normalizers are fitted by minimizing the likelihood function and variograms
+are fitted by estimating the empirical variogram with automatic binning and
+fitting the theoretical model to it.
 """
 import numpy as np
 import gstools as gs
@@ -14,23 +19,22 @@ x = y = range(60)
 pos = gs.tools.geometric.gen_mesh([x, y])
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519, normalizer=gs.normalizer.LogNormal())
+# generate the original field
 srf(pos)
 
 ###############################################################################
-# Now we want to interpolate the given field to finer resolution (down-scaling)
+# Now we want to interpolate sampled data from the given field (in order to
+# pretend, we got any measured real-world data)
 # and we want to normalize the given data with the BoxCox transformation.
 #
-# First, we convert the given condtions to be unstructured
-# and set the output resolution.
-#
-# To make the data more scarce, we will sample 60 points.
+# Here, we will sample 60 points and set the conditioning points and values.
 
 ids = np.arange(srf.field.size)
-sampled = np.random.RandomState(20210201).choice(ids, size=60, replace=False)
+samples = np.random.RandomState(20210201).choice(ids, size=60, replace=False)
 
 # sample conditioning points from generated field
-cond_pos = pos[:, sampled]
-cond_val = srf.field[sampled]
+cond_pos = pos[:, samples]
+cond_val = srf.field[samples]
 
 ###############################################################################
 # Now we set up the kriging routine. We use a :any:`Stable` model, that should
