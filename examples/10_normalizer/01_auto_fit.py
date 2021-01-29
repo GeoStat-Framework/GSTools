@@ -69,7 +69,7 @@ print(krige.normalizer)
 # the log-normal distribution was correctly fitted.
 #
 # Now let's run the kriging interpolation and let's have a look at the
-# resulting field. We will also generate the original field for comparison.
+# resulting field. We'll compare the original, sampled and interpolated field.
 
 # interpolate
 krige(pos)
