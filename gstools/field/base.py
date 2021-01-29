@@ -15,7 +15,7 @@ import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
 from gstools.tools.misc import eval_func
-from gstools.normalize import Normalizer
+from gstools.normalizer import Normalizer
 from gstools.field.tools import mesh_call, to_vtk_helper
 
 __all__ = ["Field"]

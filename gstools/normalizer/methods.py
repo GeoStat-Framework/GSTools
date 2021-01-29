@@ -2,7 +2,7 @@
 """
 GStools subpackage providing different normalizer transformations.
 
-.. currentmodule:: gstools.normalize.normalizer
+.. currentmodule:: gstools.normalizer.methods
 
 The following classes are provided
 
@@ -15,7 +15,7 @@ The following classes are provided
    Manly
 """
 import numpy as np
-from gstools.normalize.base import Normalizer
+from gstools.normalizer.base import Normalizer
 
 
 class LogNormal(Normalizer):

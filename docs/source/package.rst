@@ -18,4 +18,4 @@ GSTools API
    random.rst
    tools.rst
    transform.rst
-   normalize.rst
+   normalizer.rst

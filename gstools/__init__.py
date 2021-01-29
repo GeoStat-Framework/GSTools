@@ -21,7 +21,7 @@ Subpackages
     random
     tools
     transform
-    normalize
+    normalizer
 
 Classes
 =======
@@ -123,7 +123,7 @@ from gstools import (
     tools,
     krige,
     transform,
-    normalize,
+    normalizer,
 )
 from gstools.field import SRF, CondSRF
 from gstools.tools import (
@@ -171,7 +171,7 @@ except ImportError:  # pragma: nocover
 
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
-__all__ += ["transform", "normalize"]
+__all__ += ["transform", "normalizer"]
 __all__ += [
     "CovModel",
     "Gaussian",

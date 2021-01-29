@@ -2,7 +2,7 @@
 """
 GStools subpackage providing the base class for normalizers.
 
-.. currentmodule:: gstools.normalize.base
+.. currentmodule:: gstools.normalizer.base
 
 The following classes are provided
 

@@ -2,7 +2,7 @@
 """
 GStools subpackage providing normalization routines.
 
-.. currentmodule:: gstools.normalize
+.. currentmodule:: gstools.normalizer
 
 Base-Normalizer
 ^^^^^^^^^^^^^^^
@@ -26,8 +26,8 @@ Field-Normalizer
    Manly
 """
 
-from gstools.normalize.base import Normalizer
-from gstools.normalize.normalizer import (
+from gstools.normalizer.base import Normalizer
+from gstools.normalizer.methods import (
     LogNormal,
     BoxCox,
     BoxCoxShift,
