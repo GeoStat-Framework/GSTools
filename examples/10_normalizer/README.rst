@@ -16,6 +16,25 @@ variable of the kriging interpolation is assumed to be normal distributed.
 GSTools provides a set of Normalizers and routines to automatically fit these
 to input data by minimizing the likelihood function.
 
+Mean, Trend and Normalizers
+---------------------------
+
+All Field classes (:any:`SRF` or :any:`Krige`) provide the input of `mean`,
+`normalizer` and `trend`.
+
+A `trend` can be a callable function, that represents a trend in input data.
+For example a linear decrease of temperature with height.
+
+The `normalizer` will be applied after the data was detrended, i.e. the trend
+was substracted from the data.
+
+The `mean` is now interpreted as the mean of the normalized data. Users
+could also provide a callable mean, but it is mostly meant to be constant.
+
+When no normalizer is given, `trend` and `mean` basically behave the same.
+We just decided that a trend is associated with raw data and a mean is used
+in the context of normally distributed data.
+
 Provided Normalizers
 --------------------
 
