@@ -83,5 +83,6 @@ krige.plot()
 # show the fitting results
 print(krige.model)
 
+###############################################################################
 # This example shows, that setting up variogram estimation and kriging routines
 # is straight forward with GSTools!

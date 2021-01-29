@@ -19,11 +19,14 @@
 
 GeoStatTools provides geostatistical tools for various purposes:
 - random field generation
+- simple, ordinary, universal and external drift kriging
 - conditioned field generation
 - incompressible random vector field generation
-- simple and ordinary kriging
-- variogram estimation and fitting
+- (automatted) variogram estimation and fitting
+- directional variogram estimation and modelling
+- data normalization and transformation
 - many readily provided and even user-defined covariance models
+- metric spatio-temporal modelling
 - plotting and exporting routines
 
 
