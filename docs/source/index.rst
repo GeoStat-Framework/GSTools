@@ -7,6 +7,7 @@ GSTools Quickstart
    :align: center
 
 GeoStatTools provides geostatistical tools for various purposes:
+
 - random field generation
 - simple, ordinary, universal and external drift kriging
 - conditioned field generation
@@ -109,8 +110,6 @@ showing the most important use cases of GSTools, which are
 - `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
 - `Normalizing Data <examples/10_normalizer/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
-
-Some more examples are provided in the examples folder.
 
 
 Spatial Random Field Generation
