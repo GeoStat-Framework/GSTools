@@ -9,6 +9,13 @@ ordinary kriging.
 Normalizers are fitted by minimizing the likelihood function and variograms
 are fitted by estimating the empirical variogram with automatic binning and
 fitting the theoretical model to it.
+
+Artificial data
+^^^^^^^^^^^^^^^
+
+Here we generate log-normal data following a gaussian covariance model.
+We will generate the "original" field on a 60x60 mesh, where we will take
+samples from in order to pretend a data-scarcity situation.
 """
 import numpy as np
 import gstools as gs
@@ -23,11 +30,7 @@ srf = gs.SRF(model, seed=20170519, normalizer=gs.normalizer.LogNormal())
 srf(pos)
 
 ###############################################################################
-# Now we want to interpolate sampled data from the given field (in order to
-# pretend, we got any measured real-world data)
-# and we want to normalize the given data with the BoxCox transformation.
-#
-# Here, we will sample 60 points and set the conditioning points and values.
+# Here, we sample 60 points and set the conditioning points and values.
 
 ids = np.arange(srf.field.size)
 samples = np.random.RandomState(20210201).choice(ids, size=60, replace=False)
@@ -37,11 +40,18 @@ cond_pos = pos[:, samples]
 cond_val = srf.field[samples]
 
 ###############################################################################
-# Now we set up the kriging routine. We use a :any:`Stable` model, that should
-# be fitted to the given data (by setting ``fit_variogram=True``) and we
-# use the :any:`BoxCox` normalizer in order to gain normality.
+# Fitting and Interpolation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The BoxCox normalizer will be fitted automatically to the data,
+# Now we want to interpolate sampled data from the given field (in order to
+# pretend, we got any measured real-world data)
+# and we want to normalize the given data with the BoxCox transformation.
+#
+# Now we set up the kriging routine. We use a :any:`Stable` model, that should
+# be fitted automatically to the given data (by setting ``fit_variogram=True``)
+# and we use the :any:`BoxCox` normalizer in order to gain normality.
+#
+# The normalizer will be fitted automatically to the data,
 # by setting ``fit_normalizer=True``.
 
 krige = gs.krige.Ordinary(
@@ -68,13 +78,18 @@ print(krige.normalizer)
 # The BoxCox parameter `lmbda` was estimated to be almost 0, which means,
 # the log-normal distribution was correctly fitted.
 #
-# Now let's run the kriging interpolation and let's have a look at the
-# resulting field. We'll compare the original, sampled and interpolated field.
-
+# Now let's run the kriging interpolation and
 # interpolate
 krige(pos)
 
-# plot
+###############################################################################
+# Plotting
+# ^^^^^^^^
+#
+# Now let's compare the original, sampled and interpolated fields.
+# As we'll see, there is a lot of information in the covariance structure
+# of the measurement samples and the field is reconstructed quite accurately.
+
 fig, ax = plt.subplots(1, 3, figsize=[8, 3])
 ax[0].imshow(srf.field.reshape(60, 60).T, origin="lower")
 ax[1].scatter(*cond_pos, c=cond_val)
