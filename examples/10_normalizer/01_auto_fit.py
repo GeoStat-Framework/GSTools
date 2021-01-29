@@ -14,8 +14,8 @@ Artificial data
 ^^^^^^^^^^^^^^^
 
 Here we generate log-normal data following a gaussian covariance model.
-We will generate the "original" field on a 60x60 mesh, where we will take
-samples from in order to pretend a data-scarcity situation.
+We will generate the "original" field on a 60x60 mesh, from which we will take
+samples in order to pretend a situation of data-scarcity.
 """
 import numpy as np
 import gstools as gs
@@ -43,16 +43,18 @@ cond_val = srf.field[samples]
 # Fitting and Interpolation
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Now we want to interpolate sampled data from the given field (in order to
-# pretend, we got any measured real-world data)
+# Now we want to interpolate the "meassured" samples
 # and we want to normalize the given data with the BoxCox transformation.
 #
-# Now we set up the kriging routine. We use a :any:`Stable` model, that should
-# be fitted automatically to the given data (by setting ``fit_variogram=True``)
-# and we use the :any:`BoxCox` normalizer in order to gain normality.
+# Here we set up the kriging routine and use a :any:`Stable` model, that should
+# be fitted automatically to the given data
+# and we pass the :any:`BoxCox` normalizer in order to gain normality.
 #
 # The normalizer will be fitted automatically to the data,
 # by setting ``fit_normalizer=True``.
+#
+# The covariance/variogram model will be fitted by an automatic workflow
+# by setting ``fit_variogram=True``.
 
 krige = gs.krige.Ordinary(
     model=gs.Stable(dim=2),
