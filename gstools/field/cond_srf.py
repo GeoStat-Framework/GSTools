@@ -189,7 +189,11 @@ class CondSRF(Field):
     @property
     def trend(self):
         """:class:`float` or :any:`callable`: The trend of the field."""
-        return self._trend
+        return self.krige.trend
+
+    @trend.setter
+    def trend(self, tren):
+        pass
 
     def __repr__(self):
         """Return String representation."""
