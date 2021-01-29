@@ -72,5 +72,16 @@ ax.legend()
 ###############################################################################
 # Looks good, doesn't it?
 #
+# This workflow is also implemented in the :any:`Krige` class, by setting
+# ``fit_variogram=True``. Then the whole procedure shortens:
+
+krige = gs.krige.Ordinary(sph, pos, field, fit_variogram=True)
+krige.structured((grid_lat, grid_lon))
+
+# plot the result
+krige.plot()
+# show the fitting results
+print(krige.model)
+
 # This example shows, that setting up variogram estimation and kriging routines
-# is straight forward with GSTools. ;-)
+# is straight forward with GSTools!
