@@ -80,15 +80,15 @@ print(krige.normalizer)
 # The BoxCox parameter `lmbda` was estimated to be almost 0, which means,
 # the log-normal distribution was correctly fitted.
 #
-# Now let's run the kriging interpolation and
-# interpolate
+# Now let's run the kriging interpolation.
+
 krige(pos)
 
 ###############################################################################
 # Plotting
 # ^^^^^^^^
 #
-# Now let's compare the original, sampled and interpolated fields.
+# Finally let's compare the original, sampled and interpolated fields.
 # As we'll see, there is a lot of information in the covariance structure
 # of the measurement samples and the field is reconstructed quite accurately.
 
