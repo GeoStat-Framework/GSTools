@@ -343,8 +343,8 @@ class Krige(Field):
                 return ext_drift
             ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
             ext_shape = np.shape(ext_drift)
-            shape = (self.drift_no, pnt_cnt)
-            if self.drift_no > 1 and ext_shape[0] != self.drift_no:
+            shape = (self.ext_drift_no, pnt_cnt)
+            if self.drift_no > 1 and ext_shape[0] != self.ext_drift_no:
                 raise ValueError("Krige: wrong number of external drifts.")
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
@@ -405,24 +405,28 @@ class Krige(Field):
 
     def set_condition(
         self,
-        cond_pos,
-        cond_val,
+        cond_pos=None,
+        cond_val=None,
         ext_drift=None,
-        cond_err="nugget",
+        cond_err=None,
         fit_normalizer=False,
     ):
         """Set the conditions for kriging.
 
+        This method could also be used to update the kriging setup, when
+        properties were changed. Then you can call it without arguments.
+
         Parameters
         ----------
-        cond_pos : :class:`list`
-            the position tuple of the conditions (x, [y, z])
-        cond_val : :class:`numpy.ndarray`
-            the values of the conditions
+        cond_pos : :class:`list`, optional
+            the position tuple of the conditions (x, [y, z]). Default: current.
+        cond_val : :class:`numpy.ndarray`, optional
+            the values of the conditions. Default: current.
         ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
             the external drift values at the given conditions (only for EDK)
             For multiple external drifts, the first dimension
-            should be the index of the drift term.
+            should be the index of the drift term. When passing `None`, the
+            extisting external drift will be used.
         cond_err : :class:`str`, :class :class:`float`, :class:`list`, optional
             The measurement error at the conditioning points.
             Either "nugget" to apply the model-nugget, a single value applied
@@ -433,7 +437,21 @@ class Krige(Field):
         fit_normalizer : :class:`bool`, optional
             Wheater to fit the data-normalizer to the given conditioning data.
             Default: False
+
+        Notes
+        -----
+        In order to remove an existing external drift use:
+
+        >>> del Krige.cond_ext_drift
         """
+        # Default values
+        cond_pos = self._cond_pos if cond_pos is None else cond_pos
+        cond_val = self._cond_val if cond_val is None else cond_val
+        ext_drift = self._cond_ext_drift if ext_drift is None else ext_drift
+        cond_err = self._cond_err if cond_err is None else cond_err
+        cond_err = "nugget" if cond_err is None else cond_err
+        if cond_pos is None or cond_val is None:
+            raise ValueError("Krige.set_condition: missing cond_pos/cond_val.")
         # correctly format cond_pos and cond_val
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.model.field_dim
@@ -544,6 +562,10 @@ class Krige(Field):
     def cond_ext_drift(self):
         """:class:`numpy.ndarray`: The ext. drift at the conditions."""
         return self._cond_ext_drift
+
+    @cond_ext_drift.deleter
+    def cond_ext_drift(self):
+        self._cond_ext_drift = np.array([])
 
     @property
     def cond_mean(self):
