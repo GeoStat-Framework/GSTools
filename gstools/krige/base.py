@@ -57,7 +57,7 @@ class Krige(Field):
         mean value used to shift normalized conditioning data.
         Could also be a callable. The default is None.
     normalizer : :any:`None` or :any:`Normalizer`, optional
-        Normalizer to be applied to the SRF to transform the field values.
+        Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
         A callable trend function. Should have the signiture: f(x, [y, z, ...])
@@ -355,12 +355,13 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
+            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
+            if ext_drift.size == 0:  # treat empty array as no ext_drift
+                return np.array([])
             if set_cond:
-                ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
                 if len(ext_drift.shape) > 2 or ext_drift.shape[1] != pnt_cnt:
                     raise ValueError("Krige: wrong number of ext. drifts.")
                 return ext_drift
-            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
             ext_shape = np.shape(ext_drift)
             shape = (self.ext_drift_no, pnt_cnt)
             if self.drift_no > 1 and ext_shape[0] != self.ext_drift_no:
