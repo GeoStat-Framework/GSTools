@@ -6,9 +6,17 @@ GSTools Quickstart
    :width: 150px
    :align: center
 
-GeoStatTools provides geostatistical tools for random field generation and
-variogram estimation based on many readily provided and even user-defined
-covariance models.
+GeoStatTools provides geostatistical tools for various purposes:
+- random field generation
+- simple, ordinary, universal and external drift kriging
+- conditioned field generation
+- incompressible random vector field generation
+- (automatted) variogram estimation and fitting
+- directional variogram estimation and modelling
+- data normalization and transformation
+- many readily provided and even user-defined covariance models
+- metric spatio-temporal modelling
+- plotting and exporting routines
 
 
 Installation
@@ -99,6 +107,7 @@ showing the most important use cases of GSTools, which are
 - `Field transformations <examples/07_transformations/index.html>`__
 - `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
 - `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
+- `Normalizing Data <examples/10_normalizer/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 Some more examples are provided in the examples folder.
