@@ -352,7 +352,6 @@ class Field:
 
     @value_type.setter
     def value_type(self, value_type):
-        """:class:`str`: Type of the field values (scalar, vector)."""
         if value_type not in VALUE_TYPES:
             raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
         self._value_type = value_type

@@ -166,7 +166,7 @@ class CondSRF(Field):
 
     @model.setter
     def model(self, model):
-        pass
+        self.krige.model = model
 
     @property
     def mean(self):
@@ -175,7 +175,7 @@ class CondSRF(Field):
 
     @mean.setter
     def mean(self, mean):
-        pass
+        self.krige.mean = mean
 
     @property
     def normalizer(self):
@@ -184,7 +184,7 @@ class CondSRF(Field):
 
     @normalizer.setter
     def normalizer(self, normalizer):
-        pass
+        self.krige.normalizer = normalizer
 
     @property
     def trend(self):
@@ -193,7 +193,16 @@ class CondSRF(Field):
 
     @trend.setter
     def trend(self, tren):
-        pass
+        self.krige.trend = tren
+
+    @property
+    def value_type(self):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+        return self.krige.value_type
+
+    @value_type.setter
+    def value_type(self, value_type):
+        self.krige.value_type = value_type
 
     def __repr__(self):
         """Return String representation."""
