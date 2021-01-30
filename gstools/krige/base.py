@@ -396,7 +396,7 @@ class Krige(Field):
         return cdist(pos1.T, pos2.T[slice(*pos2_slice), ...])
 
     def get_mean(self):
-        """Calculate the estimated mean.
+        """Calculate the estimated mean of the detrended field.
 
         Returns
         -------
@@ -405,7 +405,9 @@ class Krige(Field):
 
         Notes
         -----
-        Only if the Kriging System has a constant mean.
+        Only not ``None`` if the Kriging System has a constant mean.
+        This means, no drift is given and the given field-mean is constant.
+        The result is neglecting a potential given trend.
         """
         # if there are drift-terms, no constant mean can be calculated -> None
         if not self.has_const_mean:
@@ -421,7 +423,7 @@ class Krige(Field):
             res = np.einsum(
                 "i,ij,j", self._krige_cond, self._krige_mat, mean_est
             )
-        return res + mean
+        return self.normalizer.denormalize(res + mean)
 
     def set_condition(
         self,
@@ -471,12 +473,17 @@ class Krige(Field):
 
         >>> del Krige.cond_ext_drift
         """
-        # Default values
+        # only use existing external drift, if no new positions are given
+        ext_drift = (
+            self._cond_ext_drift
+            if (ext_drift is None and cond_pos is None)
+            else ext_drift
+        )
+        # use existing values or set default
         cond_pos = self._cond_pos if cond_pos is None else cond_pos
         cond_val = self._cond_val if cond_val is None else cond_val
-        ext_drift = self._cond_ext_drift if ext_drift is None else ext_drift
         cond_err = self._cond_err if cond_err is None else cond_err
-        cond_err = "nugget" if cond_err is None else cond_err
+        cond_err = "nugget" if cond_err is None else cond_err  # default
         if cond_pos is None or cond_val is None:
             raise ValueError("Krige.set_condition: missing cond_pos/cond_val.")
         # correctly format cond_pos and cond_val
@@ -499,6 +506,7 @@ class Krige(Field):
                 emp_vario = vario_estimate(
                     self.cond_pos, field, direction=axes
                 )
+            # set the sill to the field variance
             self.model.fit_variogram(*emp_vario, sill=sill)
         # set the measurement errors
         self.cond_err = cond_err
