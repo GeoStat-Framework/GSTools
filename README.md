@@ -367,7 +367,7 @@ You can contact us via <info@geostat-framework.org>.
 [tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
 [tut8_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/08_geo_coordinates/index.html
 [tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/09_spatio_temporal/index.html
-[tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/10_normalizer/index.html
+[tut10_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/10_normalizer/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
