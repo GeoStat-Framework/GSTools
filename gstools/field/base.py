@@ -329,6 +329,8 @@ class Field:
 
     @normalizer.setter
     def normalizer(self, normalizer):
+        if isinstance(normalizer, type) and issubclass(normalizer, Normalizer):
+            self._normalizer = normalizer()
         if isinstance(normalizer, Normalizer):
             self._normalizer = normalizer
         elif normalizer is None:
