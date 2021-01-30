@@ -47,20 +47,15 @@ class CondSRF(Field):
     def __init__(self, krige, generator="RandMeth", **generator_kwargs):
         if not isinstance(krige, Krige):
             raise ValueError("CondSRF: krige should be an instance of Krige.")
-        self.krige = krige
+        self._krige = krige
         # initialize attributes
         self.pos = None
         self.mesh_type = None
         self.field = None
         self.raw_field = None
         # initialize private attributes
-        self._value_type = None
         self._generator = None
-        self._mean = None
-        self._normalizer = None
-        self._trend = None
         # initialize attributes
-        self.normalizer = None
         self.set_generator(generator, **generator_kwargs)
 
     def __call__(self, pos, seed=np.nan, mesh_type="unstructured", **kwargs):
@@ -148,11 +143,16 @@ class CondSRF(Field):
         if generator in GENERATOR:
             gen = GENERATOR[generator]
             self._generator = gen(self.model, **generator_kwargs)
-            self.value_type = self._generator.value_type
+            self.value_type = self.generator.value_type
         else:
             raise ValueError("gstools.CondSRF: Unknown generator " + generator)
         if self.value_type != "scalar":
             raise ValueError("CondSRF: only scalar field value type allowed.")
+
+    @property
+    def krige(self):
+        """:any:`Krige`: The underlying kriging class."""
+        return self._krige
 
     @property
     def generator(self):
