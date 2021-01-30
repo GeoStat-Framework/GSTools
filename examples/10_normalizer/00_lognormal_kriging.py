@@ -28,7 +28,7 @@ model = gs.Stable(dim=1, var=0.5, len_scale=2.56, alpha=1.9)
 ###############################################################################
 # In order to result in log-normal kriging, we will use the :any:`LogNormal`
 # Normalizer. This is a parameter-less normalizer, so we don't have to fit it.
-normalizer = gs.normalizer.LogNormal()
+normalizer = gs.normalizer.LogNormal
 
 ###############################################################################
 # Now we generate the interpolated field as well as the mean field.

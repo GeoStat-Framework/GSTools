@@ -8,7 +8,8 @@ ordinary kriging.
 
 Normalizers are fitted by minimizing the likelihood function and variograms
 are fitted by estimating the empirical variogram with automatic binning and
-fitting the theoretical model to it.
+fitting the theoretical model to it. Thereby the sill is constrained to match
+the field variance.
 
 Artificial data
 ^^^^^^^^^^^^^^^
