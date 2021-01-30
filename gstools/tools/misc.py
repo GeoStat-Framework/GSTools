@@ -8,9 +8,13 @@ The following functions are provided
 
 .. autosummary::
    list_format
+   eval_func
 """
 import numpy as np
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
+
+
+__all__ = ["list_format", "eval_func"]
 
 
 def list_format(lst, prec):
@@ -61,7 +65,7 @@ def eval_func(
     # care about scalar inputs
     if broadcast and not callable(func_val):
         return 0.0 if func_val is None else float(func_val)
-    elif not callable(func_val):
+    if not callable(func_val):
         func_val = _func_from_scalar(func_val)
     # care about mesh and function call
     if mesh_type != "unstructured":
