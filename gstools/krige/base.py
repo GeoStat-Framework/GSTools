@@ -215,8 +215,7 @@ class Krige(Field):
         krige_var = np.empty(pnt_cnt, dtype=np.double) if return_var else None
         # set constant mean if present and wanted
         if only_mean and self.has_const_mean:
-            mean = 0.0 if self.mean is None else self.mean
-            field[...] = self.get_mean() - mean  # mean is added later
+            field[...] = self.get_mean(post_process=False)
         # execute the kriging routine
         else:
             # set chunk size
@@ -395,13 +394,16 @@ class Krige(Field):
             return cdist(pos1.T, pos1.T)
         return cdist(pos1.T, pos2.T[slice(*pos2_slice), ...])
 
-    def get_mean(self):
+    def get_mean(self, post_process=True):
         """Calculate the estimated mean of the detrended field.
 
         Returns
         -------
         mean : :class:`float` or :any:`None`
             Mean of the Kriging System.
+        post_process : :class:`bool`, optional
+            Whether to apply field-mean and normalizer.
+            Default: `True`
 
         Notes
         -----
@@ -423,7 +425,7 @@ class Krige(Field):
             res = np.einsum(
                 "i,ij,j", self._krige_cond, self._krige_mat, mean_est
             )
-        return self.normalizer.denormalize(res + mean)
+        return self.normalizer.denormalize(res + mean) if post_process else res
 
     def set_condition(
         self,
