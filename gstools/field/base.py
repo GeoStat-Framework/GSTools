@@ -331,7 +331,7 @@ class Field:
     def normalizer(self, normalizer):
         if isinstance(normalizer, type) and issubclass(normalizer, Normalizer):
             self._normalizer = normalizer()
-        if isinstance(normalizer, Normalizer):
+        elif isinstance(normalizer, Normalizer):
             self._normalizer = normalizer
         elif normalizer is None:
             self._normalizer = Normalizer()
