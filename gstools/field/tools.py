@@ -13,10 +13,34 @@ The following classes and functions are provided
 import numpy as np
 import meshio
 
+from gstools.normalizer import Normalizer
 from gstools.tools.export import to_vtk, vtk_export
 
 
-__all__ = ["to_vtk_helper", "mesh_call"]
+__all__ = ["fmt_mean_norm_trend", "to_vtk_helper", "mesh_call"]
+
+
+def _fmt_func_val(f_cls, func_val):
+    if func_val is None:
+        return str(None)
+    if callable(func_val):
+        return "<function>"  # or format(func_val.__name__)
+    return "{0:.{p}}".format(float(func_val), p=f_cls.model._prec)
+
+
+def _fmt_normalizer(f_cls):
+    norm = f_cls.normalizer
+    return str(None) if norm.__class__ is Normalizer else norm.name
+
+
+def fmt_mean_norm_trend(f_cls):
+    """Format string repr. for mean, normalizer and trend of a field."""
+    args = [
+        "mean=" + _fmt_func_val(f_cls, f_cls.mean),
+        "normalizer=" + _fmt_normalizer(f_cls),
+        "trend=" + _fmt_func_val(f_cls, f_cls.trend),
+    ]
+    return "".join([", " + arg for arg in args if not arg.endswith("None")])
 
 
 def to_vtk_helper(

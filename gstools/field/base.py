@@ -16,7 +16,7 @@ from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
 from gstools.tools.misc import eval_func
 from gstools.normalizer import Normalizer
-from gstools.field.tools import mesh_call, to_vtk_helper
+from gstools.field.tools import mesh_call, to_vtk_helper, fmt_mean_norm_trend
 
 __all__ = ["Field"]
 
@@ -207,7 +207,7 @@ class Field:
             # apply mean - normalizer - trend
             field += eval_func(func_val=self.mean, **kwargs)
             field = self.normalizer.denormalize(field)
-            field += eval_func(self.trend, **kwargs)
+            field += eval_func(func_val=self.trend, **kwargs)
         if save:
             setattr(self, name, field)
         return field
@@ -358,32 +358,19 @@ class Field:
             raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
         self._value_type = value_type
 
-    def _fmt_func_val(self, func_val):
-        if func_val is None:
-            return str(None)
-        if callable(func_val):
-            return "<function>"
-        return "{0:.{p}}".format(float(func_val), p=self.model._prec)
-
-    def _fmt_normalizer(self):
-        norm = self.normalizer
-        return str(None) if norm.__class__ is Normalizer else norm.name
-
     @property
     def name(self):
         """:class:`str`: The name of the class."""
         return self.__class__.__name__
 
+    def _fmt_mean_norm_trend(self):
+        return fmt_mean_norm_trend(self)
+
     def __repr__(self):
         """Return String representation."""
-        return (
-            "{0}(model={1}, value_type='{2}', "
-            "mean={3}, normalizer={4}, trend={5})".format(
-                self.name,
-                self.model.name,
-                self.value_type,
-                self._fmt_func_val(self.mean),
-                self._fmt_normalizer(),
-                self._fmt_func_val(self.trend),
-            )
+        return "{0}(model={1}, value_type='{2}'{3})".format(
+            self.name,
+            self.model.name,
+            self.value_type,
+            self._fmt_mean_norm_trend(),
         )

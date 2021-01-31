@@ -193,14 +193,9 @@ class SRF(Field):
 
     def __repr__(self):
         """Return String representation."""
-        return (
-            "{0}(model={1}, "
-            "mean={2}, normalizer={3}, trend={4}, generator={5})".format(
-                self.name,
-                self.model.name,
-                self._fmt_func_val(self.mean),
-                self._fmt_normalizer(),
-                self._fmt_func_val(self.trend),
-                self.generator.name,
-            )
+        return "{0}(model={1}{2}, generator={3})".format(
+            self.name,
+            self.model.name,
+            self._fmt_mean_norm_trend(),
+            self.generator.name,
         )
