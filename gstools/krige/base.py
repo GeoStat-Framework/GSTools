@@ -214,7 +214,7 @@ class Krige(Field):
         field = np.empty(pnt_cnt, dtype=np.double)
         krige_var = np.empty(pnt_cnt, dtype=np.double) if return_var else None
         # set constant mean if present and wanted
-        if only_mean and self.has_const_mean:
+        if only_mean and self.drift_no == 0:
             field[...] = self.get_mean(post_process=False)
         # execute the kriging routine
         else:
@@ -412,7 +412,8 @@ class Krige(Field):
         The result is neglecting a potential given trend.
         """
         # if there are drift-terms, no constant mean can be calculated -> None
-        if not self.has_const_mean:
+        # if mean should not be post-processed, it exists when no drift given
+        if not self.has_const_mean and (post_process or self.drift_no > 0):
             return None
         res = 0.0  # for simple kriging return the given mean
         # correctly setting given mean
