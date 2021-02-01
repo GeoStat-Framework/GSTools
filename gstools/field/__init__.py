@@ -10,12 +10,13 @@ Subpackages
 .. autosummary::
     generator
     upscaling
-    base
 
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    SRF
    CondSRF
 
@@ -23,6 +24,8 @@ Field Base Class
 ^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    Field
 
 ----

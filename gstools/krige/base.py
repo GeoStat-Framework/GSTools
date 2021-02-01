@@ -105,7 +105,7 @@ class Krige(Field):
         Wheater to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
-        standard bins provided by the :any:`variogram` submodule.
+        standard bins provided by the :any:`standard_bins` routine.
         Default: False
 
     Notes
@@ -467,7 +467,7 @@ class Krige(Field):
             Wheater to fit the given variogram model to the data.
             This is done by using isotropy settings of the given model,
             assuming the sill to be the data variance and with the
-            standard bins provided by the :any:`variogram` submodule.
+            standard bins provided by the :any:`standard_bins` routine.
             Default: False
 
         Notes

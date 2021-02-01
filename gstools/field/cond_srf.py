@@ -29,8 +29,8 @@ class CondSRF(Field):
 
     Parameters
     ----------
-    model : :any:`CovModel`
-        Covariance Model of the spatial random field.
+    krige : :any:`Krige`
+        Kriging setup to condition the spatial random field.
     generator : :class:`str`, optional
         Name of the field generator to be used.
         At the moment, only the following generator is provided:
@@ -116,7 +116,7 @@ class CondSRF(Field):
         -------
         var_scale : :class:`numpy.ndarray`
             Variance scaling factor for the random field.
-        nugget : :class:`numpy.ndarray` or `class:`int
+        nugget : :class:`numpy.ndarray` or :class:`int`
             Nugget to be added to the field.
         """
         if self.model.nugget > 0:
