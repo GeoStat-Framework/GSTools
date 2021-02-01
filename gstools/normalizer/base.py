@@ -24,13 +24,20 @@ class Normalizer:
         Input data to fit the transformation to in order to gain normality.
         The default is None.
     **parameter
-        Specified parameters given by name. If not given, default values
-        will be applied.
+        Specified parameters given by name. If not given, default parameters
+        will be used.
     """
+
+    default_parameter = {}
+    """:class:`dict`: Default parameters of the Normalizer."""
+    normalize_range = (-np.inf, np.inf)
+    """:class:`tuple`: Valid range for input data."""
+    denormalize_range = (-np.inf, np.inf)
+    """:class:`tuple`: Valid range for output/normal data."""
 
     def __init__(self, data=None, **parameter):
         # only use parameter, that have a provided default value
-        for key, value in self.default_parameter().items():
+        for key, value in self.default_parameter.items():
             setattr(self, key, parameter.get(key, value))
         # fit parameters if data is given
         if data is not None:
@@ -40,60 +47,93 @@ class Normalizer:
         # precision for printing
         self._prec = 3
 
-    def default_parameter(self):
-        """Get default parameters for the transformation.
+    def _denormalize(self, data):
+        return data
 
-        Returns
-        -------
-        :class:`dict`
-            Default parameters.
-        """
-        return {}
+    def _normalize(self, data):
+        return data
 
-    def denormalize(self, values):
+    def _derivative(self, data):
+        return spm.derivative(self._normalize, data, dx=1e-6)
+
+    def _loglikelihood(self, data):
+        add = -0.5 * np.size(data) * (np.log(2 * np.pi) + 1)
+        return self._kernel_loglikelihood(data) + add
+
+    def _kernel_loglikelihood(self, data):
+        res = -0.5 * np.size(data) * np.log(np.var(self._normalize(data)))
+        return res + np.sum(np.log(np.maximum(1e-16, self._derivative(data))))
+
+    def _check_input(self, data, data_range=None, return_output_template=True):
+        is_data = np.array(np.logical_not(np.isnan(data)))
+        if return_output_template:
+            out = np.full_like(data, np.nan, dtype=np.double)
+        data = np.array(data, dtype=np.double)[is_data]
+        if data_range is not None and np.min(np.abs(data_range)) < np.inf:
+            dat_in = np.logical_and(data > data_range[0], data < data_range[1])
+            if not np.all(dat_in):
+                warnings.warn(
+                    "{0}: data (min: {1}, max: {2}) out of range: {3}. "
+                    "Affected values will be treated as NaN.".format(
+                        self.name, np.min(data), np.max(data), data_range
+                    )
+                )
+                is_data[is_data] &= dat_in
+                data = data[dat_in]
+        if return_output_template:
+            return data, is_data, out
+        return data
+
+    def denormalize(self, data):
         """Transform to input distribution.
 
         Parameters
         ----------
-        values : array_like
-            Input values (normal distributed).
+        data : array_like
+            Input data (normal distributed).
 
         Returns
         -------
         :class:`numpy.ndarray`
-            Denormalized values.
+            Denormalized data.
         """
-        return values
+        data, is_data, out = self._check_input(data, self.denormalize_range)
+        out[is_data] = self._denormalize(data)
+        return out
 
-    def normalize(self, values):
+    def normalize(self, data):
         """Transform to normal distribution.
 
         Parameters
         ----------
-        values : array_like
-            Input values (not normal distributed).
+        data : array_like
+            Input data (not normal distributed).
 
         Returns
         -------
         :class:`numpy.ndarray`
-            Normalized values.
+            Normalized data.
         """
-        return values
+        data, is_data, out = self._check_input(data, self.normalize_range)
+        out[is_data] = self._normalize(data)
+        return out
 
-    def derivative(self, values):
+    def derivative(self, data):
         """Factor for normal PDF to gain target PDF.
 
         Parameters
         ----------
-        values : array_like
-            Input values.
+        data : array_like
+            Input data (not normal distributed).
 
         Returns
         -------
         :class:`numpy.ndarray`
             Derivative of the normalization transformation function.
         """
-        return spm.derivative(self.normalize, np.asanyarray(values), dx=1e-6)
+        data, is_data, out = self._check_input(data, self.normalize_range)
+        out[is_data] = self._derivative(data)
+        return out
 
     def likelihood(self, data):
         """Likelihood for given data with current parameters.
@@ -123,8 +163,8 @@ class Normalizer:
         :class:`float`
             Log-Likelihood of the given data.
         """
-        add = -0.5 * np.size(data) * (np.log(2 * np.pi) + 1)
-        return self.kernel_loglikelihood(data) + add
+        data = self._check_input(data, self.normalize_range, False)
+        return self._loglikelihood(data)
 
     def kernel_loglikelihood(self, data):
         """Kernel Log-Likelihood for given data with current parameters.
@@ -144,8 +184,8 @@ class Normalizer:
         This loglikelihood function is neglecting additive constants,
         that are not needed for optimization.
         """
-        res = -0.5 * np.size(data) * np.log(np.var(self.normalize(data)))
-        return res + np.sum(np.log(np.maximum(1e-16, self.derivative(data))))
+        data = self._check_input(data, self.normalize_range, False)
+        return self._kernel_loglikelihood(data)
 
     def fit(self, data, skip=None, **kwargs):
         """Fitting the transformation to data by maximizing Log-Likelihood.
@@ -167,7 +207,7 @@ class Normalizer:
             Optimal paramters given by names.
         """
         skip = [] if skip is None else skip
-        all_names = sorted(self.default_parameter())
+        all_names = sorted(self.default_parameter)
         para_names = [name for name in all_names if name not in skip]
 
         def _neg_kllf(par, dat):
@@ -176,14 +216,14 @@ class Normalizer:
             return -self.kernel_loglikelihood(dat)
 
         if len(para_names) == 0:  # transformations without para. (no opti.)
-            warnings.warn(self.__class__.__name__ + ".fit: no parameters!")
+            warnings.warn(self.name + ".fit: no parameters!")
             return {}
         if len(para_names) == 1:  # one-para. transformations (simple opti.)
             # default bracket like in scipy's boxcox (if not given)
             kwargs.setdefault("bracket", (-2, 2))
             out = spo.minimize_scalar(_neg_kllf, args=(data,), **kwargs)
         else:  # general case
-            # init guess from current values (if x0 not given)
+            # init guess from current parameters (if x0 not given)
             kwargs.setdefault("x0", [getattr(self, p) for p in para_names])
             out = spo.minimize(_neg_kllf, args=(data,), **kwargs)
         # save optimization results
@@ -201,6 +241,6 @@ class Normalizer:
         """Return String representation."""
         para_strs = [
             "{0}={1:.{2}}".format(p, float(getattr(self, p)), self._prec)
-            for p in sorted(self.default_parameter())
+            for p in sorted(self.default_parameter)
         ]
         return self.name + "(" + ", ".join(para_strs) + ")"

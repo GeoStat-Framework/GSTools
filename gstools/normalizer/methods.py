@@ -29,17 +29,17 @@ class LogNormal(Normalizer):
        y=\log(x)
     """
 
-    def denormalize(self, values):
-        """Transform to log-normal distribution."""
-        return np.exp(values)
+    normalize_range = (0.0, np.inf)
+    """Valid range for input data."""
 
-    def normalize(self, values):
-        """Transform to normal distribution."""
-        return np.log(values)
+    def _denormalize(self, data):
+        return np.exp(data)
 
-    def derivative(self, values):
-        """Factor for normal PDF to gain target PDF."""
-        return np.power(values, -1)
+    def _normalize(self, data):
+        return np.log(data)
+
+    def _derivative(self, data):
+        return np.power(data, -1)
 
 
 class BoxCox(Normalizer):
@@ -69,25 +69,32 @@ class BoxCox(Normalizer):
            of the Royal Statistical Society B, 26, 211-252 (1964).
     """
 
-    def default_parameter(self):
-        """Get default parameters."""
-        return {"lmbda": 1}
+    default_parameter = {"lmbda": 1}
+    """:class:`dict`: Default parameter of the BoxCox-Normalizer."""
+    normalize_range = (0.0, np.inf)
+    """:class:`tuple`: Valid range for input data."""
 
-    def denormalize(self, values):
-        """Transform to target distribution."""
+    @property
+    def denormalize_range(self):
+        """:class:`tuple`: Valid range for output data depending on lmbda.
+
+        (-1/lmbda, inf)
+        """
+        with np.errstate(divide="ignore"):
+            return (-np.divide(1, self.lmbda), np.inf)
+
+    def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return np.exp(values)
-        return (1 + np.multiply(values, self.lmbda)) ** (1 / self.lmbda)
+            return np.exp(data)
+        return (1 + np.multiply(data, self.lmbda)) ** (1 / self.lmbda)
 
-    def normalize(self, values):
-        """Transform to normal distribution."""
+    def _normalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return np.log(values)
-        return (np.power(values, self.lmbda) - 1) / self.lmbda
+            return np.log(data)
+        return (np.power(data, self.lmbda) - 1) / self.lmbda
 
-    def derivative(self, values):
-        """Factor for normal PDF to gain target PDF."""
-        return np.power(values, self.lmbda - 1)
+    def _derivative(self, data):
+        return np.power(data, self.lmbda - 1)
 
 
 class BoxCoxShift(Normalizer):
@@ -127,27 +134,40 @@ class BoxCoxShift(Normalizer):
            of the Royal Statistical Society B, 26, 211-252 (1964).
     """
 
-    def default_parameter(self):
-        """Get default parameters."""
-        return {"shift": 0, "lmbda": 1}
+    default_parameter = {"shift": 0, "lmbda": 1}
+    """:class:`dict`: Default parameters of the BoxCoxShift-Normalizer."""
 
-    def denormalize(self, values):
-        """Transform to target distribution."""
+    @property
+    def normalize_range(self):
+        """:class:`tuple`: Valid range for input data depending on shift.
+
+        (-shift, inf)
+        """
+        return (-self.shift, np.inf)
+
+    @property
+    def denormalize_range(self):
+        """:class:`tuple`: Valid range for output data depending on lmbda.
+
+        (-1/lmbda, inf)
+        """
+        with np.errstate(divide="ignore"):
+            return (-np.divide(1, self.lmbda), np.inf)
+
+    def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return np.exp(values) - self.shift
-        return (1 + np.multiply(values, self.lmbda)) ** (
+            return np.exp(data) - self.shift
+        return (1 + np.multiply(data, self.lmbda)) ** (
             1 / self.lmbda
         ) - self.shift
 
-    def normalize(self, values):
-        """Transform to normal distribution."""
+    def _normalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return np.log(np.add(values, self.shift))
-        return (np.add(values, self.shift) ** self.lmbda - 1) / self.lmbda
+            return np.log(np.add(data, self.shift))
+        return (np.add(data, self.shift) ** self.lmbda - 1) / self.lmbda
 
-    def derivative(self, values):
-        """Factor for normal PDF to gain target PDF."""
-        return np.power(np.add(values, self.shift), self.lmbda - 1)
+    def _derivative(self, data):
+        return np.power(np.add(data, self.shift), self.lmbda - 1)
 
 
 class YeoJohnson(Normalizer):
@@ -185,53 +205,47 @@ class YeoJohnson(Normalizer):
            (2000).
     """
 
-    def default_parameter(self):
-        """Get default parameters."""
-        return {"lmbda": 1}
+    default_parameter = {"lmbda": 1}
+    """:class:`dict`: Default parameter of the YeoJohnson-Normalizer."""
 
-    def denormalize(self, values):
-        """Transform to target distribution."""
-        values = np.asanyarray(values)
-        res = np.zeros_like(values, dtype=np.double)
-        pos = values >= 0
-        # when values >= 0
+    def _denormalize(self, data):
+        data = np.asanyarray(data)
+        res = np.zeros_like(data, dtype=np.double)
+        pos = data >= 0
+        # when data >= 0
         if np.isclose(self.lmbda, 0):
-            res[pos] = np.expm1(values[pos])
+            res[pos] = np.expm1(data[pos])
         else:  # self.lmbda != 0
-            res[pos] = (
-                np.power(values[pos] * self.lmbda + 1, 1 / self.lmbda) - 1
-            )
-        # when values < 0
+            res[pos] = np.power(data[pos] * self.lmbda + 1, 1 / self.lmbda) - 1
+        # when data < 0
         if np.isclose(self.lmbda, 2):
-            res[~pos] = -np.expm1(-values[~pos])
+            res[~pos] = -np.expm1(-data[~pos])
         else:  # self.lmbda != 2
             res[~pos] = 1 - np.power(
-                -(2 - self.lmbda) * values[~pos] + 1, 1 / (2 - self.lmbda)
+                -(2 - self.lmbda) * data[~pos] + 1, 1 / (2 - self.lmbda)
             )
         return res
 
-    def normalize(self, values):
-        """Transform to normal distribution."""
-        values = np.asanyarray(values)
-        res = np.zeros_like(values, dtype=np.double)
-        pos = values >= 0
-        # when values >= 0
+    def _normalize(self, data):
+        data = np.asanyarray(data)
+        res = np.zeros_like(data, dtype=np.double)
+        pos = data >= 0
+        # when data >= 0
         if np.isclose(self.lmbda, 0):
-            res[pos] = np.log1p(values[pos])
+            res[pos] = np.log1p(data[pos])
         else:  # self.lmbda != 0
-            res[pos] = (np.power(values[pos] + 1, self.lmbda) - 1) / self.lmbda
-        # when values < 0
+            res[pos] = (np.power(data[pos] + 1, self.lmbda) - 1) / self.lmbda
+        # when data < 0
         if np.isclose(self.lmbda, 2):
-            res[~pos] = -np.log1p(-values[~pos])
+            res[~pos] = -np.log1p(-data[~pos])
         else:  # self.lmbda != 2
-            res[~pos] = -(np.power(-values[~pos] + 1, 2 - self.lmbda) - 1) / (
+            res[~pos] = -(np.power(-data[~pos] + 1, 2 - self.lmbda) - 1) / (
                 2 - self.lmbda
             )
         return res
 
-    def derivative(self, values):
-        """Factor for normal PDF to gain target PDF."""
-        return (np.abs(values) + 1) ** (np.sign(values) * (self.lmbda - 1))
+    def _derivative(self, data):
+        return (np.abs(data) + 1) ** (np.sign(data) * (self.lmbda - 1))
 
 
 class Modulus(Normalizer):
@@ -262,31 +276,25 @@ class Modulus(Normalizer):
            of the Royal Statistical Society C, 29.2, 190-197, (1980)
     """
 
-    def default_parameter(self):
-        """Get default parameters."""
-        return {"lmbda": 1}
+    default_parameter = {"lmbda": 1}
+    """:class:`dict`: Default parameter of the Modulus-Normalizer."""
 
-    def denormalize(self, values):
-        """Transform to target distribution."""
+    def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return np.sign(values) * np.expm1(np.abs(values))
-        return np.sign(values) * (
-            (1 + self.lmbda * np.abs(values)) ** (1 / self.lmbda) - 1
+            return np.sign(data) * np.expm1(np.abs(data))
+        return np.sign(data) * (
+            (1 + self.lmbda * np.abs(data)) ** (1 / self.lmbda) - 1
         )
 
-    def normalize(self, values):
-        """Transform to normal distribution."""
+    def _normalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return np.sign(values) * np.log1p(np.abs(values))
+            return np.sign(data) * np.log1p(np.abs(data))
         return (
-            np.sign(values)
-            * ((np.abs(values) + 1) ** self.lmbda - 1)
-            / self.lmbda
+            np.sign(data) * ((np.abs(data) + 1) ** self.lmbda - 1) / self.lmbda
         )
 
-    def derivative(self, values):
-        """Factor for normal PDF to gain target PDF."""
-        return np.power(np.abs(values) + 1, self.lmbda - 1)
+    def _derivative(self, data):
+        return np.power(np.abs(data) + 1, self.lmbda - 1)
 
 
 class Manly(Normalizer):
@@ -316,22 +324,27 @@ class Manly(Normalizer):
            Journal of the Royal Statistical Society D, 25.1, 37-42 (1976).
     """
 
-    def default_parameter(self):
-        """Get default parameters."""
-        return {"lmbda": 1}
+    default_parameter = {"lmbda": 1}
+    """:class:`dict`: Default parameter of the Manly-Normalizer."""
 
-    def denormalize(self, values):
-        """Transform to target distribution."""
+    @property
+    def denormalize_range(self):
+        """:class:`tuple`: Valid range for output data depending on lmbda.
+
+        (-1/lmbda, inf)
+        """
+        with np.errstate(divide="ignore"):
+            return (-np.divide(1, self.lmbda), np.inf)
+
+    def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return values
-        return np.log1p(np.multiply(values, self.lmbda)) / self.lmbda
+            return data
+        return np.log1p(np.multiply(data, self.lmbda)) / self.lmbda
 
-    def normalize(self, values):
-        """Transform to normal distribution."""
+    def _normalize(self, data):
         if np.isclose(self.lmbda, 0):
-            return values
-        return np.expm1(np.multiply(values, self.lmbda)) / self.lmbda
+            return data
+        return np.expm1(np.multiply(data, self.lmbda)) / self.lmbda
 
-    def derivative(self, values):
-        """Factor for normal PDF to gain target PDF."""
-        return np.exp(np.multiply(values, self.lmbda))
+    def _derivative(self, data):
+        return np.exp(np.multiply(data, self.lmbda))
