@@ -27,8 +27,6 @@ Field Base Class
    :toctree: generated
 
    Field
-
-----
 """
 
 from gstools.field.base import Field
