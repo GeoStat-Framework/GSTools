@@ -27,6 +27,7 @@ from gstools.variogram.estimator import (
     directional,
 )
 from gstools.variogram.binning import standard_bins
+from gstools.normalizer.tools import remove_trend_norm_mean
 
 __all__ = [
     "vario_estimate",
@@ -81,6 +82,10 @@ def vario_estimate(
     mask=np.ma.nomask,
     mesh_type="unstructured",
     return_counts=False,
+    mean=None,
+    normalizer=None,
+    trend=None,
+    fit_normalizer=False,
 ):
     r"""
     Estimates the empirical variogram.
@@ -126,8 +131,10 @@ def vario_estimate(
         You can pass a list of fields, that will be used simultaneously.
         This could be helpful, when there are multiple realizations at the
         same points, with the same statistical properties.
-    bin_edges : :class:`numpy.ndarray`
-        the bins on which the variogram will be calculated
+    bin_edges : :class:`numpy.ndarray`, optional
+        the bins on which the variogram will be calculated.
+        If None are given, standard bins provided by the :any:`standard_bins`
+        routine will be used. Default: :any:`None`
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
@@ -195,6 +202,19 @@ def vario_estimate(
     return_counts: :class:`bool`, optional
         if set to true, this function will also return the number of data
         points found at each lag distance as a third return value
+        Default: False
+    mean : :class:`float`, optional
+        mean value used to shift normalized input data.
+        Could also be a callable. The default is None.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given (detrended) field.
         Default: False
 
     Returns
@@ -296,6 +316,13 @@ def vario_estimate(
     if bin_edges is None:
         bin_edges = standard_bins(pos, dim, latlon)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    # normalize field
+    field = remove_trend_norm_mean(
+        *(pos, field, mean, normalizer, trend),
+        check_shape=False,
+        stacked=True,
+        fit_normalizer=fit_normalizer,
+    )
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run
