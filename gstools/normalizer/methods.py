@@ -78,10 +78,13 @@ class BoxCox(Normalizer):
     def denormalize_range(self):
         """:class:`tuple`: Valid range for output data depending on lmbda.
 
-        (-1/lmbda, inf)
+        `(-1/lmbda, inf)` or `(-inf, -1/lmbda)`
         """
-        with np.errstate(divide="ignore"):
-            return (-np.divide(1, self.lmbda), np.inf)
+        if np.isclose(self.lmbda, 0):
+            return (-np.inf, np.inf)
+        if self.lmbda < 0:
+            return (-np.inf, np.divide(1, self.lmbda))
+        return (-np.divide(1, self.lmbda), np.inf)
 
     def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
@@ -141,7 +144,7 @@ class BoxCoxShift(Normalizer):
     def normalize_range(self):
         """:class:`tuple`: Valid range for input data depending on shift.
 
-        (-shift, inf)
+        `(-shift, inf)`
         """
         return (-self.shift, np.inf)
 
@@ -149,10 +152,13 @@ class BoxCoxShift(Normalizer):
     def denormalize_range(self):
         """:class:`tuple`: Valid range for output data depending on lmbda.
 
-        (-1/lmbda, inf)
+        `(-1/lmbda, inf)` or `(-inf, -1/lmbda)`
         """
-        with np.errstate(divide="ignore"):
-            return (-np.divide(1, self.lmbda), np.inf)
+        if np.isclose(self.lmbda, 0):
+            return (-np.inf, np.inf)
+        if self.lmbda < 0:
+            return (-np.inf, np.divide(1, self.lmbda))
+        return (-np.divide(1, self.lmbda), np.inf)
 
     def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
@@ -331,10 +337,13 @@ class Manly(Normalizer):
     def denormalize_range(self):
         """:class:`tuple`: Valid range for output data depending on lmbda.
 
-        (-1/lmbda, inf)
+        `(-1/lmbda, inf)` or `(-inf, -1/lmbda)`
         """
-        with np.errstate(divide="ignore"):
-            return (-np.divide(1, self.lmbda), np.inf)
+        if np.isclose(self.lmbda, 0):
+            return (-np.inf, np.inf)
+        if self.lmbda < 0:
+            return (-np.inf, np.divide(1, self.lmbda))
+        return (-np.divide(1, self.lmbda), np.inf)
 
     def _denormalize(self, data):
         if np.isclose(self.lmbda, 0):
