@@ -24,6 +24,15 @@ Field-Normalizer
    YeoJohnson
    Modulus
    Manly
+
+Convenience Routines
+^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated
+
+   apply_mean_norm_trend
+   remove_trend_norm_mean
 """
 
 from gstools.normalizer.base import Normalizer
@@ -35,6 +44,10 @@ from gstools.normalizer.methods import (
     Modulus,
     Manly,
 )
+from gstools.normalizer.tools import (
+    apply_mean_norm_trend,
+    remove_trend_norm_mean,
+)
 
 __all__ = [
     "Normalizer",
@@ -44,4 +57,6 @@ __all__ = [
     "YeoJohnson",
     "Modulus",
     "Manly",
+    "apply_mean_norm_trend",
+    "remove_trend_norm_mean",
 ]
