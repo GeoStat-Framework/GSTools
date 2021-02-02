@@ -17,6 +17,7 @@ from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
 from gstools.tools.misc import eval_func
 from gstools.normalizer import Normalizer
 from gstools.field.tools import mesh_call, to_vtk_helper, fmt_mean_norm_trend
+from gstools.normalizer.tools import apply_mean_norm_trend, _check_normalizer
 
 __all__ = ["Field"]
 
@@ -197,17 +198,17 @@ class Field:
         if process:
             if self.pos is None:
                 raise ValueError("post_field: no 'pos' tuple set for field.")
-            kwargs = dict(
+            field = apply_mean_norm_trend(
                 pos=self.pos,
-                dim=self.model.field_dim,
+                field=field,
                 mesh_type=self.mesh_type,
                 value_type=self.value_type,
-                broadcast=True,
+                mean=self.mean,
+                normalizer=self.normalizer,
+                trend=self.trend,
+                check_shape=False,
+                stacked=False,
             )
-            # apply mean - normalizer - trend
-            field += eval_func(func_val=self.mean, **kwargs)
-            field = self.normalizer.denormalize(field)
-            field += eval_func(func_val=self.trend, **kwargs)
         if save:
             setattr(self, name, field)
         return field
@@ -329,14 +330,7 @@ class Field:
 
     @normalizer.setter
     def normalizer(self, normalizer):
-        if isinstance(normalizer, type) and issubclass(normalizer, Normalizer):
-            self._normalizer = normalizer()
-        elif isinstance(normalizer, Normalizer):
-            self._normalizer = normalizer
-        elif normalizer is None:
-            self._normalizer = Normalizer()
-        else:
-            raise ValueError("Field: 'normalizer' not of type 'Normalizer'.")
+        self._normalizer = _check_normalizer(normalizer)
 
     @property
     def trend(self):
