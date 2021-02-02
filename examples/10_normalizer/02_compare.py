@@ -37,7 +37,7 @@ normalizers = [
 fig, ax = plt.subplots(2, 2, figsize=[8, 8])
 for i, norm in enumerate(normalizers):
     # correctly setting the data range
-    x_rng = norm.normalize_range
+    x_rng = norm().normalize_range
     x = np.linspace(max(-5, x_rng[0] + 0.01), min(5, x_rng[1] - 0.01))
     for j, lmbda in enumerate(lmbdas):
         ax.flat[i].plot(
