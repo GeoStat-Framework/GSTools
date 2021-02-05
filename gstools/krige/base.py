@@ -397,13 +397,16 @@ class Krige(Field):
     def get_mean(self, post_process=True):
         """Calculate the estimated mean of the detrended field.
 
+        Parameters
+        ----------
+        post_process : :class:`bool`, optional
+            Whether to apply field-mean and normalizer.
+            Default: `True`
+
         Returns
         -------
         mean : :class:`float` or :any:`None`
             Mean of the Kriging System.
-        post_process : :class:`bool`, optional
-            Whether to apply field-mean and normalizer.
-            Default: `True`
 
         Notes
         -----
@@ -491,7 +494,7 @@ class Krige(Field):
             raise ValueError("Krige.set_condition: missing cond_pos/cond_val.")
         # correctly format cond_pos and cond_val
         self._cond_pos, self._cond_val = set_condition(
-            cond_pos, cond_val, self.model.field_dim
+            cond_pos, cond_val, self.dim
         )
         if fit_normalizer:  # fit normalizer to detrended data
             self.normalizer.fit(self.cond_val - self.cond_trend)
@@ -544,7 +547,7 @@ class Krige(Field):
             self._drift_functions = []
         elif isinstance(drift_functions, (str, int)):
             self._drift_functions = get_drift_functions(
-                self.model.field_dim, drift_functions
+                self.dim, drift_functions
             )
         else:
             if isinstance(drift_functions, collections.abc.Iterator):
@@ -623,16 +626,12 @@ class Krige(Field):
     @property
     def cond_mean(self):
         """:class:`numpy.ndarray`: Trend at the conditions."""
-        return eval_func(
-            self.mean, self.cond_pos, self.model.field_dim, broadcast=True
-        )
+        return eval_func(self.mean, self.cond_pos, self.dim, broadcast=True)
 
     @property
     def cond_trend(self):
         """:class:`numpy.ndarray`: Trend at the conditions."""
-        return eval_func(
-            self.trend, self.cond_pos, self.model.field_dim, broadcast=True
-        )
+        return eval_func(self.trend, self.cond_pos, self.dim, broadcast=True)
 
     @property
     def unbiased(self):

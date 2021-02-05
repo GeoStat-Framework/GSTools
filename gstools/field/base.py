@@ -154,19 +154,18 @@ class Field:
         """
         # save mesh-type
         self.mesh_type = mesh_type
-        dim = self.model.field_dim
         # save pos tuple
         if mesh_type != "unstructured":
-            pos, shape = format_struct_pos_dim(pos, dim)
+            pos, shape = format_struct_pos_dim(pos, self.dim)
             self.pos = pos
             pos = gen_mesh(pos)
         else:
-            pos = np.array(pos, dtype=np.double).reshape(dim, -1)
+            pos = np.array(pos, dtype=np.double).reshape(self.dim, -1)
             self.pos = pos
             shape = np.shape(pos[0])
         # prepend dimension if we have a vector field
         if self.value_type == "vector":
-            shape = (self.model.dim,) + shape
+            shape = (self.dim,) + shape
             if self.model.latlon:
                 raise ValueError("Field: Vector fields not allowed for latlon")
         # return isometrized pos tuple and resulting field shape
@@ -351,6 +350,11 @@ class Field:
         if value_type not in VALUE_TYPES:
             raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
         self._value_type = value_type
+
+    @property
+    def dim(self):
+        """:class:`int`: Dimension of the field."""
+        return self.model.field_dim
 
     @property
     def name(self):

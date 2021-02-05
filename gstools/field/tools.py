@@ -154,15 +154,15 @@ def mesh_call(
         pass
 
     if isinstance(direction, str) and direction == "all":
-        select = list(range(f_cls.model.field_dim))
+        select = list(range(f_cls.dim))
     elif isinstance(direction, str):
-        select = _get_select(direction)[: f_cls.model.field_dim]
+        select = _get_select(direction)[: f_cls.dim]
     else:
-        select = direction[: f_cls.model.field_dim]
-    if len(select) < f_cls.model.field_dim:
+        select = direction[: f_cls.dim]
+    if len(select) < f_cls.dim:
         raise ValueError(
             "Field.mesh: need at least {} direction(s), got '{}'".format(
-                f_cls.model.field_dim, direction
+                f_cls.dim, direction
             )
         )
     # convert pyvista mesh
@@ -190,7 +190,7 @@ def mesh_call(
             offset = []
             length = []
             mesh_dim = mesh.points.shape[1]
-            if mesh_dim < f_cls.model.field_dim:
+            if mesh_dim < f_cls.dim:
                 raise ValueError("Field.mesh: mesh dimension too low!")
             pnts = np.empty((0, mesh_dim), dtype=np.double)
             for cell in mesh.cells:
