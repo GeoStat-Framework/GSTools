@@ -102,7 +102,7 @@ def to_vtk_helper(
 def mesh_call(
     f_cls, mesh, points="centroids", direction="all", name="field", **kwargs
 ):
-    """Generate a field on a given meshio or ogs5py mesh.
+    """Generate a field on a given meshio, ogs5py or pyvista mesh.
 
     Parameters
     ----------
@@ -133,9 +133,10 @@ def mesh_call(
     if a meshio or PyVista mesh was given.
 
     See: https://github.com/nschloe/meshio
-    See: https://github.com/pyvista/pyvista
 
-    See: :any:`Field.__call__`
+    See: https://github.com/GeoStat-Framework/ogs5py
+
+    See: https://github.com/pyvista/pyvista
     """
     has_pyvista = False
     has_ogs5py = False
@@ -174,6 +175,8 @@ def mesh_call(
         out = f_cls.unstructured(pos=pnts, **kwargs)
         # Deal with the output
         fields = [out] if isinstance(out, np.ndarray) else out
+        if f_cls.value_type == "vector":
+            fields = [f.T for f in fields]
         for f_name, field in zip(_names(name, len(fields)), fields):
             mesh[f_name] = field
     # convert ogs5py mesh
@@ -202,6 +205,8 @@ def mesh_call(
             pnts = pnts.T[select]
             out = f_cls.unstructured(pos=pnts, **kwargs)
             fields = [out] if isinstance(out, np.ndarray) else out
+            if f_cls.value_type == "vector":
+                fields = [f.T for f in fields]
             f_lists = []
             for field in fields:
                 f_list = []
@@ -213,6 +218,8 @@ def mesh_call(
         else:
             out = f_cls.unstructured(pos=mesh.points.T[select], **kwargs)
             fields = [out] if isinstance(out, np.ndarray) else out
+            if f_cls.value_type == "vector":
+                fields = [f.T for f in fields]
             for f_name, field in zip(_names(name, len(fields)), fields):
                 mesh.point_data[f_name] = field
     else:
