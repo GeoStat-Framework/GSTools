@@ -14,8 +14,6 @@ from functools import partial
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
-from gstools.tools.misc import eval_func
-from gstools.normalizer import Normalizer
 from gstools.field.tools import mesh_call, to_vtk_helper, fmt_mean_norm_trend
 from gstools.normalizer.tools import apply_mean_norm_trend, _check_normalizer
 
@@ -23,6 +21,15 @@ __all__ = ["Field"]
 
 VALUE_TYPES = ["scalar", "vector"]
 """:class:`list` of :class:`str`: valid field value types."""
+
+
+def _set_mean_trend(value, dim):
+    if callable(value) or value is None:
+        return value
+    value = np.array(value, dtype=np.double).ravel()
+    if value.size > 1 and value.size != dim:  # vector mean
+        raise ValueError("Mean/Trend: Wrong size ({})".format(value))
+    return value if value.size > 1 else value.item()
 
 
 class Field:
@@ -320,7 +327,7 @@ class Field:
 
     @mean.setter
     def mean(self, mean):
-        self._mean = mean if (callable(mean) or mean is None) else float(mean)
+        self._mean = _set_mean_trend(mean, self.dim)
 
     @property
     def normalizer(self):
@@ -337,8 +344,8 @@ class Field:
         return self._trend
 
     @trend.setter
-    def trend(self, tren):
-        self._trend = tren if (callable(tren) or tren is None) else float(tren)
+    def trend(self, trend):
+        self._trend = _set_mean_trend(trend, self.dim)
 
     @property
     def value_type(self):

@@ -163,6 +163,10 @@ class SRF(Field):
             self.value_type = self._generator.value_type
         else:
             raise ValueError("gstools.SRF: Unknown generator: " + generator)
+        for val in [self.mean, self.trend]:
+            if not callable(val) and val is not None:
+                if np.size(val) > 1 and self.value_type == "scalar":
+                    raise ValueError("Mean/Trend: Wrong size ({})".format(val))
 
     @property
     def generator(self):

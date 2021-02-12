@@ -63,10 +63,11 @@ def eval_func(
         Function values at the given points.
     """
     # care about scalar inputs
-    if broadcast and not callable(func_val):
-        return 0.0 if func_val is None else float(func_val)
+    func_val = 0 if func_val is None else func_val
+    if broadcast and not callable(func_val) and np.size(func_val) == 1:
+        return np.array(func_val, dtype=np.double).item()
     if not callable(func_val):
-        func_val = _func_from_scalar(func_val)
+        func_val = _func_from_single_val(func_val, dim, value_type=value_type)
     # care about mesh and function call
     if mesh_type != "unstructured":
         pos, shape = format_struct_pos_dim(pos, dim)
@@ -80,13 +81,24 @@ def eval_func(
     return np.reshape(func_val(*pos), shape)
 
 
-def _func_from_scalar(value, value_type="scalar"):
-    value = 0.0 if value is None else float(value)
+def _func_from_single_val(value, dim=None, value_type="scalar"):
+    # care about broadcasting vector values for each dim
+    v_d = dim if value_type == "vector" else 1  # value dim
+    if v_d is None:
+        raise ValueError("_func_from_single_val: dim needed for vector value.")
+    value = np.array(value, dtype=np.double).ravel()[:v_d]
+    # fill up vector valued output to dimension with last value
+    value = np.pad(
+        value, (0, v_d - len(value)), "constant", constant_values=value[-1]
+    )
 
     def _f(*pos):
-        if value_type == "vector":
-            return np.full_like(pos, value, dtype=np.double)
-        # scalar field has same shape like a single axis
-        return np.full_like(pos[0], value, dtype=np.double)
+        # zip uses shortes len of iterables given (correct for scalar value)
+        return np.concatenate(
+            [
+                np.full_like(p, val, dtype=np.double)
+                for p, val in zip(pos, value)
+            ]
+        )
 
     return _f
