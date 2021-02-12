@@ -278,8 +278,8 @@ import gstools as gs
 x = np.arange(100)
 y = np.arange(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
-srf = gs.SRF(model, generator='VectorField')
-srf((x, y), mesh_type='structured', seed=19841203)
+srf = gs.SRF(model, generator='VectorField', seed=19841203)
+srf((x, y), mesh_type='structured')
 srf.plot()
 ```
 
