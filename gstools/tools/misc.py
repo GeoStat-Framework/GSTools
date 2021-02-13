@@ -20,7 +20,7 @@ __all__ = ["list_format", "eval_func"]
 def list_format(lst, prec):
     """Format a list of floats."""
     return "[{}]".format(
-        ", ".join("{x:.{p}}".format(x=x, p=prec) for x in lst)
+        ", ".join("{x:.{p}}".format(x=float(x), p=prec) for x in lst)
     )
 
 
