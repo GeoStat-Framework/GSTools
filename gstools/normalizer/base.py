@@ -232,6 +232,17 @@ class Normalizer:
             setattr(self, name, val)
         return {name: getattr(self, name) for name in all_names}
 
+    def __eq__(self, other):
+        """Compare Normalizers."""
+        # check for correct base class
+        if type(self) is not type(other):
+            return False
+        # if base class is same, this is save
+        for val in self.default_parameter:
+            if not np.isclose(getattr(self, val), getattr(other, val)):
+                return False
+        return True
+
     @property
     def name(self):
         """:class:`str`: The name of the normalizer class."""
