@@ -197,9 +197,11 @@ class TestNormalizer(unittest.TestCase):
         )
         # test fitting during kriging
         self.assertTrue(np.abs(krige.normalizer.lmbda - 0.0) < 1e-1)
-        self.assertAlmostEqual(krige.model.len_scale, 10.267877910391935)
+        self.assertAlmostEqual(krige.model.len_scale, 10.267877, places=4)
         self.assertAlmostEqual(
-            krige.model.sill, krige.normalizer.normalize(cond_val).var()
+            krige.model.sill,
+            krige.normalizer.normalize(cond_val).var(),
+            places=4,
         )
         # test fitting during vario estimate
         emp_vario = gs.vario_estimate(
@@ -210,10 +212,10 @@ class TestNormalizer(unittest.TestCase):
         )
         model = gs.Stable(dim=2)
         model.fit_variogram(*emp_vario)
-        self.assertAlmostEqual(model.var, 0.6426670183)
-        self.assertAlmostEqual(model.len_scale, 9.635193952)
-        self.assertAlmostEqual(model.nugget, 0.001617908408)
-        self.assertAlmostEqual(model.alpha, 2.0)
+        self.assertAlmostEqual(model.var, 0.6426670183, places=4)
+        self.assertAlmostEqual(model.len_scale, 9.635193952, places=4)
+        self.assertAlmostEqual(model.nugget, 0.001617908408, places=4)
+        self.assertAlmostEqual(model.alpha, 2.0, places=4)
 
 
 if __name__ == "__main__":
