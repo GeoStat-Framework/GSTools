@@ -187,8 +187,8 @@ class CondSRF(Field):
         return self.krige.trend
 
     @trend.setter
-    def trend(self, tren):
-        self.krige.trend = tren
+    def trend(self, trend):
+        self.krige.trend = trend
 
     @property
     def value_type(self):
