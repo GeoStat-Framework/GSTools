@@ -84,7 +84,7 @@ def eval_func(
 def _func_from_single_val(value, dim=None, value_type="scalar"):
     # care about broadcasting vector values for each dim
     v_d = dim if value_type == "vector" else 1  # value dim
-    if v_d is None:
+    if v_d is None:  # pragma: no cover
         raise ValueError("_func_from_single_val: dim needed for vector value.")
     value = np.array(value, dtype=np.double).ravel()[:v_d]
     # fill up vector valued output to dimension with last value
