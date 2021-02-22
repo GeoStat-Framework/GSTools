@@ -94,12 +94,9 @@ class CondSRF(Field):
         )
         field, krige_var = self.krige(pos, **kwargs)
         var_scale, nugget = self.get_scaling(krige_var, shape)
-        field = self.krige.post_field(
-            field=field + var_scale * self.raw_field + nugget, save=False
-        )
-        self.krige.post_field(self.krige.field)
-        # processing is done in the kriging class
-        return self.post_field(field, process=False)
+        # need to use a copy to not alter "field" by reference
+        self.krige.post_field(self.krige.field.copy())
+        return self.post_field(field + var_scale * self.raw_field + nugget)
 
     def get_scaling(self, krige_var, shape):
         """
@@ -146,8 +143,6 @@ class CondSRF(Field):
             self.value_type = self.generator.value_type
         else:
             raise ValueError("gstools.CondSRF: Unknown generator " + generator)
-        if self.value_type != "scalar":
-            raise ValueError("CondSRF: only scalar field value type allowed.")
 
     @property
     def krige(self):
