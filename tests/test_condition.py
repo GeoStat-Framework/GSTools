@@ -136,7 +136,8 @@ class TestCondition(unittest.TestCase):
         crf1.model = gs.Gaussian(var=2)
         crf1.mean = -1
         crf1.trend = -2
-        crf1.normalizer = gs.normalizer.YeoJohnson()
+        # also checking correctly setting uninitialized normalizer
+        crf1.normalizer = gs.normalizer.YeoJohnson
         # check if setting went right
         self.assertTrue(crf1.model == crf2.model)
         self.assertTrue(crf1.normalizer == crf2.normalizer)
