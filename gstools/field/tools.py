@@ -21,7 +21,7 @@ from gstools.tools.misc import list_format
 __all__ = ["fmt_mean_norm_trend", "to_vtk_helper", "mesh_call"]
 
 
-def _fmt_func_val(f_cls, func_val):
+def _fmt_func_val(f_cls, func_val):  # pragma: no cover
     if func_val is None:
         return str(None)
     if callable(func_val):
@@ -31,12 +31,12 @@ def _fmt_func_val(f_cls, func_val):
     return "{0:.{p}}".format(float(func_val), p=f_cls.model._prec)
 
 
-def _fmt_normalizer(f_cls):
+def _fmt_normalizer(f_cls):  # pragma: no cover
     norm = f_cls.normalizer
     return str(None) if norm.__class__ is Normalizer else norm.name
 
 
-def fmt_mean_norm_trend(f_cls):
+def fmt_mean_norm_trend(f_cls):  # pragma: no cover
     """Format string repr. for mean, normalizer and trend of a field."""
     args = [
         "mean=" + _fmt_func_val(f_cls, f_cls.mean),
