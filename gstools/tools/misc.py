@@ -17,7 +17,7 @@ from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
 __all__ = ["list_format", "eval_func"]
 
 
-def list_format(lst, prec):
+def list_format(lst, prec):  # pragma: no cover
     """Format a list of floats."""
     return "[{}]".format(
         ", ".join("{x:.{p}}".format(x=float(x), p=prec) for x in lst)
