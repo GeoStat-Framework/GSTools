@@ -158,6 +158,17 @@ class TestNormalizer(unittest.TestCase):
             )
         )
 
+    def test_compare(self):
+        norm1 = gs.normalizer.BoxCox()
+        norm2 = gs.normalizer.BoxCox(lmbda=0.5)
+        norm3 = gs.normalizer.YeoJohnson()
+        norm4 = "this is not a normalizer"
+        # check campare
+        self.assertTrue(norm1 == norm1)
+        self.assertTrue(norm1 != norm2)
+        self.assertTrue(norm1 != norm3)
+        self.assertTrue(norm1 != norm4)
+
 
 if __name__ == "__main__":
     unittest.main()
