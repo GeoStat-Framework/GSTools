@@ -471,12 +471,6 @@ class Krige(Field):
             assuming the sill to be the data variance and with the
             standard bins provided by the :any:`standard_bins` routine.
             Default: False
-
-        Notes
-        -----
-        In order to remove an existing external drift use:
-
-        >>> del Krige.cond_ext_drift
         """
         # only use existing external drift, if no new positions are given
         ext_drift = (
@@ -617,10 +611,6 @@ class Krige(Field):
     def cond_ext_drift(self):
         """:class:`numpy.ndarray`: The ext. drift at the conditions."""
         return self._cond_ext_drift
-
-    @cond_ext_drift.deleter
-    def cond_ext_drift(self):
-        self._cond_ext_drift = np.array([])
 
     @property
     def cond_mean(self):
