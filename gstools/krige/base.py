@@ -148,9 +148,8 @@ class Krige(Field):
         self._krige_pos = None
         self._cond_trend = None
         self._cond_ext_drift = np.array([])
-        self._drift_functions = []
-        if drift_functions is not None:
-            self.set_drift_functions(drift_functions)
+        self._drift_functions = None
+        self.set_drift_functions(drift_functions)
         self.set_condition(
             cond_pos,
             cond_val,
