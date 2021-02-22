@@ -169,6 +169,52 @@ class TestNormalizer(unittest.TestCase):
         self.assertTrue(norm1 != norm3)
         self.assertTrue(norm1 != norm4)
 
+    def test_check(self):
+        self.assertRaises(ValueError, gs.field.Field, gs.Cubic(), normalizer=5)
+
+    def test_auto_fit(self):
+        x = y = range(60)
+        pos = gs.tools.geometric.gen_mesh([x, y])
+        model = gs.Gaussian(dim=2, var=1, len_scale=10)
+        srf = gs.SRF(
+            model, seed=20170519, normalizer=gs.normalizer.LogNormal()
+        )
+        srf(pos)
+        ids = np.arange(srf.field.size)
+        samples = np.random.RandomState(20210201).choice(
+            ids, size=60, replace=False
+        )
+        # sample conditioning points from generated field
+        cond_pos = pos[:, samples]
+        cond_val = srf.field[samples]
+        krige = gs.krige.Ordinary(
+            model=gs.Stable(dim=2),
+            cond_pos=cond_pos,
+            cond_val=cond_val,
+            normalizer=gs.normalizer.BoxCox(),
+            fit_normalizer=True,
+            fit_variogram=True,
+        )
+        # test fitting during kriging
+        self.assertTrue(np.abs(krige.normalizer.lmbda - 0.0) < 1e-1)
+        self.assertAlmostEqual(krige.model.len_scale, 10.267877910391935)
+        self.assertAlmostEqual(
+            krige.model.sill, krige.normalizer.normalize(cond_val).var()
+        )
+        # test fitting during vario estimate
+        emp_vario = gs.vario_estimate(
+            cond_pos,
+            cond_val,
+            normalizer=gs.normalizer.BoxCox,
+            fit_normalizer=True,
+        )
+        model = gs.Stable(dim=2)
+        model.fit_variogram(*emp_vario)
+        self.assertAlmostEqual(model.var, 0.6426670183)
+        self.assertAlmostEqual(model.len_scale, 9.635193952)
+        self.assertAlmostEqual(model.nugget, 0.001617908408)
+        self.assertAlmostEqual(model.alpha, 2.0)
+
 
 if __name__ == "__main__":
     unittest.main()
