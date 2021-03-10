@@ -221,7 +221,7 @@ class Krige(Field):
             chunk_size = pnt_cnt if chunk_size is None else int(chunk_size)
             chunk_no = int(np.ceil(pnt_cnt / chunk_size))
             ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
-            # iterate of chunks
+            # iterate chunks
             for i in range(chunk_no):
                 # get chunk slice for actual chunk
                 chunk_slice = (

@@ -133,7 +133,7 @@ def vario_estimate(
         same points, with the same statistical properties.
     bin_edges : :class:`numpy.ndarray`, optional
         the bins on which the variogram will be calculated.
-        If None are given, standard bins provided by the :any:`standard_bins`
+        If :any:`None` are given, standard bins provided by the :any:`standard_bins`
         routine will be used. Default: :any:`None`
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
@@ -205,7 +205,7 @@ def vario_estimate(
         Default: False
     mean : :class:`float`, optional
         mean value used to shift normalized input data.
-        Could also be a callable. The default is None.
+        Can also be a callable. The default is None.
     normalizer : :any:`None` or :any:`Normalizer`, optional
         Normalizer to be applied to the input data to gain normality.
         The default is None.

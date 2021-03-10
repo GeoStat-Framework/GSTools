@@ -3,7 +3,7 @@ Automatic fitting
 -----------------
 
 In order to demonstrate how to automatically fit normalizer and variograms,
-we generate synthetic lognormal data, that should be interpolated with
+we generate synthetic log-normal data, that should be interpolated with
 ordinary kriging.
 
 Normalizers are fitted by minimizing the likelihood function and variograms
@@ -14,7 +14,7 @@ the field variance.
 Artificial data
 ^^^^^^^^^^^^^^^
 
-Here we generate log-normal data following a gaussian covariance model.
+Here we generate log-normal data following a Gaussian covariance model.
 We will generate the "original" field on a 60x60 mesh, from which we will take
 samples in order to pretend a situation of data-scarcity.
 """
@@ -44,7 +44,7 @@ cond_val = srf.field[samples]
 # Fitting and Interpolation
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Now we want to interpolate the "meassured" samples
+# Now we want to interpolate the "measured" samples
 # and we want to normalize the given data with the BoxCox transformation.
 #
 # Here we set up the kriging routine and use a :any:`Stable` model, that should
@@ -76,7 +76,7 @@ print(krige.normalizer)
 # As we see, it went quite well. Variance is a bit underestimated, but
 # length scale and nugget are good. The shape parameter of the stable model
 # is correctly estimated to be close to `2`,
-# so we result in a gaussian like model.
+# so we result in a Gaussian like model.
 #
 # The BoxCox parameter `lmbda` was estimated to be almost 0, which means,
 # the log-normal distribution was correctly fitted.

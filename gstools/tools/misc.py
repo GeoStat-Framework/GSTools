@@ -93,7 +93,7 @@ def _func_from_single_val(value, dim=None, value_type="scalar"):
     )
 
     def _f(*pos):
-        # zip uses shortes len of iterables given (correct for scalar value)
+        # zip uses shortest len of iterables given (correct for scalar value)
         return np.concatenate(
             [
                 np.full_like(p, val, dtype=np.double)

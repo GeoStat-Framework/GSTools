@@ -237,7 +237,7 @@ class Normalizer:
         # check for correct base class
         if type(self) is not type(other):
             return False
-        # if base class is same, this is save
+        # if base class is same, this is safe
         for val in self.default_parameter:
             if not np.isclose(getattr(self, val), getattr(other, val)):
                 return False
