@@ -42,13 +42,13 @@ def plot_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     """
     plot_field = getattr(fld, field)
     assert not (fld.pos is None or plot_field is None)
-    if fld.model.field_dim == 1:
+    if fld.dim == 1:
         ax = _plot_1d(fld.pos, plot_field, fig, ax)
-    elif fld.model.field_dim == 2:
+    elif fld.dim == 2:
         ax = _plot_2d(
             fld.pos, plot_field, fld.mesh_type, fig, ax, fld.model.latlon
         )
-    elif fld.model.field_dim == 3:
+    elif fld.dim == 3:
         ax = _plot_3d(fld.pos, plot_field, fld.mesh_type, fig, ax)
     else:
         raise ValueError("Field.plot: only possible for dim=1,2,3!")

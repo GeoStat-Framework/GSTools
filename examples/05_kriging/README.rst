@@ -33,11 +33,20 @@ the features you want:
   In contrast to the internal drift, that is evaluated at the desired points with
   the given functions, the external drift has to given for each point form an "external"
   source. This results in :any:`ExtDrift` kriging.
-* `trend_function`: If you already have fitted a trend model, that is provided as a
-  callable, you can give it to the kriging routine. This trend is subtracted from the
-  conditional values before the kriging is done, meaning, that only the residuals are
-  used for kriging. This can be used with separate regression of your data.
-  This results in :any:`Detrended` kriging.
+* `trend`, `mean`, `normalizer`: These are used to pre- and post-process data.
+  If you already have fitted a trend model that is provided as a callable function,
+  you can give it to the kriging routine. Normalizer are power-transformations
+  to gain normality.
+  `mean` behaves similar to `trend` but is applied at another position:
+
+      1. conditioning data is de-trended (substracting trend)
+      2. detrended conditioning data is then normalized (in order to follow a normal distribution)
+      3. normalized conditioning data is set to zero mean (subtracting mean)
+
+  Cosequently, when there is no normalizer given, trend and mean are the same thing
+  and only one should be used.
+  :any:`Detrended` kriging is a shortcut to provide only a trend and simple kriging
+  with normal data.
 * `exact` and `cond_err`: To incorporate the nugget effect and/or measurement errors,
   one can set `exact` to `False` and provide either individual measurement errors
   for each point or set the nugget as a constant measurement error everywhere.

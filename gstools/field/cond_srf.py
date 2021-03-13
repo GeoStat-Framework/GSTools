@@ -29,8 +29,8 @@ class CondSRF(Field):
 
     Parameters
     ----------
-    model : :any:`CovModel`
-        Covariance Model of the spatial random field.
+    krige : :any:`Krige`
+        Kriging setup to condition the spatial random field.
     generator : :class:`str`, optional
         Name of the field generator to be used.
         At the moment, only the following generator is provided:
@@ -47,14 +47,13 @@ class CondSRF(Field):
     def __init__(self, krige, generator="RandMeth", **generator_kwargs):
         if not isinstance(krige, Krige):
             raise ValueError("CondSRF: krige should be an instance of Krige.")
-        self.krige = krige
+        self._krige = krige
         # initialize attributes
         self.pos = None
         self.mesh_type = None
         self.field = None
         self.raw_field = None
         # initialize private attributes
-        self._value_type = None
         self._generator = None
         # initialize attributes
         self.set_generator(generator, **generator_kwargs)
@@ -84,6 +83,7 @@ class CondSRF(Field):
         kwargs["mesh_type"] = mesh_type
         kwargs["only_mean"] = False  # overwrite if given
         kwargs["return_var"] = True  # overwrite if given
+        kwargs["post_process"] = False  # overwrite if given
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape
@@ -94,8 +94,9 @@ class CondSRF(Field):
         )
         field, krige_var = self.krige(pos, **kwargs)
         var_scale, nugget = self.get_scaling(krige_var, shape)
-        self.field = field + var_scale * self.raw_field + nugget
-        return self.field
+        # need to use a copy to not alter "field" by reference
+        self.krige.post_field(self.krige.field.copy())
+        return self.post_field(field + var_scale * self.raw_field + nugget)
 
     def get_scaling(self, krige_var, shape):
         """
@@ -112,7 +113,7 @@ class CondSRF(Field):
         -------
         var_scale : :class:`numpy.ndarray`
             Variance scaling factor for the random field.
-        nugget : :class:`numpy.ndarray` or `class:`int
+        nugget : :class:`numpy.ndarray` or :class:`int`
             Nugget to be added to the field.
         """
         if self.model.nugget > 0:
@@ -139,11 +140,14 @@ class CondSRF(Field):
         if generator in GENERATOR:
             gen = GENERATOR[generator]
             self._generator = gen(self.model, **generator_kwargs)
-            self.value_type = self._generator.value_type
+            self.value_type = self.generator.value_type
         else:
             raise ValueError("gstools.CondSRF: Unknown generator " + generator)
-        if self.value_type != "scalar":
-            raise ValueError("CondSRF: only scalar field value type allowed.")
+
+    @property
+    def krige(self):
+        """:any:`Krige`: The underlying kriging class."""
+        return self._krige
 
     @property
     def generator(self):
@@ -157,10 +161,46 @@ class CondSRF(Field):
 
     @model.setter
     def model(self, model):
-        pass
+        self.krige.model = model
+
+    @property
+    def mean(self):
+        """:class:`float` or :any:`callable`: The mean of the field."""
+        return self.krige.mean
+
+    @mean.setter
+    def mean(self, mean):
+        self.krige.mean = mean
+
+    @property
+    def normalizer(self):
+        """:any:`Normalizer`: Normalizer of the field."""
+        return self.krige.normalizer
+
+    @normalizer.setter
+    def normalizer(self, normalizer):
+        self.krige.normalizer = normalizer
+
+    @property
+    def trend(self):
+        """:class:`float` or :any:`callable`: The trend of the field."""
+        return self.krige.trend
+
+    @trend.setter
+    def trend(self, trend):
+        self.krige.trend = trend
+
+    @property
+    def value_type(self):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+        return self.krige.value_type
+
+    @value_type.setter
+    def value_type(self, value_type):
+        self.krige.value_type = value_type
 
     def __repr__(self):
         """Return String representation."""
         return "CondSRF(krige={0}, generator={1})".format(
-            self.krige, self.generator
+            self.krige, self.generator.name
         )

@@ -208,8 +208,7 @@ def set_opt_args(model, opt_arg):
         if def_arg not in opt_arg:
             opt_arg[def_arg] = default[def_arg]
     # save names of the optional arguments (sort them by name)
-    model._opt_arg = list(opt_arg.keys())
-    model._opt_arg.sort()
+    model._opt_arg = sorted(opt_arg)
     # add the optional arguments as attributes to the class
     for opt_name in opt_arg:
         if opt_name in dir(model):  # "dir" also respects properties

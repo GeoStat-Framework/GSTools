@@ -404,6 +404,12 @@ class TestVariogramUnstructured(unittest.TestCase):
         # no pos given
         self.assertRaises(ValueError, gs.standard_bins)
 
+    def test_raise(self):
+        # 1d field given for latlon estimation -> needs 2d
+        self.assertRaises(
+            ValueError, gs.vario_estimate, [[1, 2]], [1, 2], latlon=True
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

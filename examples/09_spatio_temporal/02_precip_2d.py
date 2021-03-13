@@ -52,13 +52,15 @@ srf.field *= amount
 ###############################################################################
 # plot the 2d precipitation field over time as an animation.
 
+
 def _update_ani(time_step):
     im.set_array(srf.field[:, :, time_step].T)
-    return im,
+    return (im,)
+
 
 fig, ax = plt.subplots()
 im = ax.imshow(
-    srf.field[:,:,0].T,
+    srf.field[:, :, 0].T,
     cmap="Blues",
     interpolation="bicubic",
     origin="lower",
@@ -68,4 +70,6 @@ cbar.ax.set_ylabel(r"Precipitation $P$ / mm")
 ax.set_xlabel(r"$x$ / km")
 ax.set_ylabel(r"$y$ / km")
 
-ani = animation.FuncAnimation(fig, _update_ani, len(t), interval=100, blit=True)
+ani = animation.FuncAnimation(
+    fig, _update_ani, len(t), interval=100, blit=True
+)

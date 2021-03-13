@@ -6,9 +6,18 @@ GSTools Quickstart
    :width: 150px
    :align: center
 
-GeoStatTools provides geostatistical tools for random field generation and
-variogram estimation based on many readily provided and even user-defined
-covariance models.
+GeoStatTools provides geostatistical tools for various purposes:
+
+- random field generation
+- simple, ordinary, universal and external drift kriging
+- conditioned field generation
+- incompressible random vector field generation
+- (automatted) variogram estimation and fitting
+- directional variogram estimation and modelling
+- data normalization and transformation
+- many readily provided and even user-defined covariance models
+- metric spatio-temporal modelling
+- plotting and exporting routines
 
 
 Installation
@@ -99,9 +108,8 @@ showing the most important use cases of GSTools, which are
 - `Field transformations <examples/07_transformations/index.html>`__
 - `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
 - `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
+- `Normalizing Data <examples/10_normalizer/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
-
-Some more examples are provided in the examples folder.
 
 
 Spatial Random Field Generation
@@ -253,15 +261,15 @@ generate 100 realizations and plot them:
 
     gridx = np.linspace(0.0, 15.0, 151)
 
-    # spatial random field class
+    # conditioned spatial random field class
     model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
-    srf = gs.SRF(model)
-    srf.set_condition(cond_pos, cond_val, "ordinary")
+    krige = gs.krige.Ordinary(model, cond_pos, cond_val)
+    cond_srf = gs.CondSRF(krige)
 
     # generate the ensemble of field realizations
     fields = []
     for i in range(100):
-        fields.append(srf(gridx, seed=i))
+        fields.append(cond_srf(gridx, seed=i))
         plt.plot(gridx, fields[i], color="k", alpha=0.1)
     plt.scatter(cond_pos, cond_val, color="k")
     plt.show()

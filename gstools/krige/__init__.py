@@ -16,8 +16,6 @@ Kriging Classes
    Universal
    ExtDrift
    Detrended
-
-----
 """
 from gstools.krige.base import Krige
 from gstools.krige.methods import (

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-GStools subpackage providing transformations.
+GStools subpackage providing transformations to post-process normal fields.
 
 .. currentmodule:: gstools.transform
 

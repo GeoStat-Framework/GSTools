@@ -97,6 +97,59 @@ class TestCondition(unittest.TestCase):
                     self.assertAlmostEqual(val, field_1[i], places=2)
                     self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
 
+    def test_raise_error(self):
+        self.assertRaises(ValueError, gs.CondSRF, gs.Gaussian())
+        krige = gs.krige.Ordinary(gs.Stable(), self.cond_pos, self.cond_val)
+        self.assertRaises(ValueError, gs.CondSRF, krige, generator="unknown")
+
+    def test_nugget(self):
+        model = gs.Gaussian(
+            nugget=0.01,
+            var=0.5,
+            len_scale=2,
+            anis=[0.1, 1],
+            angles=[0.5, 0, 0],
+        )
+        krige = gs.krige.Ordinary(
+            model, self.cond_pos, self.cond_val, exact=True
+        )
+        crf = gs.CondSRF(krige, seed=19970221)
+        field_1 = crf.unstructured(self.pos)
+        field_2 = crf.structured(self.pos)
+        for i, val in enumerate(self.cond_val):
+            self.assertAlmostEqual(val, field_1[i], places=2)
+            self.assertAlmostEqual(val, field_2[3 * (i,)], places=2)
+
+    def test_setter(self):
+        krige1 = gs.krige.Krige(gs.Exponential(), self.cond_pos, self.cond_val)
+        krige2 = gs.krige.Krige(
+            gs.Gaussian(var=2),
+            self.cond_pos,
+            self.cond_val,
+            mean=-1,
+            trend=-2,
+            normalizer=gs.normalizer.YeoJohnson(),
+        )
+        crf1 = gs.CondSRF(krige1)
+        crf2 = gs.CondSRF(krige2, seed=19970221)
+        # update settings
+        crf1.model = gs.Gaussian(var=2)
+        crf1.mean = -1
+        crf1.trend = -2
+        # also checking correctly setting uninitialized normalizer
+        crf1.normalizer = gs.normalizer.YeoJohnson
+        # check if setting went right
+        self.assertTrue(crf1.model == crf2.model)
+        self.assertTrue(crf1.normalizer == crf2.normalizer)
+        self.assertAlmostEqual(crf1.mean, crf2.mean)
+        self.assertAlmostEqual(crf1.trend, crf2.trend)
+        # reset kriging
+        crf1.krige.set_condition()
+        # compare fields
+        field1 = crf1(self.pos, seed=19970221)
+        field2 = crf2(self.pos)
+        self.assertTrue(np.all(np.isclose(field1, field2)))
+
 
 if __name__ == "__main__":
     unittest.main()

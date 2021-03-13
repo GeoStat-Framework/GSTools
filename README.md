@@ -19,11 +19,14 @@
 
 GeoStatTools provides geostatistical tools for various purposes:
 - random field generation
+- simple, ordinary, universal and external drift kriging
 - conditioned field generation
 - incompressible random vector field generation
-- simple and ordinary kriging
-- variogram estimation and fitting
+- (automatted) variogram estimation and fitting
+- directional variogram estimation and modelling
+- data normalization and transformation
 - many readily provided and even user-defined covariance models
+- metric spatio-temporal modelling
 - plotting and exporting routines
 
 
@@ -83,6 +86,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Field transformations][tut7_link]
 - [Geographic Coordinates][tut8_link]
 - [Spatio-Temporal Modelling][tut9_link]
+- [Normalizing Data][tut10_link]
 - [Miscellaneous examples][tut0_link]
 
 The associated python scripts are provided in the `examples` folder.
@@ -219,15 +223,15 @@ cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 
 gridx = np.linspace(0.0, 15.0, 151)
 
-# spatial random field class
+# conditioned spatial random field class
 model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
-srf = gs.SRF(model)
-srf.set_condition(cond_pos, cond_val, "ordinary")
+krige = gs.krige.Ordinary(model, cond_pos, cond_val)
+cond_srf = gs.CondSRF(krige)
 
 # generate the ensemble of field realizations
 fields = []
 for i in range(100):
-    fields.append(srf(gridx, seed=i))
+    fields.append(cond_srf(gridx, seed=i))
     plt.plot(gridx, fields[i], color="k", alpha=0.1)
 plt.scatter(cond_pos, cond_val, color="k")
 plt.show()
@@ -363,6 +367,7 @@ You can contact us via <info@geostat-framework.org>.
 [tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
 [tut8_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/08_geo_coordinates/index.html
 [tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/09_spatio_temporal/index.html
+[tut10_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/10_normalizer/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/

@@ -41,7 +41,7 @@ class RandMeth:
     verbose : :class:`bool`, optional
         Be chatty during the generation.
         Default: :any:`False`
-    sampling :class:`str`, optional
+    sampling : :class:`str`, optional
         Sampling strategy. Either
 
             * "auto": select best strategy depending on given model
@@ -331,7 +331,7 @@ class IncomprRandMeth(RandMeth):
     verbose : :class:`bool`, optional
         State if there should be output during the generation.
         Default: :any:`False`
-    sampling :class:`str`, optional
+    sampling : :class:`str`, optional
         Sampling strategy. Either
 
             * "auto": select best strategy depending on given model

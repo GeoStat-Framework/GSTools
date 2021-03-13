@@ -8,6 +8,8 @@ Variogram estimation
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    vario_estimate
    vario_estimate_axis
 
@@ -15,6 +17,8 @@ Binning
 ^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    standard_bins
 
 ----
