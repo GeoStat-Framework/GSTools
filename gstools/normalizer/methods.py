@@ -83,7 +83,7 @@ class BoxCox(Normalizer):
         if np.isclose(self.lmbda, 0):
             return (-np.inf, np.inf)
         if self.lmbda < 0:
-            return (-np.inf, np.divide(1, self.lmbda))
+            return (-np.inf, -np.divide(1, self.lmbda))
         return (-np.divide(1, self.lmbda), np.inf)
 
     def _denormalize(self, data):
