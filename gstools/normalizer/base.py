@@ -34,6 +34,7 @@ class Normalizer:
     """:class:`tuple`: Valid range for input data."""
     denormalize_range = (-np.inf, np.inf)
     """:class:`tuple`: Valid range for output/normal data."""
+    _dx = 1e-6  # dx for numerical derivative
 
     def __init__(self, data=None, **parameter):
         # only use parameter, that have a provided default value
@@ -54,7 +55,7 @@ class Normalizer:
         return data
 
     def _derivative(self, data):
-        return spm.derivative(self._normalize, data, dx=1e-6)
+        return spm.derivative(self._normalize, data, dx=self._dx)
 
     def _loglikelihood(self, data):
         add = -0.5 * np.size(data) * (np.log(2 * np.pi) + 1)
