@@ -22,8 +22,8 @@ import numpy as np
 import gstools as gs
 import matplotlib.pyplot as plt
 
-# structured field with a size of 60x60
-x = y = range(60)
+# structured field with edge length of 50
+x = y = range(51)
 pos = gs.tools.geometric.gen_mesh([x, y])
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519, normalizer=gs.normalizer.LogNormal())
@@ -94,9 +94,9 @@ krige(pos)
 # of the measurement samples and the field is reconstructed quite accurately.
 
 fig, ax = plt.subplots(1, 3, figsize=[8, 3])
-ax[0].imshow(srf.field.reshape(60, 60).T, origin="lower")
+ax[0].imshow(srf.field.reshape(len(x), len(y)).T, origin="lower")
 ax[1].scatter(*cond_pos, c=cond_val)
-ax[2].imshow(krige.field.reshape(60, 60).T, origin="lower")
+ax[2].imshow(krige.field.reshape(len(x), len(y)).T, origin="lower")
 # titles
 ax[0].set_title("original field")
 ax[1].set_title("sampled field")
