@@ -14,7 +14,11 @@ from functools import partial
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
-from gstools.field.tools import mesh_call, to_vtk_helper, fmt_mean_norm_trend
+from gstools.field.tools import (
+    generate_on_mesh,
+    to_vtk_helper,
+    fmt_mean_norm_trend,
+)
 from gstools.normalizer.tools import apply_mean_norm_trend, _check_normalizer
 
 __all__ = ["Field"]
@@ -137,7 +141,7 @@ class Field:
 
         See: :any:`Field.__call__`
         """
-        return mesh_call(self, mesh, points, direction, name, **kwargs)
+        return generate_on_mesh(self, mesh, points, direction, name, **kwargs)
 
     def pre_pos(self, pos, mesh_type="unstructured"):
         """
@@ -369,6 +373,7 @@ class Field:
         return self.__class__.__name__
 
     def _fmt_mean_norm_trend(self):
+        # fmt_mean_norm_trend for all child classes
         return fmt_mean_norm_trend(self)
 
     def __repr__(self):

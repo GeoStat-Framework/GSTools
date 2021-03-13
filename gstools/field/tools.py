@@ -102,13 +102,15 @@ def to_vtk_helper(
         )
 
 
-def mesh_call(
+def generate_on_mesh(
     f_cls, mesh, points="centroids", direction="all", name="field", **kwargs
 ):
     """Generate a field on a given meshio, ogs5py or pyvista mesh.
 
     Parameters
     ----------
+    f_cls : :any:`Field`
+        The field class in use.
     mesh : meshio.Mesh or ogs5py.MSH or PyVista mesh
         The given meshio, ogs5py, or PyVista mesh
     points : :class:`str`, optional
