@@ -72,7 +72,6 @@ ax2 = fig.add_subplot(132, projection=Axes3D.name)
 ax3 = fig.add_subplot(133)
 
 srf.plot(ax=ax1)
-ax1.set_aspect("equal")
 
 ax2.plot([0, axis1[0]], [0, axis1[1]], [0, axis1[2]], label="0.")
 ax2.plot([0, axis2[0]], [0, axis2[1]], [0, axis2[2]], label="1.")

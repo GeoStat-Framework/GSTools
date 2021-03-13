@@ -268,7 +268,9 @@ class Field:
             fieldname=fieldname,
         )
 
-    def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
+    def plot(
+        self, field="field", fig=None, ax=None, **kwargs
+    ):  # pragma: no cover
         """
         Plot the spatial random field.
 
@@ -294,11 +296,11 @@ class Field:
             )
 
         elif self.value_type == "scalar":
-            r = plot_field(self, field, fig, ax)
+            r = plot_field(self, field, fig, ax, **kwargs)
 
         elif self.value_type == "vector":
             if self.model.dim == 2:
-                r = plot_vec_field(self, field, fig, ax)
+                r = plot_vec_field(self, field, fig, ax, **kwargs)
             else:
                 raise NotImplementedError(
                     "Streamflow plotting only supported for 2d case."
