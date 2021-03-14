@@ -50,75 +50,52 @@ def plot_field(
     plot_field = getattr(fld, field)
     assert not (fld.pos is None or plot_field is None)
     if fld.dim == 1:
-        return _plot_1d(fld.pos, plot_field, fig, ax, **kwargs)
-    if fld.dim == 2:
-        return _plot_2d(
-            fld.pos,
-            plot_field,
-            fld.mesh_type,
-            fig,
-            ax,
-            fld.model.latlon,
-            **kwargs
-        )
-    return _plot_nd(
+        return plot_1d(fld.pos, plot_field, fig, ax, **kwargs)
+    return plot_nd(
         fld.pos, plot_field, fld.mesh_type, fig, ax, fld.model.latlon, **kwargs
     )
 
 
-def _ax_names(dim, latlon=False, ax_names=None):
-    if ax_names is not None:
-        assert len(ax_names) >= dim
-        return ax_names[:dim]
-    if dim == 2 and latlon:
-        return ["lon", "lat"]
-    if dim <= 3:
-        return ["$x$", "$y$", "$z$"][:dim]
-    return ["$x_{" + str(i) + "}$" for i in range(dim)]
+def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
+    """
+    Plot a 1D field.
 
+    Parameters
+    ----------
+    pos : :class:`list`
+        the position tuple, containing either the point coordinates (x, y, ...)
+        or the axes descriptions (for mesh_type='structured')
+    field : :class:`numpy.ndarray`
+        Field values.
+    fig : :class:`Figure` or :any:`None`, optional
+        Figure to plot the axes on. If `None`, a new one will be created.
+        Default: `None`
+    ax : :class:`Axes` or :any:`None`, optional
+        Axes to plot on. If `None`, a new one will be added to the figure.
+        Default: `None`
+    ax_names : :class:`list` of :class:`str`, optional
+        Axes names. The default is ["$x$", "field"].
 
-def _plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
-    """Plot a 1d field."""
+    Returns
+    -------
+    ax : :class:`Axes`
+        Axis containing the plot.
+    """
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 1D: " + str(field.shape)
     x = pos[0]
     x = x.flatten()
     arg = np.argsort(x)
-    ax_name = _ax_names(1, ax_names=ax_names)[0]
+    ax_names = _ax_names(1, ax_names=ax_names)
     ax.plot(x[arg], field.ravel()[arg])
-    ax.set_xlabel(ax_name)
-    ax.set_ylabel("field")
-    ax.set_title(title)
-    fig.show()
-    return ax
-
-
-def _plot_2d(
-    pos, field, mesh_type, fig=None, ax=None, latlon=False, ax_names=None
-):  # pragma: no cover
-    """Plot a 2d field."""
-    fig, ax = _get_fig_ax(fig, ax)
-    title = "Field 2D " + mesh_type + ": " + str(field.shape)
-    ax_names = _ax_names(2, latlon, ax_names=ax_names)
-    y = pos[0] if latlon else pos[1]
-    x = pos[1] if latlon else pos[0]
-    if mesh_type == "unstructured":
-        cont = ax.tricontourf(x, y, field.ravel(), levels=256)
-    else:
-        plot_field = field if latlon else field.T
-        try:
-            cont = ax.contourf(x, y, plot_field, levels=256)
-        except TypeError:
-            cont = ax.contourf(x, y, plot_field, 256)
     ax.set_xlabel(ax_names[0])
     ax.set_ylabel(ax_names[1])
     ax.set_title(title)
-    fig.colorbar(cont)
     fig.show()
     return ax
 
 
-def _plot_nd(
+def plot_nd(
     pos,
     field,
     mesh_type,
@@ -128,12 +105,62 @@ def _plot_nd(
     resolution=100,
     ax_names=None,
     aspect="quad",
+    show_colorbar=True,
+    convex_hull=False,
+    contour_plot=False,
 ):  # pragma: no cover
-    """Plot N-D field."""
+    """
+    Plot field in arbitrary dimensions.
+
+    Parameters
+    ----------
+    pos : :class:`list`
+        the position tuple, containing either the point coordinates (x, y, ...)
+        or the axes descriptions (for mesh_type='structured')
+    field : :class:`numpy.ndarray`
+        Field values.
+    fig : :class:`Figure` or :any:`None`, optional
+        Figure to plot the axes on. If `None`, a new one will be created.
+        Default: `None`
+    ax : :class:`Axes` or :any:`None`, optional
+        Axes to plot on. If `None`, a new one will be added to the figure.
+        Default: `None`
+    latlon : :class:`bool`, optional
+        Whether the data is representing 2D fields on earths surface described
+        by latitude and longitude. When using this, the estimator will
+        use great-circle distance for variogram estimation.
+        Note, that only an isotropic variogram can be estimated and a
+        ValueError will be raised, if a direction was specified.
+        Bin edges need to be given in radians in this case.
+        Default: False
+    resolution : :class:`int`, optional
+        Resolution of the imshow plot. The default is 100.
+    ax_names : :class:`list` of :class:`str`, optional
+        Axes names. The default is ["$x$", "field"].
+    aspect : :class:`str` or :any:`None` or :class:`float`, optional
+        Aspect of the plot. Can be "auto", "equal", "quad", None or a number
+        describing the aspect ratio.
+        The default is "quad".
+    show_colorbar : :class:`bool`, optional
+        Whether to show the colorbar. The default is True.
+    convex_hull : :class:`bool`, optional
+        Whether to show the convex hull in 2D with unstructured data.
+        The default is False.
+    contour_plot : :class:`bool`, optional
+        Whether to use a contour-plot in 2D. The default is False.
+
+    Returns
+    -------
+    ax : :class:`Axes`
+        Axis containing the plot.
+    """
     dim = len(pos)
     assert dim > 1
     assert not latlon or dim == 2
+    if dim == 2 and contour_plot:
+        return _plot_2d(pos, field, mesh_type, fig, ax, latlon, ax_names)
     pos = pos[::-1] if latlon else pos
+    field = field.T if (latlon and mesh_type != "unstructured") else field
     ax_names = _ax_names(dim, latlon, ax_names)
     # init planes
     planes = rotation_planes(dim)
@@ -175,7 +202,7 @@ def _plot_nd(
         for circ in radio.circles:
             circ.set_radius(0.06)
             circ.height /= rscale
-    elif mesh_type == "unstructured":
+    elif mesh_type == "unstructured" and convex_hull:
         # show convex hull in 2D
         hull = ConvexHull(pos.T)
         for simplex in hull.simplices:
@@ -245,7 +272,8 @@ def _plot_nd(
         radio.on_clicked(update_plane)
     for s in slider:
         s.on_changed(update_field)
-    fig.colorbar(im, ax=ax)
+    if show_colorbar:
+        fig.colorbar(im, ax=ax)
     fig.show()
     return ax
 
@@ -294,5 +322,41 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     ax.set_ylabel("Y")
     ax.set_title(title)
     fig.colorbar(sp.lines)
+    fig.show()
+    return ax
+
+
+def _ax_names(dim, latlon=False, ax_names=None):
+    if ax_names is not None:
+        assert len(ax_names) >= dim
+        return ax_names[:dim]
+    if dim == 2 and latlon:
+        return ["lon", "lat"]
+    if dim <= 3:
+        return ["$x$", "$y$", "$z$"][:dim] + (dim == 1) * ["field"]
+    return ["$x_{" + str(i) + "}$" for i in range(dim)]
+
+
+def _plot_2d(
+    pos, field, mesh_type, fig=None, ax=None, latlon=False, ax_names=None
+):  # pragma: no cover
+    """Plot a 2d field with a contour plot."""
+    fig, ax = _get_fig_ax(fig, ax)
+    title = "Field 2D " + mesh_type + ": " + str(field.shape)
+    ax_names = _ax_names(2, latlon, ax_names=ax_names)
+    y = pos[0] if latlon else pos[1]
+    x = pos[1] if latlon else pos[0]
+    if mesh_type == "unstructured":
+        cont = ax.tricontourf(x, y, field.ravel(), levels=256)
+    else:
+        plot_field = field if latlon else field.T
+        try:
+            cont = ax.contourf(x, y, plot_field, levels=256)
+        except TypeError:
+            cont = ax.contourf(x, y, plot_field, 256)
+    ax.set_xlabel(ax_names[0])
+    ax.set_ylabel(ax_names[1])
+    ax.set_title(title)
+    fig.colorbar(cont)
     fig.show()
     return ax

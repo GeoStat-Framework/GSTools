@@ -285,6 +285,8 @@ class Field:
         ax : :class:`Axes` or :any:`None`
             Axes to plot on. If `None`, a new one will be added to the figure.
             Default: `None`
+        **kwargs
+            Forwarded to the plotting routine.
         """
         # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_field, plot_vec_field
