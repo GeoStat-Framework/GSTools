@@ -52,3 +52,4 @@ print("Rotation angles", model.angles)
 # - in 3D: given by yaw, pitch, and roll (known as
 #   `Tait–Bryan <https://en.wikipedia.org/wiki/Euler_angles#Tait-Bryan_angles>`_
 #   angles)
+# - in nD: See the random field example about higher dimensions

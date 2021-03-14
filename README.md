@@ -188,7 +188,7 @@ bin_center, gamma = gs.vario_estimate((x, y), field)
 fit_model = gs.Stable(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
 # output
-ax = fit_model.plot(x_max=bin_center[-1])
+ax = fit_model.plot(x_max=max(bin_center))
 ax.scatter(bin_center, gamma)
 print(fit_model)
 ```

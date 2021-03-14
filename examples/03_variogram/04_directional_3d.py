@@ -78,7 +78,7 @@ ax1.set_zlabel("Z")
 ax1.set_title("Tait-Bryan main axis")
 ax1.legend(loc="lower left")
 
-x_max = bin_center[-1]
+x_max = max(bin_center)
 ax2.scatter(bin_center, dir_vario[0], label="0. axis")
 ax2.scatter(bin_center, dir_vario[1], label="1. axis")
 ax2.scatter(bin_center, dir_vario[2], label="2. axis")

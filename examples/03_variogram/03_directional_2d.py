@@ -16,7 +16,7 @@ from matplotlib import pyplot as plt
 
 angle = np.pi / 8
 model = gs.Exponential(dim=2, len_scale=[10, 5], angles=angle)
-x = y = range(100)
+x = y = range(101)
 srf = gs.SRF(model, seed=123456)
 field = srf((x, y), mesh_type="structured")
 
@@ -56,9 +56,7 @@ model.plot("vario_axis", axis=0, ax=ax1, x_max=40, label="fit on axis 0")
 model.plot("vario_axis", axis=1, ax=ax1, x_max=40, label="fit on axis 1")
 ax1.set_title("Fitting an anisotropic model")
 
-srf.plot(ax=ax2)
-ax2.set_aspect("equal")
-
+srf.plot(ax=ax2, show_colorbar=False)
 plt.show()
 
 ###############################################################################

@@ -19,7 +19,7 @@ print(field.var())
 
 bin_center, gamma = gs.vario_estimate((x, y), field)
 print("estimated bin number:", len(bin_center))
-print("maximal bin distance:", bin_center[-1])
+print("maximal bin distance:", max(bin_center))
 
 ###############################################################################
 # Fit the variogram with a stable model (no nugget fitted).
@@ -31,5 +31,5 @@ print(fit_model)
 ###############################################################################
 # Plot the fitting result.
 
-ax = fit_model.plot(x_max=bin_center[-1])
+ax = fit_model.plot(x_max=max(bin_center))
 ax.scatter(bin_center, gamma)

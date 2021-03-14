@@ -66,7 +66,7 @@ print(model)
 # Let's have a look at the fit and a x-y cross-section of the 4D field:
 
 f, a = plt.subplots(1, 2, gridspec_kw={"width_ratios": [2, 1]}, figsize=[9, 3])
-model.plot(x_max=bin_center[-1], ax=a[0])
+model.plot(x_max=max(bin_center), ax=a[0])
 a[0].scatter(bin_center, vario)
 a[1].imshow(field[:, :, 0, 0].T, origin="lower")
 a[0].set_title("isotropic empirical variogram with fitted model")
