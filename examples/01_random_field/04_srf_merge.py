@@ -32,7 +32,7 @@ x2 = rng.randint(99, 150, size=10000)
 y2 = rng.randint(20, 80, size=10000)
 
 field2 = srf((x2, y2))
-ax = srf.plot(contour_plot=True)
+ax = srf.plot()
 ax.tricontourf(x, y, field1.T, levels=256)
 ax.set_aspect("equal")
 

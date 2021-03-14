@@ -107,7 +107,7 @@ def plot_nd(
     aspect="quad",
     show_colorbar=True,
     convex_hull=False,
-    contour_plot=False,
+    contour_plot=True,
 ):  # pragma: no cover
     """
     Plot field in arbitrary dimensions.
@@ -147,7 +147,7 @@ def plot_nd(
         Whether to show the convex hull in 2D with unstructured data.
         The default is False.
     contour_plot : :class:`bool`, optional
-        Whether to use a contour-plot in 2D. The default is False.
+        Whether to use a contour-plot in 2D. The default is True.
 
     Returns
     -------
