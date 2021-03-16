@@ -268,7 +268,9 @@ class Field:
             fieldname=fieldname,
         )
 
-    def plot(self, field="field", fig=None, ax=None):  # pragma: no cover
+    def plot(
+        self, field="field", fig=None, ax=None, **kwargs
+    ):  # pragma: no cover
         """
         Plot the spatial random field.
 
@@ -283,6 +285,8 @@ class Field:
         ax : :class:`Axes` or :any:`None`
             Axes to plot on. If `None`, a new one will be added to the figure.
             Default: `None`
+        **kwargs
+            Forwarded to the plotting routine.
         """
         # just import if needed; matplotlib is not required by setup
         from gstools.field.plot import plot_field, plot_vec_field
@@ -294,11 +298,11 @@ class Field:
             )
 
         elif self.value_type == "scalar":
-            r = plot_field(self, field, fig, ax)
+            r = plot_field(self, field, fig, ax, **kwargs)
 
         elif self.value_type == "vector":
             if self.model.dim == 2:
-                r = plot_vec_field(self, field, fig, ax)
+                r = plot_vec_field(self, field, fig, ax, **kwargs)
             else:
                 raise NotImplementedError(
                     "Streamflow plotting only supported for 2d case."
