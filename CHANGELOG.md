@@ -2,7 +2,7 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
-## [1.3.0] - Pure Pink - 2021-02
+## [1.3.0] - Pure Pink - 2021-03
 
 ### Topics
 
@@ -18,12 +18,12 @@ All notable changes to **GSTools** will be documented in this file.
 - representation of geographical models don't display the `dim`, `anis` and `angles` parameters, but `latlon=True`
 - `fit_variogram` will expect an estimated variogram with great-circle distances given in radians
 - **Variogram estimation**
-    - `latlon` switch implemented in `estimate_vario` routine
-    - will return a variogram estimated by the great-circle distance (haversine formula) given in radians
+  - `latlon` switch implemented in `estimate_vario` routine
+  - will return a variogram estimated by the great-circle distance (haversine formula) given in radians
 - **Field**
-    - added plotting routines for latlon fields
-    - no vector fields possible on latlon fields
-    - corretly handle pos tuple for latlon fields
+  - added plotting routines for latlon fields
+  - no vector fields possible on latlon fields
+  - corretly handle pos tuple for latlon fields
 
 #### Krige Unification (#97)
 - Swiss Army Knife for kriging: The `Krige` class now provides everything in one place
@@ -34,11 +34,13 @@ All notable changes to **GSTools** will be documented in this file.
 - An `exact` switch was added to allow smother results, if a `nugget` is present in the model
 - An `cond_err` parameter was added, where measurement error variances can be given for each conditional point
 - pseudo-inverse matrix is now used to solve the kriging system (can be disabled by the new switch `pseudo_inv`), this is equal to solving the system with least-squares and prevents numerical errors
+- added options `fit_normalizer` and `fit_variogram` to automatically fit normalizer and variogram to given data
 
-#### Directional Variograms (#87, #106)
+#### Directional Variograms and Auto-binning (#87, #106, #131)
 - new routine name `vario_estimate` instead of `vario_estimate_unstructured` (old kept for legacy code) for simplicity
 - new routine name `vario_estimate_axis` instead of `vario_estimate_structured` (old kept for legacy code) for simplicity
 - **`vario_estimate`**
+  - added simple automatic binning routine to determine bins from given data (one third of box diameter as max bin distance, sturges rule for number of bins)
   - allow to pass multiple fields for joint variogram estimation (e.g. for daily precipitation) on same mesh
   - `no_data` option added to allow missing values
   - **masked fields**
@@ -81,17 +83,24 @@ All notable changes to **GSTools** will be documented in this file.
 - string representation of the `CovModel` class is now using a float precision (`CovModel._prec=3`) to truncate longish output
 - dimension validity check: raise a warning, if given model is not valid in the desired dimension (See: #86)
 
-#### Normalizer (#124)
+#### Normalizer, Trend and Mean (#124)
 
 - new `normalize` submodule containing power-transforms for data to gain normality
 - Base-Class: `Normalizer` providing basic functionality including maximum likelihood fitting
 - added: `LogNormal`, `BoxCox`, `BoxCoxShift`, `YeoJohnson`, `Modulus` and `Manly`
-- normalizer can be passed to SRF, Krige and variogram estimation routines
+- normalizer, trend and mean can be passed to SRF, Krige and variogram estimation routines
+  - A trend can be a callable function, that represents a trend in input data. For example a linear decrease of temperature with height.
+  - The normalizer will be applied after the data was detrended, i.e. the trend was substracted from the data, in order to gain normality.
+  - The mean is now interpreted as the mean of the normalized data. The user could also provide a callable mean, but it is mostly meant to be constant.
 
 #### Arbitrary dimensions (#112)
 - allow arbitrary dimensions in all routines (CovModel, Krige, SRF, variogram)
 - anisotropy and rotation following a generalization of tait-bryan angles
 - CovModel provides `isometrize` and `anisometrize` routines to convert points
+
+#### New Class for Conditioned Random Fields (#130)
+- This class replaces the conditioning feature of the SRF class, which was limited to Ordinary and Simple kriging.
+- `CondSRF` behaves similar to the `SRF` class, but instead of a covariance model, it takes a kriging class as input. With this kriging class, all conditioning related settings are defined.
 
 ### Enhancements
 - Python 3.9 Support #107
@@ -103,6 +112,9 @@ All notable changes to **GSTools** will be documented in this file.
 - added `EARTH_RADIUS` as constant providing earths radius in km (can be used to rescale models)
 - add routines `latlon2pos` and `pos2latlon` to convert lat-lon coordinates to points on unit-sphere and vice versa
 - a lot of new examples and tutorials
+- `RandMeth` class got a switch to select the sampling strategy
+- plotter for n-D fields added #141
+- antialias for contour plots of 2D fields #141
 
 ### Changes
 - drop usage of `pos2xyz` and `xyz2pos`
