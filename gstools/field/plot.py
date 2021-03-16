@@ -102,12 +102,13 @@ def plot_nd(
     fig=None,
     ax=None,
     latlon=False,
-    resolution=100,
+    resolution=128,
     ax_names=None,
     aspect="quad",
     show_colorbar=True,
     convex_hull=False,
     contour_plot=True,
+    **kwargs
 ):  # pragma: no cover
     """
     Plot field in arbitrary dimensions.
@@ -134,7 +135,7 @@ def plot_nd(
         Bin edges need to be given in radians in this case.
         Default: False
     resolution : :class:`int`, optional
-        Resolution of the imshow plot. The default is 100.
+        Resolution of the imshow plot. The default is 128.
     ax_names : :class:`list` of :class:`str`, optional
         Axes names. The default is ["$x$", "field"].
     aspect : :class:`str` or :any:`None` or :class:`float`, optional
@@ -158,7 +159,9 @@ def plot_nd(
     assert dim > 1
     assert not latlon or dim == 2
     if dim == 2 and contour_plot:
-        return _plot_2d(pos, field, mesh_type, fig, ax, latlon, ax_names)
+        return _plot_2d(
+            pos, field, mesh_type, fig, ax, latlon, ax_names, **kwargs
+        )
     pos = pos[::-1] if latlon else pos
     field = field.T if (latlon and mesh_type != "unstructured") else field
     ax_names = _ax_names(dim, latlon, ax_names)
@@ -170,7 +173,6 @@ def plot_nd(
     ax_ends = [[p.min(), p.max()] for p in pos]
     ax_rngs = [end[1] - end[0] for end in ax_ends]
     ax_steps = [rng / resolution for rng in ax_rngs]
-    ax_ticks = [np.linspace(end[0], end[1], 5) for end in ax_ends]
     ax_extents = [ax_ends[p[0]] + ax_ends[p[1]] for p in planes]
     # create figure
     reformat = fig is None and ax is None
@@ -256,11 +258,9 @@ def plot_nd(
             s.reset()
         im.set_extent(ax_extents[p])
         if aspect == "quad":
-            asp = ax_rngs[planes[p][1]] / ax_rngs[planes[p][0]]
+            asp = ax_rngs[planes[p][0]] / ax_rngs[planes[p][1]]
         if aspect is not None:
             ax.set_aspect(asp if aspect == "quad" else aspect)
-        ax.set_xticks(ax_ticks[planes[p][0]])
-        ax.set_yticks(ax_ticks[planes[p][1]])
         ax.set_xlabel(ax_names[planes[p][0]])
         ax.set_ylabel(ax_names[planes[p][1]])
         update_field()
@@ -338,22 +338,30 @@ def _ax_names(dim, latlon=False, ax_names=None):
 
 
 def _plot_2d(
-    pos, field, mesh_type, fig=None, ax=None, latlon=False, ax_names=None
+    pos,
+    field,
+    mesh_type,
+    fig=None,
+    ax=None,
+    latlon=False,
+    ax_names=None,
+    levels=64,
+    antialias=True,
 ):  # pragma: no cover
     """Plot a 2d field with a contour plot."""
     fig, ax = _get_fig_ax(fig, ax)
     title = "Field 2D " + mesh_type + ": " + str(field.shape)
     ax_names = _ax_names(2, latlon, ax_names=ax_names)
-    y = pos[0] if latlon else pos[1]
-    x = pos[1] if latlon else pos[0]
+    x, y = pos[::-1] if latlon else pos
     if mesh_type == "unstructured":
-        cont = ax.tricontourf(x, y, field.ravel(), levels=256)
+        cont = ax.tricontourf(x, y, field.ravel(), levels=levels)
+        if antialias:
+            ax.tricontour(x, y, field.ravel(), levels=levels, zorder=-10)
     else:
         plot_field = field if latlon else field.T
-        try:
-            cont = ax.contourf(x, y, plot_field, levels=256)
-        except TypeError:
-            cont = ax.contourf(x, y, plot_field, 256)
+        cont = ax.contourf(x, y, plot_field, levels=levels)
+        if antialias:
+            ax.contour(x, y, plot_field, levels=levels, zorder=-10)
     ax.set_xlabel(ax_names[0])
     ax.set_ylabel(ax_names[1])
     ax.set_title(title)
