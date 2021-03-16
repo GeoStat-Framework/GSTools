@@ -24,6 +24,9 @@ The following functions are provided
    format_struct_pos_shape
    format_unstruct_pos_shape
    ang2dir
+   latlon2pos
+   pos2latlon
+   chordal_to_great_circle
 """
 # pylint: disable=C0103
 
@@ -47,6 +50,9 @@ __all__ = [
     "format_struct_pos_shape",
     "format_unstruct_pos_shape",
     "ang2dir",
+    "latlon2pos",
+    "pos2latlon",
+    "chordal_to_great_circle",
 ]
 
 
@@ -580,3 +586,81 @@ def ang2dir(angles, dtype=np.double, dim=None):
     if dim in [2, 3]:
         vec[:, [0, 1]] = vec[:, [1, 0]]  # to match convention in 2D and 3D
     return vec
+
+
+def latlon2pos(latlon, radius=1.0, dtype=np.double):
+    """Convert lat-lon geo coordinates to 3D position tuple.
+
+    Parameters
+    ----------
+    latlon : :class:`list` of :class:`numpy.ndarray`
+        latitude and longitude given in degrees.
+    radius : :class:`float`, optional
+        Earth radius. Default: `1.0`
+    dtype : data-type, optional
+        The desired data-type for the array.
+        If not given, then the type will be determined as the minimum type
+        required to hold the objects in the sequence. Default: None
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        the 3D position array
+    """
+    latlon = np.array(latlon, dtype=dtype).reshape((2, -1))
+    lat, lon = np.deg2rad(latlon)
+    return np.array(
+        (
+            radius * np.cos(lat) * np.cos(lon),
+            radius * np.cos(lat) * np.sin(lon),
+            radius * np.sin(lat) * np.ones_like(lon),
+        ),
+        dtype=dtype,
+    )
+
+
+def pos2latlon(pos, radius=1.0, dtype=np.double):
+    """Convert 3D position tuple from sphere to lat-lon geo coordinates.
+
+    Parameters
+    ----------
+    pos : :class:`list` of :class:`numpy.ndarray`
+        The position tuple containing points on a unit-sphere.
+    radius : :class:`float`, optional
+        Earth radius. Default: `1.0`
+    dtype : data-type, optional
+        The desired data-type for the array.
+        If not given, then the type will be determined as the minimum type
+        required to hold the objects in the sequence. Default: None
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        the 3D position array
+    """
+    pos = np.array(pos, dtype=dtype).reshape((3, -1))
+    # prevent numerical errors in arcsin
+    lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
+    lon = np.arctan2(pos[1], pos[0])
+    return np.rad2deg((lat, lon), dtype=dtype)
+
+
+def chordal_to_great_circle(dist):
+    """
+    Calculate great circle distance corresponding to given chordal distance.
+
+    Parameters
+    ----------
+    dist : array_like
+        Chordal distance of two points on the unit-sphere.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Great circle distance corresponding to given chordal distance.
+
+    Notes
+    -----
+    If given values are not in [0, 1], they will be truncated.
+    """
+    return 2 * np.arcsin(np.maximum(np.minimum(np.divide(dist, 2), 1), 0))

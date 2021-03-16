@@ -26,6 +26,8 @@ from gstools.variogram.estimator import (
     ma_structured,
     directional,
 )
+from gstools.variogram.binning import standard_bins
+from gstools.normalizer.tools import remove_trend_norm_mean
 
 __all__ = [
     "vario_estimate",
@@ -67,10 +69,11 @@ def _separate_dirs_test(direction, angles_tol):
 def vario_estimate(
     pos,
     field,
-    bin_edges,
+    bin_edges=None,
     sampling_size=None,
     sampling_seed=None,
     estimator="matheron",
+    latlon=False,
     direction=None,
     angles=None,
     angles_tol=np.pi / 8,
@@ -79,6 +82,10 @@ def vario_estimate(
     mask=np.ma.nomask,
     mesh_type="unstructured",
     return_counts=False,
+    mean=None,
+    normalizer=None,
+    trend=None,
+    fit_normalizer=False,
 ):
     r"""
     Estimates the empirical variogram.
@@ -124,8 +131,10 @@ def vario_estimate(
         You can pass a list of fields, that will be used simultaneously.
         This could be helpful, when there are multiple realizations at the
         same points, with the same statistical properties.
-    bin_edges : :class:`numpy.ndarray`
-        the bins on which the variogram will be calculated
+    bin_edges : :class:`numpy.ndarray`, optional
+        the bins on which the variogram will be calculated.
+        If :any:`None` are given, standard bins provided by the :any:`standard_bins`
+        routine will be used. Default: :any:`None`
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
@@ -141,6 +150,14 @@ def vario_estimate(
             * "cressie": an estimator more robust to outliers
 
         Default: "matheron"
+    latlon : :class:`bool`, optional
+        Whether the data is representing 2D fields on earths surface described
+        by latitude and longitude. When using this, the estimator will
+        use great-circle distance for variogram estimation.
+        Note, that only an isotropic variogram can be estimated and a
+        ValueError will be raised, if a direction was specified.
+        Bin edges need to be given in radians in this case.
+        Default: False
     direction : :class:`list` of :class:`numpy.ndarray`, optional
         directions to evaluate a directional variogram.
         Anglular tolerance is given by `angles_tol`.
@@ -186,6 +203,19 @@ def vario_estimate(
         if set to true, this function will also return the number of data
         points found at each lag distance as a third return value
         Default: False
+    mean : :class:`float`, optional
+        mean value used to shift normalized input data.
+        Can also be a callable. The default is None.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given (detrended) field.
+        Default: False
 
     Returns
     -------
@@ -199,14 +229,16 @@ def vario_estimate(
     -----
     Internally uses double precision and also returns doubles.
     """
-    bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    if bin_edges is not None:
+        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double)
     masked = np.ma.is_masked(field) or np.any(mask)
     # catch special case if everything is masked
     if masked and np.all(mask):
+        bin_centres = np.empty(0) if bin_edges is None else bin_centres
         estimates = np.zeros_like(bin_centres)
         if return_counts:
             return bin_centres, estimates, np.zeros_like(estimates, dtype=int)
@@ -223,6 +255,8 @@ def vario_estimate(
         pos, __, dim = format_unstruct_pos_shape(
             pos, field.shape, check_stacked_shape=True
         )
+    if latlon and dim != 2:
+        raise ValueError("Variogram: given field needs to be 2D for lat-lon.")
     # prepare the field
     pnt_cnt = len(pos[0])
     field = field.reshape((-1, pnt_cnt))
@@ -261,6 +295,8 @@ def vario_estimate(
         dir_no = direction.shape[0]
     # prepare directional variogram
     if dir_no > 0:
+        if latlon:
+            raise ValueError("Directional variogram not allowed for lat-lon.")
         norms = np.linalg.norm(direction, axis=1)
         if np.any(np.isclose(norms, 0)):
             raise ValueError("Zero length direction {}".format(direction))
@@ -276,16 +312,30 @@ def vario_estimate(
         )
         field = field[:, sampled_idx]
         pos = pos[:, sampled_idx]
+    # create bining if not given
+    if bin_edges is None:
+        bin_edges = standard_bins(pos, dim, latlon)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    # normalize field
+    field = remove_trend_norm_mean(
+        *(pos, field, mean, normalizer, trend),
+        check_shape=False,
+        stacked=True,
+        fit_normalizer=fit_normalizer,
+    )
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run
     if dir_no == 0:
+        # "h"aversine or "e"uclidean distance type
+        distance_type = "h" if latlon else "e"
         estimates, counts = unstructured(
             dim,
             field,
             bin_edges,
             pos,
             estimator_type=cython_estimator,
+            distance_type=distance_type,
         )
     else:
         estimates, counts = directional(

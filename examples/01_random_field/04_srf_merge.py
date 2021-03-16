@@ -6,6 +6,7 @@ We can even generate the same field realisation on different grids. Let's try
 to merge two unstructured rectangular fields.
 
 """
+# sphinx_gallery_thumbnail_number = 2
 import numpy as np
 import gstools as gs
 

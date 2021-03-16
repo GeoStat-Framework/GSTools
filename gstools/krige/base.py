@@ -16,18 +16,20 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import scipy.linalg as spl
 from gstools.field.base import Field
-from gstools.krige.krigesum import krigesum
-from gstools.krige.tools import (
-    set_condition,
-    get_drift_functions,
-    no_trend,
-    eval_func,
+from gstools.krige.krigesum import (
+    calc_field_krige_and_variance,
+    calc_field_krige,
 )
+from gstools.krige.tools import set_condition, get_drift_functions
+from gstools.tools.misc import eval_func
+from gstools.tools.geometric import rotated_main_axes
+from gstools.variogram import vario_estimate
 
 __all__ = ["Krige"]
 
 
 P_INV = {1: spl.pinv, 2: spl.pinv2, 3: spl.pinvh}
+"""dict: Standard pseudo-inverse routines"""
 
 
 class Krige(Field):
@@ -51,15 +53,20 @@ class Krige(Field):
 
     ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
         the external drift values at the given cond. positions.
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    mean : :class:`float`, optional
+        mean value used to shift normalized conditioning data.
+        Could also be a callable. The default is None.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
-    mean : :class:`float`, optional
-        mean value used for kriging, if the system is not unbiased.
-        If unbiased is `True`, the mean will be estimated.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
     unbiased : :class:`bool`, optional
         Whether the kriging weights should sum up to 1, so the estimator
         is unbiased. If unbiased is `False` and no drifts are given,
@@ -91,6 +98,20 @@ class Krige(Field):
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `1`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`standard_bins` routine.
+        Default: False
+
+    Notes
+    -----
+    If you have changed any properties in the class, you can update the kriging
+    setup by calling :any:`Krige.set_condition` without any arguments.
     """
 
     def __init__(
@@ -100,15 +121,19 @@ class Krige(Field):
         cond_val,
         drift_functions=None,
         ext_drift=None,
-        trend_function=None,
-        mean=0.0,
+        mean=None,
+        normalizer=None,
+        trend=None,
         unbiased=True,
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
         pseudo_inv_type=1,
+        fit_normalizer=False,
+        fit_variogram=False,
     ):
-        super().__init__(model, mean)
+        super().__init__(model, mean=mean, normalizer=normalizer, trend=trend)
+        self.mean_field = None
         self.krige_var = None
         self._unbiased = bool(unbiased)
         self._exact = bool(exact)
@@ -116,20 +141,23 @@ class Krige(Field):
         self._pseudo_inv_type = None
         self.pseudo_inv_type = pseudo_inv_type
         # initialize private attributes
-        self._value_type = "scalar"
         self._cond_pos = None
         self._cond_val = None
         self._cond_err = None
         self._krige_mat = None
         self._krige_pos = None
         self._cond_trend = None
-        self._trend_function = None
-        self.trend_function = trend_function
         self._cond_ext_drift = np.array([])
-        self._drift_functions = []
-        if drift_functions is not None:
-            self.set_drift_functions(drift_functions)
-        self.set_condition(cond_pos, cond_val, ext_drift, cond_err)
+        self._drift_functions = None
+        self.set_drift_functions(drift_functions)
+        self.set_condition(
+            cond_pos,
+            cond_val,
+            ext_drift,
+            cond_err,
+            fit_normalizer,
+            fit_variogram,
+        )
 
     def __call__(
         self,
@@ -138,6 +166,8 @@ class Krige(Field):
         ext_drift=None,
         chunk_size=None,
         only_mean=False,
+        return_var=True,
+        post_process=True,
     ):
         """
         Generate the kriging field.
@@ -161,30 +191,37 @@ class Krige(Field):
         only_mean : :class:`bool`, optional
             Whether to only calculate the mean of the kriging field.
             Default: `False`
+        return_var : :class:`bool`, optional
+            Whether to return the variance along with the field.
+            Default: `True`
+        post_process : :class:`bool`, optional
+            Whether to apply mean, normalizer and trend to the field.
+            Default: `True`
 
         Returns
         -------
         field : :class:`numpy.ndarray`
-            the kriged field
-        krige_var : :class:`numpy.ndarray`
+            the kriged field or mean_field
+        krige_var : :class:`numpy.ndarray`, optional
             the kriging error variance
+            (if return_var is True and only_mean is False)
         """
+        return_var &= not only_mean  # don't return variance when calc. mean
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         pnt_cnt = len(iso_pos[0])
 
         field = np.empty(pnt_cnt, dtype=np.double)
-        krige_var = np.empty(pnt_cnt, dtype=np.double)
+        krige_var = np.empty(pnt_cnt, dtype=np.double) if return_var else None
         # set constant mean if present and wanted
-        if only_mean and self.has_const_mean:
-            field[...] = self.get_mean() - self.mean  # mean is added later
-            krige_var[...] = self.model.sill  # will result in 0 var. later
+        if only_mean and self.drift_no == 0:
+            field[...] = self.get_mean(post_process=False)
         # execute the kriging routine
         else:
             # set chunk size
             chunk_size = pnt_cnt if chunk_size is None else int(chunk_size)
             chunk_no = int(np.ceil(pnt_cnt / chunk_size))
             ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
-            # iterate of chunks
+            # iterate chunks
             for i in range(chunk_no):
                 # get chunk slice for actual chunk
                 chunk_slice = (
@@ -197,14 +234,32 @@ class Krige(Field):
                     iso_pos, chunk_slice, ext_drift, only_mean
                 )
                 # generate the raw kriging field and error variance
-                field[c_slice], krige_var[c_slice] = krigesum(
-                    self._krige_mat, k_vec, self._krige_cond
-                )
+                self._summate(field, krige_var, c_slice, k_vec, return_var)
         # reshape field if we got a structured mesh
         field = np.reshape(field, shape)
-        krige_var = np.reshape(krige_var, shape)
-        self._post_field(field, krige_var)
-        return self.field, self.krige_var
+        if only_mean:  # care about 'kriging the mean'
+            return self.post_field(field, "mean_field", process=post_process)
+        # save field to class
+        field = self.post_field(field, "field", process=post_process)
+        if return_var:  # care about the estimated error variance
+            krige_var = np.reshape(
+                np.maximum(self.model.sill - krige_var, 0), shape
+            )
+            krige_var = self.post_field(krige_var, "krige_var", process=False)
+            return field, krige_var
+        # if we only calculate the field, overwrite the error variance
+        self.krige_var = None
+        return field
+
+    def _summate(self, field, krige_var, c_slice, k_vec, return_var):
+        if return_var:  # estimate error variance
+            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
+                self._krige_mat, k_vec, self._krige_cond
+            )
+        else:  # solely calculate the interpolated field
+            field[c_slice] = calc_field_krige(
+                self._krige_mat, k_vec, self._krige_cond
+            )
 
     def _inv(self, mat):
         # return pseudo-inverted matrix if wanted (numerically more stable)
@@ -225,8 +280,7 @@ class Krige(Field):
             self._get_dists(self._krige_pos)
         )
         # apply the measurement error (nugget by default)
-        di = np.diag_indices(self.cond_no)
-        res[di] += self.cond_err
+        res[np.diag_indices(self.cond_no)] += self.cond_err
         # set unbias condition (weights have to sum up to 1)
         if self.unbiased:
             res[self.cond_no, : self.cond_no] = 1
@@ -267,8 +321,7 @@ class Krige(Field):
             res[self.cond_no, :] = 1
         # drift function need the anisotropic and rotated positions
         if self.int_drift_no > 0:
-            pos = self.model.anisometrize(pos)
-        chunk_pos = pos[:, slice(*chunk_slice)]
+            chunk_pos = self.model.anisometrize(pos)[:, slice(*chunk_slice)]
         # apply functional drift
         for i, f in enumerate(self.drift_functions):
             res[-self.drift_no + i, :] = f(*chunk_pos)
@@ -300,15 +353,16 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
+            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
+            if ext_drift.size == 0:  # treat empty array as no ext_drift
+                return np.array([])
             if set_cond:
-                ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
                 if len(ext_drift.shape) > 2 or ext_drift.shape[1] != pnt_cnt:
                     raise ValueError("Krige: wrong number of ext. drifts.")
                 return ext_drift
-            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
             ext_shape = np.shape(ext_drift)
-            shape = (self.drift_no, pnt_cnt)
-            if self.drift_no > 1 and ext_shape[0] != self.drift_no:
+            shape = (self.ext_drift_no, pnt_cnt)
+            if self.drift_no > 1 and ext_shape[0] != self.ext_drift_no:
                 raise ValueError("Krige: wrong number of external drifts.")
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
@@ -316,26 +370,6 @@ class Krige(Field):
         elif not set_cond and self._cond_ext_drift.size > 0:
             raise ValueError("Krige: wrong number of ext. drift values.")
         return np.array([])
-
-    def _post_field(self, field, krige_var):
-        """
-        Postprocessing and saving of kriging field and error variance.
-
-        Parameters
-        ----------
-        field : :class:`numpy.ndarray`
-            Raw kriging field.
-        krige_var : :class:`numpy.ndarray`
-            Raw kriging error variance.
-        """
-        if self.trend_function is no_trend:
-            self.field = field
-        else:
-            self.field = field + eval_func(
-                self.trend_function, self.pos, self.model.dim, self.mesh_type
-            )
-        self.field += self.mean
-        self.krige_var = self.model.sill - krige_var
 
     def _get_dists(self, pos1, pos2=None, pos2_slice=(0, None)):
         """
@@ -359,40 +393,68 @@ class Krige(Field):
             return cdist(pos1.T, pos1.T)
         return cdist(pos1.T, pos2.T[slice(*pos2_slice), ...])
 
-    def get_mean(self):
-        """Calculate the estimated mean."""
+    def get_mean(self, post_process=True):
+        """Calculate the estimated mean of the detrended field.
+
+        Parameters
+        ----------
+        post_process : :class:`bool`, optional
+            Whether to apply field-mean and normalizer.
+            Default: `True`
+
+        Returns
+        -------
+        mean : :class:`float` or :any:`None`
+            Mean of the Kriging System.
+
+        Notes
+        -----
+        Only not ``None`` if the Kriging System has a constant mean.
+        This means, no drift is given and the given field-mean is constant.
+        The result is neglecting a potential given trend.
+        """
         # if there are drift-terms, no constant mean can be calculated -> None
-        if not self.has_const_mean:
+        # if mean should not be post-processed, it exists when no drift given
+        if not self.has_const_mean and (post_process or self.drift_no > 0):
             return None
+        res = 0.0  # for simple kriging return the given mean
+        # correctly setting given mean
+        mean = 0.0 if self.mean is None else self.mean
         # for ordinary kriging return the estimated mean
         if self.unbiased:
             # set the right side of the kriging system to the limit of cov.
             mean_est = np.concatenate((np.full_like(self.cond_val, 0.0), [1]))
             # execute the kriging routine with einsum
-            return (
-                np.einsum(
-                    "i,ij,j", self._krige_cond, self._krige_mat, mean_est
-                )
-                + self.mean
+            res = np.einsum(
+                "i,ij,j", self._krige_cond, self._krige_mat, mean_est
             )
-        # for simple kriging return the given mean
-        return self.mean
+        return self.normalizer.denormalize(res + mean) if post_process else res
 
     def set_condition(
-        self, cond_pos, cond_val, ext_drift=None, cond_err="nugget"
+        self,
+        cond_pos=None,
+        cond_val=None,
+        ext_drift=None,
+        cond_err=None,
+        fit_normalizer=False,
+        fit_variogram=False,
     ):
         """Set the conditions for kriging.
 
+        This method could also be used to update the kriging setup, when
+        properties were changed. Then you can call it without arguments.
+
         Parameters
         ----------
-        cond_pos : :class:`list`
-            the position tuple of the conditions (x, [y, z])
-        cond_val : :class:`numpy.ndarray`
-            the values of the conditions
+        cond_pos : :class:`list`, optional
+            the position tuple of the conditions (x, [y, z]). Default: current.
+        cond_val : :class:`numpy.ndarray`, optional
+            the values of the conditions. Default: current.
         ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
             the external drift values at the given conditions (only for EDK)
             For multiple external drifts, the first dimension
-            should be the index of the drift term.
+            should be the index of the drift term. When passing `None`, the
+            extisting external drift will be used.
         cond_err : :class:`str`, :class :class:`float`, :class:`list`, optional
             The measurement error at the conditioning points.
             Either "nugget" to apply the model-nugget, a single value applied
@@ -400,11 +462,51 @@ class Krige(Field):
             The measurement error has to be <= nugget.
             The "exact=True" variant only works with "cond_err='nugget'".
             Default: "nugget"
+        fit_normalizer : :class:`bool`, optional
+            Wheater to fit the data-normalizer to the given conditioning data.
+            Default: False
+        fit_variogram : :class:`bool`, optional
+            Wheater to fit the given variogram model to the data.
+            This is done by using isotropy settings of the given model,
+            assuming the sill to be the data variance and with the
+            standard bins provided by the :any:`standard_bins` routine.
+            Default: False
         """
+        # only use existing external drift, if no new positions are given
+        ext_drift = (
+            self._cond_ext_drift
+            if (ext_drift is None and cond_pos is None)
+            else ext_drift
+        )
+        # use existing values or set default
+        cond_pos = self._cond_pos if cond_pos is None else cond_pos
+        cond_val = self._cond_val if cond_val is None else cond_val
+        cond_err = self._cond_err if cond_err is None else cond_err
+        cond_err = "nugget" if cond_err is None else cond_err  # default
+        if cond_pos is None or cond_val is None:
+            raise ValueError("Krige.set_condition: missing cond_pos/cond_val.")
         # correctly format cond_pos and cond_val
         self._cond_pos, self._cond_val = set_condition(
-            cond_pos, cond_val, self.model.dim
+            cond_pos, cond_val, self.dim
         )
+        if fit_normalizer:  # fit normalizer to detrended data
+            self.normalizer.fit(self.cond_val - self.cond_trend)
+        if fit_variogram:  # fitting model to empirical variogram of data
+            # normalize field
+            field = self.normalizer.normalize(self.cond_val - self.cond_trend)
+            field -= self.cond_mean
+            sill = np.var(field)
+            if self.model.is_isotropic:
+                emp_vario = vario_estimate(
+                    self.cond_pos, field, latlon=self.model.latlon
+                )
+            else:
+                axes = rotated_main_axes(self.model.dim, self.model.angles)
+                emp_vario = vario_estimate(
+                    self.cond_pos, field, direction=axes
+                )
+            # set the sill to the field variance
+            self.model.fit_variogram(*emp_vario, sill=sill)
         # set the measurement errors
         self.cond_err = cond_err
         # set the external drift values and the conditioning points
@@ -412,7 +514,9 @@ class Krige(Field):
             self.cond_no, ext_drift, set_cond=True
         )
         # upate the internal kriging settings
-        self.update()
+        self._krige_pos = self.model.isometrize(self.cond_pos)
+        # krige pos are the unrotated and isotropic condition positions
+        self._krige_mat = self._get_krige_mat()
 
     def set_drift_functions(self, drift_functions=None):
         """
@@ -436,7 +540,7 @@ class Krige(Field):
             self._drift_functions = []
         elif isinstance(drift_functions, (str, int)):
             self._drift_functions = get_drift_functions(
-                self.model.dim, drift_functions
+                self.dim, drift_functions
             )
         else:
             if isinstance(drift_functions, collections.abc.Iterator):
@@ -451,26 +555,15 @@ class Krige(Field):
                     raise ValueError("Krige: Drift functions not callable")
             self._drift_functions = drift_functions
 
-    def update(self):
-        """Update the kriging settings."""
-        self._krige_pos = self.model.isometrize(self.cond_pos)
-        # krige pos are the unrotated and isotropic condition positions
-        self._krige_mat = self._get_krige_mat()
-        if self.trend_function is no_trend:
-            self._cond_trend = 0.0
-        else:
-            self._cond_trend = self.trend_function(*self.cond_pos)
-
     @property
     def _krige_cond(self):
         """:class:`numpy.ndarray`: The prepared kriging conditions."""
         pad_size = self.drift_no + int(self.unbiased)
-        return np.pad(
-            self.cond_val - self.mean - self.cond_trend,
-            (0, pad_size),
-            mode="constant",
-            constant_values=0,
-        )
+        # detrend data and normalize
+        val = self.normalizer.normalize(self.cond_val - self.cond_trend)
+        # set to zero mean
+        val -= self.cond_mean
+        return np.pad(val, (0, pad_size), mode="constant", constant_values=0)
 
     @property
     def cond_pos(self):
@@ -497,7 +590,7 @@ class Krige(Field):
             if self.exact:
                 raise ValueError(
                     "krige.cond_err: measurement errors can't be given, "
-                    + "when interpolator should be exact."
+                    "when interpolator should be exact."
                 )
             value = np.array(value, dtype=np.double).reshape(-1)
             if value.size == 1:
@@ -513,6 +606,21 @@ class Krige(Field):
     def cond_no(self):
         """:class:`int`: The number of the conditions."""
         return len(self._cond_val)
+
+    @property
+    def cond_ext_drift(self):
+        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
+        return self._cond_ext_drift
+
+    @property
+    def cond_mean(self):
+        """:class:`numpy.ndarray`: Trend at the conditions."""
+        return eval_func(self.mean, self.cond_pos, self.dim, broadcast=True)
+
+    @property
+    def cond_trend(self):
+        """:class:`numpy.ndarray`: Trend at the conditions."""
+        return eval_func(self.trend, self.cond_pos, self.dim, broadcast=True)
 
     @property
     def unbiased(self):
@@ -541,11 +649,6 @@ class Krige(Field):
         self._pseudo_inv_type = val
 
     @property
-    def cond_ext_drift(self):
-        """:class:`numpy.ndarray`: The ext. drift at the conditions."""
-        return self._cond_ext_drift
-
-    @property
     def drift_functions(self):
         """:class:`list` of :any:`callable`: The drift functions."""
         return self._drift_functions
@@ -553,7 +656,7 @@ class Krige(Field):
     @property
     def has_const_mean(self):
         """:class:`bool`: Whether the field has a constant mean or not."""
-        return self.drift_no == 0
+        return self.drift_no == 0 and not callable(self.mean)
 
     @property
     def krige_size(self):
@@ -576,41 +679,15 @@ class Krige(Field):
         return self.cond_ext_drift.shape[0]
 
     @property
-    def cond_trend(self):
-        """:class:`numpy.ndarray`: Trend at the conditions."""
-        return self._cond_trend
-
-    @property
-    def trend_function(self):
-        """:any:`callable`: The trend function."""
-        return self._trend_function
-
-    @trend_function.setter
-    def trend_function(self, trend_function):
-        if trend_function is None:
-            trend_function = no_trend
-        if not callable(trend_function):
-            raise ValueError("Detrended kriging: trend function not callable.")
-        self._trend_function = trend_function
-        # apply trend_function instantly (if cond_pos already set)
-        if self._cond_pos is not None:
-            if self._trend_function is no_trend:
-                self._cond_trend = 0.0
-            else:
-                self._cond_trend = self._trend_function(*self.cond_pos)
-
-    @property
     def name(self):
         """:class:`str`: The name of the kriging class."""
         return self.__class__.__name__
 
     def __repr__(self):
         """Return String representation."""
-        return (
-            "{0}(model={1}, cond_no={2}".format(
-                self.name,
-                self.model.name,
-                self.cond_no,
-            )
-            + ")"
+        return "{0}(model={1}, cond_no={2}{3})".format(
+            self.name,
+            self.model.name,
+            self.cond_no,
+            self._fmt_mean_norm_trend(),
         )

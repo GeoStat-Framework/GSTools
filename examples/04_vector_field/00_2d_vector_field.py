@@ -1,8 +1,8 @@
 """
-Generating a Random Vector Field
---------------------------------
+Generating a Random 2D Vector Field
+-----------------------------------
 
-As a first example we are going to generate a vector field with a Gaussian
+As a first example we are going to generate a 2d vector field with a Gaussian
 covariance model on a structured grid:
 """
 import numpy as np
@@ -34,7 +34,7 @@ srf.plot()
 
 ###############################################################################
 # Applications
-# ------------
+# ~~~~~~~~~~~~
 #
 # One great advantage of the Kraichnan method is, that after some initializations,
 # one can compute the velocity field at arbitrary points, online, with hardly any

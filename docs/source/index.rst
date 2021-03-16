@@ -6,9 +6,18 @@ GSTools Quickstart
    :width: 150px
    :align: center
 
-GeoStatTools provides geostatistical tools for random field generation and
-variogram estimation based on many readily provided and even user-defined
-covariance models.
+GeoStatTools provides geostatistical tools for various purposes:
+
+- random field generation
+- simple, ordinary, universal and external drift kriging
+- conditioned field generation
+- incompressible random vector field generation
+- (automatted) variogram estimation and fitting
+- directional variogram estimation and modelling
+- data normalization and transformation
+- many readily provided and even user-defined covariance models
+- metric spatio-temporal modelling
+- plotting and exporting routines
 
 
 Installation
@@ -97,9 +106,10 @@ showing the most important use cases of GSTools, which are
 - `Kriging <examples/05_kriging/index.html>`__
 - `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
 - `Field transformations <examples/07_transformations/index.html>`__
+- `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
+- `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
+- `Normalizing Data <examples/10_normalizer/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
-
-Some more examples are provided in the examples folder.
 
 
 Spatial Random Field Generation
@@ -133,6 +143,30 @@ with a :any:`Gaussian` covariance model.
    :width: 400px
    :align: center
 
+GSTools also provides support for `geographic coordinates <https://en.wikipedia.org/wiki/Geographic_coordinate_system>`_.
+This works perfectly well with `cartopy <https://scitools.org.uk/cartopy/docs/latest/index.html>`_.
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+    import cartopy.crs as ccrs
+    import gstools as gs
+    # define a structured field by latitude and longitude
+    lat = lon = range(-80, 81)
+    model = gs.Gaussian(latlon=True, len_scale=777, rescale=gs.EARTH_RADIUS)
+    srf = gs.SRF(model, seed=12345)
+    field = srf.structured((lat, lon))
+    # Orthographic plotting with cartopy
+    ax = plt.subplot(projection=ccrs.Orthographic(-45, 45))
+    cont = ax.contourf(lon, lat, field, transform=ccrs.PlateCarree())
+    ax.coastlines()
+    ax.set_global()
+    plt.colorbar(cont)
+
+.. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_globe.png
+   :width: 400px
+   :align: center
+
 A similar example but for a three dimensional field is exported to a
 `VTK <https://vtk.org/>`__ file, which can be visualized with
 `ParaView <https://www.paraview.org/>`_ or
@@ -143,15 +177,15 @@ A similar example but for a three dimensional field is exported to a
     import gstools as gs
     # structured field with a size 100x100x100 and a grid-size of 1x1x1
     x = y = z = range(100)
-    model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
+    model = gs.Gaussian(dim=3, len_scale=[16, 8, 4], angles=(0.8, 0.4, 0.2))
     srf = gs.SRF(model)
     srf((x, y, z), mesh_type='structured')
     srf.vtk_export('3d_field') # Save to a VTK file for ParaView
 
     mesh = srf.to_pyvista() # Create a PyVista mesh for plotting in Python
-    mesh.threshold_percent(0.5).plot()
+    mesh.contour(isosurfaces=8).plot()
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png
+.. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista.png
    :width: 400px
    :align: center
 
@@ -180,24 +214,23 @@ model again.
     model = gs.Exponential(dim=2, var=2, len_scale=8)
     srf = gs.SRF(model, mean=0, seed=19970221)
     field = srf((x, y))
-    # estimate the variogram of the field with 40 bins
-    bins = np.arange(40)
-    bin_center, gamma = gs.vario_estimate((x, y), field, bins)
+    # estimate the variogram of the field
+    bin_center, gamma = gs.vario_estimate((x, y), field)
     # fit the variogram with a stable model. (no nugget fitted)
     fit_model = gs.Stable(dim=2)
     fit_model.fit_variogram(bin_center, gamma, nugget=False)
     # output
-    ax = fit_model.plot(x_max=40)
-    ax.plot(bin_center, gamma)
+    ax = fit_model.plot(x_max=max(bin_center))
+    ax.scatter(bin_center, gamma)
     print(fit_model)
 
 Which gives:
 
 .. code-block:: python
 
-    Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)
+    Stable(dim=2, var=1.85, len_scale=7.42, nugget=0.0, anis=[1.0], angles=[0.0], alpha=1.09)
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/exp_vario_fit.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GeoStat-Framework.github.io/master/img/GS_vario_est.png
    :width: 400px
    :align: center
 
@@ -228,15 +261,15 @@ generate 100 realizations and plot them:
 
     gridx = np.linspace(0.0, 15.0, 151)
 
-    # spatial random field class
+    # conditioned spatial random field class
     model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
-    srf = gs.SRF(model)
-    srf.set_condition(cond_pos, cond_val, "ordinary")
+    krige = gs.krige.Ordinary(model, cond_pos, cond_val)
+    cond_srf = gs.CondSRF(krige)
 
     # generate the ensemble of field realizations
     fields = []
     for i in range(100):
-        fields.append(srf(gridx, seed=i))
+        fields.append(cond_srf(gridx, seed=i))
         plt.plot(gridx, fields[i], color="k", alpha=0.1)
     plt.scatter(cond_pos, cond_val, color="k")
     plt.show()
@@ -291,8 +324,8 @@ Example
    x = np.arange(100)
    y = np.arange(100)
    model = gs.Gaussian(dim=2, var=1, len_scale=10)
-   srf = gs.SRF(model, generator='VectorField')
-   srf((x, y), mesh_type='structured', seed=19841203)
+   srf = gs.SRF(model, generator='VectorField', seed=19841203)
+   srf((x, y), mesh_type='structured')
    srf.plot()
 
 yielding
@@ -336,6 +369,7 @@ Requirements
 - `hankel >= 1.0.2 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
+- `meshio>=4.0.3, <5.0 <https://github.com/nschloe/meshio>`_
 
 
 Optional

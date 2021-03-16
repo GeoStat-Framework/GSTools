@@ -304,6 +304,7 @@ class TestCovModel(unittest.TestCase):
 
         # checking some properties
         model_par = Stable()
+        self.assertFalse(model_par.do_rotation)
         self.assertEqual(len(model_par.arg), len(model_par.arg_list))
         self.assertEqual(len(model_par.iso_arg), len(model_par.iso_arg_list))
         self.assertEqual(len(model_par.arg), len(model_par.iso_arg) + 2)
@@ -344,6 +345,7 @@ class TestCovModel(unittest.TestCase):
         with self.assertWarns(AttributeWarning):
             Gau_fix(dim=1)
         self.assertRaises(ValueError, Gaussian, dim=0)
+        self.assertRaises(ValueError, Gau_fix, latlon=True)
         # check inputs
         self.assertRaises(ValueError, model_std.percentile_scale, per=-1.0)
         self.assertRaises(ValueError, Gaussian, anis=-1.0)

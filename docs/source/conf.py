@@ -25,6 +25,7 @@
 import datetime
 import warnings
 
+
 warnings.filterwarnings(
     "ignore",
     category=UserWarning,
@@ -260,11 +261,23 @@ intersphinx_mapping = {
     "emcee": ("https://emcee.readthedocs.io/en/latest/", None),
 }
 
-
 # -- Sphinx Gallery Options
 from sphinx_gallery.sorting import FileNameSortKey
 
+# Use pyvista's image scraper for example gallery
+# import pyvista
+# https://github.com/tkoyama010/pyvista-doc-translations/blob/85c835a3ada3a2adefac06ba70e15a101ffa9162/conf.py#L21
+# https://github.com/simpeg/discretize/blob/f414dd7ee7c5ba9a141cb2c37d4b71fdc531eae8/docs/conf.py#L334
+# Make sure off screen is set to true when building locally
+# pyvista.OFF_SCREEN = True
+# # necessary when building the sphinx gallery
+# pyvista.BUILDING_GALLERY = True
+# # Optional - set parameters like theme or window size
+# pyvista.set_plot_theme("document")
+
 sphinx_gallery_conf = {
+    # "image_scrapers": ("pyvista", "matplotlib"),
+    "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
     # path to your examples scripts
@@ -277,6 +290,9 @@ sphinx_gallery_conf = {
         "../../examples/05_kriging/",
         "../../examples/06_conditioned_fields/",
         "../../examples/07_transformations/",
+        "../../examples/08_geo_coordinates/",
+        "../../examples/09_spatio_temporal/",
+        "../../examples/10_normalizer/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -288,6 +304,9 @@ sphinx_gallery_conf = {
         "examples/05_kriging/",
         "examples/06_conditioned_fields/",
         "examples/07_transformations/",
+        "examples/08_geo_coordinates/",
+        "examples/09_spatio_temporal/",
+        "examples/10_normalizer/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",
@@ -299,8 +318,10 @@ sphinx_gallery_conf = {
     "backreferences_dir": None,
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
-    # "image_scrapers": ('pyvista', 'matplotlib'),
-    # "first_notebook_cell": ("%matplotlib inline\n"
-    #                         "from pyvista import set_plot_theme\n"
-    #                         "set_plot_theme('document')"),
+    # "first_notebook_cell": (
+    #     "%matplotlib inline\n"
+    #     "from pyvista import set_plot_theme\n"
+    #     "set_plot_theme('document')"
+    # ),
+    "matplotlib_animations": True,
 }

@@ -10,17 +10,27 @@ Subpackages
 .. autosummary::
     generator
     upscaling
-    base
 
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   SRF
+   :toctree: generated
 
-----
+   SRF
+   CondSRF
+
+Field Base Class
+^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated
+
+   Field
 """
 
+from gstools.field.base import Field
 from gstools.field.srf import SRF
+from gstools.field.cond_srf import CondSRF
 
-__all__ = ["SRF"]
+__all__ = ["SRF", "CondSRF", "Field"]

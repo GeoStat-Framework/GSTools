@@ -108,15 +108,14 @@ def discrete(fld, values, thresholds="arithmetic"):
             if len(values) != len(thresholds) + 1:
                 raise ValueError(
                     "discrete transformation: "
-                    + "len(values) != len(thresholds) + 1"
+                    "len(values) != len(thresholds) + 1"
                 )
             values = np.array(values)
             thresholds = np.array(thresholds)
         # check thresholds
         if not np.all(thresholds[:-1] < thresholds[1:]):
             raise ValueError(
-                "discrete transformation: "
-                + "thresholds need to be ascending."
+                "discrete transformation: thresholds need to be ascending."
             )
         # use a separate result so the intermediate results are not affected
         result = np.empty_like(fld.field)
@@ -135,7 +134,7 @@ def discrete(fld, values, thresholds="arithmetic"):
 
 def boxcox(fld, lmbda=1, shift=0):
     """
-    Box-Cox transformation.
+    (Inverse) Box-Cox transformation to denormalize data.
 
     After this transformation, the again Box-Cox transformed field is normal
     distributed.

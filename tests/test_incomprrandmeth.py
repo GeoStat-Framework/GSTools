@@ -6,13 +6,13 @@ This is the unittest of the RandMeth class.
 import copy
 import unittest
 import numpy as np
-from gstools import Gaussian
+import gstools as gs
 from gstools.field.generator import IncomprRandMeth
 
 
 class TestIncomprRandMeth(unittest.TestCase):
     def setUp(self):
-        self.cov_model_2d = Gaussian(dim=2, var=1.5, len_scale=2.5)
+        self.cov_model_2d = gs.Gaussian(dim=2, var=1.5, len_scale=2.5)
         self.cov_model_3d = copy.deepcopy(self.cov_model_2d)
         self.cov_model_3d.dim = 3
         self.seed = 19031977
@@ -38,13 +38,24 @@ class TestIncomprRandMeth(unittest.TestCase):
 
     def test_unstruct_3d(self):
         modes = self.rm_3d((self.x_tuple, self.y_tuple, self.z_tuple))
-        self.assertAlmostEqual(modes[0, 0], 1.49469700)
-        self.assertAlmostEqual(modes[0, 1], 1.38687858)
-        self.assertAlmostEqual(modes[1, 0], -0.27245271)
+        self.assertAlmostEqual(modes[0, 0], 0.7924546333550331)
+        self.assertAlmostEqual(modes[0, 1], 1.660747056686244)
+        self.assertAlmostEqual(modes[1, 0], -0.28049855754819514)
 
     def test_assertions(self):
-        cov_model_1d = Gaussian(dim=1, var=1.5, len_scale=2.5)
+        cov_model_1d = gs.Gaussian(dim=1, var=1.5, len_scale=2.5)
         self.assertRaises(ValueError, IncomprRandMeth, cov_model_1d)
+
+    def test_vector_mean(self):
+        srf = gs.SRF(
+            self.cov_model_2d,
+            mean=(0.5, 0),
+            generator="VectorField",
+            seed=198412031,
+        )
+        srf.structured((self.x_grid, self.y_grid))
+        self.assertAlmostEqual(np.mean(srf.field[0]), 1.3025621393180298)
+        self.assertAlmostEqual(np.mean(srf.field[1]), -0.04729596839446052)
 
 
 if __name__ == "__main__":
