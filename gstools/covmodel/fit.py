@@ -398,9 +398,15 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
                 )
             )
     if anis:
-        low_bounds += [model.anis_bounds[0]] * (model.dim - 1)
-        top_bounds += [model.anis_bounds[1]] * (model.dim - 1)
-        init_guess_list += init_guess["anis"]
+        for i in range(model.dim - 1):
+            low_bounds.append(model.anis_bounds[0])
+            top_bounds.append(model.anis_bounds[1])
+            init_guess_list.append(
+                _init_guess(
+                    bounds=[low_bounds[-1], top_bounds[-1]],
+                    default=init_guess["anis"][i],
+                )
+            )
     return (low_bounds, top_bounds), init_guess_list
 
 
