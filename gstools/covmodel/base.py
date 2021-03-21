@@ -36,6 +36,7 @@ from gstools.covmodel.tools import (
     set_dim,
     compare,
     model_repr,
+    default_arg_from_bounds,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -414,7 +415,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Should be given as a dictionary when overridden.
         """
-        return {}
+        return {
+            opt: default_arg_from_bounds(bnd)
+            for (opt, bnd) in self.default_opt_arg_bounds().items()
+        }
 
     def default_opt_arg_bounds(self):
         """Provide default boundaries for optional arguments."""
