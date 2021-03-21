@@ -197,7 +197,7 @@ class TestNormalizer(unittest.TestCase):
         )
         # test fitting during kriging
         self.assertTrue(np.abs(krige.normalizer.lmbda - 0.0) < 1e-1)
-        self.assertAlmostEqual(krige.model.len_scale, 10.267877, places=4)
+        self.assertAlmostEqual(krige.model.len_scale, 10.2677, places=4)
         self.assertAlmostEqual(
             krige.model.sill,
             krige.normalizer.normalize(cond_val).var(),
