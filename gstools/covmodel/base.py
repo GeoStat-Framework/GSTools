@@ -36,6 +36,7 @@ from gstools.covmodel.tools import (
     set_dim,
     compare,
     model_repr,
+    default_arg_from_bounds,
 )
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
@@ -414,7 +415,10 @@ class CovModel(metaclass=InitSubclassMeta):
 
         Should be given as a dictionary when overridden.
         """
-        return {}
+        return {
+            opt: default_arg_from_bounds(bnd)
+            for (opt, bnd) in self.default_opt_arg_bounds().items()
+        }
 
     def default_opt_arg_bounds(self):
         """Provide default boundaries for optional arguments."""
@@ -607,11 +611,19 @@ class CovModel(metaclass=InitSubclassMeta):
             and set to the current sill of the model.
             Then, the procedure above is applied.
             Default: None
-        init_guess : :class:`str`, optional
+        init_guess : :class:`str` or :class:`dict`, optional
             Initial guess for the estimation. Either:
 
                 * "default": using the default values of the covariance model
+                  ("len_scale" will be mean of given bin centers;
+                  "var" and "nugget" will be mean of given variogram values
+                  (if in given bounds))
                 * "current": using the current values of the covariance model
+                * dict: dictionary with parameter names and given value
+                  (separate "default" can bet set to "default" or "current" for
+                  unspecified values to get same behavior as given above
+                  ("default" by default))
+                  Example: ``{"len_scale": 10, "default": "current"}``
 
             Default: "default"
         weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`, optional
