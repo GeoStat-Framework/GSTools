@@ -7,7 +7,6 @@ GStools subpackage providing tools for the covariance-model.
 The following classes and functions are provided
 
 .. autosummary::
-   InitSubclassMeta
    AttributeWarning
    rad_fac
    set_opt_args
@@ -34,7 +33,6 @@ from gstools.tools.misc import list_format
 from gstools.tools.geometric import set_anis, set_angles
 
 __all__ = [
-    "InitSubclassMeta",
     "AttributeWarning",
     "rad_fac",
     "set_opt_args",
