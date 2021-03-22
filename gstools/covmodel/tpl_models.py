@@ -148,7 +148,7 @@ class TPLGaussian(TPLCovModel):
         Default: ``0.5``
     len_low : :class:`float`, optional
         The lower length scale truncation of the model.
-        Standard range: ``[0, 1000]``.
+        Standard range: ``[0, inf]``.
         Default: ``0.0``
     """
 
@@ -167,7 +167,7 @@ class TPLGaussian(TPLCovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}``
+            * ``{"hurst": [0, 1, "oo"], "len_low": [0, inf, "cc"]}``
 
         Returns
         -------
@@ -275,7 +275,7 @@ class TPLExponential(TPLCovModel):
         Default: ``0.5``
     len_low : :class:`float`, optional
         The lower length scale truncation of the model.
-        Standard range: ``[0, 1000]``.
+        Standard range: ``[0, inf]``.
         Default: ``0.0``
     """
 
@@ -294,7 +294,7 @@ class TPLExponential(TPLCovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"hurst": [0, 1, "oo"], "len_low": [0, 1000, "cc"]}``
+            * ``{"hurst": [0, 1, "oo"], "len_low": [0, inf, "cc"]}``
 
         Returns
         -------
@@ -413,7 +413,7 @@ class TPLStable(TPLCovModel):
         Default: ``1.5``
     len_low : :class:`float`, optional
         The lower length scale truncation of the model.
-        Standard range: ``[0, 1000]``.
+        Standard range: ``[0, inf]``.
         Default: ``0.0``
     """
 
@@ -434,7 +434,7 @@ class TPLStable(TPLCovModel):
 
             * ``{"hurst": [0, 1, "oo"],
               "alpha": [0, 2, "oc"],
-              "len_low": [0, 1000, "cc"]}``
+              "len_low": [0, inf, "cc"]}``
 
         Returns
         -------
@@ -459,7 +459,7 @@ class TPLStable(TPLCovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "TPLStable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results",
+                "count with unstable results",
                 AttributeWarning,
             )
 
@@ -537,14 +537,14 @@ class TPLSimple(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+            * ``{"nu": [dim/2 - 1, 50.0, "co"]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim + 1) / 2, np.inf, "co"]}
+        return {"nu": [(self.dim + 1) / 2, 50.0, "co"]}
 
     def cor(self, h):
         """TPL Simple - normalized correlation function."""

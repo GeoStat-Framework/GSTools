@@ -412,14 +412,14 @@ class Rational(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"alpha": [0.5, inf]}``
+            * ``{"alpha": [0.5, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"alpha": [0.5, np.inf]}
+        return {"alpha": [0.5, 50.0]}
 
     def cor(self, h):
         """Rational normalized correlation function."""
@@ -677,14 +677,14 @@ class SuperSpherical(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [(dim-1)/2, inf, "co"]}``
+            * ``{"nu": [(dim-1)/2, 50.0, "co"]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim - 1) / 2, np.inf, "co"]}
+        return {"nu": [(self.dim - 1) / 2, 50.0, "co"]}
 
     def cor(self, h):
         """Super-Spherical normalized correlation function."""
@@ -751,14 +751,14 @@ class JBessel(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+            * ``{"nu": [dim/2 - 1, 50.0, "co"]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [self.dim / 2 - 1, np.inf, "co"]}
+        return {"nu": [self.dim / 2 - 1, 50.0, "co"]}
 
     def check_opt_arg(self):
         """Check the optional arguments.
