@@ -25,11 +25,6 @@ class TestVariogramstructured(unittest.TestCase):
         gamma = gs.vario_estimate_axis(z)
         self.assertAlmostEqual(gamma[1], 50.0, places=4)
 
-    def test_np_int(self):
-        z = np.array((10, 20, 30, 40), dtype=np.int)
-        gamma = gs.vario_estimate_axis(z)
-        self.assertAlmostEqual(gamma[1], 50.0, places=4)
-
     def test_mixed(self):
         z = np.array(
             (41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3),
