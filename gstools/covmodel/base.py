@@ -24,7 +24,6 @@ from gstools.tools.geometric import (
     pos2latlon,
 )
 from gstools.covmodel.tools import (
-    InitSubclassMeta,
     _init_subclass,
     set_opt_args,
     set_len_anis,
@@ -47,7 +46,7 @@ __all__ = ["CovModel"]
 HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
 
 
-class CovModel(metaclass=InitSubclassMeta):
+class CovModel(metaclass=type):
     r"""Base class for the GSTools covariance models.
 
     Parameters

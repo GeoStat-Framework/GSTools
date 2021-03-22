@@ -56,41 +56,6 @@ class AttributeWarning(UserWarning):
     """Attribute warning for CovModel class."""
 
 
-# __init_subclass__ hack for Python 3.5
-
-if hasattr(object, "__init_subclass__"):
-    InitSubclassMeta = type
-else:
-
-    class InitSubclassMeta(type):  # pragma: no cover
-        """Metaclass that implements PEP 487 protocol.
-
-        Notes
-        -----
-        See :
-            https://www.python.org/dev/peps/pep-0487
-
-        taken from :
-            https://github.com/graphql-python/graphene/blob/master/graphene/pyutils/init_subclass.py
-        """
-
-        def __new__(cls, name, bases, ns, **kwargs):
-            """Create a new subclass."""
-            __init_subclass__ = ns.pop("__init_subclass__", None)
-            if __init_subclass__:
-                __init_subclass__ = classmethod(__init_subclass__)
-                ns["__init_subclass__"] = __init_subclass__
-            return super(InitSubclassMeta, cls).__new__(
-                cls, name, bases, ns, **kwargs
-            )
-
-        def __init__(cls, name, bases, ns, **kwargs):
-            super(InitSubclassMeta, cls).__init__(name, bases, ns)
-            super_class = super(cls, cls)
-            if hasattr(super_class, "__init_subclass__"):
-                super_class.__init_subclass__.__func__(cls, **kwargs)
-
-
 def _init_subclass(cls):
     """Initialize gstools covariance model."""
 
