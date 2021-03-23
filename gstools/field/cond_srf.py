@@ -142,7 +142,7 @@ class CondSRF(Field):
             self._generator = gen(self.model, **generator_kwargs)
             self.value_type = self.generator.value_type
         else:
-            raise ValueError("gstools.CondSRF: Unknown generator " + generator)
+            raise ValueError(f"gstools.CondSRF: Unknown generator {generator}")
 
     @property
     def krige(self):
