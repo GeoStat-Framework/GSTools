@@ -46,7 +46,7 @@ __all__ = ["CovModel"]
 HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
 
 
-class CovModel(metaclass=type):
+class CovModel:
     r"""Base class for the GSTools covariance models.
 
     Parameters
