@@ -19,9 +19,7 @@ __all__ = ["list_format", "eval_func"]
 
 def list_format(lst, prec):  # pragma: no cover
     """Format a list of floats."""
-    return "[{}]".format(
-        ", ".join("{x:.{p}}".format(x=float(x), p=prec) for x in lst)
-    )
+    return f"[{', '.join(f'{float(x):.{prec}}' for x in lst)}]"
 
 
 def eval_func(

@@ -571,13 +571,13 @@ def ang2dir(angles, dtype=np.double, dim=None):
     pre_dim = np.asanyarray(angles).ndim
     angles = np.array(angles, ndmin=2, dtype=dtype)
     if len(angles.shape) > 2:
-        raise ValueError("Can't interpret angles array {}".format(angles))
+        raise ValueError(f"Can't interpret angles array {angles}")
     dim = angles.shape[1] + 1 if dim is None else dim
     if dim == 2 and angles.shape[0] == 1 and pre_dim < 2:
         # fix for 2D where only one angle per direction is given
         angles = angles.T  # can't be interpreted if dim=None is given
     if dim != angles.shape[1] + 1 or dim == 1:
-        raise ValueError("Wrong dim. ({}) for angles {}".format(dim, angles))
+        raise ValueError(f"Wrong dim. ({dim}) for angles {angles}")
     vec = np.empty((angles.shape[0], dim), dtype=dtype)
     vec[:, 0] = np.prod(np.sin(angles), axis=1)
     for i in range(1, dim):
