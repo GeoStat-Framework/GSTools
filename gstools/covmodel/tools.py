@@ -100,11 +100,9 @@ def _init_subclass(cls):
         abstract = False
     if abstract:
         raise TypeError(
-            "Can't instantiate class '"
-            + cls.__name__
-            + "', "
-            + "without providing at least one of the methods "
-            + "'cor', 'variogram', 'covariance' or 'correlation'."
+            f"Can't instantiate class '{cls.__name__}', "
+            "without providing at least one of the methods "
+            "'cor', 'variogram', 'covariance' or 'correlation'."
         )
 
 
@@ -134,7 +132,7 @@ def rad_fac(dim, r):
             dim
             * r ** (dim - 1)
             * np.sqrt(np.pi) ** dim
-            / sps.gamma(dim / 2.0 + 1.0)
+            / sps.gamma(dim / 2 + 1)
         )
     return fac
 
@@ -161,9 +159,9 @@ def set_opt_args(model, opt_arg):
     for opt_name in opt_arg:
         if opt_name not in default:
             warnings.warn(
-                "The given optional argument '{}' ".format(opt_name)
-                + "is unknown or has at least no defined standard value. "
-                + "Or you made a Typo... hehe.",
+                f"The given optional argument '{opt_name}' "
+                "is unknown or has at least no defined standard value. "
+                "Or you made a Typo... hehe.",
                 AttributeWarning,
             )
     # add the default vaules if not specified
@@ -176,10 +174,9 @@ def set_opt_args(model, opt_arg):
     for opt_name in opt_arg:
         if opt_name in dir(model):  # "dir" also respects properties
             raise ValueError(
-                "parameter '"
-                + opt_name
-                + "' has a 'bad' name, since it is already present in "
-                + "the class. It could not be added to the model"
+                f"parameter '{opt_name}' has a 'bad' name, "
+                "since it is already present in "
+                "the class. It could not be added to the model."
             )
         # Magic happens here
         setattr(model, opt_name, float(opt_arg[opt_name]))
@@ -514,10 +511,8 @@ def set_dim(model, dim):
         dim = model.fix_dim()
         if model.latlon and dim != 3:
             raise ValueError(
-                model.name
-                + ": using fixed dimension "
-                + str(model.fix_dim())
-                + ", which is not compatible with a latlon model."
+                f"{model.name}: using fixed dimension {model.fix_dim()}, "
+                "which is not compatible with a latlon model."
             )
     # force dim=3 for latlon models
     dim = 3 if model.latlon else dim
@@ -526,7 +521,7 @@ def set_dim(model, dim):
         raise ValueError("Only dimensions of d >= 1 are supported.")
     if not model.check_dim(dim):
         warnings.warn(
-            "Dimension {} is not appropriate for this model.".format(dim),
+            f"Dimension {dim} is not appropriate for this model.",
             AttributeWarning,
         )
     model._dim = int(dim)
@@ -589,21 +584,20 @@ def model_repr(model):  # pragma: no cover
     if model.latlon:
         std_str = (
             "{0}(latlon={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}".format(
+            "nugget={4:.{p}}{5})".format(
                 model.name,
                 model.latlon,
                 model.var,
                 model.len_scale,
                 model.nugget,
+                opt_str,
                 p=model._prec,
             )
-            + opt_str
-            + ")"
         )
     else:
         std_str = (
             "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}, anis={5}, angles={6}".format(
+            "nugget={4:.{p}}, anis={5}, angles={6}{7})".format(
                 model.name,
                 model.dim,
                 model.var,
@@ -611,9 +605,8 @@ def model_repr(model):  # pragma: no cover
                 model.nugget,
                 list_format(model.anis, 3),
                 list_format(model.angles, 3),
+                opt_str,
                 p=model._prec,
             )
-            + opt_str
-            + ")"
         )
     return std_str
