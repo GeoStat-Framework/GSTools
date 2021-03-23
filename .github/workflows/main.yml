@@ -31,7 +31,7 @@ jobs:
         uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: cp36-* cp37-* cp38-* cp39-*
-          CIBW_BEFORE_BUILD: pip install numpy==1.17.3 cython>=0.29.14 setuptools
+          CIBW_BEFORE_BUILD: pip install numpy==1.19.* cython==0.29.* setuptools
           CIBW_TEST_REQUIRES: pytest
           CIBW_TEST_COMMAND: pytest -v {project}/tests
         with:
