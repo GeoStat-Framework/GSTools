@@ -32,7 +32,7 @@ def _set_mean_trend(value, dim):
         return value
     value = np.array(value, dtype=np.double).ravel()
     if value.size > 1 and value.size != dim:  # vector mean
-        raise ValueError("Mean/Trend: Wrong size ({})".format(value))
+        raise ValueError(f"Mean/Trend: Wrong size ({value})")
     return value if value.size > 1 else value.item()
 
 
@@ -308,9 +308,7 @@ class Field:
                     "Streamflow plotting only supported for 2d case."
                 )
         else:
-            raise ValueError(
-                "Unknown field value type: {}".format(self.value_type)
-            )
+            raise ValueError(f"Unknown field value type: {self.value_type}")
 
         return r
 
@@ -363,7 +361,7 @@ class Field:
     @value_type.setter
     def value_type(self, value_type):
         if value_type not in VALUE_TYPES:
-            raise ValueError("Field: value type not in {}".format(VALUE_TYPES))
+            raise ValueError(f"Field: value type not in {VALUE_TYPES}")
         self._value_type = value_type
 
     @property

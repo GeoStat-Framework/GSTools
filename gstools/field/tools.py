@@ -7,8 +7,9 @@ GStools subpackage providing tools for Fields.
 The following classes and functions are provided
 
 .. autosummary::
+   fmt_mean_norm_trend
    to_vtk_helper
-   mesh_call
+   generate_on_mesh
 """
 import numpy as np
 import meshio
@@ -18,7 +19,7 @@ from gstools.tools.export import to_vtk, vtk_export
 from gstools.tools.misc import list_format
 
 
-__all__ = ["fmt_mean_norm_trend", "to_vtk_helper", "mesh_call"]
+__all__ = ["fmt_mean_norm_trend", "to_vtk_helper", "generate_on_mesh"]
 
 
 def _fmt_func_val(f_cls, func_val):  # pragma: no cover
@@ -95,11 +96,9 @@ def to_vtk_helper(
                     filename, f_cls.pos, {fieldname: field}, f_cls.mesh_type
                 )
         else:
-            print("Field.to_vtk: '{}' not available.".format(field_select))
+            raise ValueError(f"Field.to_vtk: '{field_select}' not available.")
     else:
-        raise ValueError(
-            "Unknown field value type: {}".format(f_cls.value_type)
-        )
+        raise ValueError(f"Unknown field value type: {f_cls.value_type}")
 
 
 def generate_on_mesh(
@@ -167,9 +166,8 @@ def generate_on_mesh(
         select = direction[: f_cls.dim]
     if len(select) < f_cls.dim:
         raise ValueError(
-            "Field.mesh: need at least {} direction(s), got '{}'".format(
-                f_cls.dim, direction
-            )
+            f"Field.mesh: need at least {f_cls.dim} direction(s), "
+            f"got '{direction}'"
         )
     # convert pyvista mesh
     if has_pyvista and pv.is_pyvista_dataset(mesh):
@@ -235,7 +233,7 @@ def generate_on_mesh(
 def _names(name, cnt):
     name = [name] if isinstance(name, str) else list(name)[:cnt]
     if len(name) < cnt:
-        name += [name[-1] + str(i + 1) for i in range(cnt - len(name))]
+        name += [f"{name[-1]}{i + 1}" for i in range(cnt - len(name))]
     return name
 
 
@@ -243,29 +241,27 @@ def _get_select(direction):
     select = []
     if not (0 < len(direction) < 4):
         raise ValueError(
-            "Field.mesh: need 1 to 3 direction(s), got '{}'".format(direction)
+            f"Field.mesh: need 1 to 3 direction(s), got '{direction}'"
         )
     for axis in direction:
         if axis == "x":
             if 0 in select:
                 raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(direction)
+                    f"Field.mesh: got duplicate directions {direction}"
                 )
             select.append(0)
         elif axis == "y":
             if 1 in select:
                 raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(direction)
+                    f"Field.mesh: got duplicate directions {direction}"
                 )
             select.append(1)
         elif axis == "z":
             if 2 in select:
                 raise ValueError(
-                    "Field.mesh: got duplicate directions {}".format(direction)
+                    f"Field.mesh: got duplicate directions {direction}"
                 )
             select.append(2)
         else:
-            raise ValueError(
-                "Field.mesh: got unknown direction {}".format(axis)
-            )
+            raise ValueError(f"Field.mesh: got unknown direction {axis}")
     return select

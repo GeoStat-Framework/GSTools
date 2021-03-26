@@ -82,7 +82,7 @@ def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
         Axis containing the plot.
     """
     fig, ax = _get_fig_ax(fig, ax)
-    title = "Field 1D: " + str(field.shape)
+    title = f"Field 1D: {field.shape}"
     x = pos[0]
     x = x.flatten()
     arg = np.argsort(x)
@@ -108,7 +108,7 @@ def plot_nd(
     show_colorbar=True,
     convex_hull=False,
     contour_plot=True,
-    **kwargs
+    **kwargs,
 ):  # pragma: no cover
     """
     Plot field in arbitrary dimensions.
@@ -167,9 +167,7 @@ def plot_nd(
     ax_names = _ax_names(dim, latlon, ax_names)
     # init planes
     planes = rotation_planes(dim)
-    plane_names = [
-        " {} - {}".format(ax_names[p[0]], ax_names[p[1]]) for p in planes
-    ]
+    plane_names = [f" {ax_names[p[0]]} - {ax_names[p[1]]}" for p in planes]
     ax_ends = [[p.min(), p.max()] for p in pos]
     ax_rngs = [end[1] - end[0] for end in ax_ends]
     ax_steps = [rng / resolution for rng in ax_rngs]
@@ -177,7 +175,7 @@ def plot_nd(
     # create figure
     reformat = fig is None and ax is None
     fig, ax = _get_fig_ax(fig, ax)
-    ax.set_title("Field {}D {} {}".format(dim, mesh_type, field.shape))
+    ax.set_title(f"Field {dim}D {mesh_type} {field.shape}")
     if reformat:  # only format fig if it was created here
         fig.set_size_inches(8, 5.5 + 0.5 * (dim - 2))
     # init additional axis, radio-buttons and sliders
@@ -306,7 +304,7 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     norm = np.sqrt(plot_field[0, :].T ** 2 + plot_field[1, :].T ** 2)
 
     fig, ax = _get_fig_ax(fig, ax)
-    title = "Field 2D " + fld.mesh_type + ": " + str(plot_field.shape)
+    title = f"Field 2D {fld.mesh_type}: {plot_field.shape}"
     x = fld.pos[0]
     y = fld.pos[1]
 
@@ -334,7 +332,7 @@ def _ax_names(dim, latlon=False, ax_names=None):
         return ["lon", "lat"]
     if dim <= 3:
         return ["$x$", "$y$", "$z$"][:dim] + (dim == 1) * ["field"]
-    return ["$x_{" + str(i) + "}$" for i in range(dim)]
+    return [f"$x_{{{i}}}$" for i in range(dim)]
 
 
 def _plot_2d(
@@ -350,7 +348,7 @@ def _plot_2d(
 ):  # pragma: no cover
     """Plot a 2d field with a contour plot."""
     fig, ax = _get_fig_ax(fig, ax)
-    title = "Field 2D " + mesh_type + ": " + str(field.shape)
+    title = f"Field 2D {mesh_type}: {field.shape}"
     ax_names = _ax_names(2, latlon, ax_names=ax_names)
     x, y = pos[::-1] if latlon else pos
     if mesh_type == "unstructured":

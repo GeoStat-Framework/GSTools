@@ -48,9 +48,7 @@ def _set_estimator(estimator):
     elif estimator.lower() == "cressie":
         cython_estimator = "c"
     else:
-        raise ValueError(
-            "Unknown variogram estimator function " + str(estimator)
-        )
+        raise ValueError(f"Unknown variogram estimator function: {estimator}")
     return cython_estimator
 
 
@@ -285,9 +283,9 @@ def vario_estimate(
     if direction is not None and dim > 1:
         direction = np.array(direction, ndmin=2, dtype=np.double)
         if len(direction.shape) > 2:
-            raise ValueError("Can't interpret directions {}".format(direction))
+            raise ValueError(f"Can't interpret directions: {direction}")
         if direction.shape[1] != dim:
-            raise ValueError("Can't interpret directions {}".format(direction))
+            raise ValueError(f"Can't interpret directions: {direction}")
         dir_no = direction.shape[0]
     # convert given angles to direction vector
     if angles is not None and direction is None and dim > 1:
@@ -299,7 +297,7 @@ def vario_estimate(
             raise ValueError("Directional variogram not allowed for lat-lon.")
         norms = np.linalg.norm(direction, axis=1)
         if np.any(np.isclose(norms, 0)):
-            raise ValueError("Zero length direction {}".format(direction))
+            raise ValueError(f"Zero length directions: {direction}")
         # only unit-vectors for directions
         direction = np.divide(direction, norms[:, np.newaxis])
         # negative bandwidth to turn it off

@@ -24,7 +24,6 @@ from gstools.tools.geometric import (
     pos2latlon,
 )
 from gstools.covmodel.tools import (
-    InitSubclassMeta,
     _init_subclass,
     set_opt_args,
     set_len_anis,
@@ -47,7 +46,7 @@ __all__ = ["CovModel"]
 HANKEL_DEFAULT = {"a": -1, "b": 1, "N": 200, "h": 0.001, "alt": True}
 
 
-class CovModel(metaclass=InitSubclassMeta):
+class CovModel:
     r"""Base class for the GSTools covariance models.
 
     Parameters
@@ -134,7 +133,7 @@ class CovModel(metaclass=InitSubclassMeta):
         latlon=False,
         var_raw=None,
         hankel_kw=None,
-        **opt_arg
+        **opt_arg,
     ):
         # assert, that we use a subclass
         # this is the case, if __init_subclass__ is called, which creates
@@ -211,12 +210,8 @@ class CovModel(metaclass=InitSubclassMeta):
 
         # modify the docstrings: class docstring gets attributes added
         if cls.__doc__ is None:
-            cls.__doc__ = (
-                "User defined GSTools Covariance-Model."
-                + CovModel.__doc__[45:]
-            )
-        else:
-            cls.__doc__ += CovModel.__doc__[45:]
+            cls.__doc__ = "User defined GSTools Covariance-Model."
+        cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
         ignore = ["__", "variogram", "covariance", "cor"]
         for attr in cls.__dict__:
@@ -572,7 +567,7 @@ class CovModel(metaclass=InitSubclassMeta):
         max_eval=None,
         return_r2=False,
         curve_fit_kwargs=None,
-        **para_select
+        **para_select,
     ):
         """
         Fiting the variogram-model to an empirical variogram.
@@ -715,7 +710,7 @@ class CovModel(metaclass=InitSubclassMeta):
             max_eval=max_eval,
             return_r2=return_r2,
             curve_fit_kwargs=curve_fit_kwargs,
-            **para_select
+            **para_select,
         )
 
     # bounds setting and checks
@@ -772,7 +767,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def var_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'var' are not valid, got: " + str(bounds)
+                f"Given bounds for 'var' are not valid, got: {bounds}"
             )
         self._var_bounds = bounds
 
@@ -792,8 +787,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def len_scale_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'len_scale' are not valid, got: "
-                + str(bounds)
+                f"Given bounds for 'len_scale' are not valid, got: {bounds}"
             )
         self._len_scale_bounds = bounds
 
@@ -813,7 +807,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def nugget_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'nugget' are not valid, got: " + str(bounds)
+                f"Given bounds for 'nugget' are not valid, got: {bounds}"
             )
         self._nugget_bounds = bounds
 
@@ -833,7 +827,7 @@ class CovModel(metaclass=InitSubclassMeta):
     def anis_bounds(self, bounds):
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for 'anis' are not valid, got: " + str(bounds)
+                f"Given bounds for 'anis' are not valid, got: {bounds}"
             )
         self._anis_bounds = bounds
 
@@ -1002,9 +996,8 @@ class CovModel(metaclass=InitSubclassMeta):
             self.len_scale = integral_scale / int_tmp
             if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
                 raise ValueError(
-                    self.name
-                    + ": Integral scale could not be set correctly!"
-                    + " Please just give a len_scale!"
+                    f"{self.name}: Integral scale could not be set correctly! "
+                    "Please just provide a 'len_scale'!"
                 )
 
     @property

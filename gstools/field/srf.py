@@ -89,7 +89,7 @@ class SRF(Field):
         trend=None,
         upscaling="no_scaling",
         generator="RandMeth",
-        **generator_kwargs
+        **generator_kwargs,
     ):
         super().__init__(model, mean=mean, normalizer=normalizer, trend=trend)
         # initialize private attributes
@@ -162,11 +162,11 @@ class SRF(Field):
             self._generator = gen(self.model, **generator_kwargs)
             self.value_type = self._generator.value_type
         else:
-            raise ValueError("gstools.SRF: Unknown generator: " + generator)
+            raise ValueError(f"gstools.SRF: Unknown generator: {generator}")
         for val in [self.mean, self.trend]:
             if not callable(val) and val is not None:
                 if np.size(val) > 1 and self.value_type == "scalar":
-                    raise ValueError("Mean/Trend: Wrong size ({})".format(val))
+                    raise ValueError(f"Mean/Trend: Wrong size ({val})")
 
     @property
     def generator(self):
@@ -191,9 +191,7 @@ class SRF(Field):
             self._upscaling = upscaling
             self._upscaling_func = UPSCALING[upscaling]
         else:
-            raise ValueError(
-                "gstools.SRF: Unknown upscaling method: " + upscaling
-            )
+            raise ValueError(f"SRF: Unknown upscaling method: {upscaling}")
 
     def __repr__(self):
         """Return String representation."""

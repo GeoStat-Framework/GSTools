@@ -216,4 +216,4 @@ class RNG:
 
     def __repr__(self):
         """Return String representation."""
-        return "RNG(seed={})".format(self.seed)
+        return f"RNG(seed={self.seed})"

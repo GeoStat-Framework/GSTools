@@ -217,7 +217,7 @@ class Normalizer:
             return -self.kernel_loglikelihood(dat)
 
         if len(para_names) == 0:  # transformations without para. (no opti.)
-            warnings.warn(self.name + ".fit: no parameters!")
+            warnings.warn(f"{self.name}.fit: no parameters!")
             return {}
         if len(para_names) == 1:  # one-para. transformations (simple opti.)
             # default bracket like in scipy's boxcox (if not given)
@@ -255,4 +255,4 @@ class Normalizer:
             "{0}={1:.{2}}".format(p, float(getattr(self, p)), self._prec)
             for p in sorted(self.default_parameter)
         ]
-        return self.name + "(" + ", ".join(para_strs) + ")"
+        return f"{self.name}({', '.join(para_strs)})"

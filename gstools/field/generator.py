@@ -80,7 +80,7 @@ class RandMeth:
         seed=None,
         verbose=False,
         sampling="auto",
-        **kwargs
+        **kwargs,
     ):
         if kwargs:
             warnings.warn("gstools.RandMeth: **kwargs are ignored")
@@ -192,13 +192,13 @@ class RandMeth:
             else:
                 raise ValueError(
                     "gstools.field.generator.RandMeth: "
-                    + "neither 'model' nor 'seed' given!"
+                    "neither 'model' nor 'seed' given!"
                 )
         # wrong model type
         else:
             raise ValueError(
                 "gstools.field.generator.RandMeth: 'model' is not an "
-                + "instance of 'gstools.CovModel'"
+                "instance of 'gstools.CovModel'"
             )
 
     def reset_seed(self, seed=np.nan):
@@ -249,7 +249,7 @@ class RandMeth:
     @sampling.setter
     def sampling(self, sampling):
         if sampling not in ["auto", "inversion", "mcmc"]:
-            raise ValueError("RandMeth: sampling not in {}.".format(SAMPLING))
+            raise ValueError(f"RandMeth: sampling not in {SAMPLING}.")
         self._sampling = sampling
 
     @property
@@ -310,7 +310,7 @@ class RandMeth:
     def __repr__(self):
         """Return String representation."""
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            repr(self.model), self._mode_no, self.seed
+            self.model, self._mode_no, self.seed
         )
 
 
@@ -374,7 +374,7 @@ class IncomprRandMeth(RandMeth):
         seed=None,
         verbose=False,
         sampling="auto",
-        **kwargs
+        **kwargs,
     ):
         if model.dim < 2 or model.dim > 3:
             raise ValueError(

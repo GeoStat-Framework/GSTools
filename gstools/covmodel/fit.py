@@ -36,7 +36,7 @@ def fit_variogram(
     max_eval=None,
     return_r2=False,
     curve_fit_kwargs=None,
-    **para_select
+    **para_select,
 ):
     """
     Fitting a variogram-model to an empirical variogram.
@@ -217,9 +217,7 @@ def _pre_para(model, para_select, sill, anis):
     var_last = False
     for par in para_select:
         if par not in model.arg_bounds:
-            raise ValueError(
-                "fit: unknow parameter in selection: {}".format(par)
-            )
+            raise ValueError(f"fit: unknown parameter in selection: {par}")
         if not isinstance(para_select[par], bool):
             if par == "var":
                 var_last = True
@@ -288,16 +286,12 @@ def _pre_init_guess(model, init_guess, mean_x=1.0, mean_y=1.0):
     # "default" init guess is the respective default value
     default_guess = init_guess.pop("default", "default")
     if default_guess not in ["default", "current"]:
-        raise ValueError(
-            "fit_variogram: unknown def. guess: {}".format(default_guess)
-        )
+        raise ValueError(f"fit_variogram: unknown def. guess: {default_guess}")
     default = default_guess == "default"
     # check invalid names for given init guesses
     invalid_para = set(init_guess) - set(model.iso_arg + ["anis"])
     if invalid_para:
-        raise ValueError(
-            "fit_variogram: unknown init guess: {}".format(invalid_para)
-        )
+        raise ValueError(f"fit_variogram: unknown init guess: {invalid_para}")
     bnd = model.arg_bounds
     # default length scale is mean of given bin centers (respecting "rescale")
     init_guess.setdefault(
