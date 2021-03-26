@@ -33,13 +33,6 @@ class TestVariogramUnstructured(unittest.TestCase):
         bin_centres, gamma = gs.vario_estimate([x], z, bins)
         self.assertAlmostEqual(gamma[0], 50.0, places=4)
 
-    def test_np_int(self):
-        x = np.arange(1, 5, 1, dtype=np.int)
-        z = np.array((10, 20, 30, 40), dtype=np.int)
-        bins = np.arange(1, 11, 1, dtype=np.int)
-        bin_centres, gamma = gs.vario_estimate([x], z, bins)
-        self.assertAlmostEqual(gamma[0], 50.0, places=4)
-
     def test_mixed(self):
         x = np.arange(1, 11, 1, dtype=np.double)
         z = np.array(
