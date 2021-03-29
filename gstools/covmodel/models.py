@@ -45,7 +45,7 @@ __all__ = [
 
 
 class Gaussian(CovModel):
-    r"""The Gaussian covariance model.
+    r"""The Gaussian covariance model [1]_.
 
     Notes
     -----
@@ -57,6 +57,12 @@ class Gaussian(CovModel):
        \left(1-\exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)\right)+n
 
     Where the standard rescale factor is :math:`s=\frac{\sqrt{\pi}}{2}`.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -113,7 +119,7 @@ class Gaussian(CovModel):
 
 
 class Exponential(CovModel):
-    r"""The Exponential covariance model.
+    r"""The Exponential covariance model [1]_.
 
     Notes
     -----
@@ -125,6 +131,12 @@ class Exponential(CovModel):
        \left(1-\exp\left(-s\cdot\frac{r}{\ell}\right)\right)+n
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -191,7 +203,7 @@ class Exponential(CovModel):
 
 
 class Stable(CovModel):
-    r"""The stable covariance model.
+    r"""The stable covariance model [1]_.
 
     Notes
     -----
@@ -203,6 +215,11 @@ class Stable(CovModel):
 
     Where the standard rescale factor is :math:`s=1`.
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
+
+    References
+    ----------
+    .. [1] Wackernagel, H. "Multivariate geostatistics",
+           Springer, Berlin, Heidelberg (2003)
 
     Other Parameters
     ----------------
@@ -260,7 +277,7 @@ class Stable(CovModel):
 
 
 class Matern(CovModel):
-    r"""The Matérn covariance model.
+    r"""The Matérn covariance model [1]_.
 
     Notes
     -----
@@ -284,6 +301,12 @@ class Matern(CovModel):
     .. math::
        \rho(r) =
        \exp\left(-\left(s\cdot\frac{r}{2\ell}\right)^2\right)
+
+    References
+    ----------
+    .. [1] Rasmussen, C. E.,
+           "Gaussian processes in machine learning." Summer school on
+           machine learning. Springer, Berlin, Heidelberg, (2003)
 
     Other Parameters
     ----------------
@@ -370,7 +393,7 @@ class Matern(CovModel):
 
 
 class Rational(CovModel):
-    r"""The rational quadratic covariance model.
+    r"""The rational quadratic covariance model [1]_.
 
     Notes
     -----
@@ -389,6 +412,12 @@ class Rational(CovModel):
     .. math::
        \rho(r)=
        \exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)
+
+    References
+    ----------
+    .. [1] Rasmussen, C. E.,
+           "Gaussian processes in machine learning." Summer school on
+           machine learning. Springer, Berlin, Heidelberg, (2003)
 
     Other Parameters
     ----------------
@@ -436,7 +465,7 @@ class Rational(CovModel):
 
 
 class Cubic(CovModel):
-    r"""The Cubic covariance model.
+    r"""The Cubic covariance model [1]_.
 
     A model with reverse curvature near the origin and a finite range of
     correlation.
@@ -457,6 +486,12 @@ class Cubic(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [1] Chiles, J. P., & Delfiner, P.,
+           "Geostatistics: modeling spatial uncertainty" (Vol. 497),
+           John Wiley & Sons. (2009)
     """
 
     def cor(self, h):
@@ -466,7 +501,7 @@ class Cubic(CovModel):
 
 
 class Linear(CovModel):
-    r"""The bounded linear covariance model.
+    r"""The bounded linear covariance model [1]_.
 
     This model is derived from the relative intersection area of
     two lines in 1D, where the middle points have a distance of :math:`r`
@@ -484,6 +519,12 @@ class Linear(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -496,7 +537,7 @@ class Linear(CovModel):
 
 
 class Circular(CovModel):
-    r"""The circular covariance model.
+    r"""The circular covariance model [1]_.
 
     This model is derived as the relative intersection area of
     two discs in 2D, where the middle points have a distance of :math:`r`
@@ -519,6 +560,12 @@ class Circular(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -539,7 +586,7 @@ class Circular(CovModel):
 
 
 class Spherical(CovModel):
-    r"""The Spherical covariance model.
+    r"""The Spherical covariance model [1]_.
 
     This model is derived from the relative intersection area of
     two spheres in 3D, where the middle points have a distance of :math:`r`
@@ -559,6 +606,12 @@ class Spherical(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -572,7 +625,7 @@ class Spherical(CovModel):
 
 
 class HyperSpherical(CovModel):
-    r"""The Hyper-Spherical covariance model.
+    r"""The Hyper-Spherical covariance model [1]_.
 
     This model is derived from the relative intersection area of
     two d-dimensional hyperspheres,
@@ -599,6 +652,11 @@ class HyperSpherical(CovModel):
 
     Where the standard rescale factor is :math:`s=1`.
     :math:`d` is the dimension.
+
+    References
+    ----------
+    .. [1] Matern B., "Spatial Variation",
+           Swedish National Institute for Forestry Research, (1960)
     """
 
     def cor(self, h):
@@ -628,7 +686,7 @@ class HyperSpherical(CovModel):
 
 
 class SuperSpherical(CovModel):
-    r"""The Super-Spherical covariance model.
+    r"""The Super-Spherical covariance model [1]_.
 
     This model is derived from the relative intersection area of
     two d-dimensional hyperspheres,
@@ -654,6 +712,11 @@ class SuperSpherical(CovModel):
 
     Where the standard rescale factor is :math:`s=1`.
     :math:`\nu\geq\frac{d-1}{2}` is a shape parameter.
+
+    References
+    ----------
+    .. [1] Matern B., "Spatial Variation",
+           Swedish National Institute for Forestry Research, (1960)
 
     Other Parameters
     ----------------
@@ -699,7 +762,7 @@ class SuperSpherical(CovModel):
 
 
 class JBessel(CovModel):
-    r"""The J-Bessel hole model.
+    r"""The J-Bessel hole model [1]_.
 
     This covariance model is a valid hole model, meaning it has areas
     of negative correlation but a valid spectral density.
@@ -728,6 +791,12 @@ class JBessel(CovModel):
     .. math::
        \rho(r) =
        \frac{\sin\left(s\cdot\frac{r}{\ell}\right)}{s\cdot\frac{r}{\ell}}
+
+    References
+    ----------
+    .. [1] Chiles, J. P., & Delfiner, P.,
+           "Geostatistics: modeling spatial uncertainty" (Vol. 497),
+           John Wiley & Sons. (2009)
 
     Other Parameters
     ----------------

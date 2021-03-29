@@ -278,7 +278,7 @@ class Modulus(Normalizer):
     References
     ----------
     .. [1] J. A. John, and N. R. Draper,
-           “An Alternative Family of Transformations.” Journal
+           "An Alternative Family of Transformations." Journal
            of the Royal Statistical Society C, 29.2, 190-197, (1980)
     """
 
