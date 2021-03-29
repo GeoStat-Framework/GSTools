@@ -107,8 +107,8 @@ master_doc = "contents"
 # General information about the project.
 curr_year = datetime.datetime.now().year
 project = "GSTools"
-copyright = "2018 - {}, Lennart Schueler, Sebastian Mueller".format(curr_year)
-author = "Lennart Schueler, Sebastian Mueller"
+copyright = "2018 - {}, Sebastian Müller, Lennart Schüler".format(curr_year)
+author = "Sebastian Müller, Lennart Schüler"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -212,7 +212,7 @@ latex_documents = [
         master_doc,
         "GeoStatTools.tex",
         "GeoStatTools Documentation",
-        "Lennart Schueler, Sebastian Mueller",
+        "Sebastian Müller, Lennart Schüler",
         "manual",
     )
 ]
