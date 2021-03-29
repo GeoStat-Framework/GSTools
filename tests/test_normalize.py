@@ -174,7 +174,7 @@ class TestNormalizer(unittest.TestCase):
 
     def test_auto_fit(self):
         x = y = range(60)
-        pos = gs.tools.geometric.gen_mesh([x, y])
+        pos = gs.generate_grid([x, y])
         model = gs.Gaussian(dim=2, var=1, len_scale=10)
         srf = gs.SRF(
             model, seed=20170519, normalizer=gs.normalizer.LogNormal()
