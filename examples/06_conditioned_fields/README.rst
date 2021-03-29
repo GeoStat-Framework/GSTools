@@ -6,29 +6,21 @@ To generate random fields, that coincide with given observations, but are still
 random according to a given covariance model away from the observations proximity,
 we provide the generation of conditioned random fields.
 
-
 The idea behind conditioned random fields builds up on kriging.
 First we generate a field with a kriging method, then we generate a random field,
-and finally we generate another kriged field to eliminate the error between
-the random field and the kriged field of the given observations.
+with 0 as mean and 1 as variance that will be multiplied with the kriging
+standard deviation.
 
-To do so, you can choose between ordinary and simple kriging.
-In case of ordinary kriging, the mean of the SRF will be overwritten by the
-estimated mean.
+To do so, you can instantiate a :any:`CondSRF` class with a configured
+:any:`Krige` class.
 
-The setup of the spatial random field is the same as described in
-:ref:`tutorial_02_cov`.
-You just need to add the conditions as described in :ref:`tutorial_05_kriging`:
+The setup of the a conditioned random field should be as follows:
 
 .. code-block:: python
 
-    srf.set_condition(cond_pos, cond_val, "simple")
-
-or:
-
-.. code-block:: python
-
-    srf.set_condition(cond_pos, cond_val, "ordinary")
+    krige = gs.Krige(model, cond_pos, cond_val)
+    cond_srf = CondSRF(krige)
+    field = cond_srf(grid)
 
 Examples
 --------
