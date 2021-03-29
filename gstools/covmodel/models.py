@@ -247,7 +247,7 @@ class Stable(CovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "Stable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results",
+                "count with unstable results",
                 AttributeWarning,
             )
 
@@ -307,7 +307,7 @@ class Matern(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [0.5, 30.0, "cc"]}``
+            * ``{"nu": [0.2, 30.0, "cc"]}``
 
         Returns
         -------
@@ -393,7 +393,7 @@ class Rational(CovModel):
     Other Parameters
     ----------------
     alpha : :class:`float`, optional
-        Shape parameter. Standard range: ``(0, inf)``
+        Shape parameter. Standard range: ``[0.5, 50]``
         Default: ``1.0``
     """
 
@@ -658,7 +658,7 @@ class SuperSpherical(CovModel):
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[(dim-1)/2, inf)``
+        Shape parameter. Standard range: ``[(dim-1)/2, 50]``
         Default: ``(dim-1)/2``
     """
 
@@ -677,14 +677,14 @@ class SuperSpherical(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [(dim-1)/2, 50.0, "co"]}``
+            * ``{"nu": [(dim-1)/2, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim - 1) / 2, 50.0, "co"]}
+        return {"nu": [(self.dim - 1) / 2, 50.0]}
 
     def cor(self, h):
         """Super-Spherical normalized correlation function."""
@@ -732,7 +732,7 @@ class JBessel(CovModel):
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[dim/2 - 1, inf)``
+        Shape parameter. Standard range: ``[dim/2 - 1, 50]``
         Default: ``dim/2``
     """
 
@@ -751,14 +751,14 @@ class JBessel(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [dim/2 - 1, 50.0, "co"]}``
+            * ``{"nu": [dim/2 - 1, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [self.dim / 2 - 1, 50.0, "co"]}
+        return {"nu": [self.dim / 2 - 1, 50.0]}
 
     def check_opt_arg(self):
         """Check the optional arguments.
@@ -771,7 +771,7 @@ class JBessel(CovModel):
         if abs(self.nu - self.dim / 2 + 1) < 0.01:
             warnings.warn(
                 "JBessel: parameter 'nu' is close to d/2-1, "
-                + "count with unstable results",
+                "count with unstable results",
                 AttributeWarning,
             )
 
