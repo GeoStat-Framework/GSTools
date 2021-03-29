@@ -19,7 +19,7 @@ The setup of the a conditioned random field should be as follows:
 .. code-block:: python
 
     krige = gs.Krige(model, cond_pos, cond_val)
-    cond_srf = CondSRF(krige)
+    cond_srf = gs.CondSRF(krige)
     field = cond_srf(grid)
 
 Examples
