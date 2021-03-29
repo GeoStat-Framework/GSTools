@@ -27,7 +27,7 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 
 class RandMeth:
-    r"""Randomization method for calculating isotropic random fields [1]_.
+    r"""Randomization method for calculating isotropic random fields.
 
     Parameters
     ----------
@@ -55,7 +55,7 @@ class RandMeth:
     -----
     The Randomization method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like:
+    The calculation looks like [1]_:
 
     .. math::
        u\left(x\right)=
@@ -322,7 +322,7 @@ class RandMeth:
 
 
 class IncomprRandMeth(RandMeth):
-    r"""RandMeth for incompressible random vector fields [1]_.
+    r"""RandMeth for incompressible random vector fields.
 
     Parameters
     ----------
@@ -352,7 +352,7 @@ class IncomprRandMeth(RandMeth):
     -----
     The Randomization method is used to generate isotropic
     spatial incompressible random vector fields characterized
-    by a given covariance model. The equation is:
+    by a given covariance model. The equation is [2]_:
 
     .. math::
        u_i\left(x\right)= \bar{u_i} \delta_{i1} +
@@ -374,7 +374,7 @@ class IncomprRandMeth(RandMeth):
 
     References
     ----------
-    .. [1] Kraichnan, R. H., "Diffusion by a random velocity field."
+    .. [2] Kraichnan, R. H., "Diffusion by a random velocity field."
            The physics of fluids, 13(1), 22-31. (1970)
     """
 

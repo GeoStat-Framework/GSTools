@@ -86,7 +86,7 @@ def vario_estimate(
     fit_normalizer=False,
 ):
     r"""
-    Estimates the empirical variogram [1]_.
+    Estimates the empirical variogram.
 
     The algorithm calculates following equation:
 
@@ -106,7 +106,7 @@ def vario_estimate(
 
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
-    The Cressie estimator is more robust to outliers.
+    The Cressie estimator is more robust to outliers [1]_.
 
     By provding `direction` vector[s] or angles, a directional variogram
     can be calculated. If multiple directions are given, a set of variograms
@@ -363,7 +363,7 @@ def vario_estimate(
 def vario_estimate_axis(
     field, direction="x", estimator="matheron", no_data=np.nan
 ):
-    r"""Estimates the variogram along array axis [1]_.
+    r"""Estimates the variogram along array axis.
 
     The indices of the given direction are used for the bins.
     Uniform spacings along the given axis are assumed.
@@ -386,7 +386,7 @@ def vario_estimate_axis(
 
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
-    The Cressie estimator is more robust to outliers.
+    The Cressie estimator is more robust to outliers [1]_.
 
     Parameters
     ----------

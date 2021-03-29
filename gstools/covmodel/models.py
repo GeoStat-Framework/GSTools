@@ -45,11 +45,11 @@ __all__ = [
 
 
 class Gaussian(CovModel):
-    r"""The Gaussian covariance model [1]_.
+    r"""The Gaussian covariance model.
 
     Notes
     -----
-    This model is given by the following variogram:
+    This model is given by the following variogram [1]_:
 
     .. math::
        \gamma(r)=
@@ -119,11 +119,11 @@ class Gaussian(CovModel):
 
 
 class Exponential(CovModel):
-    r"""The Exponential covariance model [1]_.
+    r"""The Exponential covariance model.
 
     Notes
     -----
-    This model is given by the following variogram:
+    This model is given by the following variogram [1]_:
 
     .. math::
        \gamma(r)=
@@ -203,11 +203,11 @@ class Exponential(CovModel):
 
 
 class Stable(CovModel):
-    r"""The stable covariance model [1]_.
+    r"""The stable covariance model.
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -277,11 +277,11 @@ class Stable(CovModel):
 
 
 class Matern(CovModel):
-    r"""The Matérn covariance model [1]_.
+    r"""The Matérn covariance model.
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -393,11 +393,11 @@ class Matern(CovModel):
 
 
 class Rational(CovModel):
-    r"""The rational quadratic covariance model [1]_.
+    r"""The rational quadratic covariance model.
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -465,14 +465,14 @@ class Rational(CovModel):
 
 
 class Cubic(CovModel):
-    r"""The Cubic covariance model [1]_.
+    r"""The Cubic covariance model.
 
     A model with reverse curvature near the origin and a finite range of
     correlation.
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -501,7 +501,7 @@ class Cubic(CovModel):
 
 
 class Linear(CovModel):
-    r"""The bounded linear covariance model [1]_.
+    r"""The bounded linear covariance model.
 
     This model is derived from the relative intersection area of
     two lines in 1D, where the middle points have a distance of :math:`r`
@@ -509,7 +509,7 @@ class Linear(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -537,7 +537,7 @@ class Linear(CovModel):
 
 
 class Circular(CovModel):
-    r"""The circular covariance model [1]_.
+    r"""The circular covariance model.
 
     This model is derived as the relative intersection area of
     two discs in 2D, where the middle points have a distance of :math:`r`
@@ -545,7 +545,7 @@ class Circular(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -586,7 +586,7 @@ class Circular(CovModel):
 
 
 class Spherical(CovModel):
-    r"""The Spherical covariance model [1]_.
+    r"""The Spherical covariance model.
 
     This model is derived from the relative intersection area of
     two spheres in 3D, where the middle points have a distance of :math:`r`
@@ -594,7 +594,7 @@ class Spherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -625,7 +625,7 @@ class Spherical(CovModel):
 
 
 class HyperSpherical(CovModel):
-    r"""The Hyper-Spherical covariance model [1]_.
+    r"""The Hyper-Spherical covariance model.
 
     This model is derived from the relative intersection area of
     two d-dimensional hyperspheres,
@@ -637,7 +637,7 @@ class HyperSpherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation functions.
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -686,7 +686,7 @@ class HyperSpherical(CovModel):
 
 
 class SuperSpherical(CovModel):
-    r"""The Super-Spherical covariance model [1]_.
+    r"""The Super-Spherical covariance model.
 
     This model is derived from the relative intersection area of
     two d-dimensional hyperspheres,
@@ -697,7 +697,7 @@ class SuperSpherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation functions.
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -762,14 +762,14 @@ class SuperSpherical(CovModel):
 
 
 class JBessel(CovModel):
-    r"""The J-Bessel hole model [1]_.
+    r"""The J-Bessel hole model.
 
     This covariance model is a valid hole model, meaning it has areas
     of negative correlation but a valid spectral density.
 
     Notes
     -----
-    This model is given by the following correlation functions.
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =

@@ -73,12 +73,12 @@ class TPLCovModel(CovModel):
 
 
 class TPLGaussian(TPLCovModel):
-    r"""Truncated-Power-Law with Gaussian modes [1]_.
+    r"""Truncated-Power-Law with Gaussian modes.
 
     Notes
     -----
     The truncated power law is given by a superposition of scale-dependent
-    variograms:
+    variograms [1]_:
 
     .. math::
        \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
@@ -208,12 +208,12 @@ class TPLGaussian(TPLCovModel):
 
 
 class TPLExponential(TPLCovModel):
-    r"""Truncated-Power-Law with Exponential modes [1]_.
+    r"""Truncated-Power-Law with Exponential modes.
 
     Notes
     -----
     The truncated power law is given by a superposition of scale-dependent
-    variograms:
+    variograms [1]_:
 
     .. math::
        \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
@@ -496,7 +496,7 @@ class TPLStable(TPLCovModel):
 
 
 class TPLSimple(CovModel):
-    r"""The simply truncated power law model [1]_.
+    r"""The simply truncated power law model.
 
     This model describes a simple truncated power law
     with a finite length scale. In contrast to other models,
@@ -504,7 +504,7 @@ class TPLSimple(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [1]_:
 
     .. math::
        \rho(r) =
@@ -537,7 +537,7 @@ class TPLSimple(CovModel):
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[(dim+1)/2, inf)``
+        Shape parameter. Standard range: ``[(dim+1)/2, 50]``
         Default: ``dim/2``
     """
 
@@ -556,14 +556,14 @@ class TPLSimple(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [dim/2 - 1, 50.0, "co"]}``
+            * ``{"nu": [dim/2 - 1, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim + 1) / 2, 50.0, "co"]}
+        return {"nu": [(self.dim + 1) / 2, 50.0]}
 
     def cor(self, h):
         """TPL Simple - normalized correlation function."""
