@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 # structured field with edge length of 50
 x = y = range(51)
-pos = gs.tools.geometric.gen_mesh([x, y])
+pos = gs.generate_grid([x, y])
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519, normalizer=gs.normalizer.LogNormal())
 # generate the original field
