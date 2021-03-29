@@ -30,7 +30,6 @@ models = {
     "Matern": gs.Matern,
     "Stable": gs.Stable,
     "Rational": gs.Rational,
-    "Linear": gs.Linear,
     "Circular": gs.Circular,
     "Spherical": gs.Spherical,
     "SuperSpherical": gs.SuperSpherical,
