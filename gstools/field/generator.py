@@ -27,7 +27,7 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 
 class RandMeth:
-    r"""Randomization method for calculating isotropic spatial random fields.
+    r"""Randomization method for calculating isotropic random fields [1]_.
 
     Parameters
     ----------
@@ -71,6 +71,13 @@ class RandMeth:
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
+
+    References
+    ----------
+    .. [1] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
+           "Generating random fields with a truncated power-law variogram:
+           A comparison of several numerical methods",
+           Environmental Modelling & Software, 55, 32-48. (2014)
     """
 
     def __init__(
@@ -315,7 +322,7 @@ class RandMeth:
 
 
 class IncomprRandMeth(RandMeth):
-    r"""RandMeth for incompressible random vector fields.
+    r"""RandMeth for incompressible random vector fields [1]_.
 
     Parameters
     ----------
@@ -364,6 +371,11 @@ class IncomprRandMeth(RandMeth):
           the covariance model
         * :math:`p_i(k_j) = e_1 - \frac{k_i k_1}{k^2}` : the projector
           ensuring the incompressibility
+
+    References
+    ----------
+    .. [1] Kraichnan, R. H., "Diffusion by a random velocity field."
+           The physics of fluids, 13(1), 22-31. (1970)
     """
 
     def __init__(

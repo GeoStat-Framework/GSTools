@@ -86,7 +86,7 @@ def vario_estimate(
     fit_normalizer=False,
 ):
     r"""
-    Estimates the empirical variogram.
+    Estimates the empirical variogram [1]_.
 
     The algorithm calculates following equation:
 
@@ -226,6 +226,12 @@ def vario_estimate(
     Notes
     -----
     Internally uses double precision and also returns doubles.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
     if bin_edges is not None:
         bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
@@ -357,7 +363,7 @@ def vario_estimate(
 def vario_estimate_axis(
     field, direction="x", estimator="matheron", no_data=np.nan
 ):
-    r"""Estimates the variogram along array axis.
+    r"""Estimates the variogram along array axis [1]_.
 
     The indices of the given direction are used for the bins.
     Uniform spacings along the given axis are assumed.
@@ -413,6 +419,12 @@ def vario_estimate_axis(
     Notes
     -----
     Internally uses double precision and also returns doubles.
+
+    References
+    ----------
+    .. [1] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
     missing_mask = (
         np.isnan(field) if np.isnan(no_data) else np.isclose(field, no_data)
