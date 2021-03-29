@@ -14,7 +14,7 @@ The following functions are provided
 import numpy as np
 
 from gstools.tools.geometric import (
-    gen_mesh,
+    generate_grid,
     format_struct_pos_dim,
     latlon2pos,
     chordal_to_great_circle,
@@ -80,7 +80,7 @@ def standard_bins(
         if pos is None:
             raise ValueError("standard_bins: no pos tuple given.")
         if mesh_type != "unstructured":
-            pos = gen_mesh(format_struct_pos_dim(pos, dim)[0])
+            pos = generate_grid(format_struct_pos_dim(pos, dim)[0])
         else:
             pos = np.array(pos, dtype=np.double).reshape(dim, -1)
         pos = latlon2pos(pos) if latlon else pos

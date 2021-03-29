@@ -93,6 +93,8 @@ Some convenient functions for geometric operations
 
 .. autosummary::
    rotated_main_axes
+   generate_grid
+   generate_st_grid
 
 Variogram Estimation
 ^^^^^^^^^^^^^^^^^^^^
@@ -128,6 +130,8 @@ from gstools import (
 from gstools.field import SRF, CondSRF
 from gstools.tools import (
     rotated_main_axes,
+    generate_grid,
+    generate_st_grid,
     EARTH_RADIUS,
     vtk_export,
     vtk_export_structured,
@@ -204,6 +208,8 @@ __all__ += [
     "SRF",
     "CondSRF",
     "rotated_main_axes",
+    "generate_grid",
+    "generate_st_grid",
     "EARTH_RADIUS",
     "vtk_export",
     "vtk_export_structured",
