@@ -19,7 +19,7 @@ to input data by minimizing the likelihood function.
 Mean, Trend and Normalizers
 ---------------------------
 
-All Field classes (:any:`SRF`, :any:`Krige` or :any:`CondSRF) provide the input
+All Field classes (:any:`SRF`, :any:`Krige` or :any:`CondSRF`) provide the input
 of `mean`, `normalizer` and `trend`:
 
 * A `trend` can be a callable function, that represents a trend in input data.
