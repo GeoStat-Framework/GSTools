@@ -73,7 +73,7 @@ class TPLCovModel(CovModel):
 
 
 class TPLGaussian(TPLCovModel):
-    r"""Truncated-Power-Law with Gaussian modes.
+    r"""Truncated-Power-Law with Gaussian modes [1]_.
 
     Notes
     -----
@@ -140,6 +140,12 @@ class TPLGaussian(TPLCovModel):
           the integration range for the truncated power law.
         * :math:`E_s(x)` is the exponential integral.
 
+    References
+    ----------
+    .. [1] Di Federico, V. and Neuman, S. P.,
+           "Scaling of random fields by means of truncated power variograms and
+           associated spectra", Water Resources Research, 33, 1075–1085. (1997)
+
     Other Parameters
     ----------------
     hurst : :class:`float`, optional
@@ -202,7 +208,7 @@ class TPLGaussian(TPLCovModel):
 
 
 class TPLExponential(TPLCovModel):
-    r"""Truncated-Power-Law with Exponential modes.
+    r"""Truncated-Power-Law with Exponential modes [1]_.
 
     Notes
     -----
@@ -266,6 +272,12 @@ class TPLExponential(TPLCovModel):
           That means, that the ``len_scale`` in this model actually represents
           the integration range for the truncated power law.
         * :math:`E_s(x)` is the exponential integral.
+
+    References
+    ----------
+    .. [1] Di Federico, V. and Neuman, S. P.,
+           "Scaling of random fields by means of truncated power variograms and
+           associated spectra", Water Resources Research, 33, 1075–1085. (1997)
 
     Other Parameters
     ----------------
@@ -484,7 +496,7 @@ class TPLStable(TPLCovModel):
 
 
 class TPLSimple(CovModel):
-    r"""The simply truncated power law model.
+    r"""The simply truncated power law model [1]_.
 
     This model describes a simple truncated power law
     with a finite length scale. In contrast to other models,
@@ -514,6 +526,13 @@ class TPLSimple(CovModel):
        1-s\cdot\frac{r}{\ell} & r<\frac{\ell}{s}\\
        0 & r\geq\frac{\ell}{s}
        \end{cases}
+
+    References
+    ----------
+    .. [1] Wendland, H.,
+           "Piecewise polynomial, positive definite and compactly supported
+           radial functions of minimal degree.",
+           Advances in computational Mathematics 4.1, 389-396. (1995)
 
     Other Parameters
     ----------------
