@@ -69,6 +69,7 @@ extensions = [
     "sphinx.ext.napoleon",  # parameters look better than with numpydoc only
     "numpydoc",
     "sphinx_gallery.gen_gallery",
+    "m2r2",
 ]
 
 # autosummaries from source-files
@@ -95,8 +96,8 @@ templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-# source_suffix = ['.rst', '.md']
-source_suffix = ".rst"
+source_suffix = [".rst", ".md"]
+# source_suffix = ".rst"
 
 # The master toctree document.
 # --> this is the sitemap (or content-list in latex -> needs a heading)
