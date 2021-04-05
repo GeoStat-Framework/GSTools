@@ -15,7 +15,7 @@ The following functions are provided
 import numpy as np
 
 from gstools.tools.geometric import (
-    gen_mesh,
+    generate_grid,
     format_struct_pos_shape,
     format_unstruct_pos_shape,
     ang2dir,
@@ -106,7 +106,7 @@ def vario_estimate(
 
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
-    The Cressie estimator is more robust to outliers.
+    The Cressie estimator is more robust to outliers [Webster2007]_.
 
     By provding `direction` vector[s] or angles, a directional variogram
     can be calculated. If multiple directions are given, a set of variograms
@@ -226,6 +226,12 @@ def vario_estimate(
     Notes
     -----
     Internally uses double precision and also returns doubles.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
     if bin_edges is not None:
         bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
@@ -248,7 +254,7 @@ def vario_estimate(
         pos, __, dim = format_struct_pos_shape(
             pos, field.shape, check_stacked_shape=True
         )
-        pos = gen_mesh(pos)
+        pos = generate_grid(pos)
     else:
         pos, __, dim = format_unstruct_pos_shape(
             pos, field.shape, check_stacked_shape=True
@@ -380,7 +386,7 @@ def vario_estimate_axis(
 
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
-    The Cressie estimator is more robust to outliers.
+    The Cressie estimator is more robust to outliers [Webster2007]_.
 
     Parameters
     ----------
@@ -413,6 +419,12 @@ def vario_estimate_axis(
     Notes
     -----
     Internally uses double precision and also returns doubles.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
     missing_mask = (
         np.isnan(field) if np.isnan(no_data) else np.isclose(field, no_data)

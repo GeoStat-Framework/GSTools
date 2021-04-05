@@ -78,7 +78,7 @@ class TPLGaussian(TPLCovModel):
     Notes
     -----
     The truncated power law is given by a superposition of scale-dependent
-    variograms:
+    variograms [Federico1997]_:
 
     .. math::
        \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
@@ -139,6 +139,12 @@ class TPLGaussian(TPLCovModel):
           That means, that the ``len_scale`` in this model actually represents
           the integration range for the truncated power law.
         * :math:`E_s(x)` is the exponential integral.
+
+    References
+    ----------
+    .. [Federico1997] Di Federico, V. and Neuman, S. P.,
+           "Scaling of random fields by means of truncated power variograms and
+           associated spectra", Water Resources Research, 33, 1075–1085. (1997)
 
     Other Parameters
     ----------------
@@ -207,7 +213,7 @@ class TPLExponential(TPLCovModel):
     Notes
     -----
     The truncated power law is given by a superposition of scale-dependent
-    variograms:
+    variograms [Federico1997]_:
 
     .. math::
        \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
@@ -266,6 +272,12 @@ class TPLExponential(TPLCovModel):
           That means, that the ``len_scale`` in this model actually represents
           the integration range for the truncated power law.
         * :math:`E_s(x)` is the exponential integral.
+
+    References
+    ----------
+    .. [Federico1997] Di Federico, V. and Neuman, S. P.,
+           "Scaling of random fields by means of truncated power variograms and
+           associated spectra", Water Resources Research, 33, 1075–1085. (1997)
 
     Other Parameters
     ----------------
@@ -492,7 +504,7 @@ class TPLSimple(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Wendland1995]_:
 
     .. math::
        \rho(r) =
@@ -515,10 +527,17 @@ class TPLSimple(CovModel):
        0 & r\geq\frac{\ell}{s}
        \end{cases}
 
+    References
+    ----------
+    .. [Wendland1995] Wendland, H.,
+           "Piecewise polynomial, positive definite and compactly supported
+           radial functions of minimal degree.",
+           Advances in computational Mathematics 4.1, 389-396. (1995)
+
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[(dim+1)/2, inf)``
+        Shape parameter. Standard range: ``[(dim+1)/2, 50]``
         Default: ``dim/2``
     """
 
@@ -537,14 +556,14 @@ class TPLSimple(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [dim/2 - 1, 50.0, "co"]}``
+            * ``{"nu": [dim/2 - 1, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim + 1) / 2, 50.0, "co"]}
+        return {"nu": [(self.dim + 1) / 2, 50.0]}
 
     def cor(self, h):
         """TPL Simple - normalized correlation function."""

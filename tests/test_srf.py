@@ -6,7 +6,7 @@ This is the unittest of SRF class.
 
 import unittest
 import numpy as np
-from gstools import SRF, Gaussian
+import gstools as gs
 from gstools import transform as tf
 import meshio
 
@@ -21,7 +21,7 @@ except ImportError:
 
 class TestSRF(unittest.TestCase):
     def setUp(self):
-        self.cov_model = Gaussian(dim=2, var=1.5, len_scale=4.0)
+        self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4.0)
         self.mean = 0.3
         self.mode_no = 100
 
@@ -41,7 +41,7 @@ class TestSRF(unittest.TestCase):
 
     def test_shape_1d(self):
         self.cov_model.dim = 1
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_str = srf([self.x_grid], seed=self.seed, mesh_type="structured")
         field_unstr = srf(
             [self.x_tuple], seed=self.seed, mesh_type="unstructured"
@@ -51,7 +51,7 @@ class TestSRF(unittest.TestCase):
 
     def test_shape_2d(self):
         self.cov_model.dim = 2
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_str = srf(
             (self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured"
         )
@@ -65,7 +65,7 @@ class TestSRF(unittest.TestCase):
 
     def test_shape_3d(self):
         self.cov_model.dim = 3
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_str = srf(
             (self.x_grid, self.y_grid, self.z_grid),
             seed=self.seed,
@@ -84,12 +84,12 @@ class TestSRF(unittest.TestCase):
 
     def test_anisotropy_2d(self):
         self.cov_model.dim = 2
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_iso = srf(
             (self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured"
         )
         self.cov_model.anis = 0.5
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_aniso = srf(
             (self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured"
         )
@@ -99,14 +99,14 @@ class TestSRF(unittest.TestCase):
 
     def test_anisotropy_3d(self):
         self.cov_model.dim = 3
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_iso = srf(
             (self.x_grid, self.y_grid, self.z_grid),
             seed=self.seed,
             mesh_type="structured",
         )
         self.cov_model.anis = (0.5, 4.0)
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_aniso = srf(
             (self.x_grid, self.y_grid, self.z_grid),
             seed=self.seed,
@@ -128,13 +128,13 @@ class TestSRF(unittest.TestCase):
         y_u = np.reshape(y_u, x_len * y_len)
 
         self.cov_model.anis = 0.25
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
 
         field = srf((x_u, y_u), seed=self.seed, mesh_type="unstructured")
         field_str = np.reshape(field, (y_len, x_len))
 
         self.cov_model.angles = -np.pi / 2.0
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf((x_u, y_u), seed=self.seed, mesh_type="unstructured")
         field_rot_str = np.reshape(field_rot, (y_len, x_len))
 
@@ -144,7 +144,7 @@ class TestSRF(unittest.TestCase):
     def test_rotation_struct_2d(self):
         self.cov_model.dim = 2
         self.cov_model.anis = 0.25
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf(
             (self.x_grid_c, self.y_grid_c),
             seed=self.seed,
@@ -152,7 +152,7 @@ class TestSRF(unittest.TestCase):
         )
 
         self.cov_model.angles = -np.pi / 2.0
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (self.x_grid_c, self.y_grid_c),
             seed=self.seed,
@@ -163,7 +163,7 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field[1, 2], field_rot[2, 6])
 
     def test_rotation_unstruct_3d(self):
-        self.cov_model = Gaussian(
+        self.cov_model = gs.Gaussian(
             dim=3, var=1.5, len_scale=4.0, anis=(0.25, 0.5)
         )
         x_len = len(self.x_grid_c)
@@ -176,12 +176,12 @@ class TestSRF(unittest.TestCase):
         y_u = np.reshape(y_u, x_len * y_len * z_len)
         z_u = np.reshape(z_u, x_len * y_len * z_len)
 
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf((x_u, y_u, z_u), seed=self.seed, mesh_type="unstructured")
         field_str = np.reshape(field, (y_len, x_len, z_len))
 
         self.cov_model.angles = (-np.pi / 2.0, -np.pi / 2.0)
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (x_u, y_u, z_u), seed=self.seed, mesh_type="unstructured"
         )
@@ -194,7 +194,7 @@ class TestSRF(unittest.TestCase):
     def test_rotation_struct_3d(self):
         self.cov_model.dim = 3
         self.cov_model.anis = 0.25
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf(
             (self.x_grid_c, self.y_grid_c, self.z_grid_c),
             seed=self.seed,
@@ -202,7 +202,7 @@ class TestSRF(unittest.TestCase):
         )
 
         self.cov_model.angles = -np.pi / 2.0
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (self.x_grid_c, self.y_grid_c, self.z_grid_c),
             seed=self.seed,
@@ -213,7 +213,7 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field[0, 0, 1], field_rot[0, 7, 1])
 
         self.cov_model.angles = (0, -np.pi / 2.0)
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field_rot = srf(
             (self.x_grid_c, self.y_grid_c, self.z_grid_c),
             seed=self.seed,
@@ -225,7 +225,7 @@ class TestSRF(unittest.TestCase):
         self.assertAlmostEqual(field[1, 1, 0], field_rot[7, 1, 1])
 
     def test_calls(self):
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         field = srf((self.x_tuple, self.y_tuple), seed=self.seed)
         field2 = srf.unstructured((self.x_tuple, self.y_tuple), seed=self.seed)
         self.assertAlmostEqual(field[0], srf.field[0])
@@ -244,7 +244,7 @@ class TestSRF(unittest.TestCase):
         """Test the `.mesh` call with various PyVista meshes."""
         # Create model
         self.cov_model.dim = 3
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         # Get the field the normal way for comparison
         field = srf((self.x_tuple, self.y_tuple, self.z_tuple), seed=self.seed)
         # Create mesh space with PyVista
@@ -258,7 +258,7 @@ class TestSRF(unittest.TestCase):
 
     def test_transform(self):
         self.cov_model.dim = 2
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
         tf.normal_force_moments(srf)  # force ergodicity of the given field
         self.assertAlmostEqual(srf.field.mean(), srf.mean)
@@ -297,8 +297,8 @@ class TestSRF(unittest.TestCase):
         np.testing.assert_array_equal(np.unique(srf.field), values)
 
     def test_incomprrandmeth(self):
-        self.cov_model = Gaussian(dim=2, var=0.5, len_scale=1.0)
-        srf = SRF(
+        self.cov_model = gs.Gaussian(dim=2, var=0.5, len_scale=1.0)
+        srf = gs.SRF(
             self.cov_model,
             mean=self.mean,
             mode_no=self.mode_no,
@@ -317,15 +317,15 @@ class TestSRF(unittest.TestCase):
     # TODO put these checks into test_cov_model
     def test_assertions(self):
         # self.cov_model.dim = 0
-        # self.assertRaises(ValueError, SRF, self.cov_model, self.mean, self.mode_no)
+        # self.assertRaises(ValueError, gs.SRF, self.cov_model, self.mean, self.mode_no)
         # self.cov_model.dim = 4
-        # self.assertRaises(ValueError, SRF, self.cov_model, self.mean, self.mode_no)
+        # self.assertRaises(ValueError, gs.SRF, self.cov_model, self.mean, self.mode_no)
         self.cov_model.dim = 3
         self.cov_model.anis = (0.25, 0.5)
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         self.assertRaises(ValueError, srf, [self.x_tuple])
         self.assertRaises(ValueError, srf, [self.x_grid, self.y_grid])
-        srf = SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
+        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
         self.assertRaises(ValueError, srf, [self.x_tuple, self.y_tuple])
         self.assertRaises(
             ValueError, srf, [self.x_grid, self.y_grid, self.z_grid]
@@ -350,12 +350,23 @@ class TestSRF(unittest.TestCase):
         )
         cells = [("tetra", np.array([[0, 1, 2, 3]]))]
         mesh = meshio.Mesh(points, cells)
-        model = Gaussian(dim=3, len_scale=0.1)
-        srf = SRF(model)
+        model = gs.Gaussian(dim=3, len_scale=0.1)
+        srf = gs.SRF(model)
         srf.mesh(mesh, points="points")
         self.assertEqual(len(srf.field), 4)
         srf.mesh(mesh, points="centroids")
         self.assertEqual(len(srf.field), 1)
+
+    def test_grid_generation(self):
+        pos1 = [self.x_grid, self.y_grid, self.z_grid]
+        pos2 = gs.generate_grid(pos1)
+        time = np.arange(10)
+        grid1 = gs.generate_grid(pos1 + [time])
+        grid2 = gs.generate_st_grid(pos1, time, mesh_type="structured")
+        grid3 = gs.generate_st_grid(pos2, time, mesh_type="unstructured")
+        self.assertTrue(np.all(np.isclose(grid1, grid2)))
+        self.assertTrue(np.all(np.isclose(grid1, grid3)))
+        self.assertTrue(np.all(np.isclose(grid2, grid3)))
 
 
 if __name__ == "__main__":

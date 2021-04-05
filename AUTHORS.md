@@ -6,8 +6,8 @@ and was created by following people.
 
 ## Main Authors
 
-- [Lennart Schüler](https://github.com/LSchueler), Email:  <lennart@geostat-framework.org>
 - [Sebastian Müller](https://github.com/MuellerSeb), Email:  <sebastian@geostat-framework.org>
+- [Lennart Schüler](https://github.com/LSchueler), Email:  <lennart@geostat-framework.org>
 
 
 ## Contributors (in order of contributions)

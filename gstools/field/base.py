@@ -13,7 +13,7 @@ The following classes are provided
 from functools import partial
 import numpy as np
 from gstools.covmodel.base import CovModel
-from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
+from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 from gstools.field.tools import (
     generate_on_mesh,
     to_vtk_helper,
@@ -169,7 +169,7 @@ class Field:
         if mesh_type != "unstructured":
             pos, shape = format_struct_pos_dim(pos, self.dim)
             self.pos = pos
-            pos = gen_mesh(pos)
+            pos = generate_grid(pos)
         else:
             pos = np.array(pos, dtype=np.double).reshape(self.dim, -1)
             self.pos = pos

@@ -36,6 +36,11 @@ class Krige(Field):
     """
     A Swiss Army knife for kriging.
 
+    A Kriging class enabling the basic kriging routines:
+    Simple-, Ordinary-, Univseral-, External Drift-
+    and detrended/regression-Kriging as well as
+    Kriging the Mean [Wackernagel2003]_.
+
     Parameters
     ----------
     model : :any:`CovModel`
@@ -112,6 +117,12 @@ class Krige(Field):
     -----
     If you have changed any properties in the class, you can update the kriging
     setup by calling :any:`Krige.set_condition` without any arguments.
+
+    References
+    ----------
+    .. [Wackernagel2003] Wackernagel, H.,
+           "Multivariate geostatistics",
+           Springer, Berlin, Heidelberg (2003)
     """
 
     def __init__(

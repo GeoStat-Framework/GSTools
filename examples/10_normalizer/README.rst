@@ -19,8 +19,8 @@ to input data by minimizing the likelihood function.
 Mean, Trend and Normalizers
 ---------------------------
 
-All Field classes (:any:`SRF` or :any:`Krige`) provide the input of `mean`,
-`normalizer` and `trend`:
+All Field classes (:any:`SRF`, :any:`Krige` or :any:`CondSRF`) provide the input
+of `mean`, `normalizer` and `trend`:
 
 * A `trend` can be a callable function, that represents a trend in input data.
   For example a linear decrease of temperature with height.
@@ -38,8 +38,8 @@ in the context of normally distributed data.
 Provided Normalizers
 --------------------
 
-The following normalizers can be passed to all Field-classes
-(:any:`SRF` or :any:`Krige`) or can be used as standalone tools to analyse data.
+The following normalizers can be passed to all Field-classes and variogram
+estimation routines or can be used as standalone tools to analyse data.
 
 .. currentmodule:: gstools.normalizer
 
