@@ -38,7 +38,8 @@ class Krige(Field):
 
     A Kriging class enabling the basic kriging routines:
     Simple-, Ordinary-, Univseral-, External Drift-
-    and detrended/regression-Kriging as well as Kriging the Mean [1]_.
+    and detrended/regression-Kriging as well as
+    Kriging the Mean [Wackernagel2003]_.
 
     Parameters
     ----------
@@ -119,7 +120,8 @@ class Krige(Field):
 
     References
     ----------
-    .. [1] Wackernagel, H. "Multivariate geostatistics",
+    .. [Wackernagel2003] Wackernagel, H.,
+           "Multivariate geostatistics",
            Springer, Berlin, Heidelberg (2003)
     """
 

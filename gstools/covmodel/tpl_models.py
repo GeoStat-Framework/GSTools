@@ -78,7 +78,7 @@ class TPLGaussian(TPLCovModel):
     Notes
     -----
     The truncated power law is given by a superposition of scale-dependent
-    variograms [1]_:
+    variograms [Federico1997]_:
 
     .. math::
        \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
@@ -142,7 +142,7 @@ class TPLGaussian(TPLCovModel):
 
     References
     ----------
-    .. [1] Di Federico, V. and Neuman, S. P.,
+    .. [Federico1997] Di Federico, V. and Neuman, S. P.,
            "Scaling of random fields by means of truncated power variograms and
            associated spectra", Water Resources Research, 33, 1075–1085. (1997)
 
@@ -213,7 +213,7 @@ class TPLExponential(TPLCovModel):
     Notes
     -----
     The truncated power law is given by a superposition of scale-dependent
-    variograms [1]_:
+    variograms [Federico1997]_:
 
     .. math::
        \gamma_{\ell_{\mathrm{low}},\ell_{\mathrm{up}}}(r) =
@@ -275,7 +275,7 @@ class TPLExponential(TPLCovModel):
 
     References
     ----------
-    .. [1] Di Federico, V. and Neuman, S. P.,
+    .. [Federico1997] Di Federico, V. and Neuman, S. P.,
            "Scaling of random fields by means of truncated power variograms and
            associated spectra", Water Resources Research, 33, 1075–1085. (1997)
 
@@ -504,7 +504,7 @@ class TPLSimple(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Wendland1995]_:
 
     .. math::
        \rho(r) =
@@ -529,7 +529,7 @@ class TPLSimple(CovModel):
 
     References
     ----------
-    .. [1] Wendland, H.,
+    .. [Wendland1995] Wendland, H.,
            "Piecewise polynomial, positive definite and compactly supported
            radial functions of minimal degree.",
            Advances in computational Mathematics 4.1, 389-396. (1995)

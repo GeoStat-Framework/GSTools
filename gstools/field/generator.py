@@ -55,7 +55,7 @@ class RandMeth:
     -----
     The Randomization method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like [1]_:
+    The calculation looks like [Heße2014]_:
 
     .. math::
        u\left(x\right)=
@@ -74,10 +74,10 @@ class RandMeth:
 
     References
     ----------
-    .. [1] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
+    .. [Heße2014] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
            "Generating random fields with a truncated power-law variogram:
            A comparison of several numerical methods",
-           Environmental Modelling & Software, 55, 32-48. (2014)
+           Environmental Modelling & Software, 55, 32-48., (2014)
     """
 
     def __init__(
@@ -352,7 +352,7 @@ class IncomprRandMeth(RandMeth):
     -----
     The Randomization method is used to generate isotropic
     spatial incompressible random vector fields characterized
-    by a given covariance model. The equation is [2]_:
+    by a given covariance model. The equation is [Kraichnan1970]_:
 
     .. math::
        u_i\left(x\right)= \bar{u_i} \delta_{i1} +
@@ -374,8 +374,9 @@ class IncomprRandMeth(RandMeth):
 
     References
     ----------
-    .. [2] Kraichnan, R. H., "Diffusion by a random velocity field."
-           The physics of fluids, 13(1), 22-31. (1970)
+    .. [Kraichnan1970] Kraichnan, R. H.,
+           "Diffusion by a random velocity field.",
+           The physics of fluids, 13(1), 22-31., (1970)
     """
 
     def __init__(

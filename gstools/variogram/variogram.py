@@ -106,7 +106,7 @@ def vario_estimate(
 
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
-    The Cressie estimator is more robust to outliers [1]_.
+    The Cressie estimator is more robust to outliers [Webster2007]_.
 
     By provding `direction` vector[s] or angles, a directional variogram
     can be calculated. If multiple directions are given, a set of variograms
@@ -229,7 +229,7 @@ def vario_estimate(
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
@@ -386,7 +386,7 @@ def vario_estimate_axis(
 
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
-    The Cressie estimator is more robust to outliers [1]_.
+    The Cressie estimator is more robust to outliers [Webster2007]_.
 
     Parameters
     ----------
@@ -422,7 +422,7 @@ def vario_estimate_axis(
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """

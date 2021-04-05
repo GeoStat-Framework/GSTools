@@ -49,7 +49,7 @@ class Gaussian(CovModel):
 
     Notes
     -----
-    This model is given by the following variogram [1]_:
+    This model is given by the following variogram [Webster2007]_:
 
     .. math::
        \gamma(r)=
@@ -60,7 +60,7 @@ class Gaussian(CovModel):
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
@@ -123,7 +123,7 @@ class Exponential(CovModel):
 
     Notes
     -----
-    This model is given by the following variogram [1]_:
+    This model is given by the following variogram [Webster2007]_:
 
     .. math::
        \gamma(r)=
@@ -134,7 +134,7 @@ class Exponential(CovModel):
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
@@ -207,7 +207,8 @@ class Stable(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function
+    [Wackernagel2003]_:
 
     .. math::
        \rho(r) =
@@ -218,7 +219,7 @@ class Stable(CovModel):
 
     References
     ----------
-    .. [1] Wackernagel, H. "Multivariate geostatistics",
+    .. [Wackernagel2003] Wackernagel, H. "Multivariate geostatistics",
            Springer, Berlin, Heidelberg (2003)
 
     Other Parameters
@@ -281,7 +282,7 @@ class Matern(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Rasmussen2003]_:
 
     .. math::
        \rho(r) =
@@ -304,7 +305,7 @@ class Matern(CovModel):
 
     References
     ----------
-    .. [1] Rasmussen, C. E.,
+    .. [Rasmussen2003] Rasmussen, C. E.,
            "Gaussian processes in machine learning." Summer school on
            machine learning. Springer, Berlin, Heidelberg, (2003)
 
@@ -397,7 +398,7 @@ class Rational(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Rasmussen2003]_:
 
     .. math::
        \rho(r) =
@@ -415,7 +416,7 @@ class Rational(CovModel):
 
     References
     ----------
-    .. [1] Rasmussen, C. E.,
+    .. [Rasmussen2003] Rasmussen, C. E.,
            "Gaussian processes in machine learning." Summer school on
            machine learning. Springer, Berlin, Heidelberg, (2003)
 
@@ -472,7 +473,7 @@ class Cubic(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Chiles2009]_:
 
     .. math::
        \rho(r) =
@@ -489,7 +490,7 @@ class Cubic(CovModel):
 
     References
     ----------
-    .. [1] Chiles, J. P., & Delfiner, P.,
+    .. [Chiles2009] Chiles, J. P., & Delfiner, P.,
            "Geostatistics: modeling spatial uncertainty" (Vol. 497),
            John Wiley & Sons. (2009)
     """
@@ -509,7 +510,7 @@ class Linear(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Webster2007]_:
 
     .. math::
        \rho(r) =
@@ -522,7 +523,7 @@ class Linear(CovModel):
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
@@ -545,7 +546,7 @@ class Circular(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Webster2007]_:
 
     .. math::
        \rho(r) =
@@ -563,7 +564,7 @@ class Circular(CovModel):
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
@@ -594,7 +595,7 @@ class Spherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Webster2007]_:
 
     .. math::
        \rho(r) =
@@ -609,7 +610,7 @@ class Spherical(CovModel):
 
     References
     ----------
-    .. [1] Webster, R. and Oliver, M. A.
+    .. [Webster2007] Webster, R. and Oliver, M. A.
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
@@ -637,7 +638,7 @@ class HyperSpherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Matern1960]_:
 
     .. math::
        \rho(r) =
@@ -655,7 +656,7 @@ class HyperSpherical(CovModel):
 
     References
     ----------
-    .. [1] Matern B., "Spatial Variation",
+    .. [Matern1960] Matern B., "Spatial Variation",
            Swedish National Institute for Forestry Research, (1960)
     """
 
@@ -697,7 +698,7 @@ class SuperSpherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Matern1960]_:
 
     .. math::
        \rho(r) =
@@ -715,7 +716,7 @@ class SuperSpherical(CovModel):
 
     References
     ----------
-    .. [1] Matern B., "Spatial Variation",
+    .. [Matern1960] Matern B., "Spatial Variation",
            Swedish National Institute for Forestry Research, (1960)
 
     Other Parameters
@@ -769,7 +770,7 @@ class JBessel(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function [1]_:
+    This model is given by the following correlation function [Chiles2009]_:
 
     .. math::
        \rho(r) =
@@ -794,7 +795,7 @@ class JBessel(CovModel):
 
     References
     ----------
-    .. [1] Chiles, J. P., & Delfiner, P.,
+    .. [Chiles2009] Chiles, J. P., & Delfiner, P.,
            "Geostatistics: modeling spatial uncertainty" (Vol. 497),
            John Wiley & Sons. (2009)
 
