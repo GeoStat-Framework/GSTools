@@ -55,7 +55,7 @@ class RandMeth:
     -----
     The Randomization method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like [Heße2014]_:
+    The calculation looks like [Hesse2014]_:
 
     .. math::
        u\left(x\right)=
@@ -74,7 +74,7 @@ class RandMeth:
 
     References
     ----------
-    .. [Heße2014] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
+    .. [Hesse2014] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
            "Generating random fields with a truncated power-law variogram:
            A comparison of several numerical methods",
            Environmental Modelling & Software, 55, 32-48., (2014)
