@@ -5,9 +5,9 @@ Spatio-Temporal modelling can provide insights into time dependent processes
 like rainfall, air temperature or crop yield.
 
 GSTools provides the metric spatio-temporal model for all covariance models
-by enhancing the spatial model dimension with a time dimesion to result in
+by enhancing the spatial model dimension with a time dimension to result in
 the spatio-temporal dimension ``st_dim`` and setting a
-spatio-temporal anisotropy ratio ``st_anis``:
+spatio-temporal anisotropy ratio with ``st_anis``:
 
 .. code-block:: python
 
@@ -19,7 +19,7 @@ spatio-temporal anisotropy ratio ``st_anis``:
 
 Since it is given in the name "spatio-temporal",
 we will always treat the time as last dimension.
-This enables to have spatial anisotropy and rotation defined as in
+This enables us to have spatial anisotropy and rotation defined as in
 non-temporal models, without altering the behavior in the time dimension:
 
 .. code-block:: python
