@@ -1,7 +1,7 @@
 prune *
-graft gstools
 graft tests
 graft docs
+recursive-include gstools *.py *.pyx
 recursive-exclude gstools *.c *.cpp
 include LICENSE README.md pyproject.toml setup.py
 global-exclude __pycache__ *.py[cod] .*
