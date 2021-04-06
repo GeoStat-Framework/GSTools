@@ -1,10 +1,9 @@
 version: 2
 
-formats: all
-
 sphinx:
-  builder: html
   configuration: docs/source/conf.py
+
+formats: all
 
 python:
   version: 3.7
