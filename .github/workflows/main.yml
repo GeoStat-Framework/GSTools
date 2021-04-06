@@ -68,8 +68,11 @@ jobs:
           pip install coveralls>=3.0.0
           # needed for now, since sdist needs requirements defined in pyporject.toml
           # pip uses isolated builds, where cython is not present afterwards
+          # pep517 is not yet available: https://stackoverflow.com/a/63555237/6696397
           pip install -r requirements_setup.txt
-          pip install --verbose .[test]
+          # no build isolation since requirements now installed
+          # editable to be compatible with pytest (inplace build)
+          pip install --verbose --no-build-isolation --editable .[test]
 
       - name: Run tests
         env:
