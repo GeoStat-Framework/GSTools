@@ -64,16 +64,7 @@ jobs:
           GSTOOLS_BUILD_PARALLEL: 1
         run: |
           python -m pip install --upgrade pip
-          pip install coveralls>=3.0.0
-          # PEP 517 package builder from pypa
-          pip install build
-          # needed for now, since sdist needs requirements defined in pyporject.toml
-          # pip uses isolated builds, where cython is not present afterwards
-          # pep517 is not yet available: https://stackoverflow.com/a/63555237/6696397
-          # pip install -r requirements_setup.txt
-          # no build isolation since requirements now installed
-          # editable to be compatible with pytest (inplace build)
-          # pip install --no-build-isolation --editable .[test]
+          pip install build coveralls>=3.0.0
           pip install --editable .[test]
 
       - name: Run tests
@@ -85,7 +76,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          # python setup.py sdist -d dist
+          # PEP 517 package builder from pypa
           python -m build --sdist --outdir dist .
 
       - uses: actions/upload-artifact@v2
