@@ -72,7 +72,7 @@ jobs:
           pip install -r requirements_setup.txt
           # no build isolation since requirements now installed
           # editable to be compatible with pytest (inplace build)
-          pip install --verbose --no-build-isolation --editable .[test]
+          pip install --no-build-isolation --editable .[test]
 
       - name: Run tests
         env:
