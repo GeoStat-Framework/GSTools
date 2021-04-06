@@ -1,0 +1,15 @@
+version: 2
+
+formats: all
+
+sphinx:
+  builder: html
+  configuration: docs/source/conf.py
+u
+python:
+  version: 3.7
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - doc
