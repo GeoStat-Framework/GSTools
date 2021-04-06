@@ -194,8 +194,6 @@ with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
     README = f.read()
 with open(os.path.join(HERE, "requirements.txt"), encoding="utf-8") as f:
     REQ = f.read().splitlines()
-with open(os.path.join(HERE, "requirements_setup.txt"), encoding="utf-8") as f:
-    REQ_SETUP = f.read().splitlines()
 with open(os.path.join(HERE, "requirements_test.txt"), encoding="utf-8") as f:
     REQ_TEST = f.read().splitlines()
 with open(
@@ -203,7 +201,7 @@ with open(
 ) as f:
     REQ_DOC = f.read().splitlines()
 
-REQ_DEV = REQ_SETUP + REQ_TEST + REQ_DOC
+REQ_DEV = REQ_TEST + REQ_DOC
 
 DOCLINE = __doc__.split("\n")[0]
 CLASSIFIERS = [
@@ -227,6 +225,7 @@ CLASSIFIERS = [
 
 setup(
     name="gstools",
+    license_files=("LICENSE",),
     description=DOCLINE,
     long_description=README,
     long_description_content_type="text/markdown",
@@ -238,7 +237,6 @@ setup(
     license="LGPLv3",
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-    include_package_data=True,
     python_requires=">=3.6",
     use_scm_version={
         "relative_to": __file__,
@@ -247,7 +245,6 @@ setup(
         "local_scheme": "no-local-version",
         "fallback_version": "0.0.0.dev0",
     },
-    setup_requires=REQ_SETUP,
     install_requires=REQ,
     extras_require={
         "plotting": ["pyvista", "matplotlib"],
