@@ -1,9 +1,11 @@
 include README.md
-include MANIFEST.in
 include setup.py
-include setup.cfg
-recursive-include gstools *.py *.pyx *.c
+recursive-include gstools *.py *.pyx
+recursive-exclude gstools *.c *.cpp
 recursive-include tests *.py
 recursive-include docs/source *
 include docs/Makefile docs/requirements.txt
 include LICENSE
+recursive-exclude .github *
+exclude .gitignore
+exclude .zenodo.json
