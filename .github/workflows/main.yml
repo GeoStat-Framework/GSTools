@@ -66,7 +66,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install coveralls>=3.0.0
-          pip install --verbose --no-build-isolation .[test]
+          # needed for now, since sdist needs requirements defined in pyporject.toml
+          # pip uses isolated builds, where cython is not present afterwards
+          pip install -r requirements_setup.txt
+          pip install --verbose .[test]
 
       - name: Run tests
         env:
