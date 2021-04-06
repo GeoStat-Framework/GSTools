@@ -1,11 +1,7 @@
-include README.md
-include setup.py
-recursive-include gstools *.py *.pyx
+prune *
+graft gstools
+graft tests
+graft docs
 recursive-exclude gstools *.c *.cpp
-recursive-include tests *.py
-recursive-include docs/source *
-include docs/Makefile docs/requirements.txt
-include LICENSE
-recursive-exclude .github *
-exclude .gitignore
-exclude .zenodo.json
+include LICENSE README.md pyproject.toml setup.py
+global-exclude __pycache__ *.py[cod] .*
