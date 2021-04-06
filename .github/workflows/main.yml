@@ -61,15 +61,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        env:
+          GSTOOLS_BUILD_PARALLEL: 1
         run: |
           python -m pip install --upgrade pip
           pip install coveralls>=3.0.0
-          pip install .[test]
-          pip install -I --no-deps --global-option="--openmp" .
-
-      - name: Build sdist
-        run: |
-          python setup.py sdist -d dist
+          pip install --verbose --no-build-isolation .[test]
 
       - name: Run tests
         env:
@@ -77,6 +74,10 @@ jobs:
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
           python -m coveralls --service=github
+
+      - name: Build sdist
+        run: |
+          python setup.py sdist -d dist
 
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'

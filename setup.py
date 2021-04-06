@@ -10,7 +10,7 @@ from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 
-from setuptools import setup, find_packages, Distribution, Extension
+from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 import numpy as np
 
@@ -120,7 +120,9 @@ def check_openmp_support():
 # openmp ######################################################################
 
 
-USE_OPENMP = bool("--openmp" in sys.argv)
+# you can set GSTOOLS_BUILD_PARALLEL=0 or GSTOOLS_BUILD_PARALLEL=1
+GS_PARALLEL = os.getenv("GSTOOLS_BUILD_PARALLEL")
+USE_OPENMP = bool(int(GS_PARALLEL)) if GS_PARALLEL else False
 
 if USE_OPENMP:
     # just check if wanted
@@ -133,18 +135,6 @@ if USE_OPENMP:
 else:
     print("## GSTOOLS setup: OpenMP not wanted by the user.")
     FLAGS = []
-
-
-# add the "--openmp" to the global options
-# enables calles like:
-# python3 setup.py --openmp build_ext --inplace
-# pip install --global-option="--openmp" gstools
-class MPDistribution(Distribution):
-    """Distribution with --openmp as global option."""
-
-    global_options = Distribution.global_options + [
-        ("openmp", None, "Flag to use openmp in the build")
-    ]
 
 
 # cython extensions ###########################################################
@@ -255,5 +245,4 @@ setup(
     packages=find_packages(exclude=["tests*", "docs*"]),
     ext_modules=EXT_MODULES,
     include_dirs=[np.get_include()],
-    distclass=MPDistribution,
 )
