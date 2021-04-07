@@ -44,14 +44,14 @@ def get_dwd_temperature(date="2020-06-09 12:00:00"):
     sites = obs.DWDObservationStations(
         parameter_set=obs.DWDObservationParameterSet.TEMPERATURE_AIR,
         period=obs.DWDObservationPeriod.RECENT,
-        **settings
+        **settings,
     )
     ids, lat, lon = sites.all().loc[:, ["STATION_ID", "LAT", "LON"]].values.T
     observations = obs.DWDObservationData(
         station_ids=ids,
         parameters=obs.DWDObservationParameter.HOURLY.TEMPERATURE_AIR_200,
         periods=obs.DWDObservationPeriod.RECENT,
-        **settings
+        **settings,
     )
     temp = observations.all().VALUE.values
     sel = np.isfinite(temp)

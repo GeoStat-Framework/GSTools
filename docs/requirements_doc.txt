@@ -1,7 +1,0 @@
-numpydoc
-sphinx-gallery
-matplotlib
-pyvista
-pykrige
-meshzoo
-m2r2

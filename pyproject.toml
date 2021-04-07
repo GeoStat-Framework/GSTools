@@ -1,0 +1,40 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "setuptools_scm[toml]>=3.5",
+    "numpy>=1.14.5,<2.0",
+    "Cython>=0.28.3,<3.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "gstools/_version.py"
+write_to_template = "__version__ = '{version}'"
+local_scheme = "no-local-version"
+fallback_version = "0.0.0.dev0"
+
+[tool.coverage.run]
+source = ["gstools"]
+omit = [
+    "*docs*",
+    "*examples*",
+    "*tests*",
+    "*/gstools/covmodel/plot.py",
+    "*/gstools/field/plot.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+]
+
+[tool.black]
+line-length = 79
+target-version = [
+    "py36",
+    "py37",
+    "py38",
+]
