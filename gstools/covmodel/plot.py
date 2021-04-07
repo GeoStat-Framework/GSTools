@@ -117,7 +117,7 @@ def plot_variogram(
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault("label", model.name + " variogram")
+    kwargs.setdefault("label", f"{model.name} variogram")
     ax.plot(x_s, model.variogram(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -132,7 +132,7 @@ def plot_covariance(
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault("label", model.name + " covariance")
+    kwargs.setdefault("label", f"{model.name} covariance")
     ax.plot(x_s, model.covariance(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -147,7 +147,7 @@ def plot_correlation(
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault("label", model.name + " correlation")
+    kwargs.setdefault("label", f"{model.name} correlation")
     ax.plot(x_s, model.correlation(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -162,7 +162,7 @@ def plot_vario_yadrenko(
     if x_max is None:
         x_max = min(3 * model.len_rescaled, np.pi)
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault("label", model.name + " Yadrenko variogram")
+    kwargs.setdefault("label", f"{model.name} Yadrenko variogram")
     ax.plot(x_s, model.vario_yadrenko(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -177,7 +177,7 @@ def plot_cov_yadrenko(
     if x_max is None:
         x_max = min(3 * model.len_rescaled, np.pi)
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault("label", model.name + " Yadrenko covariance")
+    kwargs.setdefault("label", f"{model.name} Yadrenko covariance")
     ax.plot(x_s, model.cov_yadrenko(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -192,7 +192,7 @@ def plot_cor_yadrenko(
     if x_max is None:
         x_max = min(3 * model.len_rescaled, np.pi)
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault("label", model.name + " Yadrenko correlation")
+    kwargs.setdefault("label", f"{model.name} Yadrenko correlation")
     ax.plot(x_s, model.cor_yadrenko(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -207,9 +207,7 @@ def plot_vario_axis(
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault(
-        "label", model.name + " variogram on axis {}".format(axis)
-    )
+    kwargs.setdefault("label", f"{model.name} variogram on axis {axis}")
     ax.plot(x_s, model.vario_axis(x_s, axis), **kwargs)
     ax.legend()
     fig.show()
@@ -224,9 +222,7 @@ def plot_cov_axis(
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault(
-        "label", model.name + " covariance on axis {}".format(axis)
-    )
+    kwargs.setdefault("label", f"{model.name} covariance on axis {axis}")
     ax.plot(x_s, model.cov_axis(x_s, axis), **kwargs)
     ax.legend()
     fig.show()
@@ -241,9 +237,7 @@ def plot_cor_axis(
     if x_max is None:
         x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault(
-        "label", model.name + " correlation on axis {}".format(axis)
-    )
+    kwargs.setdefault("label", f"{model.name} correlation on axis {axis}")
     ax.plot(x_s, model.cor_axis(x_s, axis), **kwargs)
     ax.legend()
     fig.show()
@@ -258,9 +252,7 @@ def plot_spectrum(
     if x_max is None:
         x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault(
-        "label", model.name + " " + str(model.dim) + "D spectrum"
-    )
+    kwargs.setdefault("label", f"{model.name} {model.dim}D spectrum")
     ax.plot(x_s, model.spectrum(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -275,9 +267,7 @@ def plot_spectral_density(
     if x_max is None:
         x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault(
-        "label", model.name + " " + str(model.dim) + "D spectral-density"
-    )
+    kwargs.setdefault("label", f"{model.name} {model.dim}D spectral-density")
     ax.plot(x_s, model.spectral_density(x_s), **kwargs)
     ax.legend()
     fig.show()
@@ -292,9 +282,7 @@ def plot_spectral_rad_pdf(
     if x_max is None:
         x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
-    kwargs.setdefault(
-        "label", model.name + " " + str(model.dim) + "D spectral-rad-pdf"
-    )
+    kwargs.setdefault("label", f"{model.name} {model.dim}D spectral-rad-pdf")
     ax.plot(x_s, model.spectral_rad_pdf(x_s), **kwargs)
     ax.legend()
     fig.show()

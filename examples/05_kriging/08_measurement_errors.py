@@ -26,7 +26,7 @@ model = gs.Gaussian(dim=1, var=0.9, len_scale=1, nugget=0.1)
 # Here we will use Simple kriging (`unbiased=False`) to interpolate the given
 # conditions.
 
-krig = gs.krige.Krige(
+krig = gs.Krige(
     model=model,
     cond_pos=cond_pos,
     cond_val=cond_val,

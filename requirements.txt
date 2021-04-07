@@ -1,6 +1,0 @@
-numpy>=1.14.5
-scipy>=1.1.0
-hankel>=1.0.2
-emcee>=3.0.0
-pyevtk>=1.1.1
-meshio>=4.0.3, <5.0

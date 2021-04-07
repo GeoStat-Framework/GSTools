@@ -19,7 +19,8 @@ The following functions are provided
    matrix_isometrize
    matrix_anisometrize
    rotated_main_axes
-   gen_mesh
+   generate_grid
+   generate_st_grid
    format_struct_pos_dim
    format_struct_pos_shape
    format_unstruct_pos_shape
@@ -45,7 +46,8 @@ __all__ = [
     "matrix_isometrize",
     "matrix_anisometrize",
     "rotated_main_axes",
-    "gen_mesh",
+    "generate_grid",
+    "generate_st_grid",
     "format_struct_pos_dim",
     "format_struct_pos_shape",
     "format_unstruct_pos_shape",
@@ -333,12 +335,12 @@ def rotated_main_axes(dim, angles):
     return matrix_rotate(dim, angles).T
 
 
-# conversion ##################################################################
+# grid routines ###############################################################
 
 
-def gen_mesh(pos):
+def generate_grid(pos):
     """
-    Generate mesh from a structured position tuple.
+    Generate grid from a structured position tuple.
 
     Parameters
     ----------
@@ -353,6 +355,42 @@ def gen_mesh(pos):
     return np.array(np.meshgrid(*pos, indexing="ij"), dtype=np.double).reshape(
         (len(pos), -1)
     )
+
+
+def generate_st_grid(pos, time, mesh_type="unstructured"):
+    """
+    Generate spatio-temporal grid from a position tuple and time array.
+
+    Parameters
+    ----------
+    pos : :class:`tuple` of :class:`numpy.ndarray`
+        The (un-)structured position tuple.
+    time : :any:`iterable`
+        The time array.
+    mesh_type : :class:`str`, optional
+        'structured' / 'unstructured'
+        Default: `"unstructured"`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Unstructured spatio-temporal point tuple.
+
+    Notes
+    -----
+        Time dimension will be the last one.
+    """
+    time = np.array(time, dtype=np.double).reshape(-1)
+    if mesh_type != "unstructured":
+        pos = generate_grid(pos)
+    else:
+        pos = np.array(pos, dtype=np.double, ndmin=2)
+    out = [np.repeat(p.reshape(-1), np.size(time)) for p in pos]
+    out.append(np.tile(time, np.size(pos[0])))
+    return np.array(out, dtype=np.double)
+
+
+# conversion ##################################################################
 
 
 def format_struct_pos_dim(pos, dim):
@@ -571,13 +609,13 @@ def ang2dir(angles, dtype=np.double, dim=None):
     pre_dim = np.asanyarray(angles).ndim
     angles = np.array(angles, ndmin=2, dtype=dtype)
     if len(angles.shape) > 2:
-        raise ValueError("Can't interpret angles array {}".format(angles))
+        raise ValueError(f"Can't interpret angles array {angles}")
     dim = angles.shape[1] + 1 if dim is None else dim
     if dim == 2 and angles.shape[0] == 1 and pre_dim < 2:
         # fix for 2D where only one angle per direction is given
         angles = angles.T  # can't be interpreted if dim=None is given
     if dim != angles.shape[1] + 1 or dim == 1:
-        raise ValueError("Wrong dim. ({}) for angles {}".format(dim, angles))
+        raise ValueError(f"Wrong dim. ({dim}) for angles {angles}")
     vec = np.empty((angles.shape[0], dim), dtype=dtype)
     vec[:, 0] = np.prod(np.sin(angles), axis=1)
     for i in range(1, dim):

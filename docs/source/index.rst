@@ -61,24 +61,24 @@ To get the latest development version you can install it directly from GitHub:
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
-To enable the OpenMP support, you have to provide a C compiler, Cython and OpenMP.
-To get all other dependencies, it is recommended to first install gstools once
-in the standard way just decribed.
-Simply use the following commands:
+To enable the OpenMP support, you have to provide a C compiler and OpenMP.
+Parallel support is controlled by an environment variable ``GSTOOLS_BUILD_PARALLEL``,
+that can be ``0`` or ``1`` (interpreted as ``0`` if not present).
+GSTools then needs to be installed from source:
 
 .. code-block:: none
 
-    pip install gstools
-    pip install -I --no-deps --global-option="--openmp" gstools
+    export GSTOOLS_BUILD_PARALLEL=1
+    pip install --no-binary=gstools gstools
 
-Or for the development version:
+Note, that the ``--no-binary=gstools`` option forces pip to not use a wheel for GSTools.
+
+For the development version, you can do almost the same:
 
 .. code-block:: none
 
+    export GSTOOLS_BUILD_PARALLEL=1
     pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
-    pip install -I --no-deps --global-option="--openmp" git+git://github.com/GeoStat-Framework/GSTools.git@develop
-
-The flags :code:`-I --no-deps` force pip to reinstall gstools but not the dependencies.
 
 
 Citation

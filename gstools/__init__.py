@@ -26,6 +26,15 @@ Subpackages
 Classes
 =======
 
+Kriging
+^^^^^^^
+Swiss-Army-Knife for Kriging. For short cut classes see: :any:`gstools.krige`
+
+.. currentmodule:: gstools.krige
+
+.. autosummary::
+   Krige
+
 Spatial Random Field
 ^^^^^^^^^^^^^^^^^^^^
 Classes for (conditioned) random field generation
@@ -93,6 +102,8 @@ Some convenient functions for geometric operations
 
 .. autosummary::
    rotated_main_axes
+   generate_grid
+   generate_st_grid
 
 Variogram Estimation
 ^^^^^^^^^^^^^^^^^^^^
@@ -125,9 +136,12 @@ from gstools import (
     transform,
     normalizer,
 )
+from gstools.krige import Krige
 from gstools.field import SRF, CondSRF
 from gstools.tools import (
     rotated_main_axes,
+    generate_grid,
+    generate_st_grid,
     EARTH_RADIUS,
     vtk_export,
     vtk_export_structured,
@@ -165,7 +179,7 @@ from gstools.covmodel import (
 
 try:
     from gstools._version import __version__
-except ImportError:  # pragma: nocover
+except ModuleNotFoundError:  # pragma: nocover
     # package is not installed
     __version__ = "0.0.0.dev0"
 
@@ -201,9 +215,12 @@ __all__ += [
 ]
 
 __all__ += [
+    "Krige",
     "SRF",
     "CondSRF",
     "rotated_main_axes",
+    "generate_grid",
+    "generate_st_grid",
     "EARTH_RADIUS",
     "vtk_export",
     "vtk_export_structured",

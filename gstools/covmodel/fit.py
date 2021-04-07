@@ -36,7 +36,7 @@ def fit_variogram(
     max_eval=None,
     return_r2=False,
     curve_fit_kwargs=None,
-    **para_select
+    **para_select,
 ):
     """
     Fitting a variogram-model to an empirical variogram.
@@ -77,11 +77,19 @@ def fit_variogram(
         and set to the current sill of the model.
         Then, the procedure above is applied.
         Default: None
-    init_guess : :class:`str`, optional
+    init_guess : :class:`str` or :class:`dict`, optional
         Initial guess for the estimation. Either:
 
             * "default": using the default values of the covariance model
+              ("len_scale" will be mean of given bin centers;
+              "var" and "nugget" will be mean of given variogram values
+              (if in given bounds))
             * "current": using the current values of the covariance model
+            * dict: dictionary with parameter names and given value
+              (separate "default" can bet set to "default" or "current" for
+              unspecified values to get same behavior as given above
+              ("default" by default))
+              Example: ``{"len_scale": 10, "default": "current"}``
 
         Default: "default"
     weights : :class:`str`, :class:`numpy.ndarray`, :class:`callable`optional
@@ -170,6 +178,10 @@ def fit_variogram(
     # prepare variogram data
     # => concatenate directional variograms to have a 1D array for x and y
     x_data, y_data, is_dir_vario = _check_vario(model, x_data, y_data)
+    # prepare init guess dictionary
+    init_guess = _pre_init_guess(
+        model, init_guess, np.mean(x_data), np.mean(y_data)
+    )
     # only fit anisotropy if a directional variogram was given
     anis &= is_dir_vario
     # set weights
@@ -205,9 +217,7 @@ def _pre_para(model, para_select, sill, anis):
     var_last = False
     for par in para_select:
         if par not in model.arg_bounds:
-            raise ValueError(
-                "fit: unknow parameter in selection: {}".format(par)
-            )
+            raise ValueError(f"fit: unknown parameter in selection: {par}")
         if not isinstance(para_select[par], bool):
             if par == "var":
                 var_last = True
@@ -239,7 +249,7 @@ def _pre_para(model, para_select, sill, anis):
             if model.var > sill:
                 raise ValueError(
                     "fit: if sill is fixed and variance deselected, "
-                    + "the set variance should be less than the given sill."
+                    "the set variance should be less than the given sill."
                 )
             para_select["nugget"] = False
             model.nugget = sill - model.var
@@ -247,7 +257,7 @@ def _pre_para(model, para_select, sill, anis):
             if model.nugget > sill:
                 raise ValueError(
                     "fit: if sill is fixed and nugget deselected, "
-                    + "the set nugget should be less than the given sill."
+                    "the set nugget should be less than the given sill."
                 )
             para_select["var"] = False
             model.var = sill - model.nugget
@@ -269,6 +279,47 @@ def _pre_para(model, para_select, sill, anis):
     return para, sill, constrain_sill, anis
 
 
+def _pre_init_guess(model, init_guess, mean_x=1.0, mean_y=1.0):
+    # init guess should be a dict
+    if not isinstance(init_guess, dict):
+        init_guess = {"default": init_guess}
+    # "default" init guess is the respective default value
+    default_guess = init_guess.pop("default", "default")
+    if default_guess not in ["default", "current"]:
+        raise ValueError(f"fit_variogram: unknown def. guess: {default_guess}")
+    default = default_guess == "default"
+    # check invalid names for given init guesses
+    invalid_para = set(init_guess) - set(model.iso_arg + ["anis"])
+    if invalid_para:
+        raise ValueError(f"fit_variogram: unknown init guess: {invalid_para}")
+    bnd = model.arg_bounds
+    # default length scale is mean of given bin centers (respecting "rescale")
+    init_guess.setdefault(
+        "len_scale", mean_x * model.rescale if default else model.len_scale
+    )
+    # init guess for variance and nugget is mean of given variogram
+    for par in ["var", "nugget"]:
+        init_guess.setdefault(par, mean_y if default else getattr(model, par))
+    # anis setting
+    init_guess.setdefault(
+        "anis", default_arg_from_bounds(bnd["anis"]) if default else model.anis
+    )
+    # correctly handle given values for anis (need a list of values)
+    init_guess["anis"] = list(set_anis(model.dim, init_guess["anis"]))
+    # set optional arguments
+    for opt in model.opt_arg:
+        init_guess.setdefault(
+            opt,
+            default_arg_from_bounds(bnd[opt])
+            if default
+            else getattr(model, opt),
+        )
+    # convert all init guesses to float (except "anis")
+    for arg in model.iso_arg:
+        init_guess[arg] = float(init_guess[arg])
+    return init_guess
+
+
 def _check_vario(model, x_data, y_data):
     # prepare variogram data
     x_data = np.array(x_data).reshape(-1)
@@ -283,8 +334,8 @@ def _check_vario(model, x_data, y_data):
     elif x_data.size != y_data.size:
         raise ValueError(
             "CovModel.fit_variogram: Wrong number of empirical variograms! "
-            + "Either provide only one variogram to fit an isotropic model, "
-            + "or directional ones for all main axes to fit anisotropy."
+            "Either provide only one variogram to fit an isotropic model, "
+            "or directional ones for all main axes to fit anisotropy."
         )
     if is_dir_vario and model.latlon:
         raise ValueError(
@@ -327,10 +378,7 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
             init_guess_list.append(
                 _init_guess(
                     bounds=[low_bounds[-1], top_bounds[-1]],
-                    current=getattr(model, par),
-                    default=model.rescale if par == "len_scale" else 1.0,
-                    typ=init_guess,
-                    para_name=par,
+                    default=init_guess[par],
                 )
             )
     for opt in model.opt_arg:
@@ -340,37 +388,27 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
             init_guess_list.append(
                 _init_guess(
                     bounds=[low_bounds[-1], top_bounds[-1]],
-                    current=getattr(model, opt),
-                    default=model.default_opt_arg()[opt],
-                    typ=init_guess,
-                    para_name=opt,
+                    default=init_guess[opt],
                 )
             )
     if anis:
-        low_bounds += [model.anis_bounds[0]] * (model.dim - 1)
-        top_bounds += [model.anis_bounds[1]] * (model.dim - 1)
-        if init_guess == "default":
-            def_arg = default_arg_from_bounds(model.anis_bounds)
-            init_guess_list += [def_arg] * (model.dim - 1)
-        elif init_guess == "current":
-            init_guess_list += list(model.anis)
-        else:
-            raise ValueError(
-                "CovModel.fit: unknown init_guess: '{}'".format(init_guess)
+        for i in range(model.dim - 1):
+            low_bounds.append(model.anis_bounds[0])
+            top_bounds.append(model.anis_bounds[1])
+            init_guess_list.append(
+                _init_guess(
+                    bounds=[low_bounds[-1], top_bounds[-1]],
+                    default=init_guess["anis"][i],
+                )
             )
-
     return (low_bounds, top_bounds), init_guess_list
 
 
-def _init_guess(bounds, current, default, typ, para_name):
+def _init_guess(bounds, default):
     """Proper determination of initial guess."""
-    if typ == "default":
-        if bounds[0] < default < bounds[1]:
-            return default
-        return default_arg_from_bounds(bounds)
-    if typ == "current":
-        return current
-    raise ValueError("CovModel.fit: unknown init_guess: '{}'".format(typ))
+    if bounds[0] < default < bounds[1]:
+        return default
+    return default_arg_from_bounds(bounds)
 
 
 def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):

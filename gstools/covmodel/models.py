@@ -49,7 +49,7 @@ class Gaussian(CovModel):
 
     Notes
     -----
-    This model is given by the following variogram:
+    This model is given by the following variogram [Webster2007]_:
 
     .. math::
        \gamma(r)=
@@ -57,6 +57,12 @@ class Gaussian(CovModel):
        \left(1-\exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)\right)+n
 
     Where the standard rescale factor is :math:`s=\frac{\sqrt{\pi}}{2}`.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -117,7 +123,7 @@ class Exponential(CovModel):
 
     Notes
     -----
-    This model is given by the following variogram:
+    This model is given by the following variogram [Webster2007]_:
 
     .. math::
        \gamma(r)=
@@ -125,6 +131,12 @@ class Exponential(CovModel):
        \left(1-\exp\left(-s\cdot\frac{r}{\ell}\right)\right)+n
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -195,7 +207,8 @@ class Stable(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function
+    [Wackernagel2003]_:
 
     .. math::
        \rho(r) =
@@ -203,6 +216,11 @@ class Stable(CovModel):
 
     Where the standard rescale factor is :math:`s=1`.
     :math:`\alpha` is a shape parameter with :math:`\alpha\in(0,2]`
+
+    References
+    ----------
+    .. [Wackernagel2003] Wackernagel, H. "Multivariate geostatistics",
+           Springer, Berlin, Heidelberg (2003)
 
     Other Parameters
     ----------------
@@ -247,7 +265,7 @@ class Stable(CovModel):
         if self.alpha < 0.3:
             warnings.warn(
                 "Stable: parameter 'alpha' is < 0.3, "
-                + "count with unstable results",
+                "count with unstable results",
                 AttributeWarning,
             )
 
@@ -264,7 +282,7 @@ class Matern(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Rasmussen2003]_:
 
     .. math::
        \rho(r) =
@@ -284,6 +302,12 @@ class Matern(CovModel):
     .. math::
        \rho(r) =
        \exp\left(-\left(s\cdot\frac{r}{2\ell}\right)^2\right)
+
+    References
+    ----------
+    .. [Rasmussen2003] Rasmussen, C. E.,
+           "Gaussian processes in machine learning." Summer school on
+           machine learning. Springer, Berlin, Heidelberg, (2003)
 
     Other Parameters
     ----------------
@@ -307,7 +331,7 @@ class Matern(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [0.5, 30.0, "cc"]}``
+            * ``{"nu": [0.2, 30.0, "cc"]}``
 
         Returns
         -------
@@ -374,7 +398,7 @@ class Rational(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Rasmussen2003]_:
 
     .. math::
        \rho(r) =
@@ -390,10 +414,16 @@ class Rational(CovModel):
        \rho(r)=
        \exp\left(-\left(s\cdot\frac{r}{\ell}\right)^{2}\right)
 
+    References
+    ----------
+    .. [Rasmussen2003] Rasmussen, C. E.,
+           "Gaussian processes in machine learning." Summer school on
+           machine learning. Springer, Berlin, Heidelberg, (2003)
+
     Other Parameters
     ----------------
     alpha : :class:`float`, optional
-        Shape parameter. Standard range: ``(0, inf)``
+        Shape parameter. Standard range: ``[0.5, 50]``
         Default: ``1.0``
     """
 
@@ -412,14 +442,14 @@ class Rational(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"alpha": [0.5, inf]}``
+            * ``{"alpha": [0.5, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"alpha": [0.5, np.inf]}
+        return {"alpha": [0.5, 50.0]}
 
     def cor(self, h):
         """Rational normalized correlation function."""
@@ -443,7 +473,7 @@ class Cubic(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Chiles2009]_:
 
     .. math::
        \rho(r) =
@@ -457,6 +487,12 @@ class Cubic(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [Chiles2009] Chiles, J. P., & Delfiner, P.,
+           "Geostatistics: modeling spatial uncertainty" (Vol. 497),
+           John Wiley & Sons. (2009)
     """
 
     def cor(self, h):
@@ -474,7 +510,7 @@ class Linear(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Webster2007]_:
 
     .. math::
        \rho(r) =
@@ -484,6 +520,12 @@ class Linear(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -504,7 +546,7 @@ class Circular(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Webster2007]_:
 
     .. math::
        \rho(r) =
@@ -519,6 +561,12 @@ class Circular(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -547,7 +595,7 @@ class Spherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation function:
+    This model is given by the following correlation function [Webster2007]_:
 
     .. math::
        \rho(r) =
@@ -559,6 +607,12 @@ class Spherical(CovModel):
        \end{cases}
 
     Where the standard rescale factor is :math:`s=1`.
+
+    References
+    ----------
+    .. [Webster2007] Webster, R. and Oliver, M. A.
+           "Geostatistics for environmental scientists.",
+           John Wiley & Sons. (2007)
     """
 
     def cor(self, h):
@@ -584,7 +638,7 @@ class HyperSpherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation functions.
+    This model is given by the following correlation function [Matern1960]_:
 
     .. math::
        \rho(r) =
@@ -599,6 +653,11 @@ class HyperSpherical(CovModel):
 
     Where the standard rescale factor is :math:`s=1`.
     :math:`d` is the dimension.
+
+    References
+    ----------
+    .. [Matern1960] Matern B., "Spatial Variation",
+           Swedish National Institute for Forestry Research, (1960)
     """
 
     def cor(self, h):
@@ -639,7 +698,7 @@ class SuperSpherical(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation functions.
+    This model is given by the following correlation function [Matern1960]_:
 
     .. math::
        \rho(r) =
@@ -655,10 +714,15 @@ class SuperSpherical(CovModel):
     Where the standard rescale factor is :math:`s=1`.
     :math:`\nu\geq\frac{d-1}{2}` is a shape parameter.
 
+    References
+    ----------
+    .. [Matern1960] Matern B., "Spatial Variation",
+           Swedish National Institute for Forestry Research, (1960)
+
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[(dim-1)/2, inf)``
+        Shape parameter. Standard range: ``[(dim-1)/2, 50]``
         Default: ``(dim-1)/2``
     """
 
@@ -677,14 +741,14 @@ class SuperSpherical(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [(dim-1)/2, inf, "co"]}``
+            * ``{"nu": [(dim-1)/2, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim - 1) / 2, np.inf, "co"]}
+        return {"nu": [(self.dim - 1) / 2, 50.0]}
 
     def cor(self, h):
         """Super-Spherical normalized correlation function."""
@@ -706,7 +770,7 @@ class JBessel(CovModel):
 
     Notes
     -----
-    This model is given by the following correlation functions.
+    This model is given by the following correlation function [Chiles2009]_:
 
     .. math::
        \rho(r) =
@@ -729,10 +793,16 @@ class JBessel(CovModel):
        \rho(r) =
        \frac{\sin\left(s\cdot\frac{r}{\ell}\right)}{s\cdot\frac{r}{\ell}}
 
+    References
+    ----------
+    .. [Chiles2009] Chiles, J. P., & Delfiner, P.,
+           "Geostatistics: modeling spatial uncertainty" (Vol. 497),
+           John Wiley & Sons. (2009)
+
     Other Parameters
     ----------------
     nu : :class:`float`, optional
-        Shape parameter. Standard range: ``[dim/2 - 1, inf)``
+        Shape parameter. Standard range: ``[dim/2 - 1, 50]``
         Default: ``dim/2``
     """
 
@@ -751,14 +821,14 @@ class JBessel(CovModel):
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
 
-            * ``{"nu": [dim/2 - 1, inf, "co"]}``
+            * ``{"nu": [dim/2 - 1, 50.0]}``
 
         Returns
         -------
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [self.dim / 2 - 1, np.inf, "co"]}
+        return {"nu": [self.dim / 2 - 1, 50.0]}
 
     def check_opt_arg(self):
         """Check the optional arguments.
@@ -771,7 +841,7 @@ class JBessel(CovModel):
         if abs(self.nu - self.dim / 2 + 1) < 0.01:
             warnings.warn(
                 "JBessel: parameter 'nu' is close to d/2-1, "
-                + "count with unstable results",
+                "count with unstable results",
                 AttributeWarning,
             )
 

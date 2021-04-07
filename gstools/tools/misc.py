@@ -11,7 +11,7 @@ The following functions are provided
    eval_func
 """
 import numpy as np
-from gstools.tools.geometric import format_struct_pos_dim, gen_mesh
+from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 
 
 __all__ = ["list_format", "eval_func"]
@@ -19,9 +19,7 @@ __all__ = ["list_format", "eval_func"]
 
 def list_format(lst, prec):  # pragma: no cover
     """Format a list of floats."""
-    return "[{}]".format(
-        ", ".join("{x:.{p}}".format(x=float(x), p=prec) for x in lst)
-    )
+    return f"[{', '.join(f'{float(x):.{prec}}' for x in lst)}]"
 
 
 def eval_func(
@@ -71,7 +69,7 @@ def eval_func(
     # care about mesh and function call
     if mesh_type != "unstructured":
         pos, shape = format_struct_pos_dim(pos, dim)
-        pos = gen_mesh(pos)
+        pos = generate_grid(pos)
     else:
         pos = np.array(pos, dtype=np.double).reshape(dim, -1)
         shape = np.shape(pos[0])

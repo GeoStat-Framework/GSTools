@@ -13,15 +13,30 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-env:
-  # needed by coveralls
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  CIBW_BUILD: "cp35-* cp36-* cp37-* cp38-* cp39-*"
-  CIBW_BEFORE_BUILD: "pip install numpy==1.17.3 cython>=0.29.14 setuptools"
-  CIBW_TEST_REQUIRES: "pytest"
-  CIBW_TEST_COMMAND: "pytest -v {project}/tests"
-
 jobs:
+  format_check:
+    name: format check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions\setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black
+
+      - name: black check
+        run: |
+          python -m black --check .
+
   build_wheels:
     name: wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -35,18 +50,14 @@ jobs:
         with:
           fetch-depth: '0'
 
-      - name: Set up Python
-        uses: actions\setup-python@v2
-        with:
-          python-version: "3.8"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install cibuildwheel==1.7.0
       - name: Build wheels
-        run: |
-          python -m cibuildwheel --output-dir dist
+        uses: joerick/cibuildwheel@v1.10.0
+        env:
+          CIBW_BUILD: cp36-* cp37-* cp38-* cp39-*
+          CIBW_TEST_EXTRAS: test
+          CIBW_TEST_COMMAND: pytest -v {project}/tests
+        with:
+          output-dir: dist
 
       - uses: actions/upload-artifact@v2
         with:
@@ -59,7 +70,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -72,22 +83,24 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        env:
+          GSTOOLS_BUILD_PARALLEL: 1
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements_setup.txt
-          pip install -r requirements.txt
-          pip install -r requirements_test.txt
-          pip install coveralls>=3.0.0
-
-      - name: Build sdist
-        run: |
-          python setup.py sdist -d dist
-          python setup.py --openmp build_ext --inplace
+          pip install build coveralls>=3.0.0
+          pip install --editable .[test]
 
       - name: Run tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
           python -m coveralls --service=github
+
+      - name: Build sdist
+        run: |
+          # PEP 517 package builder from pypa
+          python -m build --sdist --outdir dist .
 
       - uses: actions/upload-artifact@v2
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
@@ -105,9 +118,9 @@ jobs:
           path: dist
 
       - name: Publish to Test PyPI
-        # only if working on develop
+        # only if working on master or develop
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.test_pypi_password }}
@@ -117,7 +130,7 @@ jobs:
       - name: Publish to PyPI
         # only if tagged
         if: startsWith(github.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
           password: ${{ secrets.pypi_password }}

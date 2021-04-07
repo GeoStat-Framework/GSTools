@@ -44,6 +44,8 @@ Geometric
    matrix_isometrize
    matrix_anisometrize
    ang2dir
+   generate_grid
+   generate_st_grid
 
 Misc
 ^^^^
@@ -87,6 +89,8 @@ from gstools.tools.geometric import (
     matrix_anisometrize,
     rotated_main_axes,
     ang2dir,
+    generate_grid,
+    generate_st_grid,
 )
 
 
@@ -121,5 +125,7 @@ __all__ = [
     "matrix_anisometrize",
     "rotated_main_axes",
     "ang2dir",
+    "generate_grid",
+    "generate_st_grid",
     "EARTH_RADIUS",
 ]

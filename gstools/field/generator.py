@@ -27,7 +27,7 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 
 class RandMeth:
-    r"""Randomization method for calculating isotropic spatial random fields.
+    r"""Randomization method for calculating isotropic random fields.
 
     Parameters
     ----------
@@ -55,7 +55,7 @@ class RandMeth:
     -----
     The Randomization method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like:
+    The calculation looks like [Hesse2014]_:
 
     .. math::
        u\left(x\right)=
@@ -71,6 +71,13 @@ class RandMeth:
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
+
+    References
+    ----------
+    .. [Hesse2014] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
+           "Generating random fields with a truncated power-law variogram:
+           A comparison of several numerical methods",
+           Environmental Modelling & Software, 55, 32-48., (2014)
     """
 
     def __init__(
@@ -80,7 +87,7 @@ class RandMeth:
         seed=None,
         verbose=False,
         sampling="auto",
-        **kwargs
+        **kwargs,
     ):
         if kwargs:
             warnings.warn("gstools.RandMeth: **kwargs are ignored")
@@ -192,13 +199,13 @@ class RandMeth:
             else:
                 raise ValueError(
                     "gstools.field.generator.RandMeth: "
-                    + "neither 'model' nor 'seed' given!"
+                    "neither 'model' nor 'seed' given!"
                 )
         # wrong model type
         else:
             raise ValueError(
                 "gstools.field.generator.RandMeth: 'model' is not an "
-                + "instance of 'gstools.CovModel'"
+                "instance of 'gstools.CovModel'"
             )
 
     def reset_seed(self, seed=np.nan):
@@ -249,7 +256,7 @@ class RandMeth:
     @sampling.setter
     def sampling(self, sampling):
         if sampling not in ["auto", "inversion", "mcmc"]:
-            raise ValueError("RandMeth: sampling not in {}.".format(SAMPLING))
+            raise ValueError(f"RandMeth: sampling not in {SAMPLING}.")
         self._sampling = sampling
 
     @property
@@ -310,7 +317,7 @@ class RandMeth:
     def __repr__(self):
         """Return String representation."""
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            repr(self.model), self._mode_no, self.seed
+            self.model, self._mode_no, self.seed
         )
 
 
@@ -345,7 +352,7 @@ class IncomprRandMeth(RandMeth):
     -----
     The Randomization method is used to generate isotropic
     spatial incompressible random vector fields characterized
-    by a given covariance model. The equation is:
+    by a given covariance model. The equation is [Kraichnan1970]_:
 
     .. math::
        u_i\left(x\right)= \bar{u_i} \delta_{i1} +
@@ -364,6 +371,12 @@ class IncomprRandMeth(RandMeth):
           the covariance model
         * :math:`p_i(k_j) = e_1 - \frac{k_i k_1}{k^2}` : the projector
           ensuring the incompressibility
+
+    References
+    ----------
+    .. [Kraichnan1970] Kraichnan, R. H.,
+           "Diffusion by a random velocity field.",
+           The physics of fluids, 13(1), 22-31., (1970)
     """
 
     def __init__(
@@ -374,7 +387,7 @@ class IncomprRandMeth(RandMeth):
         seed=None,
         verbose=False,
         sampling="auto",
-        **kwargs
+        **kwargs,
     ):
         if model.dim < 2 or model.dim > 3:
             raise ValueError(

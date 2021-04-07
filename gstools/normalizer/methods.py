@@ -55,7 +55,7 @@ class BoxCox(Normalizer):
 
     Notes
     -----
-    This transformation is given by [1]_:
+    This transformation is given by [Box1964]_:
 
     .. math::
        y=\begin{cases}
@@ -65,8 +65,9 @@ class BoxCox(Normalizer):
 
     References
     ----------
-    .. [1] G.E.P. Box and D.R. Cox, "An Analysis of Transformations", Journal
-           of the Royal Statistical Society B, 26, 211-252 (1964).
+    .. [Box1964] G.E.P. Box and D.R. Cox,
+           "An Analysis of Transformations",
+           Journal of the Royal Statistical Society B, 26, 211-252, (1964)
     """
 
     default_parameter = {"lmbda": 1}
@@ -115,7 +116,7 @@ class BoxCoxShift(Normalizer):
 
     Notes
     -----
-    This transformation is given by [1]_:
+    This transformation is given by [Box1964]_:
 
     .. math::
        y=\begin{cases}
@@ -133,8 +134,9 @@ class BoxCoxShift(Normalizer):
 
     References
     ----------
-    .. [1] G.E.P. Box and D.R. Cox, "An Analysis of Transformations", Journal
-           of the Royal Statistical Society B, 26, 211-252 (1964).
+    .. [Box1964] G.E.P. Box and D.R. Cox,
+           "An Analysis of Transformations",
+           Journal of the Royal Statistical Society B, 26, 211-252, (1964)
     """
 
     default_parameter = {"shift": 0, "lmbda": 1}
@@ -189,7 +191,7 @@ class YeoJohnson(Normalizer):
 
     Notes
     -----
-    This transformation is given by [1]_:
+    This transformation is given by [Yeo2000]_:
 
     .. math::
        y=\begin{cases}
@@ -206,9 +208,9 @@ class YeoJohnson(Normalizer):
 
     References
     ----------
-    .. [1] I.K. Yeo and R.A. Johnson, "A new family of power transformations to
-           improve normality or symmetry." Biometrika, 87(4), pp.954-959,
-           (2000).
+    .. [Yeo2000] I.K. Yeo and R.A. Johnson,
+           "A new family of power transformations to improve normality or
+           symmetry." Biometrika, 87(4), pp.954-959, (2000).
     """
 
     default_parameter = {"lmbda": 1}
@@ -267,7 +269,7 @@ class Modulus(Normalizer):
 
     Notes
     -----
-    This transformation is given by [1]_:
+    This transformation is given by [John1980]_:
 
     .. math::
        y=\begin{cases}
@@ -277,8 +279,8 @@ class Modulus(Normalizer):
 
     References
     ----------
-    .. [1] J. A. John, and N. R. Draper,
-           “An Alternative Family of Transformations.” Journal
+    .. [John1980] J. A. John, and N. R. Draper,
+           "An Alternative Family of Transformations." Journal
            of the Royal Statistical Society C, 29.2, 190-197, (1980)
     """
 
@@ -316,7 +318,7 @@ class Manly(Normalizer):
 
     Notes
     -----
-    This transformation is given by [1]_:
+    This transformation is given by [Manly1976]_:
 
     .. math::
        y=\begin{cases}
@@ -326,7 +328,7 @@ class Manly(Normalizer):
 
     References
     ----------
-    .. [1] B. F. J. Manly, "Exponential data transformations.",
+    .. [Manly1976] B. F. J. Manly, "Exponential data transformations.",
            Journal of the Royal Statistical Society D, 25.1, 37-42 (1976).
     """
 

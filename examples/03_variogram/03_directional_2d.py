@@ -56,7 +56,7 @@ model.plot("vario_axis", axis=0, ax=ax1, x_max=40, label="fit on axis 0")
 model.plot("vario_axis", axis=1, ax=ax1, x_max=40, label="fit on axis 1")
 ax1.set_title("Fitting an anisotropic model")
 
-srf.plot(ax=ax2, show_colorbar=False)
+srf.plot(ax=ax2)
 plt.show()
 
 ###############################################################################

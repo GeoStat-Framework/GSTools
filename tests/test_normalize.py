@@ -174,7 +174,7 @@ class TestNormalizer(unittest.TestCase):
 
     def test_auto_fit(self):
         x = y = range(60)
-        pos = gs.tools.geometric.gen_mesh([x, y])
+        pos = gs.generate_grid([x, y])
         model = gs.Gaussian(dim=2, var=1, len_scale=10)
         srf = gs.SRF(
             model, seed=20170519, normalizer=gs.normalizer.LogNormal()
@@ -197,7 +197,7 @@ class TestNormalizer(unittest.TestCase):
         )
         # test fitting during kriging
         self.assertTrue(np.abs(krige.normalizer.lmbda - 0.0) < 1e-1)
-        self.assertAlmostEqual(krige.model.len_scale, 10.267877, places=4)
+        self.assertAlmostEqual(krige.model.len_scale, 10.2677, places=4)
         self.assertAlmostEqual(
             krige.model.sill,
             krige.normalizer.normalize(cond_val).var(),
