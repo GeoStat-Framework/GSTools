@@ -1,3 +1,0 @@
-pytest>=6.0
-coverage[toml]>=5.2.1
-pytest-cov>=2.11.0

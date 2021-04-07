@@ -3,5 +3,6 @@ graft tests
 graft docs
 recursive-include gstools *.py *.pyx
 recursive-exclude gstools *.c *.cpp
-include LICENSE README.md pyproject.toml setup.py
+include LICENSE pyproject.toml setup.py setup.cfg
+include *.md
 global-exclude __pycache__ *.py[cod] .*

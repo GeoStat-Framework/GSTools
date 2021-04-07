@@ -10,18 +10,15 @@ from distutils.errors import CompileError, LinkError
 from distutils.ccompiler import new_compiler
 from distutils.sysconfig import customize_compiler
 
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
 
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
-
 # openmp finder ###############################################################
-# This code is adapted for a large part from the scikit-learn openmp helpers,
+# This code is adapted for a large part from the scikit-learn openmp_helpers.py
 # which can be found at:
-# https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/_build_utils/openmp_helpers.py
+# https://github.com/scikit-learn/scikit-learn/blob/0.24.0/sklearn/_build_utils
 
 
 CCODE = """
@@ -49,17 +46,6 @@ def get_openmp_flag(compiler):
     if sys.platform == "darwin" and ("icc" in compiler or "icl" in compiler):
         return ["-openmp"]
     if sys.platform == "darwin" and "openmp" in os.getenv("CPPFLAGS", ""):
-        # -fopenmp can't be passed as compile flag when using Apple-clang.
-        # OpenMP support has to be enabled during preprocessing.
-        #
-        # For example, our macOS wheel build jobs use the following environment
-        # variables to build with Apple-clang and the brew installed "libomp":
-        #
-        # export CPPFLAGS="$CPPFLAGS -Xpreprocessor -fopenmp"
-        # export CFLAGS="$CFLAGS -I/usr/local/opt/libomp/include"
-        # export CXXFLAGS="$CXXFLAGS -I/usr/local/opt/libomp/include"
-        # export LDFLAGS="$LDFLAGS -L/usr/local/opt/libomp/lib -lomp"
-        # export DYLD_LIBRARY_PATH=/usr/local/opt/libomp/lib
         return []
     # Default flag for GCC and clang:
     return ["-fopenmp"]
@@ -113,7 +99,7 @@ def check_openmp_support():
             openmp_supported = False
             openmp_flags = []
         finally:
-            os.chdir(HERE)
+            os.chdir(os.path.abspath(os.path.dirname(__file__)))
     return openmp_supported, openmp_flags
 
 
@@ -171,78 +157,12 @@ CY_MODULES.append(
 )
 EXT_MODULES = cythonize(CY_MODULES)  # annotate=True
 
-# This is an important part. By setting this compiler directive, cython will
-# embed signature information in docstrings. Sphinx then knows how to extract
-# and use those signatures.
-# python setup.py build_ext --inplace --> then sphinx build
+# embed signatures for sphinx
 for ext_m in EXT_MODULES:
     ext_m.cython_directives = {"embedsignature": True}
 
+
 # setup #######################################################################
 
-with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
-    README = f.read()
-with open(os.path.join(HERE, "requirements.txt"), encoding="utf-8") as f:
-    REQ = f.read().splitlines()
-with open(os.path.join(HERE, "requirements_test.txt"), encoding="utf-8") as f:
-    REQ_TEST = f.read().splitlines()
-with open(
-    os.path.join(HERE, "docs", "requirements.txt"), encoding="utf-8"
-) as f:
-    REQ_DOC = f.read().splitlines()
 
-REQ_DEV = REQ_TEST + REQ_DOC
-
-DOCLINE = __doc__.split("\n")[0]
-CLASSIFIERS = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "Intended Audience :: End Users/Desktop",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
-    "Natural Language :: English",
-    "Operating System :: Unix",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3 :: Only",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Utilities",
-]
-
-setup(
-    name="gstools",
-    license_files=("LICENSE",),
-    description=DOCLINE,
-    long_description=README,
-    long_description_content_type="text/markdown",
-    maintainer="Sebastian Müller, Lennart Schüler",
-    maintainer_email="info@geostat-framework.org",
-    author="Sebastian Müller, Lennart Schüler",
-    author_email="info@geostat-framework.org",
-    url="https://github.com/GeoStat-Framework/GSTools",
-    license="LGPLv3",
-    classifiers=CLASSIFIERS,
-    platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-    python_requires=">=3.6",
-    use_scm_version={
-        "relative_to": __file__,
-        "write_to": "gstools/_version.py",
-        "write_to_template": "__version__ = '{version}'",
-        "local_scheme": "no-local-version",
-        "fallback_version": "0.0.0.dev0",
-    },
-    install_requires=REQ,
-    extras_require={
-        "plotting": ["pyvista", "matplotlib"],
-        "doc": REQ_DOC,
-        "test": REQ_TEST,
-        "dev": REQ_DEV,
-    },
-    packages=find_packages(exclude=["tests*", "docs*"]),
-    ext_modules=EXT_MODULES,
-    include_dirs=[np.get_include()],
-)
+setup(ext_modules=EXT_MODULES, include_dirs=[np.get_include()])

@@ -1,9 +1,0 @@
-numpydoc>=1.1
-sphinx>=3
-sphinx-gallery>=0.8
-sphinx-rtd-theme>=0.5
-matplotlib>=3
-pykrige>=1.5
-pyvista
-meshzoo
-m2r2
