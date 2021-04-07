@@ -15,6 +15,9 @@ from Cython.Build import cythonize
 import numpy as np
 
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+
 # openmp finder ###############################################################
 # This code is adapted for a large part from the scikit-learn openmp_helpers.py
 # which can be found at:
@@ -99,7 +102,7 @@ def check_openmp_support():
             openmp_supported = False
             openmp_flags = []
         finally:
-            os.chdir(os.path.abspath(os.path.dirname(__file__)))
+            os.chdir(HERE)
     return openmp_supported, openmp_flags
 
 
