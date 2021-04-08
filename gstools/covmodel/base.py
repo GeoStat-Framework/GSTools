@@ -172,7 +172,7 @@ class CovModel:
 
         # set parameters
         self.rescale = rescale
-        self._nugget = nugget
+        self._nugget = float(nugget)
         # set anisotropy and len_scale, disable anisotropy for latlon models
         self._len_scale, anis = set_len_anis(self.dim, len_scale, anis)
         if self.latlon:
@@ -186,7 +186,7 @@ class CovModel:
             self._var = None
             self.var = var
         else:
-            self._var = var_raw
+            self._var = float(var_raw)
         self._integral_scale = None
         self.integral_scale = integral_scale
         # set var again, if int_scale affects var_factor
@@ -194,7 +194,7 @@ class CovModel:
             self._var = None
             self.var = var
         else:
-            self._var = var_raw
+            self._var = float(var_raw)
         # final check for parameter bounds
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
@@ -893,7 +893,7 @@ class CovModel:
 
     @var.setter
     def var(self, var):
-        self._var = var / self.var_factor()
+        self._var = float(var) / self.var_factor()
         self.check_arg_bounds()
 
     @property
@@ -906,7 +906,7 @@ class CovModel:
 
     @var_raw.setter
     def var_raw(self, var_raw):
-        self._var = var_raw
+        self._var = float(var_raw)
         self.check_arg_bounds()
 
     @property
@@ -916,7 +916,7 @@ class CovModel:
 
     @nugget.setter
     def nugget(self, nugget):
-        self._nugget = nugget
+        self._nugget = float(nugget)
         self.check_arg_bounds()
 
     @property
