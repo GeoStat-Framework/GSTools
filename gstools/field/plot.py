@@ -10,7 +10,7 @@ The following classes and functions are provided
    plot_field
    plot_vec_field
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, W0613
 import numpy as np
 from scipy import interpolate as inter
 from scipy.spatial import ConvexHull
@@ -47,12 +47,12 @@ def plot_field(
     **kwargs
         Forwarded to the plotting routine.
     """
-    plot_field = getattr(fld, field)
-    assert not (fld.pos is None or plot_field is None)
+    plt_fld = getattr(fld, field)
+    assert not (fld.pos is None or plt_fld is None)
     if fld.dim == 1:
-        return plot_1d(fld.pos, plot_field, fig, ax, **kwargs)
+        return plot_1d(fld.pos, plt_fld, fig, ax, **kwargs)
     return plot_nd(
-        fld.pos, plot_field, fld.mesh_type, fig, ax, fld.model.latlon, **kwargs
+        fld.pos, plt_fld, fld.mesh_type, fig, ax, fld.model.latlon, **kwargs
     )
 
 
@@ -298,21 +298,21 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
             "Only structured vector fields are supported "
             "for plotting. Please create one on a structured grid."
         )
-    plot_field = getattr(fld, field)
-    assert not (fld.pos is None or plot_field is None)
+    plt_fld = getattr(fld, field)
+    assert not (fld.pos is None or plt_fld is None)
 
-    norm = np.sqrt(plot_field[0, :].T ** 2 + plot_field[1, :].T ** 2)
+    norm = np.sqrt(plt_fld[0, :].T ** 2 + plt_fld[1, :].T ** 2)
 
     fig, ax = get_fig_ax(fig, ax)
-    title = f"Field 2D {fld.mesh_type}: {plot_field.shape}"
+    title = f"Field 2D {fld.mesh_type}: {plt_fld.shape}"
     x = fld.pos[0]
     y = fld.pos[1]
 
     sp = plt.streamplot(
         x,
         y,
-        plot_field[0, :].T,
-        plot_field[1, :].T,
+        plt_fld[0, :].T,
+        plt_fld[1, :].T,
         color=norm,
         linewidth=norm / 2,
     )
@@ -356,10 +356,10 @@ def _plot_2d(
         if antialias:
             ax.tricontour(x, y, field.ravel(), levels=levels, zorder=-10)
     else:
-        plot_field = field if latlon else field.T
-        cont = ax.contourf(x, y, plot_field, levels=levels)
+        plt_fld = field if latlon else field.T
+        cont = ax.contourf(x, y, plt_fld, levels=levels)
         if antialias:
-            ax.contour(x, y, plot_field, levels=levels, zorder=-10)
+            ax.contour(x, y, plt_fld, levels=levels, zorder=-10)
     ax.set_xlabel(ax_names[0])
     ax.set_ylabel(ax_names[1])
     ax.set_title(title)
