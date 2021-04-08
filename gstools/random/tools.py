@@ -88,14 +88,14 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
         if pdf_in is not None and cdf_in is not None:
             return DistPdfCdf(pdf_in, cdf_in, **kwargs)
         raise ValueError("Either pdf or cdf must be given")
-    else:
-        if pdf_in is not None and cdf_in is None:
-            return DistPdfPpf(pdf_in, ppf_in, **kwargs)
-        if pdf_in is None and cdf_in is not None:
-            return DistCdfPpf(cdf_in, ppf_in, **kwargs)
-        if pdf_in is not None and cdf_in is not None:
-            return DistPdfCdfPpf(pdf_in, cdf_in, ppf_in, **kwargs)
-        raise ValueError("pdf or cdf must be given along with the ppf")
+
+    if pdf_in is not None and cdf_in is None:
+        return DistPdfPpf(pdf_in, ppf_in, **kwargs)
+    if pdf_in is None and cdf_in is not None:
+        return DistCdfPpf(cdf_in, ppf_in, **kwargs)
+    if pdf_in is not None and cdf_in is not None:
+        return DistPdfCdfPpf(pdf_in, cdf_in, ppf_in, **kwargs)
+    raise ValueError("pdf or cdf must be given along with the ppf")
 
 
 class DistPdf(rv_continuous):
