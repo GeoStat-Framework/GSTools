@@ -146,6 +146,7 @@ class CovModel:
         self._hankel_kw = None
         self._sft = None
         # prepare parameters (they are checked in dim setting)
+        self._rescale = None
         self._len_scale = None
         self._anis = None
         self._angles = None
@@ -170,9 +171,7 @@ class CovModel:
         self.set_arg_bounds(check_args=False, **bounds)
 
         # set parameters
-        self._rescale = (
-            self.default_rescale() if rescale is None else abs(float(rescale))
-        )
+        self.rescale = rescale
         self._nugget = nugget
         # set anisotropy and len_scale, disable anisotropy for latlon models
         self._len_scale, anis = set_len_anis(self.dim, len_scale, anis)
@@ -938,6 +937,11 @@ class CovModel:
     def rescale(self):
         """:class:`float`: Rescale factor for the length scale of the model."""
         return self._rescale
+
+    @rescale.setter
+    def rescale(self, rescale):
+        rescale = self.default_rescale() if rescale is None else rescale
+        self._rescale = abs(float(rescale))
 
     @property
     def len_rescaled(self):
