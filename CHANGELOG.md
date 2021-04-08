@@ -67,7 +67,7 @@ All notable changes to **GSTools** will be documented in this file.
 - default init guess for `len_scale` is now mean of given bin-centers
 - default init guess for `var` and `nugget` is now mean of given variogram values
 
-#### CovModel update ([#109](https://github.com/GeoStat-Framework/GSTools/issues/109), [#122](https://github.com/GeoStat-Framework/GSTools/issues/122))
+#### CovModel update ([#109](https://github.com/GeoStat-Framework/GSTools/issues/109), [#122](https://github.com/GeoStat-Framework/GSTools/issues/122), [#157](https://github.com/GeoStat-Framework/GSTools/pull/157))
 - add new `rescale` argument and attribute to the `CovModel` class to be able to rescale the `len_scale` (usefull for unit conversion or rescaling `len_scale` to coincide with the `integral_scale` like it's the case with the Gaussian model)
   See: [#90](https://github.com/GeoStat-Framework/GSTools/issues/90), [GeoStat-Framework/PyKrige#119](https://github.com/GeoStat-Framework/PyKrige/issues/119)
 - added new `len_rescaled` attribute to the `CovModel` class, which is the rescaled `len_scale`: `len_rescaled = len_scale / rescale`
@@ -82,7 +82,9 @@ All notable changes to **GSTools** will be documented in this file.
   - `JBessel`: a hole model valid in all dimensions. The shape parameter controls the dimension it was derived from. For `nu=0.5` this model coincides with the well known `wave` hole model.
   - `TPLSimple`: a simple truncated power law controlled by a shape parameter `nu`. Coincides with the truncated linear model for `nu=1`
   - `Cubic`: to be compatible with scikit-gstat in the future
+- all arguments are now stored as float internally ([#157](https://github.com/GeoStat-Framework/GSTools/pull/157))
 - string representation of the `CovModel` class is now using a float precision (`CovModel._prec=3`) to truncate longish output
+- string representation of the `CovModel` class now only shows `anis` and `angles` if model is anisotropic resp. rotated
 - dimension validity check: raise a warning, if given model is not valid in the desired dimension (See: [#86](https://github.com/GeoStat-Framework/GSTools/issues/86))
 
 #### Normalizer, Trend and Mean ([#124](https://github.com/GeoStat-Framework/GSTools/issues/124))
