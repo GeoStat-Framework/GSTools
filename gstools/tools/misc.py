@@ -7,6 +7,7 @@ GStools subpackage providing miscellaneous tools.
 The following functions are provided
 
 .. autosummary::
+   get_fig_ax
    list_format
    eval_func
 """
@@ -14,7 +15,43 @@ import numpy as np
 from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 
 
-__all__ = ["list_format", "eval_func"]
+__all__ = ["get_fig_ax", "list_format", "eval_func"]
+
+
+def get_fig_ax(fig=None, ax=None, ax_name="rectilinear"):  # pragma: no cover
+    """
+    Get correct matplotlib figure and axes.
+
+    Parameters
+    ----------
+    fig : figure or None
+        desired figure.
+    ax : axis or None
+        desired axis.
+    ax_name : TYPE, optional
+        Axis name. The default is "rectilinear".
+
+    Returns
+    -------
+    fig : figure
+        desired figure.
+    ax : axis
+        desired axis.
+    """
+    from matplotlib import pyplot as plt
+
+    if fig is None and ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection=ax_name)
+    elif ax is None:
+        ax = fig.add_subplot(111, projection=ax_name)
+    elif fig is None:
+        fig = ax.get_figure()
+        assert ax.name == ax_name
+    else:
+        assert ax.name == ax_name
+        assert ax.get_figure() == fig
+    return fig, ax
 
 
 def list_format(lst, prec):  # pragma: no cover

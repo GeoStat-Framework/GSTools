@@ -26,7 +26,7 @@ import warnings
 import numpy as np
 from scipy import special as sps
 from gstools.covmodel.tools import AttributeWarning
-from gstools.covmodel import CovModel
+from gstools.covmodel.base import CovModel
 
 __all__ = [
     "Gaussian",

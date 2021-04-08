@@ -16,7 +16,7 @@ from scipy import interpolate as inter
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, RadioButtons
-from gstools.covmodel.plot import _get_fig_ax
+from gstools.tools.misc import get_fig_ax
 from gstools.tools.geometric import rotation_planes
 
 
@@ -81,7 +81,7 @@ def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
     ax : :class:`Axes`
         Axis containing the plot.
     """
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     title = f"Field 1D: {field.shape}"
     x = pos[0]
     x = x.flatten()
@@ -174,7 +174,7 @@ def plot_nd(
     ax_extents = [ax_ends[p[0]] + ax_ends[p[1]] for p in planes]
     # create figure
     reformat = fig is None and ax is None
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     ax.set_title(f"Field {dim}D {mesh_type} {field.shape}")
     if reformat:  # only format fig if it was created here
         fig.set_size_inches(8, 5.5 + 0.5 * (dim - 2))
@@ -303,7 +303,7 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
 
     norm = np.sqrt(plot_field[0, :].T ** 2 + plot_field[1, :].T ** 2)
 
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     title = f"Field 2D {fld.mesh_type}: {plot_field.shape}"
     x = fld.pos[0]
     y = fld.pos[1]
@@ -347,7 +347,7 @@ def _plot_2d(
     antialias=True,
 ):  # pragma: no cover
     """Plot a 2d field with a contour plot."""
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     title = f"Field 2D {mesh_type}: {field.shape}"
     ax_names = _ax_names(2, latlon, ax_names=ax_names)
     x, y = pos[::-1] if latlon else pos
