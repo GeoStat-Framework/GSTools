@@ -248,6 +248,7 @@ All notable changes to **GSTools** will be documented in this file.
 - renamed `estimate_unstructured` and `estimate_structured` to `vario_estimate_unstructured` and `vario_estimate_structured` for less ambiguity
 
 ### Bugfixes
+- several pylint fixes ([#159](https://github.com/GeoStat-Framework/GSTools/pull/159))
 - several minor bugfixes
 
 
