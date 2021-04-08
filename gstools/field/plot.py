@@ -15,10 +15,14 @@ The following classes and functions are provided
 import numpy as np
 from scipy import interpolate as inter
 from scipy.spatial import ConvexHull
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, RadioButtons
 from gstools.tools.misc import get_fig_ax
 from gstools.tools.geometric import rotation_planes
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import Slider, RadioButtons
+except ImportError as exc:
+    raise ImportError("Plotting: Matplotlib not installed.") from exc
 
 
 __all__ = ["plot_field", "plot_vec_field"]

@@ -40,7 +40,10 @@ def get_fig_ax(fig=None, ax=None, ax_name="rectilinear"):  # pragma: no cover
     ax : axis
         desired axis.
     """
-    from matplotlib import pyplot as plt
+    try:
+        from matplotlib import pyplot as plt
+    except ImportError as exc:
+        raise ImportError("Plotting: Matplotlib not installed.") from exc
 
     if fig is None and ax is None:
         fig = plt.figure()
