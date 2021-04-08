@@ -9,8 +9,8 @@ The following classes and functions are provided
 .. autosummary::
    fit_variogram
 """
+# pylint: disable=C0103, W0632
 
-# pylint: disable=C0103
 import numpy as np
 from scipy.optimize import curve_fit
 from gstools.covmodel.tools import check_arg_in_bounds, default_arg_from_bounds
@@ -341,7 +341,7 @@ def _check_vario(model, x_data, y_data):
         raise ValueError(
             "CovModel.fit_variogram: lat-lon models don't support anisotropy."
         )
-    elif model.latlon:
+    if model.latlon:
         # convert to yadrenko model
         x_data = 2 * np.sin(x_data / 2)
     return x_data, y_data, is_dir_vario

@@ -23,7 +23,8 @@ The following classes and functions are provided
    plot_spectral_density
    plot_spectral_rad_pdf
 """
-# pylint: disable=C0103, C0415
+# pylint: disable=C0103, C0415, E1130
+
 import numpy as np
 from gstools.field.plot import plot_1d, plot_nd
 from gstools.tools.geometric import generate_grid
