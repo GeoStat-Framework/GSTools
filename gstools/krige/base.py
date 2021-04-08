@@ -9,7 +9,7 @@ The following classes are provided
 .. autosummary::
    Krige
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, W0221, E1102, R0201
 import collections
 import numpy as np
 
@@ -378,7 +378,7 @@ class Krige(Field):
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
             return np.array(ext_drift, dtype=np.double).reshape(shape)
-        elif not set_cond and self._cond_ext_drift.size > 0:
+        if not set_cond and self._cond_ext_drift.size > 0:
             raise ValueError("Krige: wrong number of ext. drift values.")
         return np.array([])
 
