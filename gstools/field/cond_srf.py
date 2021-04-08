@@ -9,7 +9,7 @@ The following classes are provided
 .. autosummary::
    CondSRF
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, W0231, W0221, E1102
 
 import numpy as np
 from gstools.field.generator import RandMeth
