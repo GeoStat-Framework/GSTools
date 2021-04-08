@@ -26,12 +26,12 @@ def get_fig_ax(fig=None, ax=None, ax_name="rectilinear"):  # pragma: no cover
 
     Parameters
     ----------
-    fig : figure or None
+    fig : figure or :any:`None`
         desired figure.
-    ax : axis or None
+    ax : axis or :any:`None`
         desired axis.
-    ax_name : TYPE, optional
-        Axis name. The default is "rectilinear".
+    ax_name : :class:`str`, optional
+        Axis type name. The default is "rectilinear".
 
     Returns
     -------
