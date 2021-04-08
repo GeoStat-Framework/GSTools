@@ -45,7 +45,6 @@ target-version = [
     extension-pkg-whitelist = [
         "numpy",
         "scipy",
-        "ConvexHull",
     ]
     ignore = "_version.py"
 
