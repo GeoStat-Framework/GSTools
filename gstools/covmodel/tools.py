@@ -576,45 +576,25 @@ def model_repr(model):  # pragma: no cover
     model : :any:`CovModel`
         The covariance model in use.
     """
-    if not np.isclose(model.rescale, model.default_rescale()):
-        opt_str = ", rescale={0:.{p}}".format(model.rescale, p=model._prec)
-    else:
-        opt_str = ""
-    for opt in model.opt_arg:
-        opt_str += ", {0}={1:.{p}}".format(
-            opt, getattr(model, opt), p=model._prec
-        )
+    m = model
+    p = model._prec
+    opt_str = ""
+    if not np.isclose(m.rescale, m.default_rescale()):
+        opt_str += f", rescale={m.rescale:.{p}}"
+    for opt in m.opt_arg:
+        opt_str += f", {opt}={getattr(m, opt):.{p}}"
     # only print anis and angles if model is anisotropic or rotated
-    ani = "" if model.is_isotropic else f", anis={list_format(model.anis, 3)}"
-    ang = (
-        f", angles={list_format(model.angles, 3)}" if model.do_rotation else ""
-    )
-    if model.latlon:
-        std_str = (
-            "{0}(latlon={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}{5})".format(
-                model.name,
-                model.latlon,
-                model.var,
-                model.len_scale,
-                model.nugget,
-                opt_str,
-                p=model._prec,
-            )
+    ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
+    ang_str = f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
+    if m.latlon:
+        repr_str = (
+            f"{m.name}(latlon={m.latlon}, var={m.var:.{p}}, "
+            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}{opt_str})"
         )
     else:
-        std_str = (
-            "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}{5}{6}{7})".format(
-                model.name,
-                model.dim,
-                model.var,
-                model.len_scale,
-                model.nugget,
-                ani,
-                ang,
-                opt_str,
-                p=model._prec,
-            )
+        repr_str = (
+            f"{m.name}(dim={m.dim}, var={m.var:.{p}}, "
+            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
+            f"{ani_str}{ang_str}{opt_str})"
         )
-    return std_str
+    return repr_str

@@ -9,7 +9,7 @@ The following classes are provided
 .. autosummary::
    CovModel
 """
-# pylint: disable=C0103, R0201
+# pylint: disable=C0103, R0201, E1101
 
 import copy
 import numpy as np
