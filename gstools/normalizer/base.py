@@ -9,6 +9,7 @@ The following classes are provided
 .. autosummary::
    Normalizer
 """
+# pylint: disable=R0201
 import warnings
 import numpy as np
 import scipy.misc as spm
