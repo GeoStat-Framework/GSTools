@@ -10,7 +10,7 @@ The following classes and functions are provided
    plot_field
    plot_vec_field
 """
-# pylint: disable=C0103, W0613
+# pylint: disable=C0103, W0613, E1101
 
 import numpy as np
 from scipy import interpolate as inter
