@@ -26,7 +26,6 @@ The following classes and functions are provided
 # pylint: disable=C0103, C0415, E1130
 
 import numpy as np
-from gstools.field.plot import plot_1d, plot_nd
 from gstools.tools.geometric import generate_grid
 from gstools.tools.misc import get_fig_ax
 
@@ -53,6 +52,8 @@ __all__ = [
 
 
 def _plot_spatial(dim, pos, field, fig, ax, latlon, **kwargs):
+    from gstools.field.plot import plot_1d, plot_nd
+
     if dim == 1:
         return plot_1d(pos, field, fig, ax, **kwargs)
     return plot_nd(pos, field, "structured", fig, ax, latlon, **kwargs)
