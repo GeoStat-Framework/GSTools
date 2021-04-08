@@ -576,11 +576,19 @@ def model_repr(model):  # pragma: no cover
     model : :any:`CovModel`
         The covariance model in use.
     """
-    opt_str = ""
+    if not np.isclose(model.rescale, model.default_rescale()):
+        opt_str = ", rescale={0:.{p}}".format(model.rescale, p=model._prec)
+    else:
+        opt_str = ""
     for opt in model.opt_arg:
-        opt_str += (
-            ", " + opt + "={0:.{1}}".format(getattr(model, opt), model._prec)
+        opt_str += ", {0}={1:.{p}}".format(
+            opt, getattr(model, opt), p=model._prec
         )
+    # only print anis and angles if model is anisotropic or rotated
+    ani = "" if model.is_isotropic else f", anis={list_format(model.anis, 3)}"
+    ang = (
+        f", angles={list_format(model.angles, 3)}" if model.do_rotation else ""
+    )
     if model.latlon:
         std_str = (
             "{0}(latlon={1}, var={2:.{p}}, len_scale={3:.{p}}, "
@@ -597,14 +605,14 @@ def model_repr(model):  # pragma: no cover
     else:
         std_str = (
             "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}, anis={5}, angles={6}{7})".format(
+            "nugget={4:.{p}}{5}{6}{7})".format(
                 model.name,
                 model.dim,
                 model.var,
                 model.len_scale,
                 model.nugget,
-                list_format(model.anis, 3),
-                list_format(model.angles, 3),
+                ani,
+                ang,
                 opt_str,
                 p=model._prec,
             )
