@@ -576,37 +576,25 @@ def model_repr(model):  # pragma: no cover
     model : :any:`CovModel`
         The covariance model in use.
     """
+    m = model
+    p = model._prec
     opt_str = ""
-    for opt in model.opt_arg:
-        opt_str += (
-            ", " + opt + "={0:.{1}}".format(getattr(model, opt), model._prec)
-        )
-    if model.latlon:
-        std_str = (
-            "{0}(latlon={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}{5})".format(
-                model.name,
-                model.latlon,
-                model.var,
-                model.len_scale,
-                model.nugget,
-                opt_str,
-                p=model._prec,
-            )
+    if not np.isclose(m.rescale, m.default_rescale()):
+        opt_str += f", rescale={m.rescale:.{p}}"
+    for opt in m.opt_arg:
+        opt_str += f", {opt}={getattr(m, opt):.{p}}"
+    # only print anis and angles if model is anisotropic or rotated
+    ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
+    ang_str = f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
+    if m.latlon:
+        repr_str = (
+            f"{m.name}(latlon={m.latlon}, var={m.var:.{p}}, "
+            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}{opt_str})"
         )
     else:
-        std_str = (
-            "{0}(dim={1}, var={2:.{p}}, len_scale={3:.{p}}, "
-            "nugget={4:.{p}}, anis={5}, angles={6}{7})".format(
-                model.name,
-                model.dim,
-                model.var,
-                model.len_scale,
-                model.nugget,
-                list_format(model.anis, 3),
-                list_format(model.angles, 3),
-                opt_str,
-                p=model._prec,
-            )
+        repr_str = (
+            f"{m.name}(dim={m.dim}, var={m.var:.{p}}, "
+            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
+            f"{ani_str}{ang_str}{opt_str})"
         )
-    return std_str
+    return repr_str

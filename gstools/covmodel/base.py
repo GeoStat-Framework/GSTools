@@ -9,7 +9,7 @@ The following classes are provided
 .. autosummary::
    CovModel
 """
-# pylint: disable=C0103, R0201
+# pylint: disable=C0103, R0201, E1101
 
 import copy
 import numpy as np
@@ -146,6 +146,7 @@ class CovModel:
         self._hankel_kw = None
         self._sft = None
         # prepare parameters (they are checked in dim setting)
+        self._rescale = None
         self._len_scale = None
         self._anis = None
         self._angles = None
@@ -170,10 +171,8 @@ class CovModel:
         self.set_arg_bounds(check_args=False, **bounds)
 
         # set parameters
-        self._rescale = (
-            self.default_rescale() if rescale is None else abs(float(rescale))
-        )
-        self._nugget = nugget
+        self.rescale = rescale
+        self._nugget = float(nugget)
         # set anisotropy and len_scale, disable anisotropy for latlon models
         self._len_scale, anis = set_len_anis(self.dim, len_scale, anis)
         if self.latlon:
@@ -187,7 +186,7 @@ class CovModel:
             self._var = None
             self.var = var
         else:
-            self._var = var_raw
+            self._var = float(var_raw)
         self._integral_scale = None
         self.integral_scale = integral_scale
         # set var again, if int_scale affects var_factor
@@ -195,7 +194,7 @@ class CovModel:
             self._var = None
             self.var = var
         else:
-            self._var = var_raw
+            self._var = float(var_raw)
         # final check for parameter bounds
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
@@ -894,7 +893,7 @@ class CovModel:
 
     @var.setter
     def var(self, var):
-        self._var = var / self.var_factor()
+        self._var = float(var) / self.var_factor()
         self.check_arg_bounds()
 
     @property
@@ -907,7 +906,7 @@ class CovModel:
 
     @var_raw.setter
     def var_raw(self, var_raw):
-        self._var = var_raw
+        self._var = float(var_raw)
         self.check_arg_bounds()
 
     @property
@@ -917,7 +916,7 @@ class CovModel:
 
     @nugget.setter
     def nugget(self, nugget):
-        self._nugget = nugget
+        self._nugget = float(nugget)
         self.check_arg_bounds()
 
     @property
@@ -938,6 +937,11 @@ class CovModel:
     def rescale(self):
         """:class:`float`: Rescale factor for the length scale of the model."""
         return self._rescale
+
+    @rescale.setter
+    def rescale(self, rescale):
+        rescale = self.default_rescale() if rescale is None else rescale
+        self._rescale = abs(float(rescale))
 
     @property
     def len_rescaled(self):
