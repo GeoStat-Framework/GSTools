@@ -96,7 +96,7 @@ class Simple(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -190,7 +190,7 @@ class Ordinary(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -296,7 +296,7 @@ class Universal(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -398,7 +398,7 @@ class ExtDrift(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -488,7 +488,7 @@ class Detrended(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_variogram=False,
     ):
         super().__init__(
