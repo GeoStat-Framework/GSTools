@@ -131,8 +131,8 @@ def vario_estimate(
         same points, with the same statistical properties.
     bin_edges : :class:`numpy.ndarray`, optional
         the bins on which the variogram will be calculated.
-        If :any:`None` are given, standard bins provided by the :any:`standard_bins`
-        routine will be used. Default: :any:`None`
+        If :any:`None` are given, standard bins provided by the
+        :any:`standard_bins` routine will be used. Default: :any:`None`
     sampling_size : :class:`int` or :any:`None`, optional
         for large input data, this method can take a long
         time to compute the variogram, therefore this argument specifies
@@ -217,11 +217,16 @@ def vario_estimate(
 
     Returns
     -------
-    :class:`tuple` of :class:`numpy.ndarray`
-        1. the bin centers
-        2. the estimated variogram values at bin centers
-        3. (optional) the number of points found at each bin center
-           (see argument return_counts)
+    bin_center : :class:`numpy.ndarray`
+        The bin centers.
+    gamma : :class:`numpy.ndarray`
+        the estimated variogram values at bin centers
+    counts : :class:`numpy.ndarray`, optional
+        The number of point pairs found at each bin.
+        Only provided if `return_counts` is True.
+    normalizer : :any:`Normalizer`, optional
+        The fitted normalizer for the given data.
+        Only provided if `fit_normalizer` is True.
 
     Notes
     -----
@@ -321,12 +326,14 @@ def vario_estimate(
         bin_edges = standard_bins(pos, dim, latlon)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # normalize field
-    field = remove_trend_norm_mean(
+    norm_field_out = remove_trend_norm_mean(
         *(pos, field, mean, normalizer, trend),
         check_shape=False,
         stacked=True,
         fit_normalizer=fit_normalizer,
     )
+    field = norm_field_out[0] if fit_normalizer else norm_field_out
+    norm_out = (norm_field_out[1],) if fit_normalizer else ()
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run
@@ -355,9 +362,8 @@ def vario_estimate(
         )
         if dir_no == 1:
             estimates, counts = estimates[0], counts[0]
-    if return_counts:
-        return bin_centres, estimates, counts
-    return bin_centres, estimates
+    est_out = (estimates, counts)
+    return (bin_centres,) + est_out[: 2 if return_counts else 1] + norm_out
 
 
 def vario_estimate_axis(
