@@ -217,12 +217,14 @@ def vario_estimate(
 
     Returns
     -------
-    bin_center : :class:`numpy.ndarray`
+    bin_center : (n), :class:`numpy.ndarray`
         The bin centers.
-    gamma : :class:`numpy.ndarray`
-        the estimated variogram values at bin centers
-    counts : :class:`numpy.ndarray`, optional
-        The number of point pairs found at each bin.
+    gamma : (n) or (d, n), :class:`numpy.ndarray`
+        The estimated variogram values at bin centers.
+        Is stacked if multiple `directions` (d>1) are given.
+    counts : (n) or (d, n), :class:`numpy.ndarray`, optional
+        The number of point pairs found for each bin.
+        Is stacked if multiple `directions` (d>1) are given.
         Only provided if `return_counts` is True.
     normalizer : :any:`Normalizer`, optional
         The fitted normalizer for the given data.
