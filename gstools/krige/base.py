@@ -28,7 +28,7 @@ from gstools.variogram import vario_estimate
 __all__ = ["Krige"]
 
 
-P_INV = {1: spl.pinv, 2: spl.pinv2, 3: spl.pinvh}
+P_INV = {"pinv": spl.pinv, "pinv2": spl.pinv2, "pinvh": spl.pinvh}
 """dict: Standard pseudo-inverse routines"""
 
 
@@ -93,16 +93,16 @@ class Krige(Field):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int` or :any:`callable`, optional
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `1`: use `pinv` from `scipy` which uses `lstsq`
-            * `2`: use `pinv2` from `scipy` which uses `SVD`
-            * `3`: use `pinvh` from `scipy` which uses eigen-values
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
-        Default: `1`
+        Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
@@ -139,7 +139,7 @@ class Krige(Field):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -650,13 +650,13 @@ class Krige(Field):
 
     @property
     def pseudo_inv_type(self):
-        """:class:`int`: Method selector for pseudo inverse calculation."""
+        """:class:`str`: Method selector for pseudo inverse calculation."""
         return self._pseudo_inv_type
 
     @pseudo_inv_type.setter
     def pseudo_inv_type(self, val):
-        if val not in [1, 2, 3] and not callable(val):
-            raise ValueError("Krige: pseudo_inv_type needs to be in [1,2,3]")
+        if val not in P_INV and not callable(val):
+            raise ValueError(f"Krige: pseudo_inv_type not in {sorted(P_INV)}")
         self._pseudo_inv_type = val
 
     @property

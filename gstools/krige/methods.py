@@ -64,16 +64,16 @@ class Simple(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int` or :any:`callable`, optional
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `1`: use `pinv` from `scipy` which uses `lstsq`
-            * `2`: use `pinv2` from `scipy` which uses `SVD`
-            * `3`: use `pinvh` from `scipy` which uses eigen-values
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
-        Default: `1`
+        Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
@@ -96,7 +96,7 @@ class Simple(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -159,16 +159,16 @@ class Ordinary(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int` or :any:`callable`, optional
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `1`: use `pinv` from `scipy` which uses `lstsq`
-            * `2`: use `pinv2` from `scipy` which uses `SVD`
-            * `3`: use `pinvh` from `scipy` which uses eigen-values
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
-        Default: `1`
+        Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
@@ -190,7 +190,7 @@ class Ordinary(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -264,16 +264,16 @@ class Universal(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int` or :any:`callable`, optional
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `1`: use `pinv` from `scipy` which uses `lstsq`
-            * `2`: use `pinv2` from `scipy` which uses `SVD`
-            * `3`: use `pinvh` from `scipy` which uses eigen-values
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
-        Default: `1`
+        Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
@@ -296,7 +296,7 @@ class Universal(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -366,16 +366,16 @@ class ExtDrift(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int` or :any:`callable`, optional
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `1`: use `pinv` from `scipy` which uses `lstsq`
-            * `2`: use `pinv2` from `scipy` which uses `SVD`
-            * `3`: use `pinvh` from `scipy` which uses eigen-values
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
-        Default: `1`
+        Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
         Wheater to fit the data-normalizer to the given conditioning data.
         Default: False
@@ -398,7 +398,7 @@ class ExtDrift(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_normalizer=False,
         fit_variogram=False,
     ):
@@ -461,16 +461,16 @@ class Detrended(Krige):
         kriging matrix. If `True`, this leads to more numerical stability
         and redundant points are averaged. But it can take more time.
         Default: True
-    pseudo_inv_type : :class:`int` or :any:`callable`, optional
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `1`: use `pinv` from `scipy` which uses `lstsq`
-            * `2`: use `pinv2` from `scipy` which uses `SVD`
-            * `3`: use `pinvh` from `scipy` which uses eigen-values
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
         you can pass a callable which takes a matrix and returns the inverse.
-        Default: `1`
+        Default: `"pinv"`
     fit_variogram : :class:`bool`, optional
         Wheater to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
@@ -488,7 +488,7 @@ class Detrended(Krige):
         exact=False,
         cond_err="nugget",
         pseudo_inv=True,
-        pseudo_inv_type=1,
+        pseudo_inv_type="pinv",
         fit_variogram=False,
     ):
         super().__init__(
