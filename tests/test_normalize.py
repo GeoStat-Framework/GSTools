@@ -204,14 +204,14 @@ class TestNormalizer(unittest.TestCase):
             places=4,
         )
         # test fitting during vario estimate
-        emp_vario = gs.vario_estimate(
+        bin_center, gamma, normalizer = gs.vario_estimate(
             cond_pos,
             cond_val,
             normalizer=gs.normalizer.BoxCox,
             fit_normalizer=True,
         )
         model = gs.Stable(dim=2)
-        model.fit_variogram(*emp_vario)
+        model.fit_variogram(bin_center, gamma)
         self.assertAlmostEqual(model.var, 0.6426670183, places=4)
         self.assertAlmostEqual(model.len_scale, 9.635193952, places=4)
         self.assertAlmostEqual(model.nugget, 0.001617908408, places=4)

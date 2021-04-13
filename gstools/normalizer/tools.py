@@ -77,7 +77,7 @@ def apply_mean_norm_trend(
 
     Returns
     -------
-    :class:`numpy.ndarray`
+    field : :class:`numpy.ndarray`
         The transformed field.
     """
     normalizer = _check_normalizer(normalizer)
@@ -153,8 +153,11 @@ def remove_trend_norm_mean(
 
     Returns
     -------
-    :class:`numpy.ndarray`
+    field : :class:`numpy.ndarray`
         The cleaned field.
+    normalizer : :any:`Normalizer`, optional
+        The fitted normalizer for the given data.
+        Only provided if `fit_normalizer` is True.
     """
     normalizer = _check_normalizer(normalizer)
     if check_shape:
@@ -179,4 +182,5 @@ def remove_trend_norm_mean(
     field = normalizer.normalize(field)
     for i in range(field_cnt):
         field[i] -= eval_func(mean, pos, dim, mesh_type, value_type, True)
-    return field if stacked else field[0]
+    out = field if stacked else field[0]
+    return (out, normalizer) if fit_normalizer else out
