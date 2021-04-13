@@ -11,7 +11,6 @@ The following classes are provided
    IncomprRandMeth
 """
 # pylint: disable=C0103, W0222
-
 import warnings
 from copy import deepcopy as dcp
 import numpy as np

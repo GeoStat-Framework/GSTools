@@ -30,7 +30,6 @@ The following functions are provided
    chordal_to_great_circle
 """
 # pylint: disable=C0103
-
 import numpy as np
 
 __all__ = [

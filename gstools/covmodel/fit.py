@@ -10,7 +10,6 @@ The following classes and functions are provided
    fit_variogram
 """
 # pylint: disable=C0103, W0632
-
 import numpy as np
 from scipy.optimize import curve_fit
 from gstools.covmodel.tools import check_arg_in_bounds, default_arg_from_bounds
@@ -172,6 +171,7 @@ def fit_variogram(
     )
     # check curve_fit kwargs
     curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
+    curve_fit_kwargs.pop("full_output", None)  # no full output (pylint W0632)
     # check method
     if method not in ["trf", "dogbox"]:
         raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")

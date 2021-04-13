@@ -10,7 +10,6 @@ The following classes are provided
    CovModel
 """
 # pylint: disable=C0103, R0201, E1101, C0302, W0613
-
 import copy
 import numpy as np
 from scipy.integrate import quad as integral

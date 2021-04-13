@@ -12,7 +12,6 @@ The following functions are provided
    eval_func
 """
 # pylint: disable=C0103, C0415
-
 import numpy as np
 from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 

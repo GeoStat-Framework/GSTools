@@ -9,7 +9,7 @@ The following classes are provided
 .. autosummary::
    Field
 """
-# pylint: disable=C0103, W0107, C0415
+# pylint: disable=C0103, C0415
 from functools import partial
 import numpy as np
 from gstools.covmodel.base import CovModel

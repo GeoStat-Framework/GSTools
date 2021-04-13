@@ -9,8 +9,7 @@ The following classes are provided
 .. autosummary::
    RNG
 """
-# pylint: disable=no-member
-
+# pylint: disable=E1101
 import numpy as np
 import numpy.random as rand
 import emcee as mc

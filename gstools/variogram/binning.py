@@ -9,8 +9,6 @@ The following functions are provided
 .. autosummary::
    standard_bins
 """
-# pylint: disable=C0103
-
 import numpy as np
 
 from gstools.tools.geometric import (

@@ -11,7 +11,6 @@ The following functions are provided
    var_no_scaling
 """
 # pylint: disable=W0613
-
 import warnings
 import numpy as np
 

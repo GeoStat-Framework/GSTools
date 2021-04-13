@@ -17,10 +17,8 @@ The following functions are provided
    normal_to_arcsin
    normal_to_uquad
 """
-# pylint: disable=C0103, E1101
-
+# pylint: disable=C0103
 from warnings import warn
-
 import numpy as np
 from scipy.special import erf, erfinv
 
