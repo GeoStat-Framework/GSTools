@@ -171,7 +171,6 @@ def fit_variogram(
     )
     # check curve_fit kwargs
     curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
-    curve_fit_kwargs.pop("full_output", None)  # no full output (pylint W0632)
     # check method
     if method not in ["trf", "dogbox"]:
         raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")
