@@ -1,9 +1,10 @@
 .. _tutorial_05_kriging:
 
-Tutorial 5: Kriging
-===================
+Kriging
+=======
 
-The subpackage :py:mod:`gstools.krige` provides routines for Gaussian process regression, also known as kriging.
+The subpackage :py:mod:`gstools.krige` provides routines for Gaussian process regression,
+also known as kriging.
 Kriging is a method of data interpolation based on predefined covariance models.
 
 The aim of kriging is to derive the value of a field at some point :math:`x_0`,
@@ -19,8 +20,49 @@ The weights :math:`W = (w_1,\ldots,w_n)` depent on the given covariance model an
 
 The different kriging approaches provide different ways of calculating :math:`W`.
 
+The :any:`Krige` class provides everything in one place and you can switch on/off
+the features you want:
 
-The routines for kriging are almost identical to the routines for spatial random fields.
+* `unbiased`: the weights have to sum up to `1`. If true, this results in
+  :any:`Ordinary` kriging, where the mean is estimated, otherwise it will result in
+  :any:`Simple` kriging, where the mean has to be given.
+* `drift_functions`: you can give a polynomial order or a list of self defined
+  functions representing the internal drift of the given values. This drift will
+  be fitted internally during the kriging interpolation. This results in :any:`Universal` kriging.
+* `ext_drift`: You can also give an external drift per point to the routine.
+  In contrast to the internal drift, that is evaluated at the desired points with
+  the given functions, the external drift has to given for each point form an "external"
+  source. This results in :any:`ExtDrift` kriging.
+* `trend`, `mean`, `normalizer`: These are used to pre- and post-process data.
+  If you already have fitted a trend model that is provided as a callable function,
+  you can give it to the kriging routine. Normalizer are power-transformations
+  to gain normality.
+  `mean` behaves similar to `trend` but is applied at another position:
+
+      1. conditioning data is de-trended (substracting trend)
+      2. detrended conditioning data is then normalized (in order to follow a normal distribution)
+      3. normalized conditioning data is set to zero mean (subtracting mean)
+
+  Cosequently, when there is no normalizer given, trend and mean are the same thing
+  and only one should be used.
+  :any:`Detrended` kriging is a shortcut to provide only a trend and simple kriging
+  with normal data.
+* `exact` and `cond_err`: To incorporate the nugget effect and/or measurement errors,
+  one can set `exact` to `False` and provide either individual measurement errors
+  for each point or set the nugget as a constant measurement error everywhere.
+* `pseudo_inv`: Sometimes the inversion of the kriging matrix can be numerically unstable.
+  This occurs for examples in cases of redundant input values. In this case we provide a switch to
+  use the pseudo-inverse of the matrix. Then redundant conditional values will automatically
+  be averaged.
+
+.. note::
+
+   All mentioned features can be combined within the :any:`Krige` class.
+   All other kriging classes are just shortcuts to this class with a limited list
+   of input parameters.
+
+The routines for kriging are almost identical to the routines for spatial random fields,
+with regard to their handling.
 First you define a covariance model, as described in :ref:`tutorial_02_cov`,
 then you initialize the kriging class with this model:
 
@@ -47,11 +89,12 @@ The following kriging methods are provided within the
 submodule :any:`gstools.krige`.
 
 .. autosummary::
+    Krige
     Simple
     Ordinary
     Universal
     ExtDrift
     Detrended
 
-Gallery
--------
+Examples
+--------

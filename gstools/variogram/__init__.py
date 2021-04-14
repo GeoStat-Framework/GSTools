@@ -8,15 +8,34 @@ Variogram estimation
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   vario_estimate_unstructured
-   vario_estimate_structured
+   :toctree: generated
+
+   vario_estimate
+   vario_estimate_axis
+
+Binning
+^^^^^^^
+
+.. autosummary::
+   :toctree: generated
+
+   standard_bins
 
 ----
 """
 
 from gstools.variogram.variogram import (
+    vario_estimate,
+    vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
 )
+from gstools.variogram.binning import standard_bins
 
-__all__ = ["vario_estimate_unstructured", "vario_estimate_structured"]
+__all__ = [
+    "vario_estimate",
+    "vario_estimate_axis",
+    "vario_estimate_unstructured",
+    "vario_estimate_structured",
+    "standard_bins",
+]

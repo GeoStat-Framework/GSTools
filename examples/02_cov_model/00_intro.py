@@ -18,7 +18,7 @@ import gstools as gs
 # use CovModel as the base-class
 class Gau(gs.CovModel):
     def cor(self, h):
-        return np.exp(-h ** 2)
+        return np.exp(-(h ** 2))
 
 
 ###############################################################################

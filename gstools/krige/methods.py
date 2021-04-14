@@ -14,12 +14,7 @@ The following classes are provided
    Detrended
 """
 # pylint: disable=C0103
-import numpy as np
-from scipy.linalg import inv
-from gstools.field.tools import make_anisotropic, rotate_mesh
-from gstools.tools.geometric import pos2xyz, xyz2pos
 from gstools.krige.base import Krige
-from gstools.krige.tools import eval_func, no_trend
 
 __all__ = ["Simple", "Ordinary", "Universal", "ExtDrift", "Detrended"]
 
@@ -39,64 +34,86 @@ class Simple(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
     mean : :class:`float`, optional
-        mean value of the kriging field
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+        mean value used to shift normalized conditioning data.
+        Could also be a callable. The default is None.
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
+    exact : :class:`bool`, optional
+        Whether the interpolator should reproduce the exact input values.
+        If `False`, `cond_err` is interpreted as measurement error
+        at the conditioning points and the result will be more smooth.
+        Default: False
+    cond_err : :class:`str`, :class :class:`float` or :class:`list`, optional
+        The measurement error at the conditioning points.
+        Either "nugget" to apply the model-nugget, a single value applied to
+        all points or an array with individual values for each point.
+        The measurement error has to be <= nugget.
+        The "exact=True" variant only works with "cond_err='nugget'".
+        Default: "nugget"
+    pseudo_inv : :class:`bool`, optional
+        Whether the kriging system is solved with the pseudo inverted
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
+        Default: True
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
+
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
+        Default: `"pinv"`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`standard_bins` routine.
+        Default: False
     """
 
     def __init__(
-        self, model, cond_pos, cond_val, mean=0.0, trend_function=None
+        self,
+        model,
+        cond_pos,
+        cond_val,
+        mean=0.0,
+        normalizer=None,
+        trend=None,
+        exact=False,
+        cond_err="nugget",
+        pseudo_inv=True,
+        pseudo_inv_type="pinv",
+        fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
-            model, cond_pos, cond_val, mean=mean, trend_function=trend_function
-        )
-        self._unbiased = False
-
-    def _get_krige_mat(self):
-        """Calculate the inverse matrix of the kriging equation."""
-        return inv(self.model.cov_nugget(self._get_dists(self._krige_pos)))
-
-    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
-        """Calculate the RHS of the kriging equation."""
-        return self.model.cov_nugget(
-            self._get_dists(self._krige_pos, pos, chunk_slice)
-        )
-
-    def _post_field(self, field, krige_var):
-        """
-        Postprocessing and saving of kriging field and error variance.
-
-        Parameters
-        ----------
-        field : :class:`numpy.ndarray`
-            Raw kriging field.
-        krige_var : :class:`numpy.ndarray`
-            Raw kriging error variance.
-        """
-        if self.trend_function is no_trend:
-            self.field = field + self.mean
-        else:
-            self.field = (
-                field
-                + self.mean
-                + eval_func(self.trend_function, self.pos, self.mesh_type)
-            )
-        # add the given mean
-        self.krige_var = self.model.sill - krige_var
-
-    @property
-    def _krige_cond(self):
-        """:class:`numpy.ndarray`: The prepared kriging conditions."""
-        return self.cond_val - self.mean - self.cond_trend
-
-    def __repr__(self):
-        """Return String representation."""
-        return "Simple(model={0}, cond_pos={1}, cond_val={2}, mean={3})".format(
-            self.model, self.cond_pos, self.cond_val, self.mean
+            model,
+            cond_pos,
+            cond_val,
+            mean=mean,
+            normalizer=normalizer,
+            trend=trend,
+            unbiased=False,
+            exact=exact,
+            cond_err=cond_err,
+            pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -114,56 +131,81 @@ class Ordinary(Krige):
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
         the values of the conditions
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
+    exact : :class:`bool`, optional
+        Whether the interpolator should reproduce the exact input values.
+        If `False`, `cond_err` is interpreted as measurement error
+        at the conditioning points and the result will be more smooth.
+        Default: False
+    cond_err : :class:`str`, :class :class:`float` or :class:`list`, optional
+        The measurement error at the conditioning points.
+        Either "nugget" to apply the model-nugget, a single value applied to
+        all points or an array with individual values for each point.
+        The measurement error has to be <= nugget.
+        The "exact=True" variant only works with "cond_err='nugget'".
+        Default: "nugget"
+    pseudo_inv : :class:`bool`, optional
+        Whether the kriging system is solved with the pseudo inverted
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
+        Default: True
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
+
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
+        Default: `"pinv"`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`standard_bins` routine.
+        Default: False
     """
 
-    def __init__(self, model, cond_pos, cond_val, trend_function=None):
+    def __init__(
+        self,
+        model,
+        cond_pos,
+        cond_val,
+        normalizer=None,
+        trend=None,
+        exact=False,
+        cond_err="nugget",
+        pseudo_inv=True,
+        pseudo_inv_type="pinv",
+        fit_normalizer=False,
+        fit_variogram=False,
+    ):
         super().__init__(
-            model, cond_pos, cond_val, trend_function=trend_function
-        )
-
-    def _get_krige_mat(self):
-        """Calculate the inverse matrix of the kriging equation."""
-        size = self.cond_no + int(self.unbiased)
-        res = np.empty((size, size), dtype=np.double)
-        res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
-            self._get_dists(self._krige_pos)
-        )
-        if self.unbiased:
-            res[self.cond_no, :] = 1
-            res[:, self.cond_no] = 1
-            res[self.cond_no, self.cond_no] = 0
-        return inv(res)
-
-    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
-        """Calculate the RHS of the kriging equation."""
-        chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
-        chunk_size -= chunk_slice[0]
-        size = self.cond_no + int(self.unbiased)
-        res = np.empty((size, chunk_size), dtype=np.double)
-        res[: self.cond_no, :] = self.model.vario_nugget(
-            self._get_dists(self._krige_pos, pos, chunk_slice)
-        )
-        if self.unbiased:
-            res[self.cond_no, :] = 1
-        return res
-
-    def get_mean(self):
-        """Calculate the estimated mean."""
-        mean_est = np.concatenate(
-            (np.full_like(self.cond_val, self.model.sill), [1])
-        )
-        return np.einsum("i,ij,j", self._krige_cond, self._krige_mat, mean_est)
-
-    def __repr__(self):
-        """Return String representation."""
-        return "Ordinary(model={0}, cond_pos={1}, cond_val={2}".format(
-            self.model, self.cond_pos, self.cond_val
+            model,
+            cond_pos,
+            cond_val,
+            trend=trend,
+            normalizer=normalizer,
+            exact=exact,
+            cond_err=cond_err,
+            pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -194,73 +236,83 @@ class Universal(Krige):
             * "linear" : regional linear drift (equals order=1)
             * "quadratic" : regional quadratic drift (equals order=2)
 
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
+    exact : :class:`bool`, optional
+        Whether the interpolator should reproduce the exact input values.
+        If `False`, `cond_err` is interpreted as measurement error
+        at the conditioning points and the result will be more smooth.
+        Default: False
+    cond_err : :class:`str`, :class :class:`float` or :class:`list`, optional
+        The measurement error at the conditioning points.
+        Either "nugget" to apply the model-nugget, a single value applied to
+        all points or an array with individual values for each point.
+        The measurement error has to be <= nugget.
+        The "exact=True" variant only works with "cond_err='nugget'".
+        Default: "nugget"
+    pseudo_inv : :class:`bool`, optional
+        Whether the kriging system is solved with the pseudo inverted
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
+        Default: True
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
+
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
+        Default: `"pinv"`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`standard_bins` routine.
+        Default: False
     """
 
     def __init__(
-        self, model, cond_pos, cond_val, drift_functions, trend_function=None
+        self,
+        model,
+        cond_pos,
+        cond_val,
+        drift_functions,
+        normalizer=None,
+        trend=None,
+        exact=False,
+        cond_err="nugget",
+        pseudo_inv=True,
+        pseudo_inv_type="pinv",
+        fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
             cond_pos,
             cond_val,
             drift_functions=drift_functions,
-            trend_function=trend_function,
-        )
-
-    def _get_krige_mat(self):
-        """Calculate the inverse matrix of the kriging equation."""
-        size = self.cond_no + int(self.unbiased) + self.drift_no
-        res = np.empty((size, size), dtype=np.double)
-        res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
-            self._get_dists(self._krige_pos)
-        )
-        if self.unbiased:
-            res[self.cond_no, : self.cond_no] = 1
-            res[: self.cond_no, self.cond_no] = 1
-        for i, f in enumerate(self.drift_functions):
-            drift_tmp = f(*self.cond_pos)
-            res[-self.drift_no + i, : self.cond_no] = drift_tmp
-            res[: self.cond_no, -self.drift_no + i] = drift_tmp
-        res[self.cond_no :, self.cond_no :] = 0
-        return inv(res)
-
-    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
-        """Calculate the RHS of the kriging equation."""
-        chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
-        chunk_size -= chunk_slice[0]
-        size = self.cond_no + int(self.unbiased) + self.drift_no
-        res = np.empty((size, chunk_size), dtype=np.double)
-        res[: self.cond_no, :] = self.model.vario_nugget(
-            self._get_dists(self._krige_pos, pos, chunk_slice)
-        )
-        if self.unbiased:
-            res[self.cond_no, :] = 1
-        # trend function need the anisotropic and rotated positions
-        if not self.model.is_isotropic:
-            x, y, z = pos2xyz(pos, max_dim=self.model.dim)
-            y, z = make_anisotropic(self.model.dim, self.model.anis, y, z)
-            if self.model.do_rotation:
-                x, y, z = rotate_mesh(
-                    self.model.dim, self.model.angles, x, y, z
-                )
-            pos = xyz2pos(x, y, z, max_dim=self.model.dim)
-        chunk_pos = list(pos[: self.model.dim])
-        for i in range(self.model.dim):
-            chunk_pos[i] = chunk_pos[i][slice(*chunk_slice)]
-        for i, f in enumerate(self.drift_functions):
-            res[-self.drift_no + i, :] = f(*chunk_pos)
-        return res
-
-    def __repr__(self):
-        """Return String representation."""
-        return "Universal(model={0}, cond_pos={1}, cond_val={2})".format(
-            self.model, self.cond_pos, self.cond_val
+            normalizer=normalizer,
+            trend=trend,
+            exact=exact,
+            cond_err=cond_err,
+            pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
@@ -286,62 +338,87 @@ class ExtDrift(Krige):
         the values of the conditions
     ext_drift : :class:`numpy.ndarray`
         the external drift values at the given condition positions.
-    trend_function : :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z])
+    normalizer : :any:`None` or :any:`Normalizer`, optional
+        Normalizer to be applied to the input data to gain normality.
+        The default is None.
+    trend : :any:`None` or :class:`float` or :any:`callable`, optional
+        A callable trend function. Should have the signiture: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
         is determined by an external regression algorithm.
+        If no normalizer is applied, this behaves equal to 'mean'.
+        The default is None.
+    exact : :class:`bool`, optional
+        Whether the interpolator should reproduce the exact input values.
+        If `False`, `cond_err` is interpreted as measurement error
+        at the conditioning points and the result will be more smooth.
+        Default: False
+    cond_err : :class:`str`, :class :class:`float` or :class:`list`, optional
+        The measurement error at the conditioning points.
+        Either "nugget" to apply the model-nugget, a single value applied to
+        all points or an array with individual values for each point.
+        The measurement error has to be <= nugget.
+        The "exact=True" variant only works with "cond_err='nugget'".
+        Default: "nugget"
+    pseudo_inv : :class:`bool`, optional
+        Whether the kriging system is solved with the pseudo inverted
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
+        Default: True
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
+
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
+        Default: `"pinv"`
+    fit_normalizer : :class:`bool`, optional
+        Wheater to fit the data-normalizer to the given conditioning data.
+        Default: False
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`standard_bins` routine.
+        Default: False
     """
 
     def __init__(
-        self, model, cond_pos, cond_val, ext_drift, trend_function=None
+        self,
+        model,
+        cond_pos,
+        cond_val,
+        ext_drift,
+        normalizer=None,
+        trend=None,
+        exact=False,
+        cond_err="nugget",
+        pseudo_inv=True,
+        pseudo_inv_type="pinv",
+        fit_normalizer=False,
+        fit_variogram=False,
     ):
         super().__init__(
             model,
             cond_pos,
             cond_val,
             ext_drift=ext_drift,
-            trend_function=trend_function,
-        )
-
-    def _get_krige_mat(self):
-        """Calculate the inverse matrix of the kriging equation."""
-        size = self.cond_no + int(self.unbiased) + self.drift_no
-        res = np.empty((size, size), dtype=np.double)
-        res[: self.cond_no, : self.cond_no] = self.model.vario_nugget(
-            self._get_dists(self._krige_pos)
-        )
-        if self.unbiased:
-            res[self.cond_no, : self.cond_no] = 1
-            res[: self.cond_no, self.cond_no] = 1
-        res[-self.drift_no :, : self.cond_no] = self.cond_ext_drift
-        res[: self.cond_no, -self.drift_no :] = self.cond_ext_drift.T
-        res[self.cond_no :, self.cond_no :] = 0
-        return inv(res)
-
-    def _get_krige_vecs(self, pos, chunk_slice=(0, None), ext_drift=None):
-        """Calculate the RHS of the kriging equation."""
-        chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
-        chunk_size -= chunk_slice[0]
-        size = self.cond_no + int(self.unbiased) + self.drift_no
-        res = np.empty((size, chunk_size), dtype=np.double)
-        res[: self.cond_no, :] = self.model.vario_nugget(
-            self._get_dists(self._krige_pos, pos, chunk_slice)
-        )
-        if self.unbiased:
-            res[self.cond_no, :] = 1
-        res[-self.drift_no :, :] = ext_drift[:, slice(*chunk_slice)]
-        return res
-
-    def __repr__(self):
-        """Return String representation."""
-        return "ExtDrift(model={0}, cond_pos={1}, cond_val={2})".format(
-            self.model, self.cond_pos, self.cond_val
+            normalizer=normalizer,
+            trend=trend,
+            exact=exact,
+            cond_err=cond_err,
+            pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
+            fit_normalizer=fit_normalizer,
+            fit_variogram=fit_variogram,
         )
 
 
-class Detrended(Simple):
+class Detrended(Krige):
     """
     Detrended simple kriging.
 
@@ -352,8 +429,10 @@ class Detrended(Simple):
     This can be used for regression kriging, where the trend function
     is determined by an external regression algorithm.
 
-    This is just a shortcut for simple kriging with a given trend function
-    and zero mean. A trend can be given with EVERY provided kriging routine.
+    This is just a shortcut for simple kriging with a given trend function,
+    zero mean and no normalizer.
+
+    A trend can be given with EVERY provided kriging routine.
 
     Parameters
     ----------
@@ -365,21 +444,62 @@ class Detrended(Simple):
         the values of the conditions
     trend_function : :any:`callable`
         The callable trend function. Should have the signiture: f(x, [y, z])
+    exact : :class:`bool`, optional
+        Whether the interpolator should reproduce the exact input values.
+        If `False`, `cond_err` is interpreted as measurement error
+        at the conditioning points and the result will be more smooth.
+        Default: False
+    cond_err : :class:`str`, :class :class:`float` or :class:`list`, optional
+        The measurement error at the conditioning points.
+        Either "nugget" to apply the model-nugget, a single value applied to
+        all points or an array with individual values for each point.
+        The measurement error has to be <= nugget.
+        The "exact=True" variant only works with "cond_err='nugget'".
+        Default: "nugget"
+    pseudo_inv : :class:`bool`, optional
+        Whether the kriging system is solved with the pseudo inverted
+        kriging matrix. If `True`, this leads to more numerical stability
+        and redundant points are averaged. But it can take more time.
+        Default: True
+    pseudo_inv_type : :class:`str` or :any:`callable`, optional
+        Here you can select the algorithm to compute the pseudo-inverse matrix:
+
+            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
+            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
+
+        If you want to use another routine to invert the kriging matrix,
+        you can pass a callable which takes a matrix and returns the inverse.
+        Default: `"pinv"`
+    fit_variogram : :class:`bool`, optional
+        Wheater to fit the given variogram model to the data.
+        This is done by using isotropy settings of the given model,
+        assuming the sill to be the data variance and with the
+        standard bins provided by the :any:`standard_bins` routine.
+        Default: False
     """
 
-    def __init__(self, model, cond_pos, cond_val, trend_function):
+    def __init__(
+        self,
+        model,
+        cond_pos,
+        cond_val,
+        trend,
+        exact=False,
+        cond_err="nugget",
+        pseudo_inv=True,
+        pseudo_inv_type="pinv",
+        fit_variogram=False,
+    ):
         super().__init__(
-            model, cond_pos, cond_val, trend_function=trend_function
+            model,
+            cond_pos,
+            cond_val,
+            trend=trend,
+            unbiased=False,
+            exact=exact,
+            cond_err=cond_err,
+            pseudo_inv=pseudo_inv,
+            pseudo_inv_type=pseudo_inv_type,
+            fit_variogram=fit_variogram,
         )
-
-    def __repr__(self):
-        """Return String representation."""
-        return "Detrended(model={0} cond_pos={1}, cond_val={2})".format(
-            self.model, self.cond_pos, self.cond_val
-        )
-
-
-if __name__ == "__main__":  # pragma: no cover
-    import doctest
-
-    doctest.testmod()

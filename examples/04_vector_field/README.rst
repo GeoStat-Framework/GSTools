@@ -1,5 +1,5 @@
-Tutorial 4: Random Vector Field Generation
-==========================================
+Random Vector Field Generation
+==============================
 
 In 1970, Kraichnan was the first to suggest a randomization method.
 For studying the diffusion of single particles in a random incompressible
@@ -32,5 +32,6 @@ with the projector
 By calculating :math:`\nabla \cdot \mathbf U = 0`, it can be verified, that
 the resulting field is indeed incompressible.
 
-Gallery
--------
+
+Examples
+--------

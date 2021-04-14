@@ -25,6 +25,7 @@
 import datetime
 import warnings
 
+
 warnings.filterwarnings(
     "ignore",
     category=UserWarning,
@@ -68,6 +69,7 @@ extensions = [
     "sphinx.ext.napoleon",  # parameters look better than with numpydoc only
     "numpydoc",
     "sphinx_gallery.gen_gallery",
+    "m2r2",
 ]
 
 # autosummaries from source-files
@@ -94,8 +96,8 @@ templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-# source_suffix = ['.rst', '.md']
-source_suffix = ".rst"
+source_suffix = [".rst", ".md"]
+# source_suffix = ".rst"
 
 # The master toctree document.
 # --> this is the sitemap (or content-list in latex -> needs a heading)
@@ -106,8 +108,8 @@ master_doc = "contents"
 # General information about the project.
 curr_year = datetime.datetime.now().year
 project = "GSTools"
-copyright = "2018 - {}, Lennart Schueler, Sebastian Mueller".format(curr_year)
-author = "Lennart Schueler, Sebastian Mueller"
+copyright = "2018 - {}, Sebastian Müller, Lennart Schüler".format(curr_year)
+author = "Sebastian Müller, Lennart Schüler"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -201,8 +203,8 @@ latex_elements = {
     "pointsize": "10pt",
     "papersize": "a4paper",
     "fncychap": "\\usepackage[Glenn]{fncychap}",
+    # 'inputenc': r'\usepackage[utf8]{inputenc}',
 }
-
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
@@ -211,7 +213,7 @@ latex_documents = [
         master_doc,
         "GeoStatTools.tex",
         "GeoStatTools Documentation",
-        "Lennart Schueler, Sebastian Mueller",
+        "Sebastian Müller, Lennart Schüler",
         "manual",
     )
 ]
@@ -260,11 +262,23 @@ intersphinx_mapping = {
     "emcee": ("https://emcee.readthedocs.io/en/latest/", None),
 }
 
-
 # -- Sphinx Gallery Options
 from sphinx_gallery.sorting import FileNameSortKey
 
+# Use pyvista's image scraper for example gallery
+# import pyvista
+# https://github.com/tkoyama010/pyvista-doc-translations/blob/85c835a3ada3a2adefac06ba70e15a101ffa9162/conf.py#L21
+# https://github.com/simpeg/discretize/blob/f414dd7ee7c5ba9a141cb2c37d4b71fdc531eae8/docs/conf.py#L334
+# Make sure off screen is set to true when building locally
+# pyvista.OFF_SCREEN = True
+# # necessary when building the sphinx gallery
+# pyvista.BUILDING_GALLERY = True
+# # Optional - set parameters like theme or window size
+# pyvista.set_plot_theme("document")
+
 sphinx_gallery_conf = {
+    # "image_scrapers": ("pyvista", "matplotlib"),
+    "remove_config_comments": True,
     # only show "print" output as output
     "capture_repr": (),
     # path to your examples scripts
@@ -277,6 +291,9 @@ sphinx_gallery_conf = {
         "../../examples/05_kriging/",
         "../../examples/06_conditioned_fields/",
         "../../examples/07_transformations/",
+        "../../examples/08_geo_coordinates/",
+        "../../examples/09_spatio_temporal/",
+        "../../examples/10_normalizer/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -288,6 +305,9 @@ sphinx_gallery_conf = {
         "examples/05_kriging/",
         "examples/06_conditioned_fields/",
         "examples/07_transformations/",
+        "examples/08_geo_coordinates/",
+        "examples/09_spatio_temporal/",
+        "examples/10_normalizer/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",
@@ -299,8 +319,10 @@ sphinx_gallery_conf = {
     "backreferences_dir": None,
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
-    # "image_scrapers": ('pyvista', 'matplotlib'),
-    # "first_notebook_cell": ("%matplotlib inline\n"
-    #                         "from pyvista import set_plot_theme\n"
-    #                         "set_plot_theme('document')"),
+    # "first_notebook_cell": (
+    #     "%matplotlib inline\n"
+    #     "from pyvista import set_plot_theme\n"
+    #     "set_plot_theme('document')"
+    # ),
+    "matplotlib_animations": True,
 }

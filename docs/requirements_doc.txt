@@ -1,5 +1,0 @@
-numpydoc
-sphinx-gallery
-matplotlib
-pyvista
-pykrige

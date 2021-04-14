@@ -3,9 +3,9 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1313628.svg)](https://doi.org/10.5281/zenodo.1313628)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/gstools.svg)](https://anaconda.org/conda-forge/gstools)
-[![Build Status](https://travis-ci.com/GeoStat-Framework/GSTools.svg?branch=master)](https://travis-ci.com/GeoStat-Framework/GSTools)
-[![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=master)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/gstools/badge/?version=stable)](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/?badge=stable)
+[![Build Status](https://github.com/GeoStat-Framework/GSTools/workflows/Continuous%20Integration/badge.svg?branch=develop)](https://github.com/GeoStat-Framework/GSTools/actions)
+[![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=develop)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=develop)
+[![Documentation Status](https://readthedocs.org/projects/gstools/badge/?version=latest)](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/?badge=stable)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
@@ -19,11 +19,14 @@
 
 GeoStatTools provides geostatistical tools for various purposes:
 - random field generation
+- simple, ordinary, universal and external drift kriging
 - conditioned field generation
 - incompressible random vector field generation
-- simple and ordinary kriging
-- variogram estimation and fitting
+- (automatted) variogram estimation and fitting
+- directional variogram estimation and modelling
+- data normalization and transformation
 - many readily provided and even user-defined covariance models
+- metric spatio-temporal modelling
 - plotting and exporting routines
 
 
@@ -81,6 +84,9 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Kriging][tut5_link]
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
+- [Geographic Coordinates][tut8_link]
+- [Spatio-Temporal Modelling][tut9_link]
+- [Normalizing Data][tut10_link]
 - [Miscellaneous examples][tut0_link]
 
 The associated python scripts are provided in the `examples` folder.
@@ -112,23 +118,47 @@ srf.plot()
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
+GSTools also provides support for [geographic coordinates](https://en.wikipedia.org/wiki/Geographic_coordinate_system).
+This works perfectly well with [cartopy](https://scitools.org.uk/cartopy/docs/latest/index.html).
+
+```python
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import gstools as gs
+# define a structured field by latitude and longitude
+lat = lon = range(-80, 81)
+model = gs.Gaussian(latlon=True, len_scale=777, rescale=gs.EARTH_RADIUS)
+srf = gs.SRF(model, seed=12345)
+field = srf.structured((lat, lon))
+# Orthographic plotting with cartopy
+ax = plt.subplot(projection=ccrs.Orthographic(-45, 45))
+cont = ax.contourf(lon, lat, field, transform=ccrs.PlateCarree())
+ax.coastlines()
+ax.set_global()
+plt.colorbar(cont)
+```
+
+<p align="center">
+<img src="https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_globe.png" alt="lat-lon random field" width="600px"/>
+</p>
+
 A similar example but for a three dimensional field is exported to a [VTK](https://vtk.org/) file, which can be visualized with [ParaView](https://www.paraview.org/) or [PyVista](https://docs.pyvista.org) in Python:
 
 ```python
 import gstools as gs
 # structured field with a size 100x100x100 and a grid-size of 1x1x1
 x = y = z = range(100)
-model = gs.Gaussian(dim=3, var=0.6, len_scale=20)
+model = gs.Gaussian(dim=3, len_scale=[16, 8, 4], angles=(0.8, 0.4, 0.2))
 srf = gs.SRF(model)
 srf((x, y, z), mesh_type='structured')
 srf.vtk_export('3d_field') # Save to a VTK file for ParaView
 
 mesh = srf.to_pyvista() # Create a PyVista mesh for plotting in Python
-mesh.threshold_percent(0.5).plot()
+mesh.contour(isosurfaces=8).plot()
 ```
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/3d_gau_field.png" alt="3d Random field" width="600px"/>
+<img src="https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista.png" alt="3d Random field" width="600px"/>
 </p>
 
 
@@ -152,26 +182,25 @@ y = np.random.RandomState(20011012).rand(1000) * 100.
 model = gs.Exponential(dim=2, var=2, len_scale=8)
 srf = gs.SRF(model, mean=0, seed=19970221)
 field = srf((x, y))
-# estimate the variogram of the field with 40 bins
-bins = np.arange(40)
-bin_center, gamma = gs.vario_estimate_unstructured((x, y), field, bins)
+# estimate the variogram of the field
+bin_center, gamma = gs.vario_estimate((x, y), field)
 # fit the variogram with a stable model. (no nugget fitted)
 fit_model = gs.Stable(dim=2)
 fit_model.fit_variogram(bin_center, gamma, nugget=False)
 # output
-ax = fit_model.plot(x_max=40)
-ax.plot(bin_center, gamma)
+ax = fit_model.plot(x_max=max(bin_center))
+ax.scatter(bin_center, gamma)
 print(fit_model)
 ```
 
 Which gives:
 
 ```python
-Stable(dim=2, var=1.92, len_scale=8.15, nugget=0.0, anis=[1.], angles=[0.], alpha=1.05)
+Stable(dim=2, var=1.85, len_scale=7.42, nugget=0.0, anis=[1.0], angles=[0.0], alpha=1.09)
 ```
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/exp_vario_fit.png" alt="Variogram" width="600px"/>
+<img src="https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_vario_est.png" alt="Variogram" width="600px"/>
 </p>
 
 
@@ -194,15 +223,15 @@ cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 
 gridx = np.linspace(0.0, 15.0, 151)
 
-# spatial random field class
+# conditioned spatial random field class
 model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
-srf = gs.SRF(model)
-srf.set_condition(cond_pos, cond_val, "ordinary")
+krige = gs.krige.Ordinary(model, cond_pos, cond_val)
+cond_srf = gs.CondSRF(krige)
 
 # generate the ensemble of field realizations
 fields = []
 for i in range(100):
-    fields.append(srf(gridx, seed=i))
+    fields.append(cond_srf(gridx, seed=i))
     plt.plot(gridx, fields[i], color="k", alpha=0.1)
 plt.scatter(cond_pos, cond_val, color="k")
 plt.show()
@@ -253,8 +282,8 @@ import gstools as gs
 x = np.arange(100)
 y = np.arange(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
-srf = gs.SRF(model, generator='VectorField')
-srf((x, y), mesh_type='structured', seed=19841203)
+srf = gs.SRF(model, generator='VectorField', seed=19841203)
+srf((x, y), mesh_type='structured')
 srf.plot()
 ```
 
@@ -300,6 +329,7 @@ in memory for immediate 3D plotting in Python.
 - [hankel >= 1.0.2](https://github.com/steven-murray/hankel)
 - [emcee >= 3.0.0](https://github.com/dfm/emcee)
 - [pyevtk >= 1.1.1](https://github.com/pyscience-projects/pyevtk)
+- [meshio>=4.0.3, <5.0](https://github.com/nschloe/meshio)
 
 ### Optional
 
@@ -314,7 +344,7 @@ You can contact us via <info@geostat-framework.org>.
 
 ## License
 
-[LGPLv3][license_link] © 2018-2020
+[LGPLv3][license_link] © 2018-2021
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_link]: https://docs.conda.io/en/latest/miniconda.html
@@ -335,6 +365,9 @@ You can contact us via <info@geostat-framework.org>.
 [tut5_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/05_kriging/index.html
 [tut6_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/06_conditioned_fields/index.html
 [tut7_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/07_transformations/index.html
+[tut8_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/08_geo_coordinates/index.html
+[tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/09_spatio_temporal/index.html
+[tut10_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/10_normalizer/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/

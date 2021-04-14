@@ -1,9 +1,7 @@
-include README.md
-include MANIFEST.in
-include setup.py
-include setup.cfg
-recursive-include gstools *.py *.pyx *.c
-recursive-include tests *.py
-recursive-include docs/source *
-include docs/Makefile docs/requirements.txt
-include LICENSE
+prune *
+graft tests
+recursive-include gstools *.py *.pyx
+recursive-exclude gstools *.c *.cpp
+include LICENSE README.md pyproject.toml setup.py setup.cfg
+exclude CHANGELOG.md CONTRIBUTING.md AUTHORS.md
+global-exclude __pycache__ *.py[cod] .*

@@ -1,5 +1,5 @@
-Tutorial 7: Field transformations
-=================================
+Field transformations
+=====================
 
 The generated fields of gstools are ordinary Gaussian random fields.
 In application there are several transformations to describe real world
@@ -33,5 +33,5 @@ Simply import the transform submodule and apply a transformation to the srf clas
     ...
     tf.normal_to_lognormal(srf)
 
-Gallery
--------
+Examples
+--------

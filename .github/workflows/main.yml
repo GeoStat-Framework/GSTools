@@ -1,0 +1,141 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - "develop"
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  source_check:
+    name: source check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions\setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black pylint
+          pip install --editable .
+
+      - name: black check
+        run: |
+          python -m black --check .
+
+      - name: pylint check
+        run: |
+          python -m pylint gstools/
+
+  build_wheels:
+    name: wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v1.10.0
+        env:
+          CIBW_BUILD: cp36-* cp37-* cp38-* cp39-*
+          CIBW_TEST_EXTRAS: test
+          CIBW_TEST_COMMAND: pytest -v {project}/tests
+        with:
+          output-dir: dist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./dist/*.whl
+
+  build_sdist:
+    name: sdist on ${{ matrix.os }} with py ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions\setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        env:
+          GSTOOLS_BUILD_PARALLEL: 1
+        run: |
+          python -m pip install --upgrade pip
+          pip install build coveralls>=3.0.0
+          pip install --editable .[test]
+
+      - name: Run tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m pytest --cov gstools --cov-report term-missing -v tests/
+          python -m coveralls --service=github
+
+      - name: Build sdist
+        run: |
+          # PEP 517 package builder from pypa
+          python -m build --sdist --outdir dist .
+
+      - uses: actions/upload-artifact@v2
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
+        with:
+          path: dist/*.tar.gz
+
+  upload_to_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - name: Publish to Test PyPI
+        # only if working on master or develop
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.test_pypi_password }}
+          repository_url: https://test.pypi.org/legacy/
+          skip_existing: true
+
+      - name: Publish to PyPI
+        # only if tagged
+        if: startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}

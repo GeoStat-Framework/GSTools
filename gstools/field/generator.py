@@ -10,24 +10,23 @@ The following classes are provided
    RandMeth
    IncomprRandMeth
 """
-# pylint: disable=C0103
-
+# pylint: disable=C0103, W0222
+import warnings
 from copy import deepcopy as dcp
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
-from gstools.field.summator import (
-    summate_unstruct,
-    summate_struct,
-    summate_incompr_unstruct,
-    summate_incompr_struct,
-)
+from gstools.field.summator import summate, summate_incompr
+
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
 
 
+SAMPLING = ["auto", "inversion", "mcmc"]
+
+
 class RandMeth:
-    r"""Randomization method for calculating isotropic spatial random fields.
+    r"""Randomization method for calculating isotropic random fields.
 
     Parameters
     ----------
@@ -41,6 +40,13 @@ class RandMeth:
     verbose : :class:`bool`, optional
         Be chatty during the generation.
         Default: :any:`False`
+    sampling : :class:`str`, optional
+        Sampling strategy. Either
+
+            * "auto": select best strategy depending on given model
+            * "inversion": use inversion method
+            * "mcmc": use mcmc sampling
+
     **kwargs
         Placeholder for keyword-args
 
@@ -48,7 +54,7 @@ class RandMeth:
     -----
     The Randomization method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like:
+    The calculation looks like [Hesse2014]_:
 
     .. math::
        u\left(x\right)=
@@ -64,13 +70,26 @@ class RandMeth:
         * :math:`Z_{j,i}` : random samples from a normal distribution
         * :math:`k_i` : samples from the spectral density distribution of
           the covariance model
+
+    References
+    ----------
+    .. [Hesse2014] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
+           "Generating random fields with a truncated power-law variogram:
+           A comparison of several numerical methods",
+           Environmental Modelling & Software, 55, 32-48., (2014)
     """
 
     def __init__(
-        self, model, mode_no=1000, seed=None, verbose=False, **kwargs
+        self,
+        model,
+        mode_no=1000,
+        seed=None,
+        verbose=False,
+        sampling="auto",
+        **kwargs,
     ):
         if kwargs:
-            print("gstools.RandMeth: **kwargs are ignored")
+            warnings.warn("gstools.RandMeth: **kwargs are ignored")
         # initialize atributes
         self._mode_no = int(mode_no)
         self._verbose = bool(verbose)
@@ -82,10 +101,13 @@ class RandMeth:
         self._z_2 = None
         self._cov_sample = None
         self._value_type = "scalar"
+        # set sampling strategy
+        self._sampling = None
+        self.sampling = sampling
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
+    def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -93,37 +115,22 @@ class RandMeth:
 
         Parameters
         ----------
-        x : :class:`float`, :class:`numpy.ndarray`
-            The x components of the pos. tuple.
-        y : :class:`float`, :class:`numpy.ndarray`, optional
-            The y components of the pos. tuple.
-        z : :class:`float`, :class:`numpy.ndarray`, optional
-            The z components of the pos. tuple.
-        mesh_type : :class:`str`, optional
-            'structured' / 'unstructured'
+        pos : (d, n), :class:`numpy.ndarray`
+            the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Whether to add nugget noise to the field.
 
         Returns
         -------
         :class:`numpy.ndarray`
             the random modes
         """
-        if mesh_type == "unstructured":
-            pos = _reshape_pos(x, y, z, dtype=np.double)
-
-            summed_modes = summate_unstruct(
-                self._cov_sample, self._z_1, self._z_2, pos
-            )
-        else:
-            x, y, z = _set_dtype(x, y, z, dtype=np.double)
-            summed_modes = summate_struct(
-                self._cov_sample, self._z_1, self._z_2, x, y, z
-            )
-
-        nugget = self._set_nugget(summed_modes.shape)
-
+        pos = np.array(pos, dtype=np.double)
+        summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
-    def _set_nugget(self, shape):
+    def get_nugget(self, shape):
         """
         Generate normal distributed values for the nugget simulation.
 
@@ -131,6 +138,7 @@ class RandMeth:
         ----------
         shape : :class:`tuple`
             the shape of the summed modes
+
         Returns
         -------
         nugget : :class:`numpy.ndarray`
@@ -190,13 +198,13 @@ class RandMeth:
             else:
                 raise ValueError(
                     "gstools.field.generator.RandMeth: "
-                    + "neither 'model' nor 'seed' given!"
+                    "neither 'model' nor 'seed' given!"
                 )
         # wrong model type
         else:
             raise ValueError(
                 "gstools.field.generator.RandMeth: 'model' is not an "
-                + "instance of 'gstools.CovModel'"
+                "instance of 'gstools.CovModel'"
             )
 
     def reset_seed(self, seed=np.nan):
@@ -223,7 +231,9 @@ class RandMeth:
         # sample uniform on a sphere
         sphere_coord = self._rng.sample_sphere(self.model.dim, self._mode_no)
         # sample radii acording to radial spectral density of the model
-        if self.model.has_ppf:
+        if self.sampling == "inversion" or (
+            self.sampling == "auto" and self.model.has_ppf
+        ):
             pdf, cdf, ppf = self.model.dist_func
             rad = self._rng.sample_dist(
                 size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
@@ -232,10 +242,21 @@ class RandMeth:
             rad = self._rng.sample_ln_pdf(
                 ln_pdf=self.model.ln_spectral_rad_pdf,
                 size=self._mode_no,
-                sample_around=1.0 / self.model.len_scale,
+                sample_around=1.0 / self.model.len_rescaled,
             )
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
+
+    @property
+    def sampling(self):
+        """:class:`str`: Sampling strategy."""
+        return self._sampling
+
+    @sampling.setter
+    def sampling(self, sampling):
+        if sampling not in ["auto", "inversion", "mcmc"]:
+            raise ValueError(f"RandMeth: sampling not in {SAMPLING}.")
+        self._sampling = sampling
 
     @property
     def seed(self):
@@ -292,14 +313,10 @@ class RandMeth:
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
 
-    def __str__(self):
-        """Return String representation."""
-        return self.__repr__()
-
     def __repr__(self):
         """Return String representation."""
         return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            repr(self.model), self._mode_no, self.seed
+            self.model, self._mode_no, self.seed
         )
 
 
@@ -320,6 +337,13 @@ class IncomprRandMeth(RandMeth):
     verbose : :class:`bool`, optional
         State if there should be output during the generation.
         Default: :any:`False`
+    sampling : :class:`str`, optional
+        Sampling strategy. Either
+
+            * "auto": select best strategy depending on given model
+            * "inversion": use inversion method
+            * "mcmc": use mcmc sampling
+
     **kwargs
         Placeholder for keyword-args
 
@@ -327,7 +351,7 @@ class IncomprRandMeth(RandMeth):
     -----
     The Randomization method is used to generate isotropic
     spatial incompressible random vector fields characterized
-    by a given covariance model. The equation is:
+    by a given covariance model. The equation is [Kraichnan1970]_:
 
     .. math::
        u_i\left(x\right)= \bar{u_i} \delta_{i1} +
@@ -346,6 +370,12 @@ class IncomprRandMeth(RandMeth):
           the covariance model
         * :math:`p_i(k_j) = e_1 - \frac{k_i k_1}{k^2}` : the projector
           ensuring the incompressibility
+
+    References
+    ----------
+    .. [Kraichnan1970] Kraichnan, R. H.,
+           "Diffusion by a random velocity field.",
+           The physics of fluids, 13(1), 22-31., (1970)
     """
 
     def __init__(
@@ -355,19 +385,19 @@ class IncomprRandMeth(RandMeth):
         mode_no=1000,
         seed=None,
         verbose=False,
-        **kwargs
+        sampling="auto",
+        **kwargs,
     ):
-        if model.dim < 2:
+        if model.dim < 2 or model.dim > 3:
             raise ValueError(
-                "Only 2- and 3-dimensional incompressible fields "
-                + "can be generated."
+                "Only 2D and 3D incompressible fields can be generated."
             )
-        super().__init__(model, mode_no, seed, verbose, **kwargs)
+        super().__init__(model, mode_no, seed, verbose, sampling, **kwargs)
 
         self.mean_u = mean_velocity
         self._value_type = "vector"
 
-    def __call__(self, x, y=None, z=None, mesh_type="unstructured"):
+    def __call__(self, pos):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods,
@@ -377,35 +407,19 @@ class IncomprRandMeth(RandMeth):
 
         Parameters
         ----------
-        x : :class:`float`, :class:`numpy.ndarray`
-            the x components of the position tuple, the shape has to be
-            (len(x), 1, 1) for 3d and accordingly shorter for lower
-            dimensions
-        y : :class:`float`, :class:`numpy.ndarray`, optional
-            the y components of the pos. tuples. Default: ``None``
-        z : :class:`float`, :class:`numpy.ndarray`, optional
-            the z components of the pos. tuple. Default: ``None``
-        mesh_type : :class:`str`, optional
-            'structured' / 'unstructured'
+        pos : (d, n), :class:`numpy.ndarray`
+            the position tuple with d dimensions and n points.
 
         Returns
         -------
         :class:`numpy.ndarray`
             the random modes
         """
-        if mesh_type == "unstructured":
-            pos = _reshape_pos(x, y, z, dtype=np.double)
-
-            summed_modes = summate_incompr_unstruct(
-                self._cov_sample, self._z_1, self._z_2, pos
-            )
-        else:
-            x, y, z = _set_dtype(x, y, z, dtype=np.double)
-            summed_modes = summate_incompr_struct(
-                self._cov_sample, self._z_1, self._z_2, x, y, z
-            )
-
-        nugget = self._set_nugget(summed_modes.shape)
+        pos = np.array(pos, dtype=np.double)
+        summed_modes = summate_incompr(
+            self._cov_sample, self._z_1, self._z_2, pos
+        )
+        nugget = self.get_nugget(summed_modes.shape)
 
         e1 = self._create_unit_vector(summed_modes.shape)
 
@@ -441,68 +455,3 @@ class IncomprRandMeth(RandMeth):
         e1 = np.zeros(shape)
         e1[axis] = 1.0
         return e1
-
-
-def _reshape_pos(x, y=None, z=None, dtype=np.double):
-    """
-    Reshape the 1d x, y, z positions to a 2d position array.
-
-    Parameters
-    ----------
-    x : :class:`float`, :class:`numpy.ndarray`
-        the x components of the position tuple, the shape has to be
-        (len(x), 1, 1) for 3d and accordingly shorter for lower
-        dimensions
-    y : :class:`float`, :class:`numpy.ndarray`, optional
-        the y components of the pos. tuple
-    z : :class:`float`, :class:`numpy.ndarray`, optional
-        the z components of the pos. tuple
-    dtype : :class:`numpy.dtype`, optional
-        the numpy dtype to which the elements should be converted
-
-    Returns
-    -------
-    :class:`numpy.ndarray`
-        the positions in one convinient data structure
-    """
-    if y is None and z is None:
-        pos = np.array(x.reshape(1, len(x)), dtype=dtype)
-    elif z is None:
-        pos = np.array(np.vstack((x, y)), dtype=dtype)
-    else:
-        pos = np.array(np.vstack((x, y, z)), dtype=dtype)
-    return pos
-
-
-def _set_dtype(x, y=None, z=None, dtype=np.double):
-    """
-    Convert the dtypes of the input arrays to given dtype.
-
-    Parameters
-    ----------
-    x : :class:`float`, :class:`numpy.ndarray`
-        The array to be converted.
-    y : :class:`float`, :class:`numpy.ndarray`, optional
-        The array to be converted.
-    z : :class:`float`, :class:`numpy.ndarray`, optional
-        The array to be converted.
-    dtype : :class:`numpy.dtype`, optional
-        The numpy dtype to which the elements should be converted.
-
-    Returns
-    -------
-    :class:`numpy.ndarray`
-        The input lists/ arrays as numpy arrays with given dtype.
-    """
-    x = x.astype(dtype, copy=False)
-    if y is not None:
-        y = y.astype(dtype, copy=False)
-    if z is not None:
-        z = z.astype(dtype, copy=False)
-    return x, y, z
-
-
-if __name__ == "__main__":  # pragma: no cover
-    import doctest
-
-    doctest.testmod()

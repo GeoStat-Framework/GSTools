@@ -15,11 +15,11 @@ The following functions are provided
    tpl_gau_spec_dens
 """
 # pylint: disable=C0103, E1101
-
 import numpy as np
 from scipy import special as sps
 
 __all__ = [
+    "confidence_scaling",
     "inc_gamma",
     "exp_int",
     "inc_beta",
@@ -32,8 +32,25 @@ __all__ = [
 # special functions ###########################################################
 
 
+def confidence_scaling(per=0.95):
+    """
+    Scaling of standard deviation to get the desired confidence interval.
+
+    Parameters
+    ----------
+    per : :class:`float`, optional
+        Confidence level. The default is 0.95.
+
+    Returns
+    -------
+    :class:`float`
+        Scale to multiply the standard deviation with.
+    """
+    return np.sqrt(2) * sps.erfinv(per)
+
+
 def inc_gamma(s, x):
-    r"""The (upper) incomplete gamma function.
+    r"""Calculate the (upper) incomplete gamma function.
 
     Given by: :math:`\Gamma(s,x) = \int_x^{\infty} t^{s-1}\,e^{-t}\,{\rm d}t`
 
@@ -54,7 +71,7 @@ def inc_gamma(s, x):
 
 
 def exp_int(s, x):
-    r"""The exponential integral :math:`E_s(x)`.
+    r"""Calculate the exponential integral :math:`E_s(x)`.
 
     Given by: :math:`E_s(x) = \int_1^\infty \frac{e^{-xt}}{t^s}\,\mathrm dt`
 
@@ -90,7 +107,7 @@ def exp_int(s, x):
 
 
 def inc_beta(a, b, x):
-    r"""The incomplete Beta function.
+    r"""Calculate the incomplete Beta function.
 
     Given by: :math:`B(a,b;\,x) = \int_0^x t^{a-1}\,(1-t)^{b-1}\,dt`
 
@@ -107,7 +124,7 @@ def inc_beta(a, b, x):
 
 
 def tplstable_cor(r, len_scale, hurst, alpha):
-    r"""The correlation function of the TPLStable model.
+    r"""Calculate the correlation function of the TPLStable model.
 
     Given by the following correlation function:
 
