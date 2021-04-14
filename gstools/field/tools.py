@@ -11,6 +11,7 @@ The following classes and functions are provided
    to_vtk_helper
    generate_on_mesh
 """
+# pylint: disable=W0212, C0415
 import numpy as np
 import meshio
 
@@ -81,9 +82,9 @@ def to_vtk_helper(
                 fields[fieldname + suf[i]] = field[i]
             if filename is None:
                 return to_vtk(f_cls.pos, fields, f_cls.mesh_type)
-            else:
-                return vtk_export(filename, f_cls.pos, fields, f_cls.mesh_type)
-    elif f_cls.value_type == "scalar":
+            return vtk_export(filename, f_cls.pos, fields, f_cls.mesh_type)
+        raise ValueError(f"Field.to_vtk: '{field_select}' not available.")
+    if f_cls.value_type == "scalar":
         if hasattr(f_cls, field_select):
             field = getattr(f_cls, field_select)
         else:
@@ -91,14 +92,11 @@ def to_vtk_helper(
         if not (f_cls.pos is None or field is None or f_cls.mesh_type is None):
             if filename is None:
                 return to_vtk(f_cls.pos, {fieldname: field}, f_cls.mesh_type)
-            else:
-                return vtk_export(
-                    filename, f_cls.pos, {fieldname: field}, f_cls.mesh_type
-                )
-        else:
-            raise ValueError(f"Field.to_vtk: '{field_select}' not available.")
-    else:
-        raise ValueError(f"Unknown field value type: {f_cls.value_type}")
+            return vtk_export(
+                filename, f_cls.pos, {fieldname: field}, f_cls.mesh_type
+            )
+        raise ValueError(f"Field.to_vtk: '{field_select}' not available.")
+    raise ValueError(f"Unknown field value type: {f_cls.value_type}")
 
 
 def generate_on_mesh(
@@ -213,8 +211,8 @@ def generate_on_mesh(
             f_lists = []
             for field in fields:
                 f_list = []
-                for of, le in zip(offset, length):
-                    f_list.append(field[of : of + le])
+                for off, leng in zip(offset, length):
+                    f_list.append(field[off : off + leng])
                 f_lists.append(f_list)
             for f_name, f_list in zip(_names(name, len(f_lists)), f_lists):
                 mesh.cell_data[f_name] = f_list
@@ -239,7 +237,7 @@ def _names(name, cnt):
 
 def _get_select(direction):
     select = []
-    if not (0 < len(direction) < 4):
+    if not 0 < len(direction) < 4:
         raise ValueError(
             f"Field.mesh: need 1 to 3 direction(s), got '{direction}'"
         )

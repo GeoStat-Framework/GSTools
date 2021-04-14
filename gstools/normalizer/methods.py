@@ -14,6 +14,7 @@ The following classes are provided
    Modulus
    Manly
 """
+# pylint: disable=E1101
 import numpy as np
 from gstools.normalizer.base import Normalizer
 

@@ -20,13 +20,12 @@ The following classes are provided
    SuperSpherical
    JBessel
 """
-# pylint: disable=C0103, E1101, E1137, R0201
-
+# pylint: disable=C0103, E1101, R0201
 import warnings
 import numpy as np
 from scipy import special as sps
 from gstools.covmodel.tools import AttributeWarning
-from gstools.covmodel import CovModel
+from gstools.covmodel.base import CovModel
 
 __all__ = [
     "Gaussian",

@@ -39,7 +39,7 @@ All notable changes to **GSTools** will be documented in this file.
 #### Directional Variograms and Auto-binning ([#87](https://github.com/GeoStat-Framework/GSTools/issues/87), [#106](https://github.com/GeoStat-Framework/GSTools/issues/106), [#131](https://github.com/GeoStat-Framework/GSTools/issues/131))
 - new routine name `vario_estimate` instead of `vario_estimate_unstructured` (old kept for legacy code) for simplicity
 - new routine name `vario_estimate_axis` instead of `vario_estimate_structured` (old kept for legacy code) for simplicity
-- **`vario_estimate`**
+- **vario_estimate**
   - added simple automatic binning routine to determine bins from given data (one third of box diameter as max bin distance, sturges rule for number of bins)
   - allow to pass multiple fields for joint variogram estimation (e.g. for daily precipitation) on same mesh
   - `no_data` option added to allow missing values
@@ -53,7 +53,7 @@ All notable changes to **GSTools** will be documented in this file.
     - prepared for nD
   - structured fields (pos tuple describes axes) can now be passed to estimate an isotropic or directional variogram
   - distance calculation in cython routines in now independent of dimension
-- **`vario_estimate_axis`**
+- **vario_estimate_axis**
   - estimation along array axis now possible in arbitrary dimensions
   - `no_data` option added to allow missing values (sovles [#83](https://github.com/GeoStat-Framework/GSTools/issues/83))
   - axis can be given by name (`"x"`, `"y"`, `"z"`) or axis number (`0`, `1`, `2`, `3`, ...)
@@ -141,6 +141,7 @@ All notable changes to **GSTools** will be documented in this file.
 - isotropic rotation of SRF was not possible [#100](https://github.com/GeoStat-Framework/GSTools/issues/100)
 - `CovModel.opt_arg` now sorted [#103](https://github.com/GeoStat-Framework/GSTools/issues/103)
 - CovModel.fit: check if weights are given as a string (numpy comparison error) [#111](https://github.com/GeoStat-Framework/GSTools/issues/111)
+- several pylint fixes ([#159](https://github.com/GeoStat-Framework/GSTools/pull/159))
 
 ## [1.2.1] - Volatile Violet - 2020-04-14
 
@@ -180,13 +181,13 @@ All notable changes to **GSTools** will be documented in this file.
 ## [1.1.1] - Reverberating Red - 2019-11-08
 
 ### Enhancements
-- added a changelog. See: [commit](https://github.com/GeoStat-Framework/GSTools/commit/fbea88300d0862393e52f4b7c3d2b15c2039498b)
+- added a changelog. See: [commit fbea883](https://github.com/GeoStat-Framework/GSTools/commit/fbea88300d0862393e52f4b7c3d2b15c2039498b)
 
 ### Changes
 - deprecation warnings are now printed if Python versions 2.7 or 3.4 are used #40 #41
 
 ### Bugfixes
-- define spectral_density instead of spectrum in covariance models since Cov-base derives spectrum. See: [commit](https://github.com/GeoStat-Framework/GSTools/commit/00f2747fd0503ff8806f2eebfba36acff813416b)
+- define spectral_density instead of spectrum in covariance models since Cov-base derives spectrum. See: [commit 00f2747](https://github.com/GeoStat-Framework/GSTools/commit/00f2747fd0503ff8806f2eebfba36acff813416b)
 - better boundaries for CovModel parameters. See: https://github.com/GeoStat-Framework/GSTools/issues/37
 
 
@@ -201,8 +202,8 @@ All notable changes to **GSTools** will be documented in this file.
 - incompressible flow fields can now be generated #14
 - new submodule providing several field transformations like: Zinn&Harvey, log-normal, bimodal, ... #13
 - Python 3.4 and 3.7 wheel support #19
-- field can now be generated directly on meshes from [meshio](https://github.com/nschloe/meshio) and [ogs5py](https://github.com/GeoStat-Framework/ogs5py), see: [commit](https://github.com/GeoStat-Framework/GSTools/commit/f4a3439400b81d8d9db81a5f7fbf6435f603cf05)
-- the srf and kriging classes now store the last ``pos``, ``mesh_type`` and ``field`` values to keep them accessible, see: [commit](https://github.com/GeoStat-Framework/GSTools/commit/29f7f1b029866379ce881f44765f72534d757fae)
+- field can now be generated directly on meshes from [meshio](https://github.com/nschloe/meshio) and [ogs5py](https://github.com/GeoStat-Framework/ogs5py), see: [commit f4a3439](https://github.com/GeoStat-Framework/GSTools/commit/f4a3439400b81d8d9db81a5f7fbf6435f603cf05)
+- the srf and kriging classes now store the last ``pos``, ``mesh_type`` and ``field`` values to keep them accessible, see: [commit 29f7f1b](https://github.com/GeoStat-Framework/GSTools/commit/29f7f1b029866379ce881f44765f72534d757fae)
 - tutorials on all important features of GSTools have been written for you guys #20
 - a new interface to pyvista is provided to export fields to python vtk representation, which can be used for plotting, exploring and exporting fields #29
 
@@ -211,8 +212,8 @@ All notable changes to **GSTools** will be documented in this file.
 - the rotation angles are now interpreted in positive direction (counter clock wise)
 - the ``force_moments`` keyword was removed from the SRF call method, it is now in provided as a field transformation #13
 - drop support of python implementations of the variogram estimators #18
-- the ``variogram_normed`` method was removed from the ``CovModel`` class due to redundance [commit](https://github.com/GeoStat-Framework/GSTools/commit/25b164722ac6744ebc7e03f3c0bf1c30be1eba89)
-- the position vector of 1D fields does not have to be provided in a list-like object with length 1 [commit](https://github.com/GeoStat-Framework/GSTools/commit/a6f5be8bfd2db1f002e7889ecb8e9a037ea08886)
+- the ``variogram_normed`` method was removed from the ``CovModel`` class due to redundance [commit 25b1647](https://github.com/GeoStat-Framework/GSTools/commit/25b164722ac6744ebc7e03f3c0bf1c30be1eba89)
+- the position vector of 1D fields does not have to be provided in a list-like object with length 1 [commit a6f5be8](https://github.com/GeoStat-Framework/GSTools/commit/a6f5be8bfd2db1f002e7889ecb8e9a037ea08886)
 
 ### Bugfixes
 - several minor bugfixes

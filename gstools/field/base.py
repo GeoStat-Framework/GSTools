@@ -9,7 +9,7 @@ The following classes are provided
 .. autosummary::
    Field
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, C0415
 from functools import partial
 import numpy as np
 from gstools.covmodel.base import CovModel
@@ -83,9 +83,8 @@ class Field:
         self.normalizer = normalizer
         self.trend = trend
 
-    def __call__(*args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Generate the field."""
-        pass
 
     def structured(self, *args, **kwargs):
         """Generate a field on a structured mesh.
@@ -297,9 +296,8 @@ class Field:
                 "Specify 'scalar' or 'vector' before plotting."
             )
 
-        elif self.value_type == "scalar":
+        if self.value_type == "scalar":
             r = plot_field(self, field, fig, ax, **kwargs)
-
         elif self.value_type == "vector":
             if self.model.dim == 2:
                 r = plot_vec_field(self, field, fig, ax, **kwargs)

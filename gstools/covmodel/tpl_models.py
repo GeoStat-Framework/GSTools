@@ -13,10 +13,9 @@ The following classes and functions are provided
    TPLSimple
 """
 # pylint: disable=C0103, E1101
-
 import warnings
 import numpy as np
-from gstools.covmodel import CovModel
+from gstools.covmodel.base import CovModel
 from gstools.covmodel.tools import AttributeWarning
 from gstools.tools.special import (
     tplstable_cor,

@@ -10,14 +10,18 @@ The following classes and functions are provided
    plot_field
    plot_vec_field
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, W0613, E1101
 import numpy as np
 from scipy import interpolate as inter
 from scipy.spatial import ConvexHull
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, RadioButtons
-from gstools.covmodel.plot import _get_fig_ax
+from gstools.tools.misc import get_fig_ax
 from gstools.tools.geometric import rotation_planes
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import Slider, RadioButtons
+except ImportError as exc:
+    raise ImportError("Plotting: Matplotlib not installed.") from exc
 
 
 __all__ = ["plot_field", "plot_vec_field"]
@@ -47,12 +51,12 @@ def plot_field(
     **kwargs
         Forwarded to the plotting routine.
     """
-    plot_field = getattr(fld, field)
-    assert not (fld.pos is None or plot_field is None)
+    plt_fld = getattr(fld, field)
+    assert not (fld.pos is None or plt_fld is None)
     if fld.dim == 1:
-        return plot_1d(fld.pos, plot_field, fig, ax, **kwargs)
+        return plot_1d(fld.pos, plt_fld, fig, ax, **kwargs)
     return plot_nd(
-        fld.pos, plot_field, fld.mesh_type, fig, ax, fld.model.latlon, **kwargs
+        fld.pos, plt_fld, fld.mesh_type, fig, ax, fld.model.latlon, **kwargs
     )
 
 
@@ -81,7 +85,7 @@ def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
     ax : :class:`Axes`
         Axis containing the plot.
     """
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     title = f"Field 1D: {field.shape}"
     x = pos[0]
     x = x.flatten()
@@ -174,7 +178,7 @@ def plot_nd(
     ax_extents = [ax_ends[p[0]] + ax_ends[p[1]] for p in planes]
     # create figure
     reformat = fig is None and ax is None
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     ax.set_title(f"Field {dim}D {mesh_type} {field.shape}")
     if reformat:  # only format fig if it was created here
         fig.set_size_inches(8, 5.5 + 0.5 * (dim - 2))
@@ -298,21 +302,21 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
             "Only structured vector fields are supported "
             "for plotting. Please create one on a structured grid."
         )
-    plot_field = getattr(fld, field)
-    assert not (fld.pos is None or plot_field is None)
+    plt_fld = getattr(fld, field)
+    assert not (fld.pos is None or plt_fld is None)
 
-    norm = np.sqrt(plot_field[0, :].T ** 2 + plot_field[1, :].T ** 2)
+    norm = np.sqrt(plt_fld[0, :].T ** 2 + plt_fld[1, :].T ** 2)
 
-    fig, ax = _get_fig_ax(fig, ax)
-    title = f"Field 2D {fld.mesh_type}: {plot_field.shape}"
+    fig, ax = get_fig_ax(fig, ax)
+    title = f"Field 2D {fld.mesh_type}: {plt_fld.shape}"
     x = fld.pos[0]
     y = fld.pos[1]
 
     sp = plt.streamplot(
         x,
         y,
-        plot_field[0, :].T,
-        plot_field[1, :].T,
+        plt_fld[0, :].T,
+        plt_fld[1, :].T,
         color=norm,
         linewidth=norm / 2,
     )
@@ -347,7 +351,7 @@ def _plot_2d(
     antialias=True,
 ):  # pragma: no cover
     """Plot a 2d field with a contour plot."""
-    fig, ax = _get_fig_ax(fig, ax)
+    fig, ax = get_fig_ax(fig, ax)
     title = f"Field 2D {mesh_type}: {field.shape}"
     ax_names = _ax_names(2, latlon, ax_names=ax_names)
     x, y = pos[::-1] if latlon else pos
@@ -356,10 +360,10 @@ def _plot_2d(
         if antialias:
             ax.tricontour(x, y, field.ravel(), levels=levels, zorder=-10)
     else:
-        plot_field = field if latlon else field.T
-        cont = ax.contourf(x, y, plot_field, levels=levels)
+        plt_fld = field if latlon else field.T
+        cont = ax.contourf(x, y, plt_fld, levels=levels)
         if antialias:
-            ax.contour(x, y, plot_field, levels=levels, zorder=-10)
+            ax.contour(x, y, plt_fld, levels=levels, zorder=-10)
     ax.set_xlabel(ax_names[0])
     ax.set_ylabel(ax_names[1])
     ax.set_title(title)

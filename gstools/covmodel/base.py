@@ -9,8 +9,7 @@ The following classes are provided
 .. autosummary::
    CovModel
 """
-# pylint: disable=C0103, R0201, E1101
-
+# pylint: disable=C0103, R0201, E1101, C0302, W0613
 import copy
 import numpy as np
 from scipy.integrate import quad as integral
@@ -212,14 +211,12 @@ class CovModel:
             cls.__doc__ = "User defined GSTools Covariance-Model."
         cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
-        ignore = ["__", "variogram", "covariance", "cor"]
-        for attr in cls.__dict__:
-            if any(
-                [attr.startswith(ign) for ign in ignore]
-            ) or attr not in dir(CovModel):
+        ign = ["__", "variogram", "covariance", "cor"]
+        for att in cls.__dict__:
+            if any(att.startswith(i) for i in ign) or att not in dir(CovModel):
                 continue
-            attr_doc = getattr(CovModel, attr).__doc__
-            attr_cls = cls.__dict__[attr]
+            attr_doc = getattr(CovModel, att).__doc__
+            attr_cls = cls.__dict__[att]
             if attr_cls.__doc__ is None:
                 attr_cls.__doc__ = attr_doc
 
