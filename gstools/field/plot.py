@@ -56,7 +56,7 @@ def plot_field(
     if fld.dim == 1:
         return plot_1d(fld.pos, plt_fld, fig, ax, **kwargs)
     return plot_nd(
-        fld.pos, plt_fld, fld.mesh_type, fig, ax, fld.model.latlon, **kwargs
+        fld.pos, plt_fld, fld.mesh_type, fig, ax, fld.latlon, **kwargs
     )
 
 
