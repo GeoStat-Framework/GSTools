@@ -12,6 +12,12 @@
 <img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gstools.png" alt="GSTools-LOGO" width="251px"/>
 </p>
 
+<p align="center"><b>Get in Touch!</b></p>
+<p align="center">
+<a href="https://github.com/GeoStat-Framework/GSTools/discussions"><img src="https://img.shields.io/badge/GitHub-Discussions-f6f8fa?logo=github&style=flat" alt="GH-Discussions"/></a>
+<a href="https://swung.slack.com/archives/C01UXQV046S"><img src="https://img.shields.io/badge/slack-Software_Underground-4a154b?logo=slack&style=flat" alt="Slack-Swung"/></a>
+<a href="https://gitter.im/GeoStat-Framework/GSTools"><img src="https://img.shields.io/badge/Gitter-GeoStat--Framework-f5015e?logo=gitter&style=flat" alt="Gitter-GSTools"/></a>
+</p>
 
 ## Purpose
 
