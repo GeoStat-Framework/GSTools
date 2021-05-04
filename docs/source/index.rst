@@ -20,6 +20,12 @@ GeoStatTools provides geostatistical tools for various purposes:
 - plotting and exporting routines
 
 
+Get in Touch
+============
+
+|GH-Discussions| |Slack-Swung| |Gitter-GSTools| |Email|
+
+
 Installation
 ============
 
@@ -379,7 +385,27 @@ Optional
 - `pyvista <https://docs.pyvista.org>`_
 
 
+Contact
+-------
+
+You can contact us via `info@geostat-framework.org <mailto:info@geostat-framework.org>`_.
+
+
 License
 =======
 
 `LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_
+
+
+.. |GH-Discussions| image:: https://img.shields.io/badge/GitHub-Discussions-f6f8fa?logo=github&style=flat
+    :alt: GH-Discussions
+    :target: https://github.com/GeoStat-Framework/GSTools/discussions
+.. |Slack-Swung| image:: https://img.shields.io/badge/slack-Software_Underground-4a154b?logo=slack&style=flat
+    :alt: Slack-Swung
+    :target: https://swung.slack.com/archives/C01UXQV046S
+.. |Gitter-GSTools| image:: https://img.shields.io/badge/Gitter-GeoStat--Framework-f5015e?logo=gitter&style=flat
+    :alt: Gitter-GSTools
+    :target: https://gitter.im/GeoStat-Framework/GSTools
+.. |Email| image:: https://img.shields.io/badge/Email-GeoStat--Framework-lightgrey
+    :alt: Email
+    :target: mailto:info@geostat-framework.org
