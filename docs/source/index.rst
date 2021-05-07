@@ -406,7 +406,7 @@ License
 .. |Slack-Swung| image:: https://img.shields.io/badge/slack-Software_Underground-4a154b?logo=slack&style=flat
     :alt: Slack-Swung
     :target: https://swung.slack.com/archives/C01UXQV046S
-.. |Gitter-GSTools| image:: https://img.shields.io/badge/Gitter-GeoStat--Framework-f5015e?logo=gitter&style=flat
+.. |Gitter-GSTools| image:: https://img.shields.io/badge/Gitter-GeoStat--Framework-ed1965?logo=gitter&style=flat
     :alt: Gitter-GSTools
     :target: https://gitter.im/GeoStat-Framework/GSTools
 .. |Email| image:: https://img.shields.io/badge/Email-GeoStat--Framework-468a88?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj48cGF0aCBkPSJNNDQ4IDg4SDUyYy0yNyAwLTQ5IDIyLTQ5IDQ5djIyNmMwIDI3IDIyIDQ5IDQ5IDQ5aDM5NmMyNyAwIDQ5LTIyIDQ5LTQ5VjEzN2MwLTI3LTIyLTQ5LTQ5LTQ5em0xNiA0OXYyMjZsLTIgNy0xMTUtMTE2IDExNy0xMTd6TTM2IDM2M1YxMzdsMTE3IDExN0wzOCAzNzBsLTItN3ptMjE5LTYzYy0zIDMtNyAzLTEwIDBMNjYgMTIxaDM2OHptLTc5LTIzIDQ2IDQ2YTM5IDM5IDAgMCAwIDU2IDBsNDYtNDYgMTAxIDEwMkg3NXoiIHN0eWxlPSJmaWxsOiNmNWY1ZjU7ZmlsbC1vcGFjaXR5OjEiLz48L3N2Zz4=
