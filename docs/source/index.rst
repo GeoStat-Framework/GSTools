@@ -6,6 +6,15 @@ GSTools Quickstart
    :width: 150px
    :align: center
 
+
+**Get in Touch!**
+
+|GH-Discussions| |Slack-Swung| |Gitter-GSTools| |Email|
+
+
+Purpose
+=======
+
 GeoStatTools provides geostatistical tools for various purposes:
 
 - random field generation
@@ -18,12 +27,6 @@ GeoStatTools provides geostatistical tools for various purposes:
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
 - plotting and exporting routines
-
-
-Get in Touch
-============
-
-|GH-Discussions| |Slack-Swung| |Gitter-GSTools| |Email|
 
 
 Installation
