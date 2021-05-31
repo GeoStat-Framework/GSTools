@@ -88,7 +88,7 @@ class Field:
         self.trend = trend
 
     def __call__(
-        self, pos, field, mesh_type="unstructured", post_process=True
+        self, pos, field=None, mesh_type="unstructured", post_process=True
     ):
         """Generate the field.
 
@@ -97,10 +97,10 @@ class Field:
         pos : :class:`list`
             the position tuple, containing main direction and transversal
             directions
-        field : :class:`numpy.ndarray`
-            the field values.
-        mesh_type : :class:`str`
-            'structured' / 'unstructured'
+        field : :class:`numpy.ndarray` or :any:`None`, optional
+            the field values. Will be all zeros by default.
+        mesh_type : :class:`str`, optional
+            'structured' / 'unstructured'. Default: 'unstructured'
         post_process : :class:`bool`, optional
             Whether to apply mean, normalizer and trend to the field.
             Default: `True`
@@ -111,7 +111,10 @@ class Field:
             the field values.
         """
         pos, shape = self.pre_pos(pos, mesh_type)
-        field = np.array(field, dtype=np.double).reshape(shape)
+        if field is None:
+            field = np.zeros(shape, dtype=np.double)
+        else:
+            field = np.array(field, dtype=np.double).reshape(shape)
         return self.post_field(field, process=post_process)
 
     def structured(self, *args, **kwargs):
