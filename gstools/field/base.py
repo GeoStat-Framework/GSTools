@@ -136,12 +136,12 @@ class Field:
     def mesh(
         self, mesh, points="centroids", direction="all", name="field", **kwargs
     ):
-        """Generate a field on a given meshio or ogs5py mesh.
+        """Generate a field on a given meshio, ogs5py or PyVista mesh.
 
         Parameters
         ----------
         mesh : meshio.Mesh or ogs5py.MSH or PyVista mesh
-            The given meshio, ogs5py, or PyVista mesh
+            The given mesh
         points : :class:`str`, optional
             The points to evaluate the field at.
             Either the "centroids" of the mesh cells
@@ -166,10 +166,11 @@ class Field:
         This will store the field in the given mesh under the given name,
         if a meshio or PyVista mesh was given.
 
-        See: https://github.com/nschloe/meshio
-        See: https://github.com/pyvista/pyvista
-
-        See: :any:`__call__`
+        See:
+            - meshio: https://github.com/nschloe/meshio
+            - ogs5py: https://github.com/GeoStat-Framework/ogs5py
+            - PyVista: https://github.com/pyvista/pyvista
+            - Called method: :any:`__call__`
         """
         return generate_on_mesh(self, mesh, points, direction, name, **kwargs)
 
