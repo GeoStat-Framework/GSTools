@@ -26,12 +26,6 @@ class TestField(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(field1, field2)))
         self.assertTrue(np.all(np.isclose(field1, self.field)))
 
-    def test_points(self):
-        fld = gs.SRF(self.cov_model)
-        field1 = fld.unstructured(self.pos)
-        field2 = fld.points(self.pos.T)
-        self.assertTrue(np.all(np.isclose(field1, field2)))
-
     def test_raise(self):
         # vector field on latlon
         fld = gs.field.Field(gs.Gaussian(latlon=True), value_type="vector")
