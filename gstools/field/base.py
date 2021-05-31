@@ -133,22 +133,6 @@ class Field:
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
-    def points(self, points, **kwargs):
-        """Generate a field on a point list.
-
-        See :any:`__call__`
-
-        Parameters
-        ----------
-        points : (n, d) :class:`numpy.ndarray`
-            point list with n points in d dimensions.
-        **kwargs
-            Keyword arguments forwarded to field generation call.
-        """
-        points = np.reshape(points, (-1, self.dim))
-        call = partial(self.__call__, pos=points.T, mesh_type="unstructured")
-        return call(**kwargs)
-
     def mesh(
         self, mesh, points="centroids", direction="all", name="field", **kwargs
     ):
