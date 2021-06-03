@@ -98,7 +98,7 @@ class Field:
             the position tuple, containing main direction and transversal
             directions
         field : :class:`numpy.ndarray` or :any:`None`, optional
-            the field values. Will be all zeros by default.
+            the field values. Will be all zeros if :any:`None` is given.
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'. Default: 'unstructured'
         post_process : :class:`bool`, optional
