@@ -159,7 +159,7 @@ class Field:
             cell_data. If to few names are given, digits will be appended.
             Default: "field"
         **kwargs
-            Keyword arguments forwarded to field generation call.
+            Keyword arguments forwarded to :any:`__call__`.
 
         Notes
         -----
@@ -170,7 +170,6 @@ class Field:
             - meshio: https://github.com/nschloe/meshio
             - ogs5py: https://github.com/GeoStat-Framework/ogs5py
             - PyVista: https://github.com/pyvista/pyvista
-            - Called method: :any:`__call__`
         """
         return generate_on_mesh(self, mesh, points, direction, name, **kwargs)
 
