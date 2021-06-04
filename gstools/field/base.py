@@ -41,7 +41,7 @@ class Field:
 
     Parameters
     ----------
-    model : :any:`CovModel`
+    model : :any:`CovModel`, optional
         Covariance Model related to the field.
     value_type : :class:`str`, optional
         Value type of the field. Either "scalar" or "vector".
@@ -56,15 +56,18 @@ class Field:
         Trend of the denormalized fields. If no normalizer is applied,
         this behaves equal to 'mean'.
         The default is None.
+    dim : :any:`None` or :class:`int`, optional
+        Dimension of the field if no model is given.
     """
 
     def __init__(
         self,
-        model,
+        model=None,
         value_type="scalar",
         mean=None,
         normalizer=None,
         trend=None,
+        dim=None,
     ):
         # initialize attributes
         self.pos = None
@@ -76,6 +79,7 @@ class Field:
         self._mean = None
         self._normalizer = None
         self._trend = None
+        self._dim = dim if dim is None else int(dim)
         # set properties
         self.model = model
         self.value_type = value_type
@@ -83,13 +87,40 @@ class Field:
         self.normalizer = normalizer
         self.trend = trend
 
-    def __call__(self, *args, **kwargs):
-        """Generate the field."""
+    def __call__(
+        self, pos, field=None, mesh_type="unstructured", post_process=True
+    ):
+        """Generate the field.
+
+        Parameters
+        ----------
+        pos : :class:`list`
+            the position tuple, containing main direction and transversal
+            directions
+        field : :class:`numpy.ndarray` or :any:`None`, optional
+            the field values. Will be all zeros if :any:`None` is given.
+        mesh_type : :class:`str`, optional
+            'structured' / 'unstructured'. Default: 'unstructured'
+        post_process : :class:`bool`, optional
+            Whether to apply mean, normalizer and trend to the field.
+            Default: `True`
+
+        Returns
+        -------
+        field : :class:`numpy.ndarray`
+            the field values.
+        """
+        pos, shape = self.pre_pos(pos, mesh_type)
+        if field is None:
+            field = np.zeros(shape, dtype=np.double)
+        else:
+            field = np.array(field, dtype=np.double).reshape(shape)
+        return self.post_field(field, process=post_process)
 
     def structured(self, *args, **kwargs):
         """Generate a field on a structured mesh.
 
-        See :any:`Field.__call__`
+        See :any:`__call__`
         """
         call = partial(self.__call__, mesh_type="structured")
         return call(*args, **kwargs)
@@ -97,7 +128,7 @@ class Field:
     def unstructured(self, *args, **kwargs):
         """Generate a field on an unstructured mesh.
 
-        See :any:`Field.__call__`
+        See :any:`__call__`
         """
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
@@ -105,12 +136,12 @@ class Field:
     def mesh(
         self, mesh, points="centroids", direction="all", name="field", **kwargs
     ):
-        """Generate a field on a given meshio or ogs5py mesh.
+        """Generate a field on a given meshio, ogs5py or PyVista mesh.
 
         Parameters
         ----------
         mesh : meshio.Mesh or ogs5py.MSH or PyVista mesh
-            The given meshio, ogs5py, or PyVista mesh
+            The given mesh
         points : :class:`str`, optional
             The points to evaluate the field at.
             Either the "centroids" of the mesh cells
@@ -128,17 +159,17 @@ class Field:
             cell_data. If to few names are given, digits will be appended.
             Default: "field"
         **kwargs
-            Keyword arguments forwareded to `Field.__call__`.
+            Keyword arguments forwarded to :any:`__call__`.
 
         Notes
         -----
         This will store the field in the given mesh under the given name,
         if a meshio or PyVista mesh was given.
 
-        See: https://github.com/nschloe/meshio
-        See: https://github.com/pyvista/pyvista
-
-        See: :any:`Field.__call__`
+        See:
+            - meshio: https://github.com/nschloe/meshio
+            - ogs5py: https://github.com/GeoStat-Framework/ogs5py
+            - PyVista: https://github.com/pyvista/pyvista
         """
         return generate_on_mesh(self, mesh, points, direction, name, **kwargs)
 
@@ -176,9 +207,11 @@ class Field:
         # prepend dimension if we have a vector field
         if self.value_type == "vector":
             shape = (self.dim,) + shape
-            if self.model.latlon:
+            if self.latlon:
                 raise ValueError("Field: Vector fields not allowed for latlon")
         # return isometrized pos tuple and resulting field shape
+        if self.model is None:
+            return pos, shape
         return self.model.isometrize(pos), shape
 
     def post_field(self, field, name="field", process=True, save=True):
@@ -299,7 +332,7 @@ class Field:
         if self.value_type == "scalar":
             r = plot_field(self, field, fig, ax, **kwargs)
         elif self.value_type == "vector":
-            if self.model.dim == 2:
+            if self.dim == 2:
                 r = plot_vec_field(self, field, fig, ax, **kwargs)
             else:
                 raise NotImplementedError(
@@ -317,12 +350,17 @@ class Field:
 
     @model.setter
     def model(self, model):
-        if isinstance(model, CovModel):
+        if model is not None:
+            if not isinstance(model, CovModel):
+                raise ValueError(
+                    "Field: 'model' is not an instance of 'gstools.CovModel'"
+                )
             self._model = model
+            self._dim = None
+        elif self._dim is None:
+            raise ValueError("Field: either needs 'model' or 'dim'.")
         else:
-            raise ValueError(
-                "Field: 'model' is not an instance of 'gstools.CovModel'"
-            )
+            self._model = None
 
     @property
     def mean(self):
@@ -365,7 +403,12 @@ class Field:
     @property
     def dim(self):
         """:class:`int`: Dimension of the field."""
-        return self.model.field_dim
+        return self._dim if self.model is None else self.model.field_dim
+
+    @property
+    def latlon(self):
+        """:class:`bool`: Whether the field depends on geographical coords."""
+        return False if self.model is None else self.model.latlon
 
     @property
     def name(self):
@@ -378,9 +421,13 @@ class Field:
 
     def __repr__(self):
         """Return String representation."""
-        return "{0}(model={1}, value_type='{2}'{3})".format(
+        if self.model is None:
+            dim_str = f"dim={self.dim}"
+        else:
+            dim_str = f"model={self.model.name}"
+        return "{0}({1}, value_type='{2}'{3})".format(
             self.name,
-            self.model.name,
+            dim_str,
             self.value_type,
             self._fmt_mean_norm_trend(),
         )

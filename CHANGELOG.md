@@ -2,6 +2,16 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.3.1] - Pure Pink - 2021-06
+
+### Enhancements
+- Standalone use of Field class [#166](https://github.com/GeoStat-Framework/GSTools/issues/166)
+- add social badges in README [#169](https://github.com/GeoStat-Framework/GSTools/issues/169), [#170](https://github.com/GeoStat-Framework/GSTools/issues/170)
+
+### Bugfixes
+- use `oldest-supported-numpy` to build cython extensions [#165](https://github.com/GeoStat-Framework/GSTools/pull/165)
+
+
 ## [1.3.0] - Pure Pink - 2021-04
 
 ### Topics
@@ -263,7 +273,8 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.1.1...v1.2.0
