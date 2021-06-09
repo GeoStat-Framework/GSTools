@@ -2,6 +2,12 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [Unreleased]
+
+### Bugfixes
+- `vario_estimate` was altering the input field unter certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
+
+
 ## [1.3.1] - Pure Pink - 2021-06
 
 ### Enhancements
