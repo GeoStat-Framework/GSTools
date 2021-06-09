@@ -243,7 +243,7 @@ def vario_estimate(
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
-    field = np.ma.array(field, ndmin=2, dtype=np.double)
+    field = np.ma.array(field, ndmin=2, dtype=np.double, copy=True)
     masked = np.ma.is_masked(field) or np.any(mask)
     # catch special case if everything is masked
     if masked and np.all(mask):
