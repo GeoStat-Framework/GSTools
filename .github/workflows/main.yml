@@ -56,7 +56,7 @@ jobs:
           fetch-depth: '0'
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: pypa/cibuildwheel@v1.11.1.post1
         env:
           CIBW_BUILD: cp36-* cp37-* cp38-* cp39-*
           CIBW_TEST_EXTRAS: test
