@@ -36,7 +36,7 @@ jobs:
 
       - name: black check
         run: |
-          python -m black --check .
+          python -m black --check --diff --color .
 
       - name: pylint check
         run: |
