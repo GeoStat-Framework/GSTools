@@ -212,11 +212,10 @@ class CovModel:
         cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
         ign = ["__", "variogram", "covariance", "cor"]
-        for att in cls.__dict__:
+        for att, attr_cls in cls.__dict__.items():
             if any(att.startswith(i) for i in ign) or att not in dir(CovModel):
                 continue
             attr_doc = getattr(CovModel, att).__doc__
-            attr_cls = cls.__dict__[att]
             if attr_cls.__doc__ is None:
                 attr_cls.__doc__ = attr_doc
 
