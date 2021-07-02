@@ -412,30 +412,30 @@ def set_arg_bounds(model, check_args=True, **kwargs):
     """
     # if variance needs to be resetted, do this at last
     var_bnds = []
-    for arg in kwargs:
-        if not check_bounds(kwargs[arg]):
+    for arg, bounds in kwargs.items():
+        if not check_bounds(bounds):
             raise ValueError(
                 "Given bounds for '{0}' are not valid, got: {1}".format(
-                    arg, kwargs[arg]
+                    arg, bounds
                 )
             )
         if arg in model.opt_arg:
-            model._opt_arg_bounds[arg] = kwargs[arg]
+            model._opt_arg_bounds[arg] = bounds
         elif arg == "var":
-            var_bnds = kwargs[arg]
+            var_bnds = bounds
             continue
         elif arg == "len_scale":
-            model.len_scale_bounds = kwargs[arg]
+            model.len_scale_bounds = bounds
         elif arg == "nugget":
-            model.nugget_bounds = kwargs[arg]
+            model.nugget_bounds = bounds
         elif arg == "anis":
-            model.anis_bounds = kwargs[arg]
+            model.anis_bounds = bounds
         else:
             raise ValueError(
                 "set_arg_bounds: unknown argument '{}'".format(arg)
             )
         if check_args and check_arg_in_bounds(model, arg) > 0:
-            def_arg = default_arg_from_bounds(kwargs[arg])
+            def_arg = default_arg_from_bounds(bounds)
             if arg == "anis":
                 setattr(model, arg, [def_arg] * (model.dim - 1))
             else:
