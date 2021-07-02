@@ -6,6 +6,7 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Bugfixes
 - `vario_estimate` was altering the input field unter certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
+- `emcee` v3.1 now requires `nsteps` in `run_mcmc()` to be integer (called in `RNG.sample_ln_pdf`) [#184](https://github.com/GeoStat-Framework/GSTools/pull/184)
 
 
 ## [1.3.1] - Pure Pink - 2021-06
