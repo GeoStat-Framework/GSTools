@@ -78,6 +78,8 @@ class RNG:
             sample_size = burn_in
         else:
             sample_size = max(burn_in, (size / nwalkers) * oversampling_factor)
+        # sample_size needs to be integer for emcee >= 3.1
+        sample_size = int(sample_size)
         # initial guess
         init_guess = (
             self.random.rand(nwalkers).reshape((nwalkers, 1)) * sample_around
