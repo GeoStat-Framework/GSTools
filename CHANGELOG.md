@@ -2,7 +2,7 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
-## [Unreleased]
+## [1.3.2] - Pure Pink - 2021-07
 
 ### Bugfixes
 - `vario_estimate` was altering the input field unter certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
@@ -280,7 +280,8 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.0...v1.2.1
