@@ -27,7 +27,7 @@ with your idea or suggestion and we'd love to discuss about it.
 
 ## Do you want to enhance GSTools or fix something?
 
-- Fork the repo on [GitHub](https://github.com/GeoStat-Framework/GSTools) from the [develop branch](https://github.com/GeoStat-Framework/GSTools/tree/develop).
+- Fork the repo on [GitHub](https://github.com/GeoStat-Framework/GSTools)
 - Add yourself to AUTHORS.md (if you want to).
 - We use the black code format, please use the script `black .` after you have written your code.
 - Add some tests if possible.

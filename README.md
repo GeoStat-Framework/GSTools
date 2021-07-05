@@ -3,13 +3,13 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1313628.svg)](https://doi.org/10.5281/zenodo.1313628)
 [![PyPI version](https://badge.fury.io/py/gstools.svg)](https://badge.fury.io/py/gstools)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/gstools.svg)](https://anaconda.org/conda-forge/gstools)
-[![Build Status](https://github.com/GeoStat-Framework/GSTools/workflows/Continuous%20Integration/badge.svg?branch=develop)](https://github.com/GeoStat-Framework/GSTools/actions)
-[![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=develop)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=develop)
+[![Build Status](https://github.com/GeoStat-Framework/GSTools/workflows/Continuous%20Integration/badge.svg?branch=main)](https://github.com/GeoStat-Framework/GSTools/actions)
+[![Coverage Status](https://coveralls.io/repos/github/GeoStat-Framework/GSTools/badge.svg?branch=main)](https://coveralls.io/github/GeoStat-Framework/GSTools?branch=main)
 [![Documentation Status](https://readthedocs.org/projects/gstools/badge/?version=latest)](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/?badge=stable)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gstools.png" alt="GSTools-LOGO" width="251px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/gstools.png" alt="GSTools-LOGO" width="251px"/>
 </p>
 
 <p align="center"><b>Get in Touch!</b></p>
@@ -22,7 +22,7 @@
 
 ## Purpose
 
-<img align="right" width="450" src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/demonstrator.png" alt="">
+<img align="right" width="450" src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/demonstrator.png" alt="">
 
 GeoStatTools provides geostatistical tools for various purposes:
 - random field generation
@@ -122,7 +122,7 @@ srf((x, y), mesh_type='structured')
 srf.plot()
 ```
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/gau_field.png" alt="Random field" width="600px"/>
 </p>
 
 GSTools also provides support for [geographic coordinates](https://en.wikipedia.org/wiki/Geographic_coordinate_system).
@@ -245,7 +245,7 @@ plt.show()
 ```
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/cond_ens.png" alt="Conditioned" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/cond_ens.png" alt="Conditioned" width="600px"/>
 </p>
 
 ## User Defined Covariance Models
@@ -297,7 +297,7 @@ srf.plot()
 yielding
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/vec_srf_tut_gau.png" alt="vector field" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/vec_srf_tut_gau.png" alt="vector field" width="600px"/>
 </p>
 
 
@@ -325,7 +325,7 @@ Which gives a RectilinearGrid VTK file ``field.vtr`` or creates a PyVista mesh
 in memory for immediate 3D plotting in Python.
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/pyvista_export.png" alt="pyvista export" width="600px"/>
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/pyvista_export.png" alt="pyvista export" width="600px"/>
 </p>
 
 
@@ -359,7 +359,7 @@ You can contact us via <info@geostat-framework.org>.
 [conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
 [winpy_link]: https://winpython.github.io/
-[license_link]: https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE
+[license_link]: https://github.com/GeoStat-Framework/GSTools/blob/main/LICENSE
 [cov_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/generated/gstools.covmodel.CovModel.html#gstools.covmodel.CovModel
 [stable_link]: https://en.wikipedia.org/wiki/Stable_distribution
 [doc_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/

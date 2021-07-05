@@ -2,7 +2,7 @@
 GSTools Quickstart
 ==================
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gstools.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/gstools.png
    :width: 150px
    :align: center
 
@@ -66,7 +66,7 @@ To get the latest development version you can install it directly from GitHub:
 
 .. code-block:: none
 
-    pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
+    pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
@@ -87,7 +87,7 @@ For the development version, you can do almost the same:
 .. code-block:: none
 
     export GSTOOLS_BUILD_PARALLEL=1
-    pip install git+git://github.com/GeoStat-Framework/GSTools.git@develop
+    pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
 
 
 Citation
@@ -148,7 +148,7 @@ with a :any:`Gaussian` covariance model.
     srf((x, y), mesh_type='structured')
     srf.plot()
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/gau_field.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/gau_field.png
    :width: 400px
    :align: center
 
@@ -283,7 +283,7 @@ generate 100 realizations and plot them:
     plt.scatter(cond_pos, cond_val, color="k")
     plt.show()
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/cond_ens.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/cond_ens.png
    :width: 600px
    :align: center
 
@@ -339,7 +339,7 @@ Example
 
 yielding
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/vec_srf_tut_gau.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/vec_srf_tut_gau.png
    :width: 600px
    :align: center
 
@@ -365,7 +365,7 @@ create a VTK/PyVista dataset for use in Python with to :class:`.to_pyvista()` me
 Which gives a RectilinearGrid VTK file :file:`field.vtr` or creates a PyVista mesh
 in memory for immediate 3D plotting in Python.
 
-.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/master/docs/source/pics/pyvista_export.png
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/pyvista_export.png
    :width: 600px
    :align: center
 
@@ -397,7 +397,7 @@ You can contact us via `info@geostat-framework.org <mailto:info@geostat-framewor
 License
 =======
 
-`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/master/LICENSE>`_
+`LGPLv3 <https://github.com/GeoStat-Framework/GSTools/blob/main/LICENSE>`_
 
 
 .. |GH-Discussions| image:: https://img.shields.io/badge/GitHub-Discussions-f6f8fa?logo=github&style=flat
