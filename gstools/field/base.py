@@ -20,6 +20,7 @@ from gstools.field.tools import (
     fmt_mean_norm_trend,
 )
 from gstools.normalizer.tools import apply_mean_norm_trend, _check_normalizer
+from gstools.transform.field import apply
 
 __all__ = ["Field"]
 
@@ -254,6 +255,41 @@ class Field:
         if save:
             setattr(self, name, field)
         return field
+
+    def transform(
+        self, method, field="field", store=True, process=False, **kwargs
+    ):
+        """
+        Apply field transformation.
+
+        Parameters
+        ----------
+        method : :class:`str`
+            Method to use. See :any:`transform` for available transformations.
+        field : :class:`str`, optional
+            Name of field to be transformed. The default is "field".
+        store : :class:`str` or :class:`bool`, optional
+            Whether to store field inplace (True/False) or under a given name.
+            The default is True.
+        process : :class:`bool`, optional
+            Whether to process in/out fields with trend, normalizer and mean
+            of given Field instance. The default is False.
+        **kwargs
+            Keyword arguments forwarded to selected method.
+
+        Raises
+        ------
+        ValueError
+            When method is unknown.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Transformed field.
+        """
+        return apply(
+            self, method, field=field, store=store, process=process, **kwargs
+        )
 
     def to_pyvista(
         self, field_select="field", fieldname="field"
