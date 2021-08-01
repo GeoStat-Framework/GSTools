@@ -6,7 +6,17 @@ GStools subpackage providing field transformations.
 
 The following functions are provided
 
+Wrapper
+^^^^^^^
+
 .. autosummary::
+   apply
+
+Transformations
+^^^^^^^^^^^^^^^
+
+.. autosummary::
+   apply_function
    binary
    discrete
    boxcox
@@ -16,14 +26,33 @@ The following functions are provided
    normal_to_uniform
    normal_to_arcsin
    normal_to_uquad
+
+Low-Level Routines
+^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   array_discrete
+   array_boxcox
+   array_zinnharvey
+   array_force_moments
+   array_to_lognormal
+   array_to_uniform
+   array_to_arcsin
+   array_to_uquad
 """
-# pylint: disable=C0103
+# pylint: disable=C0103, C0123, R0911
 from warnings import warn
 import numpy as np
 from scipy.special import erf, erfinv
-
+from gstools.normalizer import (
+    Normalizer,
+    remove_trend_norm_mean,
+    apply_mean_norm_trend,
+)
 
 __all__ = [
+    "apply",
+    "apply_function",
     "binary",
     "discrete",
     "boxcox",
@@ -33,10 +62,203 @@ __all__ = [
     "normal_to_uniform",
     "normal_to_arcsin",
     "normal_to_uquad",
+    "array_discrete",
+    "array_boxcox",
+    "array_zinnharvey",
+    "array_force_moments",
+    "array_to_lognormal",
+    "array_to_uniform",
+    "array_to_arcsin",
+    "array_to_uquad",
 ]
 
 
-def binary(fld, divide=None, upper=None, lower=None):
+def _get_field_io(field, store):
+    if not isinstance(field, str):
+        raise ValueError(
+            f"transform: given field name '{field}' is not a string."
+        )
+    if isinstance(store, str):
+        if not store.isidentifier():
+            raise ValueError(
+                f"transform: given store name '{store}' is not valid"
+            )
+        save = True
+        output_field = store
+    else:
+        save = bool(store)
+        output_field = field
+    return output_field, save
+
+
+def _check_input_field(fld, field):
+    if not hasattr(fld, field) or getattr(fld, field) is None:
+        raise ValueError(f"transform: selected field '{field}' not present")
+    return getattr(fld, field)
+
+
+def _pre_process(fld, data, keep_mean):
+    return remove_trend_norm_mean(
+        pos=fld.pos,
+        field=data,
+        mean=None if keep_mean else fld.mean,
+        normalizer=fld.normalizer,
+        trend=fld.trend,
+        mesh_type=fld.mesh_type,
+        value_type=fld.value_type,
+        check_shape=False,
+    )
+
+
+def _post_process(fld, data, keep_mean):
+    return apply_mean_norm_trend(
+        pos=fld.pos,
+        field=data,
+        mean=None if keep_mean else fld.mean,
+        normalizer=fld.normalizer,
+        trend=fld.trend,
+        mesh_type=fld.mesh_type,
+        value_type=fld.value_type,
+        check_shape=False,
+    )
+
+
+def _check_for_default_normal(fld):
+    if not type(fld.normalizer) == Normalizer:
+        raise ValueError(
+            "transform: need a normal field but there is a normalizer defined"
+        )
+    if fld.trend is not None:
+        raise ValueError(
+            "transform: need a normal field but there is a trend defined"
+        )
+    if callable(fld.mean) or fld.mean is None:
+        raise ValueError(
+            "transform: need a normal field but mean is not constant"
+        )
+
+
+def apply(fld, method, field="field", store=True, process=False, **kwargs):
+    """
+    Apply field transformation.
+
+    Parameters
+    ----------
+    fld : :any:`Field`
+        Field class containing a generated field.
+    method : :class:`str`
+        Method to use. See :any:`transform` for available transformations.
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+    **kwargs
+        Keyword arguments forwarded to selected method.
+
+    Raises
+    ------
+    ValueError
+        When method is unknown.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
+    """
+    kwargs["field"] = field
+    kwargs["store"] = store
+    kwargs["process"] = process
+    method = str(method)  # ensure method is a string
+    if method == "binary":
+        return binary(fld, **kwargs)
+    if method == "discrete":
+        return discrete(fld, **kwargs)
+    if method == "boxcox":
+        return boxcox(fld, **kwargs)
+    if method == "zinnharvey":
+        return zinnharvey(fld, **kwargs)
+    if method.endswith("force_moments"):
+        return normal_force_moments(fld, **kwargs)
+    if method.endswith("lognormal"):
+        return normal_to_lognormal(fld, **kwargs)
+    if method.endswith("uniform"):
+        return normal_to_uniform(fld, **kwargs)
+    if method.endswith("arcsin"):
+        return normal_to_arcsin(fld, **kwargs)
+    if method.endswith("uquad"):
+        return normal_to_uquad(fld, **kwargs)
+    if method.endswith("function"):
+        return apply_function(fld, **kwargs)
+    raise ValueError(f"transform.apply: unknown method '{method}'.")
+
+
+def apply_function(
+    fld,
+    function,
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=False,
+    **kwargs,
+):
+    """
+    Apply function as field transformation.
+
+    Parameters
+    ----------
+    fld : :any:`Field`
+        Field class containing a generated field.
+    function : :any:`callable`
+        Function to use.
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is False.
+    **kwargs
+        Keyword arguments forwarded to given function.
+
+    Raises
+    ------
+    ValueError
+        When function is not callable.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
+    """
+    if not callable(function):
+        raise ValueError("apply_function: function not callable.")
+    output_field, save = _get_field_io(field, store)
+    data = _check_input_field(fld, field)
+    if process:
+        data = _pre_process(fld, data, keep_mean=keep_mean)
+    data = function(data, **kwargs)
+    if process:
+        data = _post_process(fld, data, keep_mean=keep_mean)
+    return fld.post_field(data, name=output_field, process=False, save=save)
+
+
+def binary(
+    fld,
+    divide=None,
+    upper=None,
+    lower=None,
+    field="field",
+    store=True,
+    process=False,
+):
     """
     Binary transformation.
 
@@ -45,8 +267,7 @@ def binary(fld, divide=None, upper=None, lower=None):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     divide : :class:`float`, optional
         The dividing value.
         Default: ``fld.mean``
@@ -56,17 +277,50 @@ def binary(fld, divide=None, upper=None, lower=None):
     lower : :class:`float`, optional
         The resulting lower value of the field.
         Default: ``mean - sqrt(fld.model.sill)``
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("binary: no field stored in SRF class.")
-    else:
-        divide = fld.mean if divide is None else divide
-        upper = fld.mean + np.sqrt(fld.model.sill) if upper is None else upper
-        lower = fld.mean - np.sqrt(fld.model.sill) if lower is None else lower
-        discrete(fld, [lower, upper], thresholds=[divide])
+    if not process and divide is None:
+        _check_for_default_normal(fld)
+    if divide is None:
+        mean = 0.0 if process else fld.mean
+    divide = mean if divide is None else divide
+    upper = mean + np.sqrt(fld.model.sill) if upper is None else upper
+    lower = mean - np.sqrt(fld.model.sill) if lower is None else lower
+    kw = dict(
+        values=[lower, upper],
+        thresholds=[divide],
+    )
+    return apply_function(
+        fld=fld,
+        function=array_discrete,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def discrete(fld, values, thresholds="arithmetic"):
+def discrete(
+    fld,
+    values,
+    thresholds="arithmetic",
+    field="field",
+    store=True,
+    process=False,
+):
     """
     Discrete transformation.
 
@@ -76,8 +330,7 @@ def discrete(fld, values, thresholds="arithmetic"):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     values : :any:`numpy.ndarray`
         The discrete values the field will take
     thresholds : :class:`str` or :any:`numpy.ndarray`, optional
@@ -87,50 +340,40 @@ def discrete(fld, values, thresholds="arithmetic"):
         * "equal": devide the field into equal parts
         * an array of explicitly given thresholds
         Default: "arithmetic"
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("discrete: no field stored in SRF class.")
-    else:
-        if thresholds == "arithmetic":
-            # just in case, sort the values
-            values = np.sort(values)
-            thresholds = (values[1:] + values[:-1]) / 2
-        elif thresholds == "equal":
-            values = np.array(values)
-            n = len(values)
-            p = np.arange(1, n) / n  # n-1 equal subdivisions of [0, 1]
-            rescale = np.sqrt(fld.model.sill * 2)
-            # use quantile of the normal distribution to get equal ratios
-            thresholds = fld.mean + rescale * erfinv(2 * p - 1)
-        else:
-            if len(values) != len(thresholds) + 1:
-                raise ValueError(
-                    "discrete transformation: "
-                    "len(values) != len(thresholds) + 1"
-                )
-            values = np.array(values)
-            thresholds = np.array(thresholds)
-        # check thresholds
-        if not np.all(thresholds[:-1] < thresholds[1:]):
-            raise ValueError(
-                "discrete transformation: thresholds need to be ascending."
-            )
-        # use a separate result so the intermediate results are not affected
-        result = np.empty_like(fld.field)
-        # handle edge cases
-        result[fld.field <= thresholds[0]] = values[0]
-        result[fld.field > thresholds[-1]] = values[-1]
-        for i, value in enumerate(values[1:-1]):
-            result[
-                np.logical_and(
-                    thresholds[i] < fld.field, fld.field <= thresholds[i + 1]
-                )
-            ] = value
-        # overwrite the field
-        fld.field = result
+    if not process and thresholds == "equal":
+        _check_for_default_normal(fld)
+    kw = dict(
+        values=values,
+        thresholds=thresholds,
+        mean=0.0 if process else fld.mean,
+        var=fld.model.sill,
+    )
+    return apply_function(
+        fld=fld,
+        function=array_discrete,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def boxcox(fld, lmbda=1, shift=0):
+def boxcox(fld, lmbda=1, shift=0, field="field", store=True, process=False):
     """
     (Inverse) Box-Cox transformation to denormalize data.
 
@@ -142,8 +385,7 @@ def boxcox(fld, lmbda=1, shift=0):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     lmbda : :class:`float`, optional
         The lambda parameter of the Box-Cox transformation.
         For ``lmbda=0`` one obtains the log-normal transformation.
@@ -152,20 +394,33 @@ def boxcox(fld, lmbda=1, shift=0):
         The shift parameter from the two-parametric Box-Cox transformation.
         The field will be shifted by that value before transformation.
         Default: ``0``
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("Box-Cox: no field stored in SRF class.")
-    else:
-        fld.mean += shift
-        fld.field += shift
-        if np.isclose(lmbda, 0):
-            normal_to_lognormal(fld)
-        if np.min(fld.field) < -1 / lmbda:
-            warn("Box-Cox: Some values will be cut off!")
-        fld.field = (np.maximum(lmbda * fld.field + 1, 0)) ** (1 / lmbda)
+    kw = dict(lmbda=lmbda, shift=shift)
+    return apply_function(
+        fld=fld,
+        function=array_boxcox,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def zinnharvey(fld, conn="high"):
+def zinnharvey(fld, conn="high", field="field", store=True, process=False):
     """
     Zinn and Harvey transformation to connect low or high values.
 
@@ -174,19 +429,39 @@ def zinnharvey(fld, conn="high"):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     conn : :class:`str`, optional
         Desired connectivity. Either "low" or "high".
         Default: "high"
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("zinnharvey: no field stored in SRF class.")
-    else:
-        fld.field = _zinnharvey(fld.field, conn, fld.mean, fld.model.sill)
+    if not process:
+        _check_for_default_normal(fld)
+    kw = dict(conn=conn, mean=0.0 if process else fld.mean, var=fld.model.sill)
+    return apply_function(
+        fld=fld,
+        function=array_zinnharvey,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def normal_force_moments(fld):
+def normal_force_moments(fld, field="field", store=True, process=False):
     """
     Force moments of a normal distributed field.
 
@@ -195,16 +470,36 @@ def normal_force_moments(fld):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("normal_force_moments: no field stored in SRF class.")
-    else:
-        fld.field = _normal_force_moments(fld.field, fld.mean, fld.model.sill)
+    if not process:
+        _check_for_default_normal(fld)
+    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill)
+    return apply_function(
+        fld=fld,
+        function=array_force_moments,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def normal_to_lognormal(fld):
+def normal_to_lognormal(fld, field="field", store=True, process=False):
     """
     Transform normal distribution to log-normal distribution.
 
@@ -213,16 +508,32 @@ def normal_to_lognormal(fld):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("normal_to_lognormal: no field stored in SRF class.")
-    else:
-        fld.field = _normal_to_lognormal(fld.field)
+    return apply_function(
+        fld=fld,
+        function=array_to_lognormal,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=True,  # apply to normal field including mean
+    )
 
 
-def normal_to_uniform(fld):
+def normal_to_uniform(fld, field="field", store=True, process=False):
     """
     Transform normal distribution to uniform distribution on [0, 1].
 
@@ -231,16 +542,25 @@ def normal_to_uniform(fld):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     """
-    if fld.field is None:
-        print("normal_to_uniform: no field stored in SRF class.")
-    else:
-        fld.field = _normal_to_uniform(fld.field, fld.mean, fld.model.sill)
+    if not process:
+        _check_for_default_normal(fld)
+    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill)
+    return apply_function(
+        fld=fld,
+        function=array_to_uniform,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def normal_to_arcsin(fld, a=None, b=None):
+def normal_to_arcsin(
+    fld, a=None, b=None, field="field", store=True, process=False
+):
     """
     Transform normal distribution to the bimodal arcsin distribution.
 
@@ -251,27 +571,44 @@ def normal_to_arcsin(fld, a=None, b=None):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     a : :class:`float`, optional
         Parameter a of the arcsin distribution (lower bound).
         Default: keep mean and variance
     b : :class:`float`, optional
         Parameter b of the arcsin distribution (upper bound).
         Default: keep mean and variance
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("normal_to_arcsin: no field stored in SRF class.")
-    else:
-        a = fld.mean - np.sqrt(2.0 * fld.model.sill) if a is None else a
-        b = fld.mean + np.sqrt(2.0 * fld.model.sill) if b is None else b
-        fld.field = _normal_to_arcsin(
-            fld.field, fld.mean, fld.model.sill, a, b
-        )
-        fld.mean = (a + b) / 2.0
+    if not process:
+        _check_for_default_normal(fld)
+    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill, a=a, b=b)
+    return apply_function(
+        fld=fld,
+        function=array_to_arcsin,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
-def normal_to_uquad(fld, a=None, b=None):
+def normal_to_uquad(
+    fld, a=None, b=None, field="field", store=True, process=False
+):
     """
     Transform normal distribution to U-quadratic distribution.
 
@@ -282,36 +619,154 @@ def normal_to_uquad(fld, a=None, b=None):
     Parameters
     ----------
     fld : :any:`Field`
-        Spatial Random Field class containing a generated field.
-        Field will be transformed inplace.
+        Field class containing a generated field.
     a : :class:`float`, optional
         Parameter a of the U-quadratic distribution (lower bound).
         Default: keep mean and variance
     b : :class:`float`, optional
         Parameter b of the U-quadratic distribution (upper bound).
         Default: keep mean and variance
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if fld.field is None:
-        print("normal_to_uquad: no field stored in SRF class.")
-    else:
-        a = fld.mean - np.sqrt(5.0 / 3.0 * fld.model.sill) if a is None else a
-        b = fld.mean + np.sqrt(5.0 / 3.0 * fld.model.sill) if b is None else b
-        fld.field = _normal_to_uquad(fld.field, fld.mean, fld.model.sill, a, b)
-        fld.mean = (a + b) / 2.0
+    if not process:
+        _check_for_default_normal(fld)
+    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill, a=a, b=b)
+    return apply_function(
+        fld=fld,
+        function=array_to_uquad,
+        field=field,
+        store=store,
+        process=process,
+        keep_mean=False,
+        **kw,
+    )
 
 
 # low level functions
 
 
-def _zinnharvey(field, conn="high", mean=None, var=None):
+def array_discrete(
+    field, values, thresholds="arithmetic", mean=None, var=None
+):
+    """
+    Discrete transformation.
+
+    After this transformation, the field has only `len(values)` discrete
+    values.
+
+    Parameters
+    ----------
+    field : :class:`numpy.ndarray`
+        Normal distributed values.
+    values : :any:`numpy.ndarray`
+        The discrete values the field will take
+    thresholds : :class:`str` or :any:`numpy.ndarray`, optional
+        the thresholds, where the value classes are separated
+        possible values are:
+        * "arithmetic": the mean of the 2 neighbouring values
+        * "equal": devide the field into equal parts
+        * an array of explicitly given thresholds
+        Default: "arithmetic"
+    mean : :class:`float`or :any:`None`
+        Mean of the field for "equal" thresholds. Default: np.mean(field)
+    var : :class:`float`or :any:`None`
+        Variance of the field for "equal" thresholds. Default: np.var(field)
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Transformed field.
+    """
+    field = np.asarray(field)
+    if thresholds == "arithmetic":
+        # just in case, sort the values
+        values = np.sort(values)
+        thresholds = (values[1:] + values[:-1]) / 2
+    elif thresholds == "equal":
+        mean = np.mean(field) if mean is None else float(mean)
+        var = np.var(field) if var is None else float(var)
+        values = np.array(values)
+        n = len(values)
+        p = np.arange(1, n) / n  # n-1 equal subdivisions of [0, 1]
+        rescale = np.sqrt(var * 2)
+        # use quantile of the normal distribution to get equal ratios
+        thresholds = mean + rescale * erfinv(2 * p - 1)
+    else:
+        if len(values) != len(thresholds) + 1:
+            raise ValueError(
+                "discrete transformation: "
+                "len(values) != len(thresholds) + 1"
+            )
+        values = np.array(values)
+        thresholds = np.array(thresholds)
+    # check thresholds
+    if not np.all(thresholds[:-1] < thresholds[1:]):
+        raise ValueError(
+            "discrete transformation: thresholds need to be ascending."
+        )
+    # use a separate result so the intermediate results are not affected
+    result = np.empty_like(field)
+    # handle edge cases
+    result[field <= thresholds[0]] = values[0]
+    result[field > thresholds[-1]] = values[-1]
+    for i, value in enumerate(values[1:-1]):
+        result[
+            np.logical_and(thresholds[i] < field, field <= thresholds[i + 1])
+        ] = value
+    return result
+
+
+def array_boxcox(field, lmbda=1, shift=0):
+    """
+    (Inverse) Box-Cox transformation to denormalize data.
+
+    After this transformation, the again Box-Cox transformed field is normal
+    distributed.
+
+    See: https://en.wikipedia.org/wiki/Power_transform#Box%E2%80%93Cox_transformation
+
+    Parameters
+    ----------
+    field : :class:`numpy.ndarray`
+        Normal distributed values.
+    lmbda : :class:`float`, optional
+        The lambda parameter of the Box-Cox transformation.
+        For ``lmbda=0`` one obtains the log-normal transformation.
+        Default: ``1``
+    shift : :class:`float`, optional
+        The shift parameter from the two-parametric Box-Cox transformation.
+        The field will be shifted by that value before transformation.
+        Default: ``0``
+    """
+    field = np.asarray(field)
+    result = field + shift
+    if np.isclose(lmbda, 0):
+        array_to_lognormal(result)
+    if np.min(result) < -1 / lmbda:
+        warn("Box-Cox: Some values will be cut off!")
+    return (np.maximum(lmbda * result + 1, 0)) ** (1 / lmbda)
+
+
+def array_zinnharvey(field, conn="high", mean=None, var=None):
     """
     Zinn and Harvey transformation to connect low or high values.
 
     Parameters
     ----------
     field : :class:`numpy.ndarray`
-        Spatial Random Field with normal distributed values.
-        As returned by SRF.
+        Normal distributed values.
     conn : :class:`str`, optional
         Desired connectivity. Either "low" or "high".
         Default: "high"
@@ -320,35 +775,32 @@ def _zinnharvey(field, conn="high", mean=None, var=None):
         Default: :any:`None`
     var : :class:`float` or :any:`None`, optional
         Variance of the given field.
-        If None is given, the mean will be calculated.
+        If None is given, the variance will be calculated.
         Default: :any:`None`
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            Transformed field.
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if mean is None:
-        mean = np.mean(field)
-    if var is None:
-        var = np.var(field)
-    field = np.abs((field - mean) / np.sqrt(var))
-    field = 2 * erf(field / np.sqrt(2)) - 1
-    field = np.sqrt(2) * erfinv(field)
+    field = np.asarray(field)
+    mean = np.mean(field) if mean is None else float(mean)
+    var = np.var(field) if var is None else float(var)
+    result = np.abs((field - mean) / np.sqrt(var))
+    result = np.sqrt(2) * erfinv(2 * erf(result / np.sqrt(2)) - 1)
     if conn == "high":
-        field = -field
-    return field * np.sqrt(var) + mean
+        result = -result
+    return result * np.sqrt(var) + mean
 
 
-def _normal_force_moments(field, mean=0, var=1):
+def array_force_moments(field, mean=0, var=1):
     """
     Force moments of a normal distributed field.
 
     Parameters
     ----------
     field : :class:`numpy.ndarray`
-        Spatial Random Field with normal distributed values.
-        As returned by SRF.
+        Normal distributed values.
     mean : :class:`float`, optional
         Desired mean of the field.
         Default: 0
@@ -358,63 +810,61 @@ def _normal_force_moments(field, mean=0, var=1):
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            Transformed field.
+    :class:`numpy.ndarray`
+        Transformed field.
     """
+    field = np.asarray(field)
     var_in = np.var(field)
     mean_in = np.mean(field)
     rescale = np.sqrt(var / var_in)
     return rescale * (field - mean_in) + mean
 
 
-def _normal_to_lognormal(field):
+def array_to_lognormal(field):
     """
     Transform normal distribution to log-normal distribution.
 
     Parameters
     ----------
     field : :class:`numpy.ndarray`
-        Spatial Random Field with normal distributed values.
-        As returned by SRF.
+        Normal distributed values.
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            Transformed field.
+    :class:`numpy.ndarray`
+        Transformed field.
     """
     return np.exp(field)
 
 
-def _normal_to_uniform(field, mean=None, var=None):
+def array_to_uniform(field, mean=None, var=None):
     """
     Transform normal distribution to uniform distribution on [0, 1].
 
     Parameters
     ----------
     field : :class:`numpy.ndarray`
-        Spatial Random Field with normal distributed values.
-        As returned by SRF.
+        Normal distributed values.
     mean : :class:`float` or :any:`None`, optional
         Mean of the given field. If None is given, the mean will be calculated.
         Default: :any:`None`
     var : :class:`float` or :any:`None`, optional
         Variance of the given field.
-        If None is given, the mean will be calculated.
+        If None is given, the variance will be calculated.
         Default: :any:`None`
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            Transformed field.
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    if mean is None:
-        mean = np.mean(field)
-    if var is None:
-        var = np.var(field)
+    field = np.asarray(field)
+    mean = np.mean(field) if mean is None else float(mean)
+    var = np.var(field) if var is None else float(var)
     return 0.5 * (1 + erf((field - mean) / np.sqrt(2 * var)))
 
 
-def _normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
+def array_to_arcsin(field, mean=None, var=None, a=None, b=None):
     """
     Transform normal distribution to arcsin distribution.
 
@@ -423,8 +873,7 @@ def _normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
     Parameters
     ----------
     field : :class:`numpy.ndarray`
-        Spatial Random Field with normal distributed values.
-        As returned by SRF.
+        Normal distributed values.
     mean : :class:`float` or :any:`None`, optional
         Mean of the given field. If None is given, the mean will be calculated.
         Default: :any:`None`
@@ -433,19 +882,26 @@ def _normal_to_arcsin(field, mean=None, var=None, a=0, b=1):
         If None is given, the mean will be calculated.
         Default: :any:`None`
     a : :class:`float`, optional
-        Parameter a of the arcsin distribution. Default: 0
+        Parameter a of the arcsin distribution (lower bound).
+        Default: keep mean and variance
     b : :class:`float`, optional
-        Parameter b of the arcsin distribution. Default: 1
+        Parameter b of the arcsin distribution (upper bound).
+        Default: keep mean and variance
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            Transformed field.
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    return _uniform_to_arcsin(_normal_to_uniform(field, mean, var), a, b)
+    field = np.asarray(field)
+    mean = np.mean(field) if mean is None else float(mean)
+    var = np.var(field) if var is None else float(var)
+    a = mean - np.sqrt(2.0 * var) if a is None else float(a)
+    b = mean + np.sqrt(2.0 * var) if b is None else float(b)
+    return _uniform_to_arcsin(array_to_uniform(field, mean, var), a, b)
 
 
-def _normal_to_uquad(field, mean=None, var=None, a=0, b=1):
+def array_to_uquad(field, mean=None, var=None, a=0, b=1):
     """
     Transform normal distribution to U-quadratic distribution.
 
@@ -454,26 +910,32 @@ def _normal_to_uquad(field, mean=None, var=None, a=0, b=1):
     Parameters
     ----------
     field : :class:`numpy.ndarray`
-        Spatial Random Field with normal distributed values.
-        As returned by SRF.
+        Normal distributed values.
     mean : :class:`float` or :any:`None`, optional
         Mean of the given field. If None is given, the mean will be calculated.
         Default: :any:`None`
     var : :class:`float` or :any:`None`, optional
         Variance of the given field.
-        If None is given, the mean will be calculated.
+        If None is given, the variance will be calculated.
         Default: :any:`None`
     a : :class:`float`, optional
-        Parameter a of the U-quadratic distribution. Default: 0
+        Parameter a of the U-quadratic distribution (lower bound).
+        Default: keep mean and variance
     b : :class:`float`, optional
-        Parameter b of the U-quadratic distribution. Default: 1
+        Parameter b of the U-quadratic distribution (upper bound).
+        Default: keep mean and variance
 
     Returns
     -------
-        :class:`numpy.ndarray`
-            Transformed field.
+    :class:`numpy.ndarray`
+        Transformed field.
     """
-    return _uniform_to_uquad(_normal_to_uniform(field, mean, var), a, b)
+    field = np.asarray(field)
+    mean = np.mean(field) if mean is None else float(mean)
+    var = np.var(field) if var is None else float(var)
+    a = mean - np.sqrt(5.0 / 3.0 * var) if a is None else float(a)
+    b = mean + np.sqrt(5.0 / 3.0 * var) if b is None else float(b)
+    return _uniform_to_uquad(array_to_uniform(field, mean, var), a, b)
 
 
 def _uniform_to_arcsin(field, a=0, b=1):
@@ -486,6 +948,7 @@ def _uniform_to_arcsin(field, a=0, b=1):
     in this case: the arcsin distribution
     See: https://en.wikipedia.org/wiki/Arcsine_distribution
     """
+    field = np.asarray(field)
     return (b - a) * np.sin(np.pi * 0.5 * field) ** 2 + a
 
 
@@ -499,11 +962,12 @@ def _uniform_to_uquad(field, a=0, b=1):
     in this case: the U-quadratic distribution
     See: https://en.wikipedia.org/wiki/U-quadratic_distribution
     """
+    field = np.asarray(field)
     al = 12 / (b - a) ** 3
     be = (a + b) / 2
     ga = (a - b) ** 3 / 8
     y_raw = 3 * field / al + ga
-    out = np.zeros_like(y_raw)
-    out[y_raw > 0] = y_raw[y_raw > 0] ** (1 / 3)
-    out[y_raw < 0] = -((-y_raw[y_raw < 0]) ** (1 / 3))
-    return out + be
+    result = np.zeros_like(y_raw)
+    result[y_raw > 0] = y_raw[y_raw > 0] ** (1 / 3)
+    result[y_raw < 0] = -((-y_raw[y_raw < 0]) ** (1 / 3))
+    return result + be
