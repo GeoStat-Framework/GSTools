@@ -26,7 +26,7 @@ srf.transform("discrete", store="f1", values=values1)
 srf.plot("f1")
 
 ###############################################################################
-# calculate thresholds for equal shares
+# Calculate thresholds for equal shares
 # but apply different values to the separated classes
 
 values2 = [0, -1, 2, -3, 4]

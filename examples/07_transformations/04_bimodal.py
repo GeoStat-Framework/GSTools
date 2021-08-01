@@ -1,6 +1,6 @@
 """
-bimodal fields
----------------
+Bimodal fields
+--------------
 
 We provide two transformations to obtain bimodal distributions:
 
@@ -18,5 +18,5 @@ x = y = range(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519)
 field = srf.structured([x, y])
-srf.transform("arcsin")
+srf.transform("normal_to_arcsin")  # also "arcsin" works
 srf.plot()
