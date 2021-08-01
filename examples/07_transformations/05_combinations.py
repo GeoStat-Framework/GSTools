@@ -12,6 +12,8 @@ we transform it to log-values.
 
 We can select the desired field by its name and we can define an output name
 to store the field.
+
+If you don't specify `field` and `store` everything happens inplace.
 """
 # sphinx_gallery_thumbnail_number = 1
 import gstools as gs
