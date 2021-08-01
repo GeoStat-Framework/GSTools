@@ -76,7 +76,7 @@ __all__ = [
 def _get_field_io(field, store):
     if not isinstance(field, str):
         raise ValueError(
-            f"transform: given field name '{field}' is not a string."
+            f"transform: given field name '{field}' is not a string"
         )
     if isinstance(store, str):
         if not store.isidentifier():
@@ -193,7 +193,7 @@ def apply(fld, method, field="field", store=True, process=False, **kwargs):
         return normal_to_uquad(fld, **kwargs)
     if method.endswith("function"):
         return apply_function(fld, **kwargs)
-    raise ValueError(f"transform.apply: unknown method '{method}'.")
+    raise ValueError(f"transform.apply: unknown method '{method}'")
 
 
 def apply_function(
@@ -239,7 +239,7 @@ def apply_function(
         Transformed field.
     """
     if not callable(function):
-        raise ValueError("apply_function: function not callable.")
+        raise ValueError("apply_function: function not callable")
     output_field, save = _get_field_io(field, store)
     data = _check_input_field(fld, field)
     if process:
@@ -706,15 +706,14 @@ def array_discrete(
     else:
         if len(values) != len(thresholds) + 1:
             raise ValueError(
-                "discrete transformation: "
-                "len(values) != len(thresholds) + 1"
+                "discrete transformation: len(values) != len(thresholds) + 1"
             )
         values = np.array(values)
         thresholds = np.array(thresholds)
     # check thresholds
     if not np.all(thresholds[:-1] < thresholds[1:]):
         raise ValueError(
-            "discrete transformation: thresholds need to be ascending."
+            "discrete transformation: thresholds need to be ascending"
         )
     # use a separate result so the intermediate results are not affected
     result = np.empty_like(field)
@@ -901,7 +900,7 @@ def array_to_arcsin(field, mean=None, var=None, a=None, b=None):
     return _uniform_to_arcsin(array_to_uniform(field, mean, var), a, b)
 
 
-def array_to_uquad(field, mean=None, var=None, a=0, b=1):
+def array_to_uquad(field, mean=None, var=None, a=None, b=None):
     """
     Transform normal distribution to U-quadratic distribution.
 
