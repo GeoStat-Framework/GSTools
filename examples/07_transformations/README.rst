@@ -20,18 +20,31 @@ common transformations:
    normal_to_uniform
    normal_to_arcsin
    normal_to_uquad
+   apply_function
 
 
 All the transformations take a field class, that holds a generated field,
-as input and will manipulate this field inplace.
+as input and will manipulate this field inplace or store it with a given name.
 
-Simply import the transform submodule and apply a transformation to the srf class:
+Simply apply a transformation to a field class:
 
 .. code-block:: python
 
-    from gstools import transform as tf
+    import gstools as gs
     ...
-    tf.normal_to_lognormal(srf)
+    srf = gs.SRF(model)
+    srf(...)
+    gs.transform.normal_to_lognormal(srf)
+
+Or use the provided wrapper:
+
+.. code-block:: python
+
+    import gstools as gs
+    ...
+    srf = gs.SRF(model)
+    srf(...)
+    srf.transform("lognormal")
 
 Examples
 --------

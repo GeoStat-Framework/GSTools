@@ -3,6 +3,8 @@ log-normal fields
 -----------------
 
 Here we transform a field to a log-normal distribution:
+
+See :any:`transform.normal_to_lognormal`
 """
 import gstools as gs
 
@@ -11,5 +13,5 @@ x = y = range(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519)
 srf.structured([x, y])
-gs.transform.normal_to_lognormal(srf)
+srf.transform("lognormal")
 srf.plot()

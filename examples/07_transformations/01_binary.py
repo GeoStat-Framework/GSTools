@@ -5,6 +5,8 @@ binary fields
 Here we transform a field to a binary field with only two values.
 The dividing value is the mean by default and the upper and lower values
 are derived to preserve the variance.
+
+See :any:`transform.binary`
 """
 import gstools as gs
 
@@ -13,5 +15,5 @@ x = y = range(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519)
 srf.structured([x, y])
-gs.transform.binary(srf)
+srf.transform("binary")
 srf.plot()

@@ -8,6 +8,8 @@ We provide two transformations to obtain bimodal distributions:
 * `uquad <https://en.wikipedia.org/wiki/U-quadratic_distribution>`__.
 
 Both transformations will preserve the mean and variance of the given field by default.
+
+See: :any:`transform.normal_to_arcsin` and :any:`transform.normal_to_uquad`
 """
 import gstools as gs
 
@@ -16,5 +18,5 @@ x = y = range(100)
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model, seed=20170519)
 field = srf.structured([x, y])
-gs.transform.normal_to_arcsin(srf)
+srf.transform("arcsin")
 srf.plot()
