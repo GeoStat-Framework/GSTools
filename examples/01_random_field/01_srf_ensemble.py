@@ -4,6 +4,8 @@ Creating an Ensemble of Fields
 
 Creating an ensemble of random fields would also be
 a great idea. Let's reuse most of the previous code.
+
+We will set the position tuple `pos` before generation to reuse it afterwards.
 """
 
 import numpy as np
@@ -14,26 +16,26 @@ x = y = np.arange(100)
 
 model = gs.Gaussian(dim=2, var=1, len_scale=10)
 srf = gs.SRF(model)
+srf.set_pos([x, y], "structured")
 
 ###############################################################################
 # This time, we did not provide a seed to :any:`SRF`, as the seeds will used
 # during the actual computation of the fields. We will create four ensemble
-# members, for better visualisation and save them in a list and in a first
+# members, for better visualisation, save them in to srf class and in a first
 # step, we will be using the loop counter as the seeds.
 
 
 ens_no = 4
-field = []
 for i in range(ens_no):
-    field.append(srf.structured([x, y], seed=i))
+    srf(seed=i, store=f"field{i}")
 
 ###############################################################################
-# Now let's have a look at the results:
+# Now let's have a look at the results. We can access the fields by name:
 
 fig, ax = pt.subplots(2, 2, sharex=True, sharey=True)
 ax = ax.flatten()
 for i in range(ens_no):
-    ax[i].imshow(field[i].T, origin="lower")
+    ax[i].imshow(srf[f"field{i}"].T, origin="lower")
 pt.show()
 
 ###############################################################################
@@ -49,4 +51,4 @@ from gstools.random import MasterRNG
 
 seed = MasterRNG(20170519)
 for i in range(ens_no):
-    field.append(srf.structured([x, y], seed=seed()))
+    srf(seed=seed(), store=f"better_field{i}")
