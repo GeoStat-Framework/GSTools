@@ -24,18 +24,18 @@ srf.set_pos([x, y], "structured")
 # members, for better visualisation, save them in to srf class and in a first
 # step, we will be using the loop counter as the seeds.
 
-
 ens_no = 4
 for i in range(ens_no):
     srf(seed=i, store=f"field{i}")
 
 ###############################################################################
-# Now let's have a look at the results. We can access the fields by name:
+# Now let's have a look at the results. We can access the fields by name or
+# index:
 
 fig, ax = pt.subplots(2, 2, sharex=True, sharey=True)
 ax = ax.flatten()
 for i in range(ens_no):
-    ax[i].imshow(srf[f"field{i}"].T, origin="lower")
+    ax[i].imshow(srf[i].T, origin="lower")
 pt.show()
 
 ###############################################################################
@@ -45,7 +45,6 @@ pt.show()
 # It is not always a good idea to use incrementing seeds. Therefore GSTools
 # provides a seed generator :any:`MasterRNG`. The loop, in which the fields are
 # generated would then look like
-
 
 from gstools.random import MasterRNG
 
