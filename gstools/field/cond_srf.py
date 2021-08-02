@@ -48,16 +48,22 @@ class CondSRF(Field):
             raise ValueError("CondSRF: krige should be an instance of Krige.")
         self._krige = krige
         # initialize attributes
-        self.pos = None
-        self.mesh_type = None
-        self.field = None
-        self.raw_field = None
+        self._field_names = []
         # initialize private attributes
         self._generator = None
         # initialize attributes
         self.set_generator(generator, **generator_kwargs)
 
-    def __call__(self, pos, seed=np.nan, mesh_type="unstructured", **kwargs):
+    def __call__(
+        self,
+        pos=None,
+        seed=np.nan,
+        mesh_type="unstructured",
+        post_process=True,
+        store=True,
+        krige_store=True,
+        **kwargs,
+    ):
         """Generate the conditioned spatial random field.
 
         The field is saved as `self.field` and is also returned.
@@ -71,6 +77,19 @@ class CondSRF(Field):
             seed for RNG for reseting. Default: keep seed from generator
         mesh_type : :class:`str`
             'structured' / 'unstructured'
+        post_process : :class:`bool`, optional
+            Whether to apply mean, normalizer and trend to the field.
+            Default: `True`
+        store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store fields (True/False) with default names
+            or with specified names.
+            The default is :any:`True` for default names
+            ["field", "raw_field", "raw_krige"].
+        krige_store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store kriging fields (True/False) with default name
+            or with specified names.
+            The default is :any:`True` for default names
+            ["field", "krige_var"].
         **kwargs
             keyword arguments that are forwarded to the kriging routine in use.
 
@@ -79,23 +98,52 @@ class CondSRF(Field):
         field : :class:`numpy.ndarray`
             the conditioned SRF
         """
+        name, save = self._get_store_config(
+            store, default=["field", "raw_field", "raw_krige"], fld_cnt=3
+        )
+        krige_name, krige_save = self._get_store_config(
+            krige_store, default=["field", "krige_var"], fld_cnt=2
+        )
         kwargs["mesh_type"] = mesh_type
         kwargs["only_mean"] = False  # overwrite if given
         kwargs["return_var"] = True  # overwrite if given
         kwargs["post_process"] = False  # overwrite if given
+        kwargs["store"] = [False, krige_name[1] if krige_save[1] else False]
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape
-        iso_pos, shape = self.pre_pos(pos, mesh_type)
+        iso_pos, shape, info = self.krige.pre_pos(pos, mesh_type, info=True)
+        # also reset fields in this class (not only krige with call above)
+        if info["deleted"]:
+            self.delete_fields()
         # generate the field
-        self.raw_field = np.reshape(
-            self.generator(iso_pos, add_nugget=False), shape
-        )
-        field, krige_var = self.krige(pos, **kwargs)
+        rawfield = np.reshape(self.generator(iso_pos, add_nugget=False), shape)
+        # call krige on already set pos (reuse already calculated fields)
+        if (
+            not info["deleted"]
+            and name[2] in self.field_names
+            and krige_name[1] in self.krige.field_names
+        ):
+            rawkrige, krige_var = self[name[2]], self.krige[krige_name[1]]
+        else:
+            rawkrige, krige_var = self.krige(**kwargs)
         var_scale, nugget = self.get_scaling(krige_var, shape)
         # need to use a copy to not alter "field" by reference
-        self.krige.post_field(self.krige.field.copy())
-        return self.post_field(field + var_scale * self.raw_field + nugget)
+        # store krige field
+        self.krige.post_field(
+            rawkrige.copy(), krige_name[0], post_process, krige_save[0]
+        )
+        # store raw krige field
+        self.post_field(rawkrige.copy(), name[2], False, save[2])
+        # store raw random field
+        self.post_field(rawfield, name[1], False, save[1])
+        # store cond random field
+        return self.post_field(
+            field=rawkrige + var_scale * rawfield + nugget,
+            name=name[0],
+            process=post_process,
+            save=save[0],
+        )
 
     def get_scaling(self, krige_var, shape):
         """
@@ -142,6 +190,29 @@ class CondSRF(Field):
             self.value_type = self.generator.value_type
         else:
             raise ValueError(f"gstools.CondSRF: Unknown generator {generator}")
+
+    @property
+    def pos(self):
+        """:class:`tuple`: The position tuple of the field."""
+        return self.krige.pos
+
+    @pos.setter
+    def pos(self, pos):
+        self.krige.pos = pos
+
+    @property
+    def field_shape(self):
+        """:class:`tuple`: The shape of the field."""
+        return self.krige.field_shape
+
+    @property
+    def mesh_type(self):
+        """:class:`str`: The mesh type of the field."""
+        return self.krige.mesh_type
+
+    @mesh_type.setter
+    def mesh_type(self, mesh_type):
+        self.krige.mesh_type = mesh_type
 
     @property
     def krige(self):
