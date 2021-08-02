@@ -260,7 +260,7 @@ class TestCovModel(unittest.TestCase):
         model.fit_variogram(
             self.gamma_x, self.gamma_y, weights=lambda x: 1 / (1 + x)
         )
-        self.assertAlmostEqual(model.len_scale, len_save)
+        self.assertAlmostEqual(model.len_scale, len_save, places=6)
         # check ValueErrors
         with self.assertRaises(ValueError):
             model.fit_variogram(self.gamma_x, self.gamma_y, sill=2, var=3)
