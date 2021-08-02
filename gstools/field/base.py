@@ -104,10 +104,16 @@ class Field:
         self.normalizer = normalizer
         self.trend = trend
 
-    def __getitem__(self, field):
-        if field in self.field_names:
-            return getattr(self, field)
-        raise ValueError(f"Field: requested field '{field}' not present")
+    def __getitem__(self, subscript):
+        if subscript in self.field_names:
+            return getattr(self, subscript)
+        if isinstance(subscript, int):
+            return self[self.field_names[subscript]]
+        if isinstance(subscript, slice):
+            return [self[f] for f in self.field_names[subscript]]
+        if isinstance(subscript, Iterable):
+            return [self[f] for f in subscript]
+        raise ValueError(f"Field: requested field '{subscript}' not present")
 
     def __call__(
         self,
@@ -522,6 +528,11 @@ class Field:
             self._field_shape = (self.dim,) + self._field_shape
             if self.latlon:
                 raise ValueError("Field: Vector fields not allowed for latlon")
+
+    @property
+    def all_fields(self):
+        """:class:`list`: All fields as stacked list."""
+        return self[self.field_names]
 
     @property
     def field_names(self):
