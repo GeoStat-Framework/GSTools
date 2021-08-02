@@ -144,8 +144,6 @@ class Krige(Field):
         fit_variogram=False,
     ):
         super().__init__(model, mean=mean, normalizer=normalizer, trend=trend)
-        self.mean_field = None
-        self.krige_var = None
         self._unbiased = bool(unbiased)
         self._exact = bool(exact)
         self._pseudo_inv = bool(pseudo_inv)
@@ -172,13 +170,14 @@ class Krige(Field):
 
     def __call__(
         self,
-        pos,
+        pos=None,
         mesh_type="unstructured",
         ext_drift=None,
         chunk_size=None,
         only_mean=False,
         return_var=True,
         post_process=True,
+        store=True,
     ):
         """
         Generate the kriging field.
@@ -208,6 +207,11 @@ class Krige(Field):
         post_process : :class:`bool`, optional
             Whether to apply mean, normalizer and trend to the field.
             Default: `True`
+        store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store kriging fields (True/False) with default name
+            or with specified names.
+            The default is :any:`True` for default names
+            ["field", "krige_var"] or "mean_field" if `only_mean=True`.
 
         Returns
         -------
@@ -218,6 +222,11 @@ class Krige(Field):
             (if return_var is True and only_mean is False)
         """
         return_var &= not only_mean  # don't return variance when calc. mean
+        fld_cnt = 2 if return_var else 1
+        default = ["mean_field"] if only_mean else ["field", "krige_var"]
+        name, save = self._get_store_config(
+            store, default=default, fld_cnt=fld_cnt
+        )
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         pnt_cnt = len(iso_pos[0])
 
@@ -248,18 +257,14 @@ class Krige(Field):
                 self._summate(field, krige_var, c_slice, k_vec, return_var)
         # reshape field if we got a structured mesh
         field = np.reshape(field, shape)
-        if only_mean:  # care about 'kriging the mean'
-            return self.post_field(field, "mean_field", process=post_process)
         # save field to class
-        field = self.post_field(field, "field", process=post_process)
+        field = self.post_field(field, name[0], post_process, save[0])
         if return_var:  # care about the estimated error variance
             krige_var = np.reshape(
                 np.maximum(self.model.sill - krige_var, 0), shape
             )
-            krige_var = self.post_field(krige_var, "krige_var", process=False)
+            krige_var = self.post_field(krige_var, name[1], False, save[1])
             return field, krige_var
-        # if we only calculate the field, overwrite the error variance
-        self.krige_var = None
         return field
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
