@@ -89,7 +89,7 @@ class Field:
         self.trend = trend
 
     def __call__(
-        self, pos, field=None, mesh_type="unstructured", post_process=True
+        self, pos=None, field=None, mesh_type="unstructured", process=True
     ):
         """Generate the field.
 
@@ -102,7 +102,7 @@ class Field:
             the field values. Will be all zeros if :any:`None` is given.
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'. Default: 'unstructured'
-        post_process : :class:`bool`, optional
+        process : :class:`bool`, optional
             Whether to apply mean, normalizer and trend to the field.
             Default: `True`
 
@@ -116,13 +116,15 @@ class Field:
             field = np.zeros(shape, dtype=np.double)
         else:
             field = np.array(field, dtype=np.double).reshape(shape)
-        return self.post_field(field, process=post_process)
+        return self.post_field(field, process=process)
 
     def structured(self, *args, **kwargs):
         """Generate a field on a structured mesh.
 
         See :any:`__call__`
         """
+        if not (args or "pos" in kwargs) and self.mesh_type == "unstructured":
+            raise ValueError("Field.structured: can't reuse present 'pos'")
         call = partial(self.__call__, mesh_type="structured")
         return call(*args, **kwargs)
 
@@ -131,6 +133,8 @@ class Field:
 
         See :any:`__call__`
         """
+        if not (args or "pos" in kwargs) and self.mesh_type != "unstructured":
+            raise ValueError("Field.unstructured: can't reuse present 'pos'")
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
@@ -174,7 +178,7 @@ class Field:
         """
         return generate_on_mesh(self, mesh, points, direction, name, **kwargs)
 
-    def pre_pos(self, pos, mesh_type="unstructured"):
+    def pre_pos(self, pos=None, mesh_type="unstructured"):
         """
         Preprocessing positions and mesh_type.
 
@@ -194,17 +198,30 @@ class Field:
         shape : :class:`tuple`
             Shape of the resulting field.
         """
-        # save mesh-type
-        self.mesh_type = mesh_type
-        # save pos tuple
-        if mesh_type != "unstructured":
-            pos, shape = format_struct_pos_dim(pos, self.dim)
-            self.pos = pos
-            pos = generate_grid(pos)
+        if pos is None:
+            if self.pos is None:
+                raise ValueError("Field: no position tuple 'pos' present")
+            if self.mesh_type is None:
+                raise ValueError("Field: no 'mesh_type' present")
+            pos = self.pos
+            mesh_type = self.mesh_type
+            if mesh_type != "unstructured":
+                pos = generate_grid(pos)
+                shape = tuple(len(p_i) for p_i in pos)
+            else:
+                shape = np.shape(pos[0])
         else:
-            pos = np.array(pos, dtype=np.double).reshape(self.dim, -1)
-            self.pos = pos
-            shape = np.shape(pos[0])
+            # save mesh-type
+            self.mesh_type = mesh_type
+            # save pos tuple
+            if mesh_type != "unstructured":
+                pos, shape = format_struct_pos_dim(pos, self.dim)
+                self.pos = pos
+                pos = generate_grid(pos)
+            else:
+                pos = np.array(pos, dtype=np.double).reshape(self.dim, -1)
+                self.pos = pos
+                shape = np.shape(pos[0])
         # prepend dimension if we have a vector field
         if self.value_type == "vector":
             shape = (self.dim,) + shape
