@@ -73,30 +73,6 @@ __all__ = [
 ]
 
 
-def _get_field_io(field, store):
-    if not isinstance(field, str):
-        raise ValueError(
-            f"transform: given field name '{field}' is not a string"
-        )
-    if isinstance(store, str):
-        if not store.isidentifier():
-            raise ValueError(
-                f"transform: given store name '{store}' is not valid"
-            )
-        save = True
-        output_field = store
-    else:
-        save = bool(store)
-        output_field = field
-    return output_field, save
-
-
-def _check_input_field(fld, field):
-    if not hasattr(fld, field) or getattr(fld, field) is None:
-        raise ValueError(f"transform: selected field '{field}' not present")
-    return getattr(fld, field)
-
-
 def _pre_process(fld, data, keep_mean):
     return remove_trend_norm_mean(
         pos=fld.pos,
@@ -151,7 +127,7 @@ def apply(fld, method, field="field", store=True, process=False, **kwargs):
     field : :class:`str`, optional
         Name of field to be transformed. The default is "field".
     store : :class:`str` or :class:`bool`, optional
-        Whether to store field inplace (True/False) or under a given name.
+        Whether to store field inplace (True/False) or with a specified name.
         The default is True.
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
@@ -239,15 +215,15 @@ def apply_function(
         Transformed field.
     """
     if not callable(function):
-        raise ValueError("apply_function: function not callable")
-    output_field, save = _get_field_io(field, store)
-    data = _check_input_field(fld, field)
+        raise ValueError("transform.apply_function: function not a 'callable'")
+    data = fld[field]
+    name, save = fld._get_store_config(store, default=field)
     if process:
         data = _pre_process(fld, data, keep_mean=keep_mean)
     data = function(data, **kwargs)
     if process:
         data = _post_process(fld, data, keep_mean=keep_mean)
-    return fld.post_field(data, name=output_field, process=False, save=save)
+    return fld.post_field(data, name=name, process=False, save=save)
 
 
 def binary(
