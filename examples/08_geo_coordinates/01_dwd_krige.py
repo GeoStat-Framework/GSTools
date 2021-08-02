@@ -130,8 +130,9 @@ uk = gs.krige.Universal(
 g_lat = np.arange(47, 56.1, 0.1)
 g_lon = np.arange(5, 16.1, 0.1)
 
-field, k_var = uk((g_lat, g_lon), mesh_type="structured")
-mean = uk((g_lat, g_lon), mesh_type="structured", only_mean=True)
+uk.set_pos((g_lat, g_lon), mesh_type="structured")
+uk(return_var=False, store="temp_field")
+uk(only_mean=True, store="mean_field")
 
 ###############################################################################
 # And that's it. Now let's have a look at the generated field and the input
@@ -140,8 +141,8 @@ mean = uk((g_lat, g_lon), mesh_type="structured", only_mean=True)
 levels = np.linspace(5, 23, 64)
 fig, ax = plt.subplots(1, 3, figsize=[10, 5], sharey=True)
 sca = ax[0].scatter(lon, lat, c=temp, vmin=5, vmax=23, cmap="coolwarm")
-co1 = ax[1].contourf(g_lon, g_lat, field, levels, cmap="coolwarm")
-co2 = ax[2].contourf(g_lon, g_lat, mean, levels, cmap="coolwarm")
+co1 = ax[1].contourf(g_lon, g_lat, uk["temp_field"], levels, cmap="coolwarm")
+co2 = ax[2].contourf(g_lon, g_lat, uk["mean_field"], levels, cmap="coolwarm")
 
 [ax[i].plot(border[:, 0], border[:, 1], color="k") for i in range(3)]
 [ax[i].set_xlim([5, 16]) for i in range(3)]
@@ -160,8 +161,8 @@ fig.colorbar(co2, ax=ax, **fmt).set_label("T in [°C]")
 # a look at a cross-section at a longitude of 10 degree:
 
 fig, ax = plt.subplots()
-ax.plot(g_lat, field[:, 50], label="Interpolated temperature")
-ax.plot(g_lat, mean[:, 50], label="North-South mean drift")
+ax.plot(g_lat, uk["temp_field"][:, 50], label="Interpolated temperature")
+ax.plot(g_lat, uk["mean_field"][:, 50], label="North-South mean drift")
 ax.set_xlabel("Lat in deg")
 ax.set_ylabel("T in [°C]")
 ax.set_title("North-South cross-section at 10°")
