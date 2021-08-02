@@ -70,11 +70,8 @@ def to_vtk_helper(
     fieldname : :class:`str`, optional
         Name of the field in the VTK file. Default: "field"
     """
+    field = f_cls[field_select] if field_select in f_cls.field_names else None
     if f_cls.value_type == "vector":
-        if hasattr(f_cls, field_select):
-            field = getattr(f_cls, field_select)
-        else:
-            field = None
         if not (f_cls.pos is None or field is None or f_cls.mesh_type is None):
             suf = ["_X", "_Y", "_Z"]
             fields = {}
@@ -85,10 +82,6 @@ def to_vtk_helper(
             return vtk_export(filename, f_cls.pos, fields, f_cls.mesh_type)
         raise ValueError(f"Field.to_vtk: '{field_select}' not available.")
     if f_cls.value_type == "scalar":
-        if hasattr(f_cls, field_select):
-            field = getattr(f_cls, field_select)
-        else:
-            field = None
         if not (f_cls.pos is None or field is None or f_cls.mesh_type is None):
             if filename is None:
                 return to_vtk(f_cls.pos, {fieldname: field}, f_cls.mesh_type)
