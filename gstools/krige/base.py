@@ -224,7 +224,7 @@ class Krige(Field):
         return_var &= not only_mean  # don't return variance when calc. mean
         fld_cnt = 2 if return_var else 1
         default = ["mean_field"] if only_mean else ["field", "krige_var"]
-        name, save = self._get_store_config(
+        name, save = self.get_store_config(
             store, default=default, fld_cnt=fld_cnt
         )
         iso_pos, shape = self.pre_pos(pos, mesh_type)

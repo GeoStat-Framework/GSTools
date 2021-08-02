@@ -217,7 +217,7 @@ def apply_function(
     if not callable(function):
         raise ValueError("transform.apply_function: function not a 'callable'")
     data = fld[field]
-    name, save = fld._get_store_config(store, default=field)
+    name, save = fld.get_store_config(store, default=field)
     if process:
         data = _pre_process(fld, data, keep_mean=keep_mean)
     data = function(data, **kwargs)

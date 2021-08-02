@@ -140,7 +140,7 @@ class SRF(Field):
         field : :class:`numpy.ndarray`
             the SRF
         """
-        name, save = self._get_store_config(store)
+        name, save = self.get_store_config(store)
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape

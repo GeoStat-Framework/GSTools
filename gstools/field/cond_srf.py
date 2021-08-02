@@ -98,10 +98,10 @@ class CondSRF(Field):
         field : :class:`numpy.ndarray`
             the conditioned SRF
         """
-        name, save = self._get_store_config(
+        name, save = self.get_store_config(
             store, default=["field", "raw_field", "raw_krige"], fld_cnt=3
         )
-        krige_name, krige_save = self._get_store_config(
+        krige_name, krige_save = self.get_store_config(
             krige_store, default=["field", "krige_var"], fld_cnt=2
         )
         kwargs["mesh_type"] = mesh_type

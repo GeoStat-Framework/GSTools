@@ -141,7 +141,7 @@ class Field:
         field : :class:`numpy.ndarray`
             the field values.
         """
-        name, save = self._get_store_config(store)
+        name, save = self.get_store_config(store)
         pos, shape = self.pre_pos(pos, mesh_type)
         if field is None:
             field = np.zeros(shape, dtype=np.double)
@@ -459,7 +459,28 @@ class Field:
         self.pos = pos
 
     @staticmethod
-    def _get_store_config(store, default="field", fld_cnt=None):
+    def get_store_config(store, default="field", fld_cnt=None):
+        """
+        Get sotrage configuration from given selection.
+
+        Parameters
+        ----------
+        store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store fields (True/False) with default names
+            or with specified names.
+            The default is :any:`True` for default names.
+        default : :class:`str` or :class:`list`, optional
+            Default field names. The default is "field".
+        fld_cnt : :any:`None` or :class:`int`, optional
+            Number of fields when using lists. The default is None.
+
+        Returns
+        -------
+        name : :class:`str` or :class:`list`
+            Name(s) of field.
+        save : :class:`bool` or :class:`list`
+            Whether to save field(s).
+        """
         # single field
         if fld_cnt is None:
             save = isinstance(store, str) or bool(store)
