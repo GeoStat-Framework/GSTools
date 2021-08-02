@@ -26,15 +26,18 @@ gridx = np.linspace(0.0, 15.0, 151)
 model = gs.Gaussian(dim=1, var=0.5, len_scale=1.5)
 krige = gs.krige.Ordinary(model, cond_pos, cond_val)
 cond_srf = gs.CondSRF(krige)
+cond_srf.set_pos(gridx)
 
 ###############################################################################
+# We can specify individual names for each field by the keyword `store`:
 
-fields = []
 for i in range(100):
-    fields.append(cond_srf(gridx, seed=i))
+    cond_srf(seed=i, store=f"f{i}")
     label = "Conditioned ensemble" if i == 0 else None
-    plt.plot(gridx, fields[i], color="k", alpha=0.1, label=label)
-plt.plot(gridx, cond_srf.krige(gridx, only_mean=True), label="estimated mean")
+    plt.plot(gridx, cond_srf[f"f{i}"], color="k", alpha=0.1, label=label)
+
+fields = [cond_srf[f"f{i}"] for i in range(100)]
+plt.plot(gridx, cond_srf.krige(only_mean=True), label="estimated mean")
 plt.plot(gridx, np.mean(fields, axis=0), linestyle=":", label="Ensemble mean")
 plt.plot(gridx, cond_srf.krige.field, linestyle="dashed", label="kriged field")
 plt.scatter(cond_pos, cond_val, color="k", zorder=10, label="Conditions")
