@@ -1,22 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-This is the unittest of SRF class.
-"""
-
+"""This is the unittest of the transform submodule."""
 import unittest
 import numpy as np
 import gstools as gs
-from gstools import transform as tf
-import meshio
-
-HAS_PYVISTA = False
-try:
-    import pyvista as pv
-
-    HAS_PYVISTA = True
-except ImportError:
-    pass
 
 
 class TestSRF(unittest.TestCase):

@@ -59,6 +59,8 @@ from gstools.transform.field import (
     normal_to_uniform,
     normal_to_arcsin,
     normal_to_uquad,
+)
+from gstools.transform.array import (
     array_discrete,
     array_boxcox,
     array_zinnharvey,
