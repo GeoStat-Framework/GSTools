@@ -43,6 +43,9 @@ class CondSRF(Field):
         Have a look at the provided generators for further information.
     """
 
+    default_names = ["field", "raw_field", "raw_krige"]
+    """:class:`list`: Default field names."""
+
     def __init__(self, krige, generator="RandMeth", **generator_kwargs):
         if not isinstance(krige, Krige):
             raise ValueError("CondSRF: krige should be an instance of Krige.")
@@ -98,11 +101,9 @@ class CondSRF(Field):
         field : :class:`numpy.ndarray`
             the conditioned SRF
         """
-        name, save = self.get_store_config(
-            store, default=["field", "raw_field", "raw_krige"], fld_cnt=3
-        )
-        krige_name, krige_save = self.get_store_config(
-            krige_store, default=["field", "krige_var"], fld_cnt=2
+        name, save = self.get_store_config(store=store, fld_cnt=3)
+        krige_name, krige_save = self.krige.get_store_config(
+            store=krige_store, fld_cnt=2
         )
         kwargs["mesh_type"] = mesh_type
         kwargs["only_mean"] = False  # overwrite if given

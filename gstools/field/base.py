@@ -77,6 +77,9 @@ class Field:
         Dimension of the field if no model is given.
     """
 
+    default_names = ["field"]
+    """:class:`list`: Default field names."""
+
     def __init__(
         self,
         model=None,
@@ -103,6 +106,12 @@ class Field:
         self.mean = mean
         self.normalizer = normalizer
         self.trend = trend
+
+    def __len__(self):
+        return len(self.field_names)
+
+    def __contains__(self, item):
+        return item in self.field_names
 
     def __getitem__(self, key):
         if key in self.field_names:
@@ -498,8 +507,7 @@ class Field:
         if info:
             return info_ret
 
-    @staticmethod
-    def get_store_config(store, default="field", fld_cnt=None):
+    def get_store_config(self, store, default=None, fld_cnt=None):
         """
         Get sotrage configuration from given selection.
 
@@ -521,6 +529,11 @@ class Field:
         save : :class:`bool` or :class:`list`
             Whether to save field(s).
         """
+        if default is None:
+            if fld_cnt is None:
+                default = self.default_names[0]
+            else:
+                default = self.default_names
         # single field
         if fld_cnt is None:
             save = isinstance(store, str) or bool(store)
