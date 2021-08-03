@@ -67,10 +67,10 @@ class Normalizer:
         return res + np.sum(np.log(np.maximum(1e-16, self._derivative(data))))
 
     def _check_input(self, data, data_range=None, return_output_template=True):
-        is_data = np.array(np.logical_not(np.isnan(data)))
+        is_data = np.logical_not(np.isnan(data))
         if return_output_template:
             out = np.full_like(data, np.nan, dtype=np.double)
-        data = np.array(data, dtype=np.double)[is_data]
+        data = np.asarray(data, dtype=np.double)[is_data]
         if data_range is not None and np.min(np.abs(data_range)) < np.inf:
             dat_in = np.logical_and(data > data_range[0], data < data_range[1])
             if not np.all(dat_in):

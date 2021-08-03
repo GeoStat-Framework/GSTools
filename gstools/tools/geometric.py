@@ -79,7 +79,7 @@ def set_angles(dim, angles):
     -----
         If too few angles are given, they are filled up with `0`.
     """
-    out_angles = np.array(angles, dtype=np.double)
+    out_angles = np.asarray(angles, dtype=np.double)
     out_angles = np.atleast_1d(out_angles)[: no_of_angles(dim)]
     # fill up the rotation angle array with zeros
     out_angles = np.pad(
@@ -110,7 +110,7 @@ def set_anis(dim, anis):
     -----
         If too few anisotropy ratios are given, they are filled up with `1`.
     """
-    out_anis = np.array(anis, dtype=np.double)
+    out_anis = np.asarray(anis, dtype=np.double)
     out_anis = np.atleast_1d(out_anis)[: dim - 1]
     if len(out_anis) < dim - 1:
         # fill up the anisotropies with ones, such that len()==dim-1
@@ -351,9 +351,9 @@ def generate_grid(pos):
     :class:`numpy.ndarray`
         Unstructured position tuple.
     """
-    return np.array(np.meshgrid(*pos, indexing="ij"), dtype=np.double).reshape(
-        (len(pos), -1)
-    )
+    return np.asarray(
+        np.meshgrid(*pos, indexing="ij"), dtype=np.double
+    ).reshape((len(pos), -1))
 
 
 def generate_st_grid(pos, time, mesh_type="unstructured"):
@@ -379,14 +379,14 @@ def generate_st_grid(pos, time, mesh_type="unstructured"):
     -----
         Time dimension will be the last one.
     """
-    time = np.array(time, dtype=np.double).reshape(-1)
+    time = np.asarray(time, dtype=np.double).reshape(-1)
     if mesh_type != "unstructured":
         pos = generate_grid(pos)
     else:
-        pos = np.array(pos, dtype=np.double, ndmin=2)
+        pos = np.array(pos, dtype=np.double, ndmin=2, copy=False)
     out = [np.repeat(p.reshape(-1), np.size(time)) for p in pos]
     out.append(np.tile(time, np.size(pos[0])))
-    return np.array(out, dtype=np.double)
+    return np.asarray(out, dtype=np.double)
 
 
 # conversion ##################################################################
@@ -416,12 +416,12 @@ def format_struct_pos_dim(pos, dim):
         Shape of the resulting field.
     """
     if dim == 1:
-        pos = (np.array(pos, dtype=np.double).reshape(-1),)
+        pos = (np.asarray(pos, dtype=np.double).reshape(-1),)
     elif len(pos) != dim:
         raise ValueError("Formatting: position tuple doesn't match dimension.")
     else:
-        pos = tuple(np.array(p_i, dtype=np.double).reshape(-1) for p_i in pos)
-    shape = tuple(len(p_i) for p_i in pos)
+        pos = tuple(np.asarray(p, dtype=np.double).reshape(-1) for p in pos)
+    shape = tuple(len(p) for p in pos)
     return pos, shape
 
 
@@ -479,7 +479,7 @@ def format_struct_pos_shape(pos, shape, check_stacked_shape=False):
         else:
             wrong_shape = True
     else:
-        struct_size = np.prod([p_i.size for p_i in check_pos])
+        struct_size = np.prod([p.size for p in check_pos])
         # case: 1D unstacked
         if check_pos.size == shape_size:
             dim = 1
@@ -552,7 +552,7 @@ def format_unstruct_pos_shape(pos, shape, check_stacked_shape=False):
     # now we try to be smart
     pre_len = len(np.atleast_1d(pos))
     # care about 1D: pos can be given as 1D array here -> convert to 2D array
-    pos = np.array(pos, dtype=np.double, ndmin=2)
+    pos = np.array(pos, dtype=np.double, ndmin=2, copy=False)
     post_len = len(pos)
     # first array dimension should be spatial dimension (1D is special case)
     dim = post_len if pre_len == post_len else 1
@@ -606,7 +606,7 @@ def ang2dir(angles, dtype=np.double, dim=None):
         the array of direction vectors
     """
     pre_dim = np.asanyarray(angles).ndim
-    angles = np.array(angles, ndmin=2, dtype=dtype)
+    angles = np.array(angles, ndmin=2, dtype=dtype, copy=False)
     if len(angles.shape) > 2:
         raise ValueError(f"Can't interpret angles array {angles}")
     dim = angles.shape[1] + 1 if dim is None else dim
@@ -644,7 +644,7 @@ def latlon2pos(latlon, radius=1.0, dtype=np.double):
     :class:`numpy.ndarray`
         the 3D position array
     """
-    latlon = np.array(latlon, dtype=dtype).reshape((2, -1))
+    latlon = np.asarray(latlon, dtype=dtype).reshape((2, -1))
     lat, lon = np.deg2rad(latlon)
     return np.array(
         (
@@ -675,7 +675,7 @@ def pos2latlon(pos, radius=1.0, dtype=np.double):
     :class:`numpy.ndarray`
         the 3D position array
     """
-    pos = np.array(pos, dtype=dtype).reshape((3, -1))
+    pos = np.asarray(pos, dtype=dtype).reshape((3, -1))
     # prevent numerical errors in arcsin
     lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
     lon = np.arctan2(pos[1], pos[0])

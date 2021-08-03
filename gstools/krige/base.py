@@ -368,7 +368,9 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
-            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
+            ext_drift = np.array(
+                ext_drift, dtype=np.double, ndmin=2, copy=False
+            )
             if ext_drift.size == 0:  # treat empty array as no ext_drift
                 return np.array([])
             if set_cond:
@@ -381,7 +383,7 @@ class Krige(Field):
                 raise ValueError("Krige: wrong number of external drifts.")
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
-            return np.array(ext_drift, dtype=np.double).reshape(shape)
+            return np.asarray(ext_drift, dtype=np.double).reshape(shape)
         if not set_cond and self._cond_ext_drift.size > 0:
             raise ValueError("Krige: wrong number of ext. drift values.")
         return np.array([])
@@ -607,7 +609,7 @@ class Krige(Field):
                     "krige.cond_err: measurement errors can't be given, "
                     "when interpolator should be exact."
                 )
-            value = np.array(value, dtype=np.double).reshape(-1)
+            value = np.asarray(value, dtype=np.double).reshape(-1)
             if value.size == 1:
                 self._cond_err = value.item()
             else:

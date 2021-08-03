@@ -80,13 +80,13 @@ def standard_bins(
         if mesh_type != "unstructured":
             pos = generate_grid(format_struct_pos_dim(pos, dim)[0])
         else:
-            pos = np.array(pos, dtype=np.double).reshape(dim, -1)
+            pos = np.asarray(pos, dtype=np.double).reshape(dim, -1)
         pos = latlon2pos(pos) if latlon else pos
         pnt_cnt = len(pos[0])
         box = []
         for axis in pos:
             box.append([np.min(axis), np.max(axis)])
-        box = np.array(box)
+        box = np.asarray(box)
         diam = np.linalg.norm(box[:, 0] - box[:, 1])
         # convert diameter to great-circle distance if using latlon
         diam = chordal_to_great_circle(diam) if latlon else diam

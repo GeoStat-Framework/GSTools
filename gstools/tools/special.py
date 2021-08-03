@@ -86,7 +86,7 @@ def exp_int(s, x):
         return sps.exp1(x)
     if np.isclose(s, np.around(s)) and s > -0.5:
         return sps.expn(int(np.around(s)), x)
-    x = np.array(x, dtype=np.double)
+    x = np.asarray(x, dtype=np.double)
     x_neg = x < 0
     x = np.abs(x)
     x_compare = x ** min((10, max(((1 - s), 1))))
@@ -146,7 +146,7 @@ def tplstable_cor(r, len_scale, hurst, alpha):
     alpha : :class:`float`, optional
         Shape parameter of the stable model.
     """
-    r = np.array(np.abs(r / len_scale), dtype=np.double)
+    r = np.asarray(np.abs(r / len_scale), dtype=np.double)
     r[np.isclose(r, 0)] = 0  # hack to prevent numerical errors
     res = np.ones_like(r)
     res[r > 0] = (2 * hurst / alpha) * exp_int(
@@ -179,7 +179,7 @@ def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
         spectal density of the TPLExponential model
     """
     if np.isclose(len_low, 0.0):
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         z = (k * len_scale) ** 2
         a = hurst + dim / 2.0
         b = hurst + 0.5
@@ -218,7 +218,7 @@ def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
         spectal density of the TPLExponential model
     """
     if np.isclose(len_low, 0.0):
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         z = np.array((k * len_scale / 2.0) ** 2)
         res = np.empty_like(z)
         z_gz = z > 0.1  # greater zero

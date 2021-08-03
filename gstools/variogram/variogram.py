@@ -239,7 +239,7 @@ def vario_estimate(
            John Wiley & Sons. (2007)
     """
     if bin_edges is not None:
-        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double)
+        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double, copy=False)
         bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
@@ -292,7 +292,7 @@ def vario_estimate(
     # set directions
     dir_no = 0
     if direction is not None and dim > 1:
-        direction = np.array(direction, ndmin=2, dtype=np.double)
+        direction = np.array(direction, ndmin=2, dtype=np.double, copy=False)
         if len(direction.shape) > 2:
             raise ValueError(f"Can't interpret directions: {direction}")
         if direction.shape[1] != dim:
@@ -441,9 +441,9 @@ def vario_estimate_axis(
         field = np.ma.array(field, ndmin=1, dtype=np.double)
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
-        mask = np.array(np.ma.getmaskarray(field), dtype=np.int32)
+        mask = np.asarray(np.ma.getmaskarray(field), dtype=np.int32)
     else:
-        field = np.array(field, ndmin=1, dtype=np.double)
+        field = np.array(field, ndmin=1, dtype=np.double, copy=False)
         missing_mask = None  # free space
 
     axis_to_swap = AXIS_DIR[direction] if direction in AXIS else int(direction)

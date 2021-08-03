@@ -673,7 +673,7 @@ def array_discrete(
     elif thresholds == "equal":
         mean = np.mean(field) if mean is None else float(mean)
         var = np.var(field) if var is None else float(var)
-        values = np.array(values)
+        values = np.asarray(values)
         n = len(values)
         p = np.arange(1, n) / n  # n-1 equal subdivisions of [0, 1]
         rescale = np.sqrt(var * 2)
@@ -684,8 +684,8 @@ def array_discrete(
             raise ValueError(
                 "discrete transformation: len(values) != len(thresholds) + 1"
             )
-        values = np.array(values)
-        thresholds = np.array(thresholds)
+        values = np.asarray(values)
+        thresholds = np.asarray(thresholds)
     # check thresholds
     if not np.all(thresholds[:-1] < thresholds[1:]):
         raise ValueError(

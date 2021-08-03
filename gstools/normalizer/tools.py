@@ -90,7 +90,7 @@ def apply_mean_norm_trend(
             pos, shape, dim = format_unstruct_pos_shape(
                 pos, field.shape, check_stacked_shape=stacked
             )
-        field = np.array(field, dtype=np.double).reshape(shape)
+        field = np.asarray(field, dtype=np.double).reshape(shape)
     else:
         dim = len(pos)
     if not stacked:
@@ -169,7 +169,7 @@ def remove_trend_norm_mean(
             pos, shape, dim = format_unstruct_pos_shape(
                 pos, field.shape, check_stacked_shape=stacked
             )
-        field = np.array(field, dtype=np.double).reshape(shape)
+        field = np.asarray(field, dtype=np.double).reshape(shape)
     else:
         dim = len(pos)
     if not stacked:

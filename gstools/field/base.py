@@ -47,7 +47,7 @@ def _pos_equal(pos1, pos2):
 def _set_mean_trend(value, dim):
     if callable(value) or value is None:
         return value
-    value = np.array(value, dtype=np.double).ravel()
+    value = np.asarray(value, dtype=np.double).ravel()
     if value.size > 1 and value.size != dim:  # vector mean
         raise ValueError(f"Mean/Trend: Wrong size ({value})")
     return value if value.size > 1 else value.item()
@@ -174,7 +174,7 @@ class Field:
         if field is None:
             field = np.zeros(shape, dtype=np.double)
         else:
-            field = np.array(field, dtype=np.double).reshape(shape)
+            field = np.asarray(field, dtype=np.double).reshape(shape)
         return self.post_field(field, name, post_process, save)
 
     def structured(self, *args, **kwargs):
@@ -542,7 +542,7 @@ class Field:
         if self.mesh_type is None:
             raise ValueError("Field.pos: can't set 'pos' without 'mesh_type'")
         if self.mesh_type == "unstructured":
-            self._pos = np.array(pos, dtype=np.double).reshape(self.dim, -1)
+            self._pos = np.asarray(pos, dtype=np.double).reshape(self.dim, -1)
             self._field_shape = np.shape(self._pos[0])
         else:
             self._pos, self._field_shape = format_struct_pos_dim(pos, self.dim)
