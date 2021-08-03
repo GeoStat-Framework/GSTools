@@ -352,11 +352,9 @@ def _set_weights(model, weights, x_data, curve_fit_kwargs, is_dir_vario):
             weights = 1.0 / weights(x_data)
         elif isinstance(weights, str) and weights == "inv":
             weights = 1.0 + x_data
-        elif is_dir_vario:
-            if weights.size * model.dim == x_data.size:
-                weights = np.tile(weights, model.dim)
-            weights = 1.0 / np.asarray(weights).reshape(-1)
         else:
+            if is_dir_vario and weights.size * model.dim == x_data.size:
+                weights = np.tile(weights, model.dim)
             weights = 1.0 / np.asarray(weights).reshape(-1)
         curve_fit_kwargs["sigma"] = weights
         curve_fit_kwargs["absolute_sigma"] = True
