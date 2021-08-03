@@ -104,16 +104,38 @@ class Field:
         self.normalizer = normalizer
         self.trend = trend
 
-    def __getitem__(self, subscript):
-        if subscript in self.field_names:
-            return getattr(self, subscript)
-        if isinstance(subscript, int):
-            return self[self.field_names[subscript]]
-        if isinstance(subscript, slice):
-            return [self[f] for f in self.field_names[subscript]]
-        if isinstance(subscript, Iterable):
-            return [self[f] for f in subscript]
-        raise ValueError(f"Field: requested field '{subscript}' not present")
+    def __getitem__(self, key):
+        if key in self.field_names:
+            return getattr(self, key)
+        if isinstance(key, int):
+            return self[self.field_names[key]]
+        if isinstance(key, slice):
+            return [self[f] for f in self.field_names[key]]
+        if isinstance(key, Iterable) and not isinstance(key, str):
+            return [self[f] for f in key]
+        raise KeyError(f"{self.name}: requested field '{key}' not present")
+
+    def __delitem__(self, key):
+        names = []
+        if key in self.field_names:
+            names = [key]
+        elif isinstance(key, int):
+            names = [self.field_names[key]]
+        elif isinstance(key, slice):
+            names = self.field_names[key]
+        elif isinstance(key, Iterable) and not isinstance(key, str):
+            for k in key:
+                k = self.field_names[k] if isinstance(key, int) else k
+                names.append(k)
+        else:
+            raise KeyError(f"{self.name}: requested field '{key}' not present")
+        for name in names:
+            if name not in self.field_names:
+                raise KeyError(
+                    f"{self.name}: requested field '{name}' not present"
+                )
+            delattr(self, name)
+            del self._field_names[self._field_names.index(name)]
 
     def __call__(
         self,
@@ -291,6 +313,9 @@ class Field:
         field : :class:`numpy.ndarray`
             Processed field values.
         """
+        if self.field_shape is None:
+            raise ValueError("post_field: no 'field_shape' present.")
+        field = np.asarray(field, dtype=np.double).reshape(self.field_shape)
         if process:
             if self.pos is None:
                 raise ValueError("post_field: no 'pos' tuple set for field.")
@@ -319,11 +344,9 @@ class Field:
             setattr(self, name, field)
         return field
 
-    def delete_fields(self):
-        """Delete all present fields"""
-        for field in self._field_names:
-            delattr(self, field)
-        self._field_names = []
+    def delete_fields(self, select=None):
+        """Delete selected fields."""
+        del self[self.field_names if select is None else select]
 
     def transform(
         self, method, field="field", store=True, process=False, **kwargs
