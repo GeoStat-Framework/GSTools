@@ -124,17 +124,20 @@ class CondSRF(Field):
             and name[2] in self.field_names
             and krige_name[1] in self.krige.field_names
         ):
+            reuse = True
             rawkrige, krige_var = self[name[2]], self.krige[krige_name[1]]
         else:
+            reuse = False
             rawkrige, krige_var = self.krige(**kwargs)
         var_scale, nugget = self.get_scaling(krige_var, shape)
-        # need to use a copy to not alter "field" by reference
-        # store krige field
-        self.krige.post_field(
-            rawkrige.copy(), krige_name[0], post_process, krige_save[0]
-        )
+        # store krige field (need a copy to not alter field by reference)
+        if not reuse or krige_name[0] not in self.krige.field_names:
+            self.krige.post_field(
+                rawkrige.copy(), krige_name[0], post_process, krige_save[0]
+            )
         # store raw krige field
-        self.post_field(rawkrige.copy(), name[2], False, save[2])
+        if not reuse:
+            self.post_field(rawkrige, name[2], False, save[2])
         # store raw random field
         self.post_field(rawfield, name[1], False, save[1])
         # store cond random field
