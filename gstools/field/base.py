@@ -77,7 +77,7 @@ class Field:
         Dimension of the field if no model is given.
     """
 
-    default_names = ["field"]
+    default_field_names = ["field"]
     """:class:`list`: Default field names."""
 
     def __init__(
@@ -504,8 +504,7 @@ class Field:
             self.delete_fields()
             info_ret["deleted"] = True
         del old_pos
-        if info:
-            return info_ret
+        return info_ret if info else None
 
     def get_store_config(self, store, default=None, fld_cnt=None):
         """
@@ -531,9 +530,9 @@ class Field:
         """
         if default is None:
             if fld_cnt is None:
-                default = self.default_names[0]
+                default = self.default_field_names[0]
             else:
-                default = self.default_names
+                default = self.default_field_names
         # single field
         if fld_cnt is None:
             save = isinstance(store, str) or bool(store)

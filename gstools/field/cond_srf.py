@@ -43,7 +43,7 @@ class CondSRF(Field):
         Have a look at the provided generators for further information.
     """
 
-    default_names = ["field", "raw_field", "raw_krige"]
+    default_field_names = ["field", "raw_field", "raw_krige"]
     """:class:`list`: Default field names."""
 
     def __init__(self, krige, generator="RandMeth", **generator_kwargs):
@@ -215,8 +215,7 @@ class CondSRF(Field):
         info_ret = super().set_pos(pos, mesh_type, info=True)
         if info_ret["deleted"]:
             self.krige.delete_fields()
-        if info:
-            return info_ret
+        return info_ret if info else None
 
     @property
     def pos(self):

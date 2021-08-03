@@ -125,7 +125,7 @@ class Krige(Field):
            Springer, Berlin, Heidelberg (2003)
     """
 
-    default_names = ["field", "krige_var", "mean_field"]
+    default_field_names = ["field", "krige_var", "mean_field"]
     """:class:`list`: Default field names."""
 
     def __init__(
@@ -226,7 +226,7 @@ class Krige(Field):
         """
         return_var &= not only_mean  # don't return variance when calc. mean
         fld_cnt = 2 if return_var else 1
-        default = self.default_names[2] if only_mean else None
+        default = self.default_field_names[2] if only_mean else None
         name, save = self.get_store_config(store, default, fld_cnt)
 
         iso_pos, shape = self.pre_pos(pos, mesh_type)
