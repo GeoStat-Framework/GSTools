@@ -178,7 +178,7 @@ def apply_function(
     field="field",
     store=True,
     process=False,
-    keep_mean=False,
+    keep_mean=True,
     **kwargs,
 ):
     """
@@ -200,7 +200,7 @@ def apply_function(
         of given Field instance. The default is False.
     keep_mean : :class:`bool`, optional
         Whether to keep the mean of the field if process=True.
-        The default is False.
+        The default is True.
     **kwargs
         Keyword arguments forwarded to given function.
 
@@ -234,6 +234,7 @@ def binary(
     field="field",
     store=True,
     process=False,
+    keep_mean=True,
 ):
     """
     Binary transformation.
@@ -261,6 +262,9 @@ def binary(
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -270,7 +274,7 @@ def binary(
     if not process and divide is None:
         _check_for_default_normal(fld)
     if divide is None:
-        mean = 0.0 if process else fld.mean
+        mean = 0.0 if process and not keep_mean else fld.mean
     divide = mean if divide is None else divide
     upper = mean + np.sqrt(fld.model.sill) if upper is None else upper
     lower = mean - np.sqrt(fld.model.sill) if lower is None else lower
@@ -284,7 +288,7 @@ def binary(
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
@@ -296,6 +300,7 @@ def discrete(
     field="field",
     store=True,
     process=False,
+    keep_mean=True,
 ):
     """
     Discrete transformation.
@@ -324,6 +329,9 @@ def discrete(
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -335,7 +343,7 @@ def discrete(
     kw = dict(
         values=values,
         thresholds=thresholds,
-        mean=0.0 if process else fld.mean,
+        mean=0.0 if process and not keep_mean else fld.mean,
         var=fld.model.sill,
     )
     return apply_function(
@@ -344,12 +352,20 @@ def discrete(
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
 
-def boxcox(fld, lmbda=1, shift=0, field="field", store=True, process=False):
+def boxcox(
+    fld,
+    lmbda=1,
+    shift=0,
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=True,
+):
     """
     (Inverse) Box-Cox transformation to denormalize data.
 
@@ -378,6 +394,9 @@ def boxcox(fld, lmbda=1, shift=0, field="field", store=True, process=False):
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -391,12 +410,19 @@ def boxcox(fld, lmbda=1, shift=0, field="field", store=True, process=False):
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
 
-def zinnharvey(fld, conn="high", field="field", store=True, process=False):
+def zinnharvey(
+    fld,
+    conn="high",
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=True,
+):
     """
     Zinn and Harvey transformation to connect low or high values.
 
@@ -417,6 +443,9 @@ def zinnharvey(fld, conn="high", field="field", store=True, process=False):
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -425,19 +454,29 @@ def zinnharvey(fld, conn="high", field="field", store=True, process=False):
     """
     if not process:
         _check_for_default_normal(fld)
-    kw = dict(conn=conn, mean=0.0 if process else fld.mean, var=fld.model.sill)
+    kw = dict(
+        conn=conn,
+        mean=0.0 if process and not keep_mean else fld.mean,
+        var=fld.model.sill,
+    )
     return apply_function(
         fld=fld,
         function=array_zinnharvey,
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
 
-def normal_force_moments(fld, field="field", store=True, process=False):
+def normal_force_moments(
+    fld,
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=True,
+):
     """
     Force moments of a normal distributed field.
 
@@ -455,6 +494,9 @@ def normal_force_moments(fld, field="field", store=True, process=False):
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -463,19 +505,23 @@ def normal_force_moments(fld, field="field", store=True, process=False):
     """
     if not process:
         _check_for_default_normal(fld)
-    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill)
+    kw = dict(
+        mean=0.0 if process and not keep_mean else fld.mean, var=fld.model.sill
+    )
     return apply_function(
         fld=fld,
         function=array_force_moments,
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
 
-def normal_to_lognormal(fld, field="field", store=True, process=False):
+def normal_to_lognormal(
+    fld, field="field", store=True, process=False, keep_mean=True
+):
     """
     Transform normal distribution to log-normal distribution.
 
@@ -493,6 +539,9 @@ def normal_to_lognormal(fld, field="field", store=True, process=False):
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -505,11 +554,17 @@ def normal_to_lognormal(fld, field="field", store=True, process=False):
         field=field,
         store=store,
         process=process,
-        keep_mean=True,  # apply to normal field including mean
+        keep_mean=keep_mean,
     )
 
 
-def normal_to_uniform(fld, field="field", store=True, process=False):
+def normal_to_uniform(
+    fld,
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=True,
+):
     """
     Transform normal distribution to uniform distribution on [0, 1].
 
@@ -519,23 +574,34 @@ def normal_to_uniform(fld, field="field", store=True, process=False):
     ----------
     fld : :any:`Field`
         Field class containing a generated field.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
     """
     if not process:
         _check_for_default_normal(fld)
-    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill)
+    kw = dict(
+        mean=0.0 if process and not keep_mean else fld.mean, var=fld.model.sill
+    )
     return apply_function(
         fld=fld,
         function=array_to_uniform,
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
 
 def normal_to_arcsin(
-    fld, a=None, b=None, field="field", store=True, process=False
+    fld,
+    a=None,
+    b=None,
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=True,
 ):
     """
     Transform normal distribution to the bimodal arcsin distribution.
@@ -562,6 +628,9 @@ def normal_to_arcsin(
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -570,20 +639,31 @@ def normal_to_arcsin(
     """
     if not process:
         _check_for_default_normal(fld)
-    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill, a=a, b=b)
+    kw = dict(
+        mean=0.0 if process and not keep_mean else fld.mean,
+        var=fld.model.sill,
+        a=a,
+        b=b,
+    )
     return apply_function(
         fld=fld,
         function=array_to_arcsin,
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
 
 def normal_to_uquad(
-    fld, a=None, b=None, field="field", store=True, process=False
+    fld,
+    a=None,
+    b=None,
+    field="field",
+    store=True,
+    process=False,
+    keep_mean=True,
 ):
     """
     Transform normal distribution to U-quadratic distribution.
@@ -610,6 +690,9 @@ def normal_to_uquad(
     process : :class:`bool`, optional
         Whether to process in/out fields with trend, normalizer and mean
         of given Field instance. The default is False.
+    keep_mean : :class:`bool`, optional
+        Whether to keep the mean of the field if process=True.
+        The default is True.
 
     Returns
     -------
@@ -618,14 +701,19 @@ def normal_to_uquad(
     """
     if not process:
         _check_for_default_normal(fld)
-    kw = dict(mean=0.0 if process else fld.mean, var=fld.model.sill, a=a, b=b)
+    kw = dict(
+        mean=0.0 if process and not keep_mean else fld.mean,
+        var=fld.model.sill,
+        a=a,
+        b=b,
+    )
     return apply_function(
         fld=fld,
         function=array_to_uquad,
         field=field,
         store=store,
         process=process,
-        keep_mean=False,
+        keep_mean=keep_mean,
         **kw,
     )
 
