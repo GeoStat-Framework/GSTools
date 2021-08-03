@@ -112,10 +112,7 @@ class CondSRF(Field):
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape
-        iso_pos, shape, info = self.krige.pre_pos(pos, mesh_type, info=True)
-        # also reset fields in this class (not only krige with call above)
-        if info["deleted"]:
-            self.delete_fields()
+        iso_pos, shape, info = self.pre_pos(pos, mesh_type, info=True)
         # generate the field
         rawfield = np.reshape(self.generator(iso_pos, add_nugget=False), shape)
         # call krige on already set pos (reuse already calculated fields)
@@ -193,6 +190,32 @@ class CondSRF(Field):
             self.value_type = self.generator.value_type
         else:
             raise ValueError(f"gstools.CondSRF: Unknown generator {generator}")
+
+    def set_pos(self, pos, mesh_type="unstructured", info=False):
+        """
+        Set positions and mesh_type.
+
+        Parameters
+        ----------
+        pos : :any:`iterable`
+            the position tuple, containing main direction and transversal
+            directions
+        mesh_type : :class:`str`, optional
+            'structured' / 'unstructured'
+            Default: `"unstructured"`
+        info : :class:`bool`, optional
+            Whether to return information
+
+        Returns
+        -------
+        info : :class:`dict`
+            Information about settings.
+        """
+        info_ret = super().set_pos(pos, mesh_type, info=True)
+        if info_ret["deleted"]:
+            self.krige.delete_fields()
+        if info:
+            return info_ret
 
     @property
     def pos(self):

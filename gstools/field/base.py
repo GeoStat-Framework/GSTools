@@ -262,7 +262,7 @@ class Field:
             Isometrized position tuple.
         shape : :class:`tuple`
             Shape of the resulting field.
-        info : :class:`dict`
+        info : :class:`dict`, optional
             Information about settings.
         """
         info_ret = {"deleted": False}
@@ -272,14 +272,7 @@ class Field:
             if self.mesh_type is None:
                 raise ValueError("Field: no 'mesh_type' present")
         else:
-            old_pos = copy(self.pos)
-            # save pos and mesh-type
-            self.set_pos(pos, mesh_type)
-            # remove present fields if new pos is different from current
-            if not _pos_equal(old_pos, self.pos):
-                self.delete_fields()
-                info_ret["deleted"] = True
-            del old_pos
+            info_ret = self.set_pos(pos, mesh_type, info=True)
         if self.mesh_type != "unstructured":
             pos = generate_grid(self.pos)
         else:
@@ -471,7 +464,7 @@ class Field:
 
         return r
 
-    def set_pos(self, pos, mesh_type="unstructured"):
+    def set_pos(self, pos, mesh_type="unstructured", info=False):
         """
         Set positions and mesh_type.
 
@@ -483,9 +476,27 @@ class Field:
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
             Default: `"unstructured"`
+        info : :class:`bool`, optional
+            Whether to return information
+
+        Returns
+        -------
+        info : :class:`dict`
+            Information about settings.
         """
+        info_ret = {"deleted": False}
+        old_type = copy(self.mesh_type)
+        old_pos = copy(self.pos)
+        # save pos and mesh-type
         self.mesh_type = mesh_type
         self.pos = pos
+        # remove present fields if new pos is different from current
+        if old_type != self.mesh_type or not _pos_equal(old_pos, self.pos):
+            self.delete_fields()
+            info_ret["deleted"] = True
+        del old_pos
+        if info:
+            return info_ret
 
     @staticmethod
     def get_store_config(store, default="field", fld_cnt=None):
