@@ -278,8 +278,6 @@ class Field:
         if pos is None:
             if self.pos is None:
                 raise ValueError("Field: no position tuple 'pos' present")
-            if self.mesh_type is None:
-                raise ValueError("Field: no 'mesh_type' present")
         else:
             info_ret = self.set_pos(pos, mesh_type, info=True)
         if self.mesh_type != "unstructured":
@@ -562,8 +560,6 @@ class Field:
 
     @pos.setter
     def pos(self, pos):
-        if self.mesh_type is None:
-            raise ValueError("Field.pos: can't set 'pos' without 'mesh_type'")
         if self.mesh_type == "unstructured":
             self._pos = np.asarray(pos, dtype=np.double).reshape(self.dim, -1)
             self._field_shape = np.shape(self._pos[0])
