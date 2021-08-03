@@ -46,6 +46,67 @@ class TestField(unittest.TestCase):
         with self.assertRaises(ValueError):
             gs.field.Field(dim=3, mean=[1, 2])
 
+    def test_pos_compare(self):
+        fld = gs.field.Field(dim=1)
+        fld.set_pos([1, 2])
+        fld._dim = 2
+        info = fld.set_pos([[1], [2]], info=True)
+        self.assertTrue(info["deleted"])
+        info = fld.set_pos([[2], [3]], info=True)
+        self.assertTrue(info["deleted"])
+
+    def test_magic(self):
+        fld = gs.field.Field(dim=1)
+        f1 = np.array([0, 0], dtype=np.double)
+        f2 = np.array([2, 3], dtype=np.double)
+        fld([1, 2], store="f1")  # default field with zeros
+        fld([1, 2], f2, store="f2")
+        fields1 = fld[:]
+        fields2 = fld[[0, 1]]
+        fields3 = fld[["f1", "f2"]]
+        fields4 = fld.all_fields
+        self.assertTrue(np.allclose([f1, f2], fields1))
+        self.assertTrue(np.allclose([f1, f2], fields2))
+        self.assertTrue(np.allclose([f1, f2], fields3))
+        self.assertTrue(np.allclose([f1, f2], fields4))
+        self.assertEqual(len(fld), 2)
+        self.assertTrue("f1" in fld)
+        self.assertTrue("f2" in fld)
+        self.assertFalse("f3" in fld)
+        # subscription
+        with self.assertRaises(KeyError):
+            fld["f3"]
+        with self.assertRaises(KeyError):
+            del fld["f3"]
+        with self.assertRaises(KeyError):
+            del fld[["f3"]]
+        del fld["f1"]
+        self.assertFalse("f1" in fld)
+        fld([1, 2], f1, store="f1")
+        del fld[-1]
+        self.assertFalse("f1" in fld)
+        fld([1, 2], f1, store="f1")
+        del fld[:]
+        self.assertEqual(len(fld), 0)
+        fld([1, 2], f1, store="f1")
+        del fld.field_names
+        self.assertEqual(len(fld), 0)
+
+    def test_reuse(self):
+        fld = gs.field.Field(dim=1)
+        with self.assertRaises(ValueError):
+            fld()
+        with self.assertRaises(ValueError):
+            fld.post_field([1, 2])
+        with self.assertRaises(ValueError):
+            fld.post_field([1, 2], process=False, name=0)
+        fld.set_pos([1, 2])
+        with self.assertRaises(ValueError):
+            fld.structured()
+        fld.set_pos([1, 2], "structured")
+        with self.assertRaises(ValueError):
+            fld.unstructured()
+
 
 if __name__ == "__main__":
     unittest.main()
