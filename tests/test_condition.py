@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-This is the unittest of CovModel class.
-"""
-
+"""This is the unittest of CondSRF class."""
+from copy import copy
 import numpy as np
 import unittest
 import gstools as gs
@@ -62,6 +60,10 @@ class TestCondition(unittest.TestCase):
                 crf = gs.CondSRF(krige, seed=19970221)
                 field_1 = crf.unstructured(self.pos[:dim])
                 field_2 = crf.structured(self.pos[:dim])
+                # check reuse
+                raw_kr2 = copy(crf["raw_krige"])
+                crf(seed=19970222)
+                self.assertTrue(np.allclose(raw_kr2, crf["raw_krige"]))
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(val, field_1[i], places=2)
                     self.assertAlmostEqual(val, field_2[dim * (i,)], places=2)
