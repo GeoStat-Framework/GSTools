@@ -91,16 +91,24 @@ class TestField(unittest.TestCase):
         fld([1, 2], f1, store="f1")
         del fld.field_names
         self.assertEqual(len(fld), 0)
+        # store config (missing check)
+        name, save = fld.get_store_config(store="fld", fld_cnt=1)
+        self.assertEqual(name, ["fld"])
+        self.assertTrue(save[0])
 
     def test_reuse(self):
         fld = gs.field.Field(dim=1)
+        # no pos tuple
         with self.assertRaises(ValueError):
             fld()
+        # no field shape
         with self.assertRaises(ValueError):
             fld.post_field([1, 2])
+        # bad name
+        fld.set_pos([1, 2])
         with self.assertRaises(ValueError):
             fld.post_field([1, 2], process=False, name=0)
-        fld.set_pos([1, 2])
+        # incompatible reuse
         with self.assertRaises(ValueError):
             fld.structured()
         fld.set_pos([1, 2], "structured")

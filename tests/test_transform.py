@@ -44,8 +44,12 @@ class TestSRF(unittest.TestCase):
         np.testing.assert_allclose(
             srf.field, gs.normalizer.BoxCox().normalize(srf.boxcox)
         )
+        with self.assertWarns(Warning):
+            srf.transform("boxcox", store="boxcox_warn", lmbda=2)
         # lognormal
         np.testing.assert_allclose(srf.field, np.log(srf.normal_to_lognormal))
+        srf.transform("boxcox", store="boxcox2", lmbda=0)
+        np.testing.assert_allclose(srf.boxcox2, srf.normal_to_lognormal)
         # unifrom
         self.assertTrue(np.all(srf.normal_to_uniform < 1))
         self.assertTrue(np.all(srf.normal_to_uniform > 0))
@@ -70,6 +74,21 @@ class TestSRF(unittest.TestCase):
             "discrete", values=values, thresholds="equal", store="f3"
         )
         np.testing.assert_array_equal(np.unique(srf.f3), values)
+        # checks
+        with self.assertRaises(ValueError):
+            srf.transform("discrete", values=values, thresholds=[1])
+        with self.assertRaises(ValueError):
+            srf.transform("discrete", values=values, thresholds=[1, 3, 2])
+
+        # function
+        srf.transform("function", function=lambda x: 2 * x, store="f4")
+        np.testing.assert_array_equal(2 * srf.field, srf.f4)
+        with self.assertRaises(ValueError):
+            srf.transform("function", function=None)
+
+        # unknown method
+        with self.assertRaises(ValueError):
+            srf.transform("foobar")
 
     def test_transform_denormal(self):
         srf_fail = gs.SRF(
