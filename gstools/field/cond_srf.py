@@ -297,6 +297,6 @@ class CondSRF(Field):
 
     def __repr__(self):
         """Return String representation."""
-        return "CondSRF(krige={0}, generator={1})".format(
-            self.krige, self.generator.name
+        return "{0}(krige={1}, generator={2})".format(
+            self.name, self.krige, self.generator.name
         )

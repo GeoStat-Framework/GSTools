@@ -698,11 +698,6 @@ class Krige(Field):
         """:class:`int`: Number of external drift values per point."""
         return self.cond_ext_drift.shape[0]
 
-    @property
-    def name(self):
-        """:class:`str`: The name of the kriging class."""
-        return self.__class__.__name__
-
     def __repr__(self):
         """Return String representation."""
         return "{0}(model={1}, cond_no={2}{3})".format(
