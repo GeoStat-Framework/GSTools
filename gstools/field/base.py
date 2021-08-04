@@ -317,8 +317,6 @@ class Field:
             raise ValueError("post_field: no 'field_shape' present.")
         field = np.asarray(field, dtype=np.double).reshape(self.field_shape)
         if process:
-            if self.pos is None:
-                raise ValueError("post_field: no 'pos' tuple set for field.")
             field = apply_mean_norm_trend(
                 pos=self.pos,
                 field=field,
