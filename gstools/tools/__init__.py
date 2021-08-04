@@ -8,6 +8,8 @@ Export
 ^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    vtk_export
    vtk_export_structured
    vtk_export_unstructured
@@ -19,8 +21,11 @@ Special functions
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    confidence_scaling
    inc_gamma
+   inc_gamma_low
    exp_int
    inc_beta
    tplstable_cor
@@ -31,6 +36,8 @@ Geometric
 ^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    rotated_main_axes
    set_angles
    set_anis
@@ -68,6 +75,7 @@ from gstools.tools.export import (
 from gstools.tools.special import (
     confidence_scaling,
     inc_gamma,
+    inc_gamma_low,
     exp_int,
     inc_beta,
     tplstable_cor,
@@ -107,6 +115,7 @@ __all__ = [
     "to_vtk_unstructured",
     "confidence_scaling",
     "inc_gamma",
+    "inc_gamma_low",
     "exp_int",
     "inc_beta",
     "tplstable_cor",

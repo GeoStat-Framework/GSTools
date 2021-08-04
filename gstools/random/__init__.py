@@ -8,18 +8,24 @@ Random Number Generator
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    RNG
 
 Seed Generator
 ^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
     MasterRNG
 
 Distribution factory
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
    dist_gen
 
 ----
