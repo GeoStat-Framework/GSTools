@@ -131,7 +131,7 @@ def array_boxcox(field, lmbda=1, shift=0):
     field = np.asarray(field)
     result = field + shift
     if np.isclose(lmbda, 0):
-        array_to_lognormal(result)
+        return array_to_lognormal(result)
     if np.min(result) < -1 / lmbda:
         warn("Box-Cox: Some values will be cut off!")
     return (np.maximum(lmbda * result + 1, 0)) ** (1 / lmbda)
