@@ -110,7 +110,8 @@ def apply(fld, method, field="field", store=True, process=False, **kwargs):
     fld : :any:`Field`
         Field class containing a generated field.
     method : :class:`str`
-        Method to use. See :any:`transform` for available transformations.
+        Method to use.
+        See :any:`gstools.transform` for available transformations.
     field : :class:`str`, optional
         Name of field to be transformed. The default is "field".
     store : :class:`str` or :class:`bool`, optional

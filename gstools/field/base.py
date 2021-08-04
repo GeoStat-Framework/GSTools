@@ -355,7 +355,8 @@ class Field:
         Parameters
         ----------
         method : :class:`str`
-            Method to use. See :any:`transform` for available transformations.
+            Method to use.
+            See :any:`gstools.transform` for available transformations.
         field : :class:`str`, optional
             Name of field to be transformed. The default is "field".
         store : :class:`str` or :class:`bool`, optional
