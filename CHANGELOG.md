@@ -25,6 +25,10 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
   - only recalculate kriging field if `pos` tuple changed (optimized ensemble generation)
 - performance improvement by using `np.asarray` instead of `np.array` where possible
 - updated examples to use new features
+- added incomplete lower gamma function `inc_gamma_low` (for TPLGaussian spectral density)
+
+### Bugfixes
+- `inc_gamma` was defined wrong for integer `s < 0`
 
 
 ## [1.3.2] - Pure Pink - 2021-07

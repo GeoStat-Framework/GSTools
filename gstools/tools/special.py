@@ -8,6 +8,7 @@ The following functions are provided
 
 .. autosummary::
    inc_gamma
+   inc_gamma_low
    exp_int
    inc_beta
    tplstable_cor
@@ -21,6 +22,7 @@ from scipy import special as sps
 __all__ = [
     "confidence_scaling",
     "inc_gamma",
+    "inc_gamma_low",
     "exp_int",
     "inc_beta",
     "tplstable_cor",
@@ -64,10 +66,29 @@ def inc_gamma(s, x):
     if np.isclose(s, 0):
         return sps.exp1(x)
     if np.isclose(s, np.around(s)) and s < -0.5:
-        return x ** (s - 1) * sps.expn(int(1 - np.around(s)), x)
+        return x ** s * sps.expn(int(1 - np.around(s)), x)
     if s < 0:
         return (inc_gamma(s + 1, x) - x ** s * np.exp(-x)) / s
     return sps.gamma(s) * sps.gammaincc(s, x)
+
+
+def inc_gamma_low(s, x):
+    r"""Calculate the lower incomplete gamma function.
+
+    Given by: :math:`\gamma(s,x) = \int_0^x t^{s-1}\,e^{-t}\,{\rm d}t`
+
+    Parameters
+    ----------
+    s : :class:`float`
+        exponent in the integral
+    x : :class:`numpy.ndarray`
+        input values
+    """
+    if np.isclose(s, np.around(s)) and s < 0.5:
+        return np.full_like(x, np.inf, dtype=np.double)
+    if s < 0:
+        return (inc_gamma_low(s + 1, x) + x ** s * np.exp(-x)) / s
+    return sps.gamma(s) * sps.gammainc(s, x)
 
 
 def exp_int(s, x):
@@ -225,7 +246,7 @@ def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
         z_nz = np.logical_not(z_gz)  # near zero
         a = hurst + dim / 2.0
         fac = (len_scale / 2.0) ** dim * hurst / np.pi ** (dim / 2.0)
-        res[z_gz] = fac * (sps.gamma(a) - inc_gamma(a, z[z_gz])) / z[z_gz] ** a
+        res[z_gz] = fac * inc_gamma_low(a, z[z_gz]) / z[z_gz] ** a
         # first order approximation for z near zero
         res[z_nz] = fac * (1.0 / a - z[z_nz] / (a + 1.0))
         return res
