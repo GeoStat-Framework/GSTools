@@ -505,7 +505,7 @@ class Field:
 
     def get_store_config(self, store, default=None, fld_cnt=None):
         """
-        Get sotrage configuration from given selection.
+        Get storage configuration from given selection.
 
         Parameters
         ----------
