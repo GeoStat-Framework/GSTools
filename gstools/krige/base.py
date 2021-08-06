@@ -190,7 +190,7 @@ class Krige(Field):
 
         Parameters
         ----------
-        pos : :class:`list`
+        pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions (x, [y, z])
         mesh_type : :class:`str`, optional

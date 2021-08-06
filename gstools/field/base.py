@@ -158,7 +158,7 @@ class Field:
 
         Parameters
         ----------
-        pos : :class:`list`
+        pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
         field : :class:`numpy.ndarray` or :any:`None`, optional

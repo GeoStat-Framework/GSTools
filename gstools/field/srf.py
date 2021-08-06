@@ -114,7 +114,7 @@ class SRF(Field):
 
         Parameters
         ----------
-        pos : :class:`list`
+        pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
         seed : :class:`int`, optional
