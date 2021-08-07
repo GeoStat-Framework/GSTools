@@ -209,7 +209,7 @@ class CondSRF(Field):
 
         Returns
         -------
-        info : :class:`dict`
+        info : :class:`dict`, optional
             Information about settings.
 
         Warnings
