@@ -23,15 +23,16 @@ cond_srf = gs.CondSRF(krige)
 cond_srf.set_pos([x, y], "structured")
 
 ###############################################################################
-# We create a list containing the generated conditioned fields.
+# To generate the ensemble we will use a seed-generator.
 # By specifying ``store=[f"fld{i}", False, False]``, only the conditioned field
 # is stored with the specified name. The raw random field and the raw kriging
 # field is not stored. This way, we can access each conditioned field by index
 # ``cond_srf[i]``:
 
+seed = gs.random.MasterRNG(20170519)
 ens_no = 4
 for i in range(ens_no):
-    cond_srf(seed=i, store=[f"fld{i}", False, False])
+    cond_srf(seed=seed(), store=[f"fld{i}", False, False])
 
 ###############################################################################
 # Now let's have a look at the pairwise differences between the generated

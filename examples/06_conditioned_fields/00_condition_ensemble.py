@@ -29,10 +29,12 @@ cond_srf = gs.CondSRF(krige)
 cond_srf.set_pos(gridx)
 
 ###############################################################################
+# To generate the ensemble we will use a seed-generator.
 # We can specify individual names for each field by the keyword `store`:
 
+seed = gs.random.MasterRNG(20170519)
 for i in range(100):
-    cond_srf(seed=i, store=f"f{i}")
+    cond_srf(seed=seed(), store=f"f{i}")
     label = "Conditioned ensemble" if i == 0 else None
     plt.plot(gridx, cond_srf[f"f{i}"], color="k", alpha=0.1, label=label)
 
