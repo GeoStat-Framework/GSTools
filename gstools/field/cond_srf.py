@@ -211,6 +211,11 @@ class CondSRF(Field):
         -------
         info : :class:`dict`
             Information about settings.
+
+        Warnings
+        --------
+        When setting a new position tuple that differs from the present one,
+        all stored fields will be deleted.
         """
         info_ret = super().set_pos(pos, mesh_type, info=True)
         if info_ret["deleted"]:

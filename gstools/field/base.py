@@ -273,6 +273,11 @@ class Field:
             Shape of the resulting field.
         info : :class:`dict`, optional
             Information about settings.
+
+        Warnings
+        --------
+        When setting a new position tuple that differs from the present one,
+        all stored fields will be deleted.
         """
         info_ret = {"deleted": False}
         if pos is None:
@@ -489,6 +494,11 @@ class Field:
         -------
         info : :class:`dict`
             Information about settings.
+
+        Warnings
+        --------
+        When setting a new position tuple that differs from the present one,
+        all stored fields will be deleted.
         """
         info_ret = {"deleted": False}
         old_type = copy(self.mesh_type)
