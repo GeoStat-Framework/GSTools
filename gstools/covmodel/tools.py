@@ -71,12 +71,12 @@ def _init_subclass(cls):
 
     def correlation_from_cor(self, r):
         """Correlation function of the model."""
-        r = np.array(np.abs(r), dtype=np.double)
+        r = np.asarray(np.abs(r), dtype=np.double)
         return self.cor(r / self.len_rescaled)
 
     def cor_from_correlation(self, h):
         """Correlation taking a non-dimensional range."""
-        h = np.array(np.abs(h), dtype=np.double)
+        h = np.asarray(np.abs(h), dtype=np.double)
         return self.correlation(h * self.len_rescaled)
 
     abstract = True
@@ -270,7 +270,7 @@ def check_arg_in_bounds(model, arg, val=None):
         raise ValueError("check bounds: unknown argument: {}".format(arg))
     bnd = list(model.arg_bounds[arg])
     val = getattr(model, arg) if val is None else val
-    val = np.array(val)
+    val = np.asarray(val)
     error_case = 0
     if len(bnd) == 2:
         bnd.append("cc")  # use closed intervals by default
@@ -332,7 +332,7 @@ def spectral_rad_pdf(model, r):
         PDF values.
 
     """
-    r = np.array(np.abs(r), dtype=np.double)
+    r = np.asarray(np.abs(r), dtype=np.double)
     if model.dim > 1:
         r_gz = np.logical_not(np.isclose(r, 0))
         # to prevent numerical errors, we just calculate where r>0

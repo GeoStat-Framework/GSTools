@@ -256,46 +256,6 @@ class TestSRF(unittest.TestCase):
         _ = srf.mesh(pv_mesh, seed=self.seed, points="points")
         self.assertTrue(np.allclose(field, pv_mesh["field"]))
 
-    def test_transform(self):
-        self.cov_model.dim = 2
-        srf = gs.SRF(self.cov_model, mean=self.mean, mode_no=self.mode_no)
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        tf.normal_force_moments(srf)  # force ergodicity of the given field
-        self.assertAlmostEqual(srf.field.mean(), srf.mean)
-        self.assertAlmostEqual(srf.field.var(), srf.model.var)
-        tf.zinnharvey(srf)  # make high values mostly connected
-        tf.normal_force_moments(srf)  # force ergodicity of the given field
-        tf.normal_to_lognormal(srf)  # log-normal
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        tf.normal_to_arcsin(srf)
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        tf.normal_to_uquad(srf)
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        tf.normal_to_uniform(srf)
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        tf.binary(srf)
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        tf.boxcox(srf)
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        values = np.linspace(np.min(srf.field), np.max(srf.field), 3)
-        tf.discrete(srf, values)
-
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        values = [-1, 0, 1]
-        thresholds = [-0.9, 0.1]
-        tf.discrete(srf, values, thresholds)
-        np.testing.assert_array_equal(np.unique(srf.field), [-1, 0, 1])
-
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        values = [-1, 0, 1]
-        tf.discrete(srf, values, thresholds="arithmetic")
-        np.testing.assert_array_equal(np.unique(srf.field), [-1.0, 0.0, 1.0])
-
-        srf((self.x_grid, self.y_grid), seed=self.seed, mesh_type="structured")
-        values = [-1, 0, 0.5, 1]
-        tf.discrete(srf, values, thresholds="equal")
-        np.testing.assert_array_equal(np.unique(srf.field), values)
-
     def test_incomprrandmeth(self):
         self.cov_model = gs.Gaussian(dim=2, var=0.5, len_scale=1.0)
         srf = gs.SRF(

@@ -125,7 +125,7 @@ class RandMeth:
         :class:`numpy.ndarray`
             the random modes
         """
-        pos = np.array(pos, dtype=np.double)
+        pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
@@ -415,7 +415,7 @@ class IncomprRandMeth(RandMeth):
         :class:`numpy.ndarray`
             the random modes
         """
-        pos = np.array(pos, dtype=np.double)
+        pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )

@@ -321,8 +321,8 @@ def _pre_init_guess(model, init_guess, mean_x=1.0, mean_y=1.0):
 
 def _check_vario(model, x_data, y_data):
     # prepare variogram data
-    x_data = np.array(x_data).reshape(-1)
-    y_data = np.array(y_data).reshape(-1)
+    x_data = np.asarray(x_data).reshape(-1)
+    y_data = np.asarray(y_data).reshape(-1)
     # if multiple variograms are given, they will be interpreted
     # as directional variograms along the main rotated axes of the model
     is_dir_vario = False
@@ -352,12 +352,10 @@ def _set_weights(model, weights, x_data, curve_fit_kwargs, is_dir_vario):
             weights = 1.0 / weights(x_data)
         elif isinstance(weights, str) and weights == "inv":
             weights = 1.0 + x_data
-        elif is_dir_vario:
-            if weights.size * model.dim == x_data.size:
-                weights = np.tile(weights, model.dim)
-            weights = 1.0 / np.array(weights).reshape(-1)
         else:
-            weights = 1.0 / np.array(weights).reshape(-1)
+            if is_dir_vario and weights.size * model.dim == x_data.size:
+                weights = np.tile(weights, model.dim)
+            weights = 1.0 / np.asarray(weights).reshape(-1)
         curve_fit_kwargs["sigma"] = weights
         curve_fit_kwargs["absolute_sigma"] = True
 

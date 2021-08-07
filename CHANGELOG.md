@@ -2,6 +2,35 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+
+## [1.3.3] - Pure Pink - ?
+
+### Enhancements
+See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
+- `gstools.transform`:
+  - add keywords `field`, `store` and `process` keyword to all transformations to control storage and respect `normalizer`
+  - added `apply_function` transformation
+  - added `apply` as wrapper for all transformations
+  - added `transform` method to all `Field` (sub)classes as interface to `transform.apply`
+  - added checks for normal fields to work smoothly with recently added `normalizer` submodule
+- `Field`:
+  - allow naming fields when generating and control storage with `store` keyword
+  - all subclasses now have the `post_process` keyword (apply mean, normalizer, trend)
+  - added subscription to access fields by name (`Field["field"]`)
+  - added `set_pos` method to set position tuple
+  - allow reusing present `pos` tuple
+  - added `pos`, `mesh_type`, `field_names`, `field_shape`, `all_fields` properties
+- `CondSRF`:
+  - memory optimization by forwarding `pos` from underlying `krige` instance
+  - only recalculate kriging field if `pos` tuple changed (optimized ensemble generation)
+- performance improvement by using `np.asarray` instead of `np.array` where possible
+- updated examples to use new features
+- added incomplete lower gamma function `inc_gamma_low` (for TPLGaussian spectral density)
+
+### Bugfixes
+- `inc_gamma` was defined wrong for integer `s < 0`
+
+
 ## [1.3.2] - Pure Pink - 2021-07
 
 ### Bugfixes
@@ -280,7 +309,7 @@ All notable changes to **GSTools** will be documented in this file.
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...HEAD
+[1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...HEAD
 [1.3.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...v1.3.0

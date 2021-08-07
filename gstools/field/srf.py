@@ -100,7 +100,13 @@ class SRF(Field):
         self.set_generator(generator, **generator_kwargs)
 
     def __call__(
-        self, pos, seed=np.nan, point_volumes=0.0, mesh_type="unstructured"
+        self,
+        pos=None,
+        seed=np.nan,
+        point_volumes=0.0,
+        mesh_type="unstructured",
+        post_process=True,
+        store=True,
     ):
         """Generate the spatial random field.
 
@@ -108,7 +114,7 @@ class SRF(Field):
 
         Parameters
         ----------
-        pos : :class:`list`
+        pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
         seed : :class:`int`, optional
@@ -121,12 +127,20 @@ class SRF(Field):
             is changed. Default: ``0``
         mesh_type : :class:`str`
             'structured' / 'unstructured'
+        post_process : :class:`bool`, optional
+            Whether to apply mean, normalizer and trend to the field.
+            Default: `True`
+        store : :class:`str` or :class:`bool`, optional
+            Whether to store field (True/False) with default name
+            or with specified name.
+            The default is :any:`True` for default name "field".
 
         Returns
         -------
         field : :class:`numpy.ndarray`
             the SRF
         """
+        name, save = self.get_store_config(store)
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
         # get isometrized positions and the resulting field-shape
@@ -139,7 +153,7 @@ class SRF(Field):
             if np.size(scaled_var) > 1:
                 scaled_var = np.reshape(scaled_var, shape)
             field *= np.sqrt(scaled_var / self.model.sill)
-        return self.post_field(field)
+        return self.post_field(field, name, post_process, save)
 
     def upscaling_func(self, *args, **kwargs):
         """Upscaling method applied to the field variance."""

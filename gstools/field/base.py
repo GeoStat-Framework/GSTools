@@ -11,6 +11,8 @@ The following classes are provided
 """
 # pylint: disable=C0103, C0415
 from functools import partial
+from collections.abc import Iterable
+from copy import copy
 import numpy as np
 from gstools.covmodel.base import CovModel
 from gstools.tools.geometric import format_struct_pos_dim, generate_grid
@@ -18,8 +20,10 @@ from gstools.field.tools import (
     generate_on_mesh,
     to_vtk_helper,
     fmt_mean_norm_trend,
+    _names,
 )
 from gstools.normalizer.tools import apply_mean_norm_trend, _check_normalizer
+from gstools.transform.field import apply
 
 __all__ = ["Field"]
 
@@ -27,10 +31,23 @@ VALUE_TYPES = ["scalar", "vector"]
 """:class:`list` of :class:`str`: valid field value types."""
 
 
+def _pos_equal(pos1, pos2):
+    if pos1 is None or pos2 is None:
+        return False
+    if len(pos1) != len(pos2):
+        return False
+    for p1, p2 in zip(pos1, pos2):
+        if len(p1) != len(p2):
+            return False
+        if not np.allclose(p1, p2):
+            return False
+    return True
+
+
 def _set_mean_trend(value, dim):
     if callable(value) or value is None:
         return value
-    value = np.array(value, dtype=np.double).ravel()
+    value = np.asarray(value, dtype=np.double).ravel()
     if value.size > 1 and value.size != dim:  # vector mean
         raise ValueError(f"Mean/Trend: Wrong size ({value})")
     return value if value.size > 1 else value.item()
@@ -60,6 +77,9 @@ class Field:
         Dimension of the field if no model is given.
     """
 
+    default_field_names = ["field"]
+    """:class:`list`: Default field names."""
+
     def __init__(
         self,
         model=None,
@@ -70,10 +90,10 @@ class Field:
         dim=None,
     ):
         # initialize attributes
-        self.pos = None
-        self.mesh_type = None
-        self.field = None
-        # initialize private attributes
+        self._mesh_type = "unstructured"  # default
+        self._pos = None
+        self._field_shape = None
+        self._field_names = []
         self._model = None
         self._value_type = None
         self._mean = None
@@ -87,14 +107,58 @@ class Field:
         self.normalizer = normalizer
         self.trend = trend
 
+    def __len__(self):
+        return len(self.field_names)
+
+    def __contains__(self, item):
+        return item in self.field_names
+
+    def __getitem__(self, key):
+        if key in self.field_names:
+            return getattr(self, key)
+        if isinstance(key, int):
+            return self[self.field_names[key]]
+        if isinstance(key, slice):
+            return [self[f] for f in self.field_names[key]]
+        if isinstance(key, Iterable) and not isinstance(key, str):
+            return [self[f] for f in key]
+        raise KeyError(f"{self.name}: requested field '{key}' not present")
+
+    def __delitem__(self, key):
+        names = []
+        if key in self.field_names:
+            names = [key]
+        elif isinstance(key, int):
+            names = [self.field_names[key]]
+        elif isinstance(key, slice):
+            names = self.field_names[key]
+        elif isinstance(key, Iterable) and not isinstance(key, str):
+            for k in key:
+                k = self.field_names[k] if isinstance(key, int) else k
+                names.append(k)
+        else:
+            raise KeyError(f"{self.name}: requested field '{key}' not present")
+        for name in names:
+            if name not in self.field_names:
+                raise KeyError(
+                    f"{self.name}: requested field '{name}' not present"
+                )
+            delattr(self, name)
+            del self._field_names[self._field_names.index(name)]
+
     def __call__(
-        self, pos, field=None, mesh_type="unstructured", post_process=True
+        self,
+        pos=None,
+        field=None,
+        mesh_type="unstructured",
+        post_process=True,
+        store=True,
     ):
         """Generate the field.
 
         Parameters
         ----------
-        pos : :class:`list`
+        pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
         field : :class:`numpy.ndarray` or :any:`None`, optional
@@ -104,24 +168,33 @@ class Field:
         post_process : :class:`bool`, optional
             Whether to apply mean, normalizer and trend to the field.
             Default: `True`
+        store : :class:`str` or :class:`bool`, optional
+            Whether to store field (True/False) with default name
+            or with specified name.
+            The default is :any:`True` for default name "field".
 
         Returns
         -------
         field : :class:`numpy.ndarray`
             the field values.
         """
+        name, save = self.get_store_config(store)
         pos, shape = self.pre_pos(pos, mesh_type)
         if field is None:
             field = np.zeros(shape, dtype=np.double)
         else:
-            field = np.array(field, dtype=np.double).reshape(shape)
-        return self.post_field(field, process=post_process)
+            field = np.asarray(field, dtype=np.double).reshape(shape)
+        return self.post_field(field, name, post_process, save)
 
     def structured(self, *args, **kwargs):
         """Generate a field on a structured mesh.
 
         See :any:`__call__`
         """
+        if self.pos is None:
+            self.mesh_type = "structured"
+        if not (args or "pos" in kwargs) and self.mesh_type == "unstructured":
+            raise ValueError("Field.structured: can't reuse present 'pos'")
         call = partial(self.__call__, mesh_type="structured")
         return call(*args, **kwargs)
 
@@ -130,6 +203,10 @@ class Field:
 
         See :any:`__call__`
         """
+        if self.pos is None:
+            self.mesh_type = "unstructured"
+        if not (args or "pos" in kwargs) and self.mesh_type != "unstructured":
+            raise ValueError("Field.unstructured: can't reuse present 'pos'")
         call = partial(self.__call__, mesh_type="unstructured")
         return call(*args, **kwargs)
 
@@ -173,7 +250,7 @@ class Field:
         """
         return generate_on_mesh(self, mesh, points, direction, name, **kwargs)
 
-    def pre_pos(self, pos, mesh_type="unstructured"):
+    def pre_pos(self, pos=None, mesh_type="unstructured", info=False):
         """
         Preprocessing positions and mesh_type.
 
@@ -185,34 +262,38 @@ class Field:
         mesh_type : :class:`str`, optional
             'structured' / 'unstructured'
             Default: `"unstructured"`
+        info : :class:`bool`, optional
+            Whether to return information
 
         Returns
         -------
         iso_pos : (d, n), :class:`numpy.ndarray`
-            the isometrized position tuple
+            Isometrized position tuple.
         shape : :class:`tuple`
             Shape of the resulting field.
+        info : :class:`dict`, optional
+            Information about settings.
+
+        Warnings
+        --------
+        When setting a new position tuple that differs from the present one,
+        all stored fields will be deleted.
         """
-        # save mesh-type
-        self.mesh_type = mesh_type
-        # save pos tuple
-        if mesh_type != "unstructured":
-            pos, shape = format_struct_pos_dim(pos, self.dim)
-            self.pos = pos
-            pos = generate_grid(pos)
+        info_ret = {"deleted": False}
+        if pos is None:
+            if self.pos is None:
+                raise ValueError("Field: no position tuple 'pos' present")
         else:
-            pos = np.array(pos, dtype=np.double).reshape(self.dim, -1)
-            self.pos = pos
-            shape = np.shape(pos[0])
-        # prepend dimension if we have a vector field
-        if self.value_type == "vector":
-            shape = (self.dim,) + shape
-            if self.latlon:
-                raise ValueError("Field: Vector fields not allowed for latlon")
-        # return isometrized pos tuple and resulting field shape
+            info_ret = self.set_pos(pos, mesh_type, info=True)
+        if self.mesh_type != "unstructured":
+            pos = generate_grid(self.pos)
+        else:
+            pos = self.pos
+        # return isometrized pos tuple, field shape and possible info
+        info_ret = (info_ret,)
         if self.model is None:
-            return pos, shape
-        return self.model.isometrize(pos), shape
+            return (pos, self.field_shape) + info * info_ret
+        return (self.model.isometrize(pos), self.field_shape) + info * info_ret
 
     def post_field(self, field, name="field", process=True, save=True):
         """
@@ -237,9 +318,10 @@ class Field:
         field : :class:`numpy.ndarray`
             Processed field values.
         """
+        if self.field_shape is None:
+            raise ValueError("post_field: no 'field_shape' present.")
+        field = np.asarray(field, dtype=np.double).reshape(self.field_shape)
         if process:
-            if self.pos is None:
-                raise ValueError("post_field: no 'pos' tuple set for field.")
             field = apply_mean_norm_trend(
                 pos=self.pos,
                 field=field,
@@ -252,8 +334,58 @@ class Field:
                 stacked=False,
             )
         if save:
+            name = str(name)
+            if not name.isidentifier() or (
+                name not in self.field_names and name in dir(self)
+            ):
+                raise ValueError(
+                    f"Field: given field name '{name}' is not valid"
+                )
+            # allow resetting present fields
+            if name not in self._field_names:
+                self._field_names.append(name)
             setattr(self, name, field)
         return field
+
+    def delete_fields(self, select=None):
+        """Delete selected fields."""
+        del self[self.field_names if select is None else select]
+
+    def transform(
+        self, method, field="field", store=True, process=False, **kwargs
+    ):
+        """
+        Apply field transformation.
+
+        Parameters
+        ----------
+        method : :class:`str`
+            Method to use.
+            See :any:`gstools.transform` for available transformations.
+        field : :class:`str`, optional
+            Name of field to be transformed. The default is "field".
+        store : :class:`str` or :class:`bool`, optional
+            Whether to store field inplace (True/False) or under a given name.
+            The default is True.
+        process : :class:`bool`, optional
+            Whether to process in/out fields with trend, normalizer and mean
+            of given Field instance. The default is False.
+        **kwargs
+            Keyword arguments forwarded to selected method.
+
+        Raises
+        ------
+        ValueError
+            When method is unknown.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Transformed field.
+        """
+        return apply(
+            self, method, field=field, store=store, process=process, **kwargs
+        )
 
     def to_pyvista(
         self, field_select="field", fieldname="field"
@@ -342,6 +474,139 @@ class Field:
             raise ValueError(f"Unknown field value type: {self.value_type}")
 
         return r
+
+    def set_pos(self, pos, mesh_type="unstructured", info=False):
+        """
+        Set positions and mesh_type.
+
+        Parameters
+        ----------
+        pos : :any:`iterable`
+            the position tuple, containing main direction and transversal
+            directions
+        mesh_type : :class:`str`, optional
+            'structured' / 'unstructured'
+            Default: `"unstructured"`
+        info : :class:`bool`, optional
+            Whether to return information
+
+        Returns
+        -------
+        info : :class:`dict`, optional
+            Information about settings.
+
+        Warnings
+        --------
+        When setting a new position tuple that differs from the present one,
+        all stored fields will be deleted.
+        """
+        info_ret = {"deleted": False}
+        old_type = copy(self.mesh_type)
+        old_pos = copy(self.pos)
+        # save pos and mesh-type
+        self.mesh_type = mesh_type
+        self.pos = pos
+        # remove present fields if new pos is different from current
+        if old_type != self.mesh_type or not _pos_equal(old_pos, self.pos):
+            self.delete_fields()
+            info_ret["deleted"] = True
+        del old_pos
+        return info_ret if info else None
+
+    def get_store_config(self, store, default=None, fld_cnt=None):
+        """
+        Get storage configuration from given selection.
+
+        Parameters
+        ----------
+        store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store fields (True/False) with default names
+            or with specified names.
+            The default is :any:`True` for default names.
+        default : :class:`str` or :class:`list`, optional
+            Default field names. The default is "field".
+        fld_cnt : :any:`None` or :class:`int`, optional
+            Number of fields when using lists. The default is None.
+
+        Returns
+        -------
+        name : :class:`str` or :class:`list`
+            Name(s) of field.
+        save : :class:`bool` or :class:`list`
+            Whether to save field(s).
+        """
+        if default is None:
+            if fld_cnt is None:
+                default = self.default_field_names[0]
+            else:
+                default = self.default_field_names
+        # single field
+        if fld_cnt is None:
+            save = isinstance(store, str) or bool(store)
+            name = store if isinstance(store, str) else default
+            return name, save
+        # multiple fields
+        default = _names(default, fld_cnt)
+        save = [True] * fld_cnt
+        if isinstance(store, str):
+            store = [store]
+        if isinstance(store, Iterable):
+            store = list(store)[:fld_cnt]
+            store += [True] * (fld_cnt - len(store))
+            name = [None] * fld_cnt
+            for i, val in enumerate(store):
+                save[i] = isinstance(val, str) or bool(val)
+                name[i] = val if isinstance(val, str) else default[i]
+        else:
+            save = [bool(store)] * fld_cnt
+            name = copy(default)
+        return name, save
+
+    @property
+    def pos(self):
+        """:class:`tuple`: The position tuple of the field."""
+        return self._pos
+
+    @pos.setter
+    def pos(self, pos):
+        if self.mesh_type == "unstructured":
+            self._pos = np.asarray(pos, dtype=np.double).reshape(self.dim, -1)
+            self._field_shape = np.shape(self._pos[0])
+        else:
+            self._pos, self._field_shape = format_struct_pos_dim(pos, self.dim)
+        # prepend dimension if we have a vector field
+        if self.value_type == "vector":
+            self._field_shape = (self.dim,) + self._field_shape
+            if self.latlon:
+                raise ValueError("Field: Vector fields not allowed for latlon")
+
+    @property
+    def all_fields(self):
+        """:class:`list`: All fields as stacked list."""
+        return self[self.field_names]
+
+    @property
+    def field_names(self):
+        """:class:`list`: Names of present fields."""
+        return self._field_names
+
+    @field_names.deleter
+    def field_names(self):
+        self.delete_fields()
+
+    @property
+    def field_shape(self):
+        """:class:`tuple`: The shape of the field."""
+        return self._field_shape
+
+    @property
+    def mesh_type(self):
+        """:class:`str`: The mesh type of the field."""
+        return self._mesh_type
+
+    @mesh_type.setter
+    def mesh_type(self, mesh_type):
+        self._mesh_type = str(mesh_type)
 
     @property
     def model(self):

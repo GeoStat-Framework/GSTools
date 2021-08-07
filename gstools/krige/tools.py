@@ -44,8 +44,8 @@ def set_condition(cond_pos, cond_val, dim):
         the error checked cond_val
     """
     # convert the input for right shapes and dimension checks
-    cond_val = np.array(cond_val, dtype=np.double).reshape(-1)
-    cond_pos = np.array(cond_pos, dtype=np.double).reshape(dim, -1)
+    cond_val = np.asarray(cond_val, dtype=np.double).reshape(-1)
+    cond_pos = np.asarray(cond_pos, dtype=np.double).reshape(dim, -1)
     if len(cond_pos[0]) != len(cond_val):
         raise ValueError(
             "Please check your 'cond_pos' and 'cond_val' parameters. "

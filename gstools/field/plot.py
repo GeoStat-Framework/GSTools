@@ -51,12 +51,10 @@ def plot_field(
     **kwargs
         Forwarded to the plotting routine.
     """
-    plt_fld = getattr(fld, field)
-    assert not (fld.pos is None or plt_fld is None)
     if fld.dim == 1:
-        return plot_1d(fld.pos, plt_fld, fig, ax, **kwargs)
+        return plot_1d(fld.pos, fld[field], fig, ax, **kwargs)
     return plot_nd(
-        fld.pos, plt_fld, fld.mesh_type, fig, ax, fld.latlon, **kwargs
+        fld.pos, fld[field], fld.mesh_type, fig, ax, fld.latlon, **kwargs
     )
 
 
@@ -302,9 +300,7 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
             "Only structured vector fields are supported "
             "for plotting. Please create one on a structured grid."
         )
-    plt_fld = getattr(fld, field)
-    assert not (fld.pos is None or plt_fld is None)
-
+    plt_fld = fld[field]
     norm = np.sqrt(plt_fld[0, :].T ** 2 + plt_fld[1, :].T ** 2)
 
     fig, ax = get_fig_ax(fig, ax)

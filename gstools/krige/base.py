@@ -125,6 +125,9 @@ class Krige(Field):
            Springer, Berlin, Heidelberg (2003)
     """
 
+    default_field_names = ["field", "krige_var", "mean_field"]
+    """:class:`list`: Default field names."""
+
     def __init__(
         self,
         model,
@@ -144,8 +147,6 @@ class Krige(Field):
         fit_variogram=False,
     ):
         super().__init__(model, mean=mean, normalizer=normalizer, trend=trend)
-        self.mean_field = None
-        self.krige_var = None
         self._unbiased = bool(unbiased)
         self._exact = bool(exact)
         self._pseudo_inv = bool(pseudo_inv)
@@ -172,13 +173,14 @@ class Krige(Field):
 
     def __call__(
         self,
-        pos,
+        pos=None,
         mesh_type="unstructured",
         ext_drift=None,
         chunk_size=None,
         only_mean=False,
         return_var=True,
         post_process=True,
+        store=True,
     ):
         """
         Generate the kriging field.
@@ -188,7 +190,7 @@ class Krige(Field):
 
         Parameters
         ----------
-        pos : :class:`list`
+        pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions (x, [y, z])
         mesh_type : :class:`str`, optional
@@ -208,6 +210,11 @@ class Krige(Field):
         post_process : :class:`bool`, optional
             Whether to apply mean, normalizer and trend to the field.
             Default: `True`
+        store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store kriging fields (True/False) with default name
+            or with specified names.
+            The default is :any:`True` for default names
+            ["field", "krige_var"] or "mean_field" if `only_mean=True`.
 
         Returns
         -------
@@ -218,6 +225,10 @@ class Krige(Field):
             (if return_var is True and only_mean is False)
         """
         return_var &= not only_mean  # don't return variance when calc. mean
+        fld_cnt = 2 if return_var else 1
+        default = self.default_field_names[2] if only_mean else None
+        name, save = self.get_store_config(store, default, fld_cnt)
+
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         pnt_cnt = len(iso_pos[0])
 
@@ -248,18 +259,14 @@ class Krige(Field):
                 self._summate(field, krige_var, c_slice, k_vec, return_var)
         # reshape field if we got a structured mesh
         field = np.reshape(field, shape)
-        if only_mean:  # care about 'kriging the mean'
-            return self.post_field(field, "mean_field", process=post_process)
         # save field to class
-        field = self.post_field(field, "field", process=post_process)
+        field = self.post_field(field, name[0], post_process, save[0])
         if return_var:  # care about the estimated error variance
             krige_var = np.reshape(
                 np.maximum(self.model.sill - krige_var, 0), shape
             )
-            krige_var = self.post_field(krige_var, "krige_var", process=False)
+            krige_var = self.post_field(krige_var, name[1], False, save[1])
             return field, krige_var
-        # if we only calculate the field, overwrite the error variance
-        self.krige_var = None
         return field
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
@@ -364,7 +371,9 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
-            ext_drift = np.array(ext_drift, dtype=np.double, ndmin=2)
+            ext_drift = np.array(
+                ext_drift, dtype=np.double, ndmin=2, copy=False
+            )
             if ext_drift.size == 0:  # treat empty array as no ext_drift
                 return np.array([])
             if set_cond:
@@ -377,7 +386,7 @@ class Krige(Field):
                 raise ValueError("Krige: wrong number of external drifts.")
             if np.prod(ext_shape) != np.prod(shape):
                 raise ValueError("Krige: wrong number of ext. drift values.")
-            return np.array(ext_drift, dtype=np.double).reshape(shape)
+            return np.asarray(ext_drift, dtype=np.double).reshape(shape)
         if not set_cond and self._cond_ext_drift.size > 0:
             raise ValueError("Krige: wrong number of ext. drift values.")
         return np.array([])
@@ -603,7 +612,7 @@ class Krige(Field):
                     "krige.cond_err: measurement errors can't be given, "
                     "when interpolator should be exact."
                 )
-            value = np.array(value, dtype=np.double).reshape(-1)
+            value = np.asarray(value, dtype=np.double).reshape(-1)
             if value.size == 1:
                 self._cond_err = value.item()
             else:
@@ -688,11 +697,6 @@ class Krige(Field):
     def ext_drift_no(self):
         """:class:`int`: Number of external drift values per point."""
         return self.cond_ext_drift.shape[0]
-
-    @property
-    def name(self):
-        """:class:`str`: The name of the kriging class."""
-        return self.__class__.__name__
 
     def __repr__(self):
         """Return String representation."""

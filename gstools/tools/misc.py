@@ -104,7 +104,7 @@ def eval_func(
     # care about scalar inputs
     func_val = 0 if func_val is None else func_val
     if broadcast and not callable(func_val) and np.size(func_val) == 1:
-        return np.array(func_val, dtype=np.double).item()
+        return np.asarray(func_val, dtype=np.double).item()
     if not callable(func_val):
         func_val = _func_from_single_val(func_val, dim, value_type=value_type)
     # care about mesh and function call
@@ -112,7 +112,7 @@ def eval_func(
         pos, shape = format_struct_pos_dim(pos, dim)
         pos = generate_grid(pos)
     else:
-        pos = np.array(pos, dtype=np.double).reshape(dim, -1)
+        pos = np.asarray(pos, dtype=np.double).reshape(dim, -1)
         shape = np.shape(pos[0])
     # prepend dimension if we have a vector field
     if value_type == "vector":
@@ -125,7 +125,7 @@ def _func_from_single_val(value, dim=None, value_type="scalar"):
     v_d = dim if value_type == "vector" else 1  # value dim
     if v_d is None:  # pragma: no cover
         raise ValueError("_func_from_single_val: dim needed for vector value.")
-    value = np.array(value, dtype=np.double).ravel()[:v_d]
+    value = np.asarray(value, dtype=np.double).ravel()[:v_d]
     # fill up vector valued output to dimension with last value
     value = np.pad(
         value, (0, v_d - len(value)), "constant", constant_values=value[-1]

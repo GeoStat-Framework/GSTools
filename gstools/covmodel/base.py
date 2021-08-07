@@ -265,7 +265,7 @@ class CovModel:
 
     def vario_nugget(self, r):
         """Isotropic variogram of the model respecting the nugget at r=0."""
-        r = np.array(np.abs(r), dtype=np.double)
+        r = np.asarray(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
         res = np.empty_like(r, dtype=np.double)
         res[r_gz] = self.variogram(r[r_gz])
@@ -274,7 +274,7 @@ class CovModel:
 
     def cov_nugget(self, r):
         """Isotropic covariance of the model respecting the nugget at r=0."""
-        r = np.array(np.abs(r), dtype=np.double)
+        r = np.asarray(np.abs(r), dtype=np.double)
         r_gz = np.logical_not(np.isclose(r, 0))
         res = np.empty_like(r, dtype=np.double)
         res[r_gz] = self.covariance(r[r_gz])
@@ -501,7 +501,7 @@ class CovModel:
         k : :class:`float`
             Radius of the phase: :math:`k=\left\Vert\mathbf{k}\right\Vert`
         """
-        k = np.array(np.abs(k), dtype=np.double)
+        k = np.asarray(np.abs(k), dtype=np.double)
         return self._sft.transform(self.correlation, k, ret_err=False)
 
     def spectral_rad_pdf(self, r):
@@ -525,14 +525,14 @@ class CovModel:
 
     def isometrize(self, pos):
         """Make a position tuple ready for isotropic operations."""
-        pos = np.array(pos, dtype=np.double).reshape((self.field_dim, -1))
+        pos = np.asarray(pos, dtype=np.double).reshape((self.field_dim, -1))
         if self.latlon:
             return latlon2pos(pos)
         return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
 
     def anisometrize(self, pos):
         """Bring a position tuple into the anisotropic coordinate-system."""
-        pos = np.array(pos, dtype=np.double).reshape((self.dim, -1))
+        pos = np.asarray(pos, dtype=np.double).reshape((self.dim, -1))
         if self.latlon:
             return pos2latlon(pos)
         return np.dot(

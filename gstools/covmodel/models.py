@@ -73,14 +73,14 @@ class Gaussian(CovModel):
         return np.sqrt(np.pi) / 2.0
 
     def spectral_density(self, k):  # noqa: D102
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         return (self.len_rescaled / 2.0 / np.sqrt(np.pi)) ** self.dim * np.exp(
             -((k * self.len_rescaled / 2.0) ** 2)
         )
 
     def spectral_rad_cdf(self, r):
         """Gaussian radial spectral cdf."""
-        r = np.array(r, dtype=np.double)
+        r = np.asarray(r, dtype=np.double)
         if self.dim == 1:
             return sps.erf(r * self.len_rescaled / 2.0)
         if self.dim == 2:
@@ -100,7 +100,7 @@ class Gaussian(CovModel):
         -----
         Not defined for 3D.
         """
-        u = np.array(u, dtype=np.double)
+        u = np.asarray(u, dtype=np.double)
         if self.dim == 1:
             return 2.0 / self.len_rescaled * sps.erfinv(u)
         if self.dim == 2:
@@ -143,7 +143,7 @@ class Exponential(CovModel):
         return np.exp(-h)
 
     def spectral_density(self, k):  # noqa: D102
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         return (
             self.len_rescaled ** self.dim
             * sps.gamma((self.dim + 1) / 2.0)
@@ -153,7 +153,7 @@ class Exponential(CovModel):
 
     def spectral_rad_cdf(self, r):
         """Exponential radial spectral cdf."""
-        r = np.array(r, dtype=np.double)
+        r = np.asarray(r, dtype=np.double)
         if self.dim == 1:
             return np.arctan(r * self.len_rescaled) * 2.0 / np.pi
         if self.dim == 2:
@@ -178,7 +178,7 @@ class Exponential(CovModel):
         -----
         Not defined for 3D.
         """
-        u = np.array(u, dtype=np.double)
+        u = np.asarray(u, dtype=np.double)
         if self.dim == 1:
             return np.tan(np.pi / 2 * u) / self.len_rescaled
         if self.dim == 2:
@@ -341,7 +341,7 @@ class Matern(CovModel):
 
     def cor(self, h):
         """Matérn normalized correlation function."""
-        h = np.array(np.abs(h), dtype=np.double)
+        h = np.asarray(np.abs(h), dtype=np.double)
         # for nu > 20 we just use the gaussian model
         if self.nu > 20.0:
             return np.exp(-((h / 2.0) ** 2))
@@ -360,7 +360,7 @@ class Matern(CovModel):
         return res
 
     def spectral_density(self, k):  # noqa: D102
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
             return (
@@ -570,7 +570,7 @@ class Circular(CovModel):
 
     def cor(self, h):
         """Circular normalized correlation function."""
-        h = np.array(np.abs(h), dtype=np.double)
+        h = np.asarray(np.abs(h), dtype=np.double)
         res = np.zeros_like(h)
         # arccos is instable around h=1
         h_l1 = h < 1.0
@@ -661,7 +661,7 @@ class HyperSpherical(CovModel):
 
     def cor(self, h):
         """Hyper-Spherical normalized correlation function."""
-        h = np.array(h, dtype=np.double)
+        h = np.asarray(h, dtype=np.double)
         res = np.zeros_like(h)
         h_l1 = h < 1
         nu = (self.dim - 1.0) / 2.0
@@ -670,7 +670,7 @@ class HyperSpherical(CovModel):
         return res
 
     def spectral_density(self, k):  # noqa: D102
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         res = np.empty_like(k)
         kl = k * self.len_rescaled
         kl_gz = np.logical_not(np.isclose(k, 0))
@@ -751,7 +751,7 @@ class SuperSpherical(CovModel):
 
     def cor(self, h):
         """Super-Spherical normalized correlation function."""
-        h = np.array(h, dtype=np.double)
+        h = np.asarray(h, dtype=np.double)
         res = np.zeros_like(h)
         h_l1 = h < 1
         fac = 1.0 / sps.hyp2f1(0.5, -self.nu, 1.5, 1.0)
@@ -846,7 +846,7 @@ class JBessel(CovModel):
 
     def cor(self, h):
         """J-Bessel correlation."""
-        h = np.array(h, dtype=np.double)
+        h = np.asarray(h, dtype=np.double)
         h_gz = np.logical_not(np.isclose(h, 0))
         hh = h[h_gz]
         res = np.ones_like(h)
@@ -855,7 +855,7 @@ class JBessel(CovModel):
         return res
 
     def spectral_density(self, k):  # noqa: D102
-        k = np.array(k, dtype=np.double)
+        k = np.asarray(k, dtype=np.double)
         k_ll = k < 1.0 / self.len_rescaled
         kk = k[k_ll]
         res = np.zeros_like(k)
