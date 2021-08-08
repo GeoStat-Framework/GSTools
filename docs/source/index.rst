@@ -268,18 +268,19 @@ generate 100 realizations and plot them:
     cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
     cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 
-    gridx = np.linspace(0.0, 15.0, 151)
-
     # conditioned spatial random field class
     model = gs.Gaussian(dim=1, var=0.5, len_scale=2)
     krige = gs.krige.Ordinary(model, cond_pos, cond_val)
     cond_srf = gs.CondSRF(krige)
+    # same output positions for all ensemble members
+    grid_pos = np.linspace(0.0, 15.0, 151)
+    cond_srf.set_pos(grid_pos)
 
-    # generate the ensemble of field realizations
-    fields = []
+    # seeded ensemble generation
+    seed = gs.random.MasterRNG(20170519)
     for i in range(100):
-        fields.append(cond_srf(gridx, seed=i))
-        plt.plot(gridx, fields[i], color="k", alpha=0.1)
+        field = cond_srf(seed=seed(), store=f"field_{i}")
+        plt.plot(grid_pos, field, color="k", alpha=0.1)
     plt.scatter(cond_pos, cond_val, color="k")
     plt.show()
 

@@ -3,7 +3,7 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
-## [1.3.3] - Pure Pink - ?
+## [1.3.3] - Pure Pink - 2021-08
 
 ### Enhancements
 See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
