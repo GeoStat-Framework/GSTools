@@ -48,7 +48,7 @@ class Krige(Field):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     drift_functions : :class:`list` of :any:`callable`, :class:`str` or :class:`int`
         Either a list of callable functions, an integer representing
         the polynomial order of the drift or one of the following strings:
@@ -469,7 +469,8 @@ class Krige(Field):
         cond_pos : :class:`list`, optional
             the position tuple of the conditions (x, [y, z]). Default: current.
         cond_val : :class:`numpy.ndarray`, optional
-            the values of the conditions. Default: current.
+            the values of the conditions (nan values will be ignored).
+            Default: current.
         ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
             the external drift values at the given conditions (only for EDK)
             For multiple external drifts, the first dimension
