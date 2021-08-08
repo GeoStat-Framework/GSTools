@@ -8,7 +8,7 @@ All notable changes to **GSTools** will be documented in this file.
 ### Enhancements
 See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 - `gstools.transform`:
-  - add keywords `field`, `store` and `process` keyword to all transformations to control storage and respect `normalizer`
+  - add keywords `field`, `store`, `process` and `keep_mean` to all transformations to control storage and respect `normalizer`
   - added `apply_function` transformation
   - added `apply` as wrapper for all transformations
   - added `transform` method to all `Field` (sub)classes as interface to `transform.apply`
@@ -26,6 +26,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 - performance improvement by using `np.asarray` instead of `np.array` where possible
 - updated examples to use new features
 - added incomplete lower gamma function `inc_gamma_low` (for TPLGaussian spectral density)
+- filter `nan` values from `cond_val` array in all kriging routines [#201](https://github.com/GeoStat-Framework/GSTools/issues/201)
 
 ### Bugfixes
 - `inc_gamma` was defined wrong for integer `s < 0`

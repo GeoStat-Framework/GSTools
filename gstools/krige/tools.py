@@ -27,7 +27,7 @@ def set_condition(cond_pos, cond_val, dim):
     cond_pos : :class:`list`
         the position tuple of the conditions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     dim : :class:`int`, optional
         Spatial dimension
 
@@ -39,9 +39,9 @@ def set_condition(cond_pos, cond_val, dim):
     Returns
     -------
     cond_pos : :class:`list`
-        the error checked cond_pos
+        the error checked cond_pos with all finite values
     cond_val : :class:`numpy.ndarray`
-        the error checked cond_val
+        the error checked cond_val for all finite cond_pos values
     """
     # convert the input for right shapes and dimension checks
     cond_val = np.asarray(cond_val, dtype=np.double).reshape(-1)
@@ -51,7 +51,8 @@ def set_condition(cond_pos, cond_val, dim):
             "Please check your 'cond_pos' and 'cond_val' parameters. "
             "The shapes do not match."
         )
-    return cond_pos, cond_val
+    mask = np.isfinite(cond_val)
+    return cond_pos[:, mask], cond_val[mask]
 
 
 def get_drift_functions(dim, drift_type):

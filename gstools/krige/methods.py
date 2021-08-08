@@ -32,7 +32,7 @@ class Simple(Krige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     mean : :class:`float`, optional
         mean value used to shift normalized conditioning data.
         Could also be a callable. The default is None.
@@ -130,7 +130,7 @@ class Ordinary(Krige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     normalizer : :any:`None` or :any:`Normalizer`, optional
         Normalizer to be applied to the input data to gain normality.
         The default is None.
@@ -228,7 +228,7 @@ class Universal(Krige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     drift_functions : :class:`list` of :any:`callable`, :class:`str` or :class:`int`
         Either a list of callable functions, an integer representing
         the polynomial order of the drift or one of the following strings:
@@ -335,7 +335,7 @@ class ExtDrift(Krige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     ext_drift : :class:`numpy.ndarray`
         the external drift values at the given condition positions.
     normalizer : :any:`None` or :any:`Normalizer`, optional
@@ -441,7 +441,7 @@ class Detrended(Krige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions
+        the values of the conditions (nan values will be ignored)
     trend_function : :any:`callable`
         The callable trend function. Should have the signiture: f(x, [y, z])
     exact : :class:`bool`, optional
