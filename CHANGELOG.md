@@ -310,7 +310,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.2.1...v1.3.0
