@@ -138,9 +138,7 @@ cdef inline void normalization_matheron_vec(
 ):
     cdef int d, i
     for d in range(variogram.shape[0]):
-        for i in range(variogram.shape[1]):
-            # avoid division by zero
-            variogram[d, i] /= (2. * max(counts[d, i], 1))
+        normalization_matheron(variogram[d, :], counts[d, :])
 
 cdef inline void normalization_cressie_vec(
     double[:,:] variogram,
@@ -149,13 +147,7 @@ cdef inline void normalization_cressie_vec(
     cdef int d, i
     cdef long cnt
     for d in range(variogram.shape[0]):
-        for i in range(variogram.shape[1]):
-            # avoid division by zero
-            cnt = max(counts[d, i], 1)
-            variogram[d, i] = (
-                0.5 * (1./cnt * variogram[d, i])**4 /
-                (0.457 + 0.494 / cnt + 0.045 / cnt**2)
-            )
+        normalization_cressie(variogram[d, :], counts[d, :])
 
 ctypedef void (*_normalization_func_vec)(
     double[:,:],
