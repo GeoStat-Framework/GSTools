@@ -222,8 +222,6 @@ def directional(
 
     cdef double[:,:] variogram = np.zeros((d_max, len(bin_edges)-1))
     cdef long[:,:] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
-    cdef vector[double] pos1 = vector[double](dim, 0.0)
-    cdef vector[double] pos2 = vector[double](dim, 0.0)
     cdef int i, j, k, m, d
     cdef DTYPE_t dist
 
@@ -285,8 +283,6 @@ def unstructured(
 
     cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
     cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
-    cdef vector[double] pos1 = vector[double](dim, 0.0)
-    cdef vector[double] pos2 = vector[double](dim, 0.0)
     cdef int i, j, k, m
     cdef DTYPE_t dist
 
