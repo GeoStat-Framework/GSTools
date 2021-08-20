@@ -21,7 +21,7 @@ cdef inline double dist_euclid(
     const int dim,
     const double[:,:] pos,
     const int i,
-    const int j
+    const int j,
 ) nogil:
     cdef int d
     cdef double dist_squared = 0.0
@@ -34,7 +34,7 @@ cdef inline double dist_haversine(
     const int dim,
     const double[:,:] pos,
     const int i,
-    const int j
+    const int j,
 ) nogil:
     # pos holds lat-lon in deg
     cdef double deg_2_rad = M_PI / 180.0
@@ -53,7 +53,7 @@ ctypedef double (*_dist_func)(
     const int,
     const double[:,:],
     const int,
-    const int
+    const int,
 ) nogil
 
 
@@ -66,7 +66,7 @@ cdef inline bint dir_test(
     const double bandwidth,
     const int i,
     const int j,
-    const int d
+    const int d,
 ) nogil:
     cdef double s_prod = 0.0  # scalar product
     cdef double b_dist = 0.0  # band-distance
@@ -196,7 +196,7 @@ def directional(
     const double angles_tol=M_PI/8.0,
     const double bandwidth=-1.0,  # negative values to turn of bandwidth search
     const bint separate_dirs=False,  # whether the direction bands don't overlap
-    str estimator_type='m'
+    str estimator_type='m',
 ):
     if pos.shape[1] != f.shape[1]:
         raise ValueError('len(pos) = {0} != len(f) = {1} '.
@@ -252,7 +252,7 @@ def unstructured(
     const double[:] bin_edges,
     const double[:,:] pos,
     str estimator_type='m',
-    str distance_type='e'
+    str distance_type='e',
 ):
     cdef _dist_func distance
 
@@ -329,7 +329,7 @@ def structured(const double[:,:] f, str estimator_type='m'):
 def ma_structured(
     const double[:,:] f,
     const bint[:,:] mask,
-    str estimator_type='m'
+    str estimator_type='m',
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
