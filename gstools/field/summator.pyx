@@ -12,31 +12,26 @@ from libc.math cimport sin, cos
 cimport numpy as np
 
 
-DTYPE = np.double
-ctypedef np.double_t DTYPE_t
-
-
 def summate(
-    const double[:,:] cov_samples,
+    const double[:, :] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:,:] pos
+    const double[:, :] pos
     ):
-    cdef int i, j, d, X_len, N
+    cdef int i, j, d
     cdef double phase
-    cdef int dim
-    dim = pos.shape[0]
+    cdef int dim = pos.shape[0]
 
-    X_len = pos.shape[1]
-    N = cov_samples.shape[1]
+    cdef int X_len = pos.shape[1]
+    cdef int N = cov_samples.shape[1]
 
-    cdef double[:] summed_modes = np.zeros(X_len, dtype=DTYPE)
+    cdef double[:] summed_modes = np.zeros(X_len)
 
     for i in prange(X_len, nogil=True):
         for j in range(N):
             phase = 0.
             for d in range(dim):
-                phase += cov_samples[d,j] * pos[d,i]
+                phase += cov_samples[d, j] * pos[d, i]
             summed_modes[i] += z_1[j] * cos(phase) + z_2[j] * sin(phase)
 
     return np.asarray(summed_modes)
@@ -53,34 +48,33 @@ cdef (double) abs_square(const double[:] vec) nogil:
 
 
 def summate_incompr(
-    const double[:,:] cov_samples,
+    const double[:, :] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:,:] pos
+    const double[:, :] pos
     ):
-    cdef int i, j, d, X_len, N
+    cdef int i, j, d
     cdef double phase
-    cdef int dim
     cdef double k_2
-    dim = pos.shape[0]
+    cdef int dim = pos.shape[0]
 
-    cdef double[:] e1 = np.zeros(dim, dtype=DTYPE)
+    cdef double[:] e1 = np.zeros(dim)
     e1[0] = 1.
-    cdef double[:] proj = np.empty(dim, dtype=DTYPE)
+    cdef double[:] proj = np.empty(dim)
 
-    X_len = pos.shape[1]
-    N = cov_samples.shape[1]
+    cdef int X_len = pos.shape[1]
+    cdef int N = cov_samples.shape[1]
 
-    cdef double[:,:] summed_modes = np.zeros((dim, X_len), dtype=DTYPE)
+    cdef double[:, :] summed_modes = np.zeros((dim, X_len))
 
     for i in range(X_len):
         for j in range(N):
-            k_2 = abs_square(cov_samples[:,j])
+            k_2 = abs_square(cov_samples[:, j])
             phase = 0.
             for d in range(dim):
-                phase += cov_samples[d,j] * pos[d,i]
+                phase += cov_samples[d, j] * pos[d, i]
             for d in range(dim):
-                proj[d] = e1[d] - cov_samples[d,j] * cov_samples[0,j] / k_2
-                summed_modes[d,i] += proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
+                proj[d] = e1[d] - cov_samples[d, j] * cov_samples[0, j] / k_2
+                summed_modes[d, i] += proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
 
     return np.asarray(summed_modes)
