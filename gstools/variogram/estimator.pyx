@@ -9,7 +9,6 @@ import numpy as np
 
 cimport cython
 from cython.parallel import prange, parallel
-from libcpp.vector cimport vector
 from libc.math cimport fabs, sqrt, isnan, acos, pow, sin, cos, atan2, M_PI
 cimport numpy as np
 
@@ -106,21 +105,21 @@ cdef inline double estimator_cressie(const double f_diff) nogil:
 ctypedef double (*_estimator_func)(const double) nogil
 
 cdef inline void normalization_matheron(
-    vector[double]& variogram,
-    vector[long]& counts
+    double[:] variogram,
+    long[:] counts,
 ):
     cdef int i
-    for i in range(variogram.size()):
+    for i in range(variogram.shape[0]):
         # avoid division by zero
         variogram[i] /= (2. * max(counts[i], 1))
 
 cdef inline void normalization_cressie(
-    vector[double]& variogram,
-    vector[long]& counts
+    double[:] variogram,
+    long[:] counts,
 ):
     cdef int i
     cdef long cnt
-    for i in range(variogram.size()):
+    for i in range(variogram.shape[0]):
         # avoid division by zero
         cnt = max(counts[i], 1)
         variogram[i] = (
@@ -129,13 +128,13 @@ cdef inline void normalization_cressie(
         )
 
 ctypedef void (*_normalization_func)(
-    vector[double]&,
-    vector[long]&
+    double[:],
+    long[:],
 )
 
 cdef inline void normalization_matheron_vec(
-    double[:,:]& variogram,
-    long[:,:]& counts
+    double[:,:] variogram,
+    long[:,:] counts,
 ):
     cdef int d, i
     for d in range(variogram.shape[0]):
@@ -144,8 +143,8 @@ cdef inline void normalization_matheron_vec(
             variogram[d, i] /= (2. * max(counts[d, i], 1))
 
 cdef inline void normalization_cressie_vec(
-    double[:,:]& variogram,
-    long[:,:]& counts
+    double[:,:] variogram,
+    long[:,:] counts,
 ):
     cdef int d, i
     cdef long cnt
@@ -159,8 +158,8 @@ cdef inline void normalization_cressie_vec(
             )
 
 ctypedef void (*_normalization_func_vec)(
-    double[:,:]&,
-    long[:,:]&
+    double[:,:],
+    long[:,:],
 )
 
 cdef _estimator_func choose_estimator_func(str estimator_type):
@@ -281,8 +280,8 @@ def unstructured(
     cdef int k_max = pos.shape[1]
     cdef int f_max = f.shape[0]
 
-    cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
-    cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
+    cdef double[:] variogram = np.zeros(len(bin_edges)-1)
+    cdef long[:] counts = np.zeros(len(bin_edges)-1, dtype=long)
     cdef int i, j, k, m
     cdef DTYPE_t dist
 
@@ -312,8 +311,8 @@ def structured(const double[:,:] f, str estimator_type='m'):
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
 
-    cdef vector[double] variogram = vector[double](k_max, 0.0)
-    cdef vector[long] counts = vector[long](k_max, 0)
+    cdef double[:] variogram = np.zeros(k_max)
+    cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
     with nogil, parallel():
@@ -341,8 +340,8 @@ def ma_structured(
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
 
-    cdef vector[double] variogram = vector[double](k_max, 0.0)
-    cdef vector[long] counts = vector[long](k_max, 0)
+    cdef double[:] variogram = np.zeros(k_max)
+    cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
     with nogil, parallel():
