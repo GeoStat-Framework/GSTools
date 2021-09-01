@@ -25,7 +25,7 @@ def summate(
     cdef int X_len = pos.shape[1]
     cdef int N = cov_samples.shape[1]
 
-    cdef double[:] summed_modes = np.zeros(X_len)
+    cdef double[:] summed_modes = np.zeros(X_len, dtype=float)
 
     for i in prange(X_len, nogil=True):
         for j in range(N):
@@ -58,14 +58,14 @@ def summate_incompr(
     cdef double k_2
     cdef int dim = pos.shape[0]
 
-    cdef double[:] e1 = np.zeros(dim)
+    cdef double[:] e1 = np.zeros(dim, dtype=float)
     e1[0] = 1.
     cdef double[:] proj = np.empty(dim)
 
     cdef int X_len = pos.shape[1]
     cdef int N = cov_samples.shape[1]
 
-    cdef double[:, :] summed_modes = np.zeros((dim, X_len))
+    cdef double[:, :] summed_modes = np.zeros((dim, X_len), dtype=float)
 
     for i in range(X_len):
         for j in range(N):

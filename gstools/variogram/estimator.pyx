@@ -13,10 +13,6 @@ from libc.math cimport fabs, sqrt, isnan, acos, pow, sin, cos, atan2, M_PI
 cimport numpy as np
 
 
-DTYPE = np.double
-ctypedef np.double_t DTYPE_t
-
-
 cdef inline double dist_euclid(
     const int dim,
     const double[:,:] pos,
@@ -214,7 +210,7 @@ def directional(
     cdef double[:,:] variogram = np.zeros((d_max, len(bin_edges)-1))
     cdef long[:,:] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
     cdef int i, j, k, m, d
-    cdef DTYPE_t dist
+    cdef double dist
 
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
@@ -275,7 +271,7 @@ def unstructured(
     cdef double[:] variogram = np.zeros(len(bin_edges)-1)
     cdef long[:] counts = np.zeros(len(bin_edges)-1, dtype=long)
     cdef int i, j, k, m
-    cdef DTYPE_t dist
+    cdef double dist
 
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
