@@ -9,20 +9,15 @@ import numpy as np
 
 cimport cython
 from cython.parallel import prange, parallel
-from libcpp.vector cimport vector
 from libc.math cimport fabs, sqrt, isnan, acos, pow, sin, cos, atan2, M_PI
 cimport numpy as np
-
-
-DTYPE = np.double
-ctypedef np.double_t DTYPE_t
 
 
 cdef inline double dist_euclid(
     const int dim,
     const double[:,:] pos,
     const int i,
-    const int j
+    const int j,
 ) nogil:
     cdef int d
     cdef double dist_squared = 0.0
@@ -35,7 +30,7 @@ cdef inline double dist_haversine(
     const int dim,
     const double[:,:] pos,
     const int i,
-    const int j
+    const int j,
 ) nogil:
     # pos holds lat-lon in deg
     cdef double deg_2_rad = M_PI / 180.0
@@ -54,7 +49,7 @@ ctypedef double (*_dist_func)(
     const int,
     const double[:,:],
     const int,
-    const int
+    const int,
 ) nogil
 
 
@@ -67,7 +62,7 @@ cdef inline bint dir_test(
     const double bandwidth,
     const int i,
     const int j,
-    const int d
+    const int d,
 ) nogil:
     cdef double s_prod = 0.0  # scalar product
     cdef double b_dist = 0.0  # band-distance
@@ -106,21 +101,21 @@ cdef inline double estimator_cressie(const double f_diff) nogil:
 ctypedef double (*_estimator_func)(const double) nogil
 
 cdef inline void normalization_matheron(
-    vector[double]& variogram,
-    vector[long]& counts
+    double[:] variogram,
+    long[:] counts,
 ):
     cdef int i
-    for i in range(variogram.size()):
+    for i in range(variogram.shape[0]):
         # avoid division by zero
         variogram[i] /= (2. * max(counts[i], 1))
 
 cdef inline void normalization_cressie(
-    vector[double]& variogram,
-    vector[long]& counts
+    double[:] variogram,
+    long[:] counts,
 ):
     cdef int i
     cdef long cnt
-    for i in range(variogram.size()):
+    for i in range(variogram.shape[0]):
         # avoid division by zero
         cnt = max(counts[i], 1)
         variogram[i] = (
@@ -129,38 +124,30 @@ cdef inline void normalization_cressie(
         )
 
 ctypedef void (*_normalization_func)(
-    vector[double]&,
-    vector[long]&
+    double[:],
+    long[:],
 )
 
 cdef inline void normalization_matheron_vec(
-    double[:,:]& variogram,
-    long[:,:]& counts
+    double[:,:] variogram,
+    long[:,:] counts,
 ):
     cdef int d, i
     for d in range(variogram.shape[0]):
-        for i in range(variogram.shape[1]):
-            # avoid division by zero
-            variogram[d, i] /= (2. * max(counts[d, i], 1))
+        normalization_matheron(variogram[d, :], counts[d, :])
 
 cdef inline void normalization_cressie_vec(
-    double[:,:]& variogram,
-    long[:,:]& counts
+    double[:,:] variogram,
+    long[:,:] counts,
 ):
     cdef int d, i
     cdef long cnt
     for d in range(variogram.shape[0]):
-        for i in range(variogram.shape[1]):
-            # avoid division by zero
-            cnt = max(counts[d, i], 1)
-            variogram[d, i] = (
-                0.5 * (1./cnt * variogram[d, i])**4 /
-                (0.457 + 0.494 / cnt + 0.045 / cnt**2)
-            )
+        normalization_cressie(variogram[d, :], counts[d, :])
 
 ctypedef void (*_normalization_func_vec)(
-    double[:,:]&,
-    long[:,:]&
+    double[:,:],
+    long[:,:],
 )
 
 cdef _estimator_func choose_estimator_func(str estimator_type):
@@ -197,7 +184,7 @@ def directional(
     const double angles_tol=M_PI/8.0,
     const double bandwidth=-1.0,  # negative values to turn of bandwidth search
     const bint separate_dirs=False,  # whether the direction bands don't overlap
-    str estimator_type='m'
+    str estimator_type='m',
 ):
     if pos.shape[1] != f.shape[1]:
         raise ValueError('len(pos) = {0} != len(f) = {1} '.
@@ -222,10 +209,8 @@ def directional(
 
     cdef double[:,:] variogram = np.zeros((d_max, len(bin_edges)-1))
     cdef long[:,:] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
-    cdef vector[double] pos1 = vector[double](dim, 0.0)
-    cdef vector[double] pos2 = vector[double](dim, 0.0)
     cdef int i, j, k, m, d
-    cdef DTYPE_t dist
+    cdef double dist
 
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
@@ -255,7 +240,7 @@ def unstructured(
     const double[:] bin_edges,
     const double[:,:] pos,
     str estimator_type='m',
-    str distance_type='e'
+    str distance_type='e',
 ):
     cdef _dist_func distance
 
@@ -283,12 +268,10 @@ def unstructured(
     cdef int k_max = pos.shape[1]
     cdef int f_max = f.shape[0]
 
-    cdef vector[double] variogram = vector[double](len(bin_edges)-1, 0.0)
-    cdef vector[long] counts = vector[long](len(bin_edges)-1, 0)
-    cdef vector[double] pos1 = vector[double](dim, 0.0)
-    cdef vector[double] pos2 = vector[double](dim, 0.0)
+    cdef double[:] variogram = np.zeros(len(bin_edges)-1)
+    cdef long[:] counts = np.zeros(len(bin_edges)-1, dtype=long)
     cdef int i, j, k, m
-    cdef DTYPE_t dist
+    cdef double dist
 
     for i in prange(i_max, nogil=True):
         for j in range(j_max):
@@ -316,8 +299,8 @@ def structured(const double[:,:] f, str estimator_type='m'):
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
 
-    cdef vector[double] variogram = vector[double](k_max, 0.0)
-    cdef vector[long] counts = vector[long](k_max, 0)
+    cdef double[:] variogram = np.zeros(k_max)
+    cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
     with nogil, parallel():
@@ -334,7 +317,7 @@ def structured(const double[:,:] f, str estimator_type='m'):
 def ma_structured(
     const double[:,:] f,
     const bint[:,:] mask,
-    str estimator_type='m'
+    str estimator_type='m',
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
@@ -345,8 +328,8 @@ def ma_structured(
     cdef int j_max = f.shape[1]
     cdef int k_max = i_max + 1
 
-    cdef vector[double] variogram = vector[double](k_max, 0.0)
-    cdef vector[long] counts = vector[long](k_max, 0)
+    cdef double[:] variogram = np.zeros(k_max)
+    cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
     with nogil, parallel():

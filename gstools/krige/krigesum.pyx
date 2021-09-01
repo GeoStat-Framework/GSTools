@@ -12,8 +12,8 @@ cimport numpy as np
 
 
 def calc_field_krige_and_variance(
-    const double[:,:] krig_mat,
-    const double[:,:] krig_vecs,
+    const double[:, :] krig_mat,
+    const double[:, :] krig_vecs,
     const double[:] cond
 ):
 
@@ -32,16 +32,16 @@ def calc_field_krige_and_variance(
         for i in range(mat_i):
             krig_fac = 0.0
             for j in range(mat_i):
-                krig_fac += krig_mat[i,j] * krig_vecs[j,k]
-            error[k] += krig_vecs[i,k] * krig_fac
+                krig_fac += krig_mat[i, j] * krig_vecs[j, k]
+            error[k] += krig_vecs[i, k] * krig_fac
             field[k] += cond[i] * krig_fac
 
     return np.asarray(field), np.asarray(error)
 
 
 def calc_field_krige(
-    const double[:,:] krig_mat,
-    const double[:,:] krig_vecs,
+    const double[:, :] krig_mat,
+    const double[:, :] krig_vecs,
     const double[:] cond
 ):
 
@@ -58,7 +58,7 @@ def calc_field_krige(
         for i in range(mat_i):
             krig_fac = 0.0
             for j in range(mat_i):
-                krig_fac += krig_mat[i,j] * krig_vecs[j,k]
+                krig_fac += krig_mat[i, j] * krig_vecs[j, k]
             field[k] += cond[i] * krig_fac
 
     return np.asarray(field)
