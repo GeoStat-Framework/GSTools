@@ -3,8 +3,10 @@
 This is the unittest for latlon related routines.
 """
 
-import numpy as np
 import unittest
+
+import numpy as np
+
 import gstools as gs
 
 

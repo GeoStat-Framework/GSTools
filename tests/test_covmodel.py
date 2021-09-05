@@ -2,31 +2,33 @@
 """
 This is the unittest of CovModel class.
 """
-import numpy as np
 import unittest
+
+import numpy as np
+
+from gstools import (
+    Circular,
+    CovModel,
+    Cubic,
+    Exponential,
+    Gaussian,
+    HyperSpherical,
+    JBessel,
+    Linear,
+    Matern,
+    Rational,
+    Spherical,
+    Stable,
+    SuperSpherical,
+    TPLExponential,
+    TPLGaussian,
+    TPLSimple,
+    TPLStable,
+)
 from gstools.covmodel.tools import (
     AttributeWarning,
-    check_bounds,
     check_arg_in_bounds,
-)
-from gstools import (
-    CovModel,
-    Gaussian,
-    Exponential,
-    Stable,
-    Rational,
-    Cubic,
-    Matern,
-    Linear,
-    Circular,
-    Spherical,
-    HyperSpherical,
-    SuperSpherical,
-    JBessel,
-    TPLGaussian,
-    TPLExponential,
-    TPLStable,
-    TPLSimple,
+    check_bounds,
 )
 
 

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """This is the unittest of CondSRF class."""
-from copy import copy
-import numpy as np
 import unittest
+from copy import copy
+
+import numpy as np
+
 import gstools as gs
 
 

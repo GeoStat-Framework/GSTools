@@ -4,7 +4,9 @@ This is the unittest of the Normalizer class.
 """
 
 import unittest
+
 import numpy as np
+
 import gstools as gs
 
 

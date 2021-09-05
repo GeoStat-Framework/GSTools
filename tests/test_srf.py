@@ -5,10 +5,12 @@ This is the unittest of SRF class.
 """
 
 import unittest
+
+import meshio
 import numpy as np
+
 import gstools as gs
 from gstools import transform as tf
-import meshio
 
 HAS_PYVISTA = False
 try:

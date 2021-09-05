@@ -4,7 +4,9 @@ This is a unittest of the variogram module.
 """
 
 import unittest
+
 import numpy as np
+
 import gstools as gs
 
 
