@@ -47,28 +47,28 @@ Array Transformations
 ----
 """
 
+from gstools.transform.array import (
+    array_boxcox,
+    array_discrete,
+    array_force_moments,
+    array_to_arcsin,
+    array_to_lognormal,
+    array_to_uniform,
+    array_to_uquad,
+    array_zinnharvey,
+)
 from gstools.transform.field import (
     apply,
     apply_function,
     binary,
-    discrete,
     boxcox,
-    zinnharvey,
+    discrete,
     normal_force_moments,
+    normal_to_arcsin,
     normal_to_lognormal,
     normal_to_uniform,
-    normal_to_arcsin,
     normal_to_uquad,
-)
-from gstools.transform.array import (
-    array_discrete,
-    array_boxcox,
-    array_zinnharvey,
-    array_force_moments,
-    array_to_lognormal,
-    array_to_uniform,
-    array_to_arcsin,
-    array_to_uquad,
+    zinnharvey,
 )
 
 __all__ = [

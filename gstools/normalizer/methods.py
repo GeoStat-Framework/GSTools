@@ -16,6 +16,7 @@ The following classes are provided
 """
 # pylint: disable=E1101
 import numpy as np
+
 from gstools.normalizer.base import Normalizer
 
 

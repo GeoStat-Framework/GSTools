@@ -11,18 +11,19 @@ The following classes are provided
 """
 # pylint: disable=C0103, W0221, E1102, R0201
 import collections
-import numpy as np
 
-from scipy.spatial.distance import cdist
+import numpy as np
 import scipy.linalg as spl
+from scipy.spatial.distance import cdist
+
 from gstools.field.base import Field
 from gstools.krige.krigesum import (
-    calc_field_krige_and_variance,
     calc_field_krige,
+    calc_field_krige_and_variance,
 )
-from gstools.krige.tools import set_condition, get_drift_functions
-from gstools.tools.misc import eval_func
+from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
+from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
 
 __all__ = ["Krige"]

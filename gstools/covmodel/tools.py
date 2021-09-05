@@ -25,12 +25,14 @@ The following classes and functions are provided
 
 # pylint: disable=C0103, W0212
 import warnings
+
 import numpy as np
-from scipy.optimize import root
-from scipy import special as sps
 from hankel import SymmetricFourierTransform as SFT
+from scipy import special as sps
+from scipy.optimize import root
+
+from gstools.tools.geometric import set_angles, set_anis
 from gstools.tools.misc import list_format
-from gstools.tools.geometric import set_anis, set_angles
 
 __all__ = [
     "AttributeWarning",

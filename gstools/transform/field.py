@@ -29,20 +29,21 @@ Transformations
 """
 # pylint: disable=C0103, C0123, R0911
 import numpy as np
+
 from gstools.normalizer import (
     Normalizer,
-    remove_trend_norm_mean,
     apply_mean_norm_trend,
+    remove_trend_norm_mean,
 )
 from gstools.transform.array import (
-    array_discrete,
     array_boxcox,
-    array_zinnharvey,
+    array_discrete,
     array_force_moments,
+    array_to_arcsin,
     array_to_lognormal,
     array_to_uniform,
-    array_to_arcsin,
     array_to_uquad,
+    array_zinnharvey,
 )
 
 __all__ = [

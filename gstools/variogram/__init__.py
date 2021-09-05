@@ -24,13 +24,13 @@ Binning
 ----
 """
 
+from gstools.variogram.binning import standard_bins
 from gstools.variogram.variogram import (
     vario_estimate,
     vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
 )
-from gstools.variogram.binning import standard_bins
 
 __all__ = [
     "vario_estimate",

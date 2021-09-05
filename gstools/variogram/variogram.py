@@ -12,20 +12,20 @@ The following functions are provided
 """
 import numpy as np
 
+from gstools.normalizer.tools import remove_trend_norm_mean
 from gstools.tools.geometric import (
-    generate_grid,
+    ang2dir,
     format_struct_pos_shape,
     format_unstruct_pos_shape,
-    ang2dir,
-)
-from gstools.variogram.estimator import (
-    unstructured,
-    structured,
-    ma_structured,
-    directional,
+    generate_grid,
 )
 from gstools.variogram.binning import standard_bins
-from gstools.normalizer.tools import remove_trend_norm_mean
+from gstools.variogram.estimator import (
+    directional,
+    ma_structured,
+    structured,
+    unstructured,
+)
 
 __all__ = [
     "vario_estimate",

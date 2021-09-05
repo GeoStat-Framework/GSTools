@@ -10,19 +10,21 @@ The following classes are provided
    Field
 """
 # pylint: disable=C0103, C0415
-from functools import partial
 from collections.abc import Iterable
 from copy import copy
+from functools import partial
+
 import numpy as np
+
 from gstools.covmodel.base import CovModel
-from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 from gstools.field.tools import (
+    _names,
+    fmt_mean_norm_trend,
     generate_on_mesh,
     to_vtk_helper,
-    fmt_mean_norm_trend,
-    _names,
 )
-from gstools.normalizer.tools import apply_mean_norm_trend, _check_normalizer
+from gstools.normalizer.tools import _check_normalizer, apply_mean_norm_trend
+from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 from gstools.transform.field import apply
 
 __all__ = ["Field"]

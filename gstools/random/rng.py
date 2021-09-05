@@ -9,11 +9,13 @@ The following classes are provided
 .. autosummary::
    RNG
 """
+import emcee as mc
+
 # pylint: disable=E1101
 import numpy as np
 import numpy.random as rand
-import emcee as mc
 from emcee.state import State
+
 from gstools.random.tools import MasterRNG, dist_gen
 
 __all__ = ["RNG"]

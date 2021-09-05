@@ -8,9 +8,11 @@ This is the variogram estimater, implemented in cython.
 import numpy as np
 
 cimport cython
-from cython.parallel import prange, parallel
-from libc.math cimport fabs, sqrt, isnan, acos, pow, sin, cos, atan2, M_PI
+
+from cython.parallel import parallel, prange
+
 cimport numpy as np
+from libc.math cimport M_PI, acos, atan2, cos, fabs, isnan, pow, sin, sqrt
 
 
 cdef inline double dist_euclid(

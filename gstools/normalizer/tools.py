@@ -13,11 +13,11 @@ The following classes and functions are provided
 import numpy as np
 
 from gstools.normalizer.base import Normalizer
-from gstools.tools.misc import eval_func
 from gstools.tools.geometric import (
     format_struct_pos_shape,
     format_unstruct_pos_shape,
 )
+from gstools.tools.misc import eval_func
 
 __all__ = ["apply_mean_norm_trend", "remove_trend_norm_mean"]
 

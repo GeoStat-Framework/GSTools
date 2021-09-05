@@ -37,12 +37,12 @@ Convenience Routines
 
 from gstools.normalizer.base import Normalizer
 from gstools.normalizer.methods import (
-    LogNormal,
     BoxCox,
     BoxCoxShift,
-    YeoJohnson,
-    Modulus,
+    LogNormal,
     Manly,
+    Modulus,
+    YeoJohnson,
 )
 from gstools.normalizer.tools import (
     apply_mean_norm_trend,

@@ -12,8 +12,8 @@ The following classes and functions are provided
 """
 # pylint: disable=C0103
 from itertools import combinations_with_replacement
-import numpy as np
 
+import numpy as np
 
 __all__ = ["set_condition", "get_drift_functions"]
 
