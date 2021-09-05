@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install black 'pylint<3'
+          pip install black 'pylint<3' 'isort<6'
           pip install --editable .
 
       - name: black check
@@ -40,6 +40,10 @@ jobs:
       - name: pylint check
         run: |
           python -m pylint gstools/
+
+      - name: isort check
+        run: |
+          python -m isort --check --diff --color .
 
   build_wheels:
     name: wheels on ${{ matrix.os }}
