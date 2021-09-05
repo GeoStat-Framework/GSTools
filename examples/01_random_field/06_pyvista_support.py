@@ -14,6 +14,7 @@ used by the :any:`SRF` or :any:`Krige` class.
 """
 # sphinx_gallery_thumbnail_path = 'pics/GS_pyvista_cut.png'
 import pyvista as pv
+
 import gstools as gs
 
 ###############################################################################

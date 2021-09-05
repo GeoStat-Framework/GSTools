@@ -4,10 +4,10 @@ Creating an Ensemble of conditioned 2D Fields
 
 Let's create an ensemble of conditioned random fields in 2D.
 """
-import numpy as np
 import matplotlib.pyplot as plt
-import gstools as gs
+import numpy as np
 
+import gstools as gs
 
 # conditioning data (x, y, value)
 cond_pos = [[0.3, 1.9, 1.1, 3.3, 4.7], [1.2, 0.6, 3.2, 4.4, 3.8]]

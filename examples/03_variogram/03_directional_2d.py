@@ -8,8 +8,9 @@ setting the direction angles in 2D.
 Afterwards we will fit a model to this estimated variogram and show the result.
 """
 import numpy as np
-import gstools as gs
 from matplotlib import pyplot as plt
+
+import gstools as gs
 
 ###############################################################################
 # Generating synthetic field with anisotropy and a rotation of 22.5 degree.

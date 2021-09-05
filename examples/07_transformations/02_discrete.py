@@ -10,6 +10,7 @@ If thresholds are given, arbitrary values can be applied to the field.
 See :any:`transform.discrete`
 """
 import numpy as np
+
 import gstools as gs
 
 # Structured field with a size of 100x100 and a grid-size of 0.5x0.5

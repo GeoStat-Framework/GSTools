@@ -3,6 +3,7 @@ Detrended Ordinary Kriging
 --------------------------
 """
 import numpy as np
+
 from gstools import SRF, Gaussian, krige
 
 

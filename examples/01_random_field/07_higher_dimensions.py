@@ -40,6 +40,7 @@ Let's have a look at a 4D example, where we naively add a 4th dimension.
 """
 
 import matplotlib.pyplot as plt
+
 import gstools as gs
 
 dim = 4

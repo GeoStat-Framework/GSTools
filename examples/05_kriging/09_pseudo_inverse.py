@@ -18,6 +18,7 @@ In the following we have two different values at the same location.
 The resulting kriging field will hold the average at this point.
 """
 import numpy as np
+
 from gstools import Gaussian, krige
 
 # condtions

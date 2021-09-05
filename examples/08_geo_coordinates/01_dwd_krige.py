@@ -16,15 +16,16 @@ In order to keep the number of dependecies low, the calls of both functions
 shown beneath are commented out.
 """
 # sphinx_gallery_thumbnail_number = 2
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 
 def get_borders_germany():
     """Download simple german shape file with cartopy."""
-    from cartopy.io import shapereader as shp_read  # version 0.18.0
     import geopandas as gp  # 0.8.1
+    from cartopy.io import shapereader as shp_read  # version 0.18.0
 
     shpfile = shp_read.natural_earth("50m", "cultural", "admin_0_countries")
     df = gp.read_file(shpfile)  # only use the simplest polygon

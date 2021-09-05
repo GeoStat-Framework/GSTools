@@ -14,6 +14,7 @@ To access only the estimated mean/drift, we provide a switch `only_mean`
 in the call routine.
 """
 import numpy as np
+
 from gstools import SRF, Gaussian, krige
 
 # synthetic condtions with a drift

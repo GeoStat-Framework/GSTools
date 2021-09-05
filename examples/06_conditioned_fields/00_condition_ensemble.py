@@ -6,8 +6,9 @@ Here we use ordinary kriging in 1D (for plotting reasons)
 with 5 given observations/conditions,
 to generate an ensemble of conditioned random fields.
 """
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 # condtions

@@ -6,9 +6,10 @@ Let's compare the transformation behavior of the provided normalizers.
 
 But first, we define a convenience routine and make some imports as always.
 """
-import numpy as np
-import gstools as gs
 import matplotlib.pyplot as plt
+import numpy as np
+
+import gstools as gs
 
 
 def dashes(i=1, max_n=12, width=1):
