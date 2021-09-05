@@ -9,9 +9,8 @@ The following classes are provided
 .. autosummary::
    RNG
 """
-import emcee as mc
-
 # pylint: disable=E1101
+import emcee as mc
 import numpy as np
 import numpy.random as rand
 from emcee.state import State
