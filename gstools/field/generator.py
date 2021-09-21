@@ -316,8 +316,9 @@ class RandMeth:
 
     def __repr__(self):
         """Return String representation."""
-        return "RandMeth(model={0}, mode_no={1}, seed={2})".format(
-            self.model, self._mode_no, self.seed
+        return (
+            f"{self.name}(model={self.model}, "
+            f"mode_no={self._mode_no}, seed={self.seed})"
         )
 
 

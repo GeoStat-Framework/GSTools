@@ -692,9 +692,7 @@ class Field:
             dim_str = f"dim={self.dim}"
         else:
             dim_str = f"model={self.model.name}"
-        return "{0}({1}, value_type='{2}'{3})".format(
-            self.name,
-            dim_str,
-            self.value_type,
-            self._fmt_mean_norm_trend(),
+        return (
+            f"{self.name}({dim_str}, "
+            f"value_type='{self.value_type}'{self._fmt_mean_norm_trend()})"
         )

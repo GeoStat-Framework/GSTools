@@ -76,10 +76,10 @@ class Normalizer:
             dat_in = np.logical_and(data > data_range[0], data < data_range[1])
             if not np.all(dat_in):
                 warnings.warn(
-                    "{0}: data (min: {1}, max: {2}) out of range: {3}. "
-                    "Affected values will be treated as NaN.".format(
-                        self.name, np.min(data), np.max(data), data_range
-                    )
+                    f"{self.name}: "
+                    f"data (min: {np.min(data)}, max: {np.max(data)}) "
+                    f"out of range: {data_range}. "
+                    "Affected values will be treated as NaN."
                 )
                 is_data[is_data] &= dat_in
                 data = data[dat_in]
@@ -254,7 +254,7 @@ class Normalizer:
     def __repr__(self):
         """Return String representation."""
         para_strs = [
-            "{0}={1:.{2}}".format(p, float(getattr(self, p)), self._prec)
+            f"{p}={float(getattr(self, p)):.{self._prec}}"
             for p in sorted(self.default_parameter)
         ]
         return f"{self.name}({', '.join(para_strs)})"
