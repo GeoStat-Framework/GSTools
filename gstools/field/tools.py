@@ -29,7 +29,7 @@ def _fmt_func_val(f_cls, func_val):  # pragma: no cover
         return "<function>"  # or format(func_val.__name__)
     if np.size(func_val) > 1:
         return list_format(func_val, prec=f_cls.model._prec)
-    return "{0:.{p}}".format(float(func_val), p=f_cls.model._prec)
+    return f"{float(func_val):.{f_cls.model._prec}}"
 
 
 def _fmt_normalizer(f_cls):  # pragma: no cover

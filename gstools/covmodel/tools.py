@@ -269,7 +269,7 @@ def check_bounds(bounds):
 def check_arg_in_bounds(model, arg, val=None):
     """Check if given argument value is in bounds of the given model."""
     if arg not in model.arg_bounds:
-        raise ValueError("check bounds: unknown argument: {}".format(arg))
+        raise ValueError(f"check bounds: unknown argument: {arg}")
     bnd = list(model.arg_bounds[arg])
     val = getattr(model, arg) if val is None else val
     val = np.asarray(val)
@@ -417,9 +417,7 @@ def set_arg_bounds(model, check_args=True, **kwargs):
     for arg, bounds in kwargs.items():
         if not check_bounds(bounds):
             raise ValueError(
-                "Given bounds for '{0}' are not valid, got: {1}".format(
-                    arg, bounds
-                )
+                f"Given bounds for '{arg}' are not valid, got: {bounds}"
             )
         if arg in model.opt_arg:
             model._opt_arg_bounds[arg] = bounds
@@ -433,9 +431,7 @@ def set_arg_bounds(model, check_args=True, **kwargs):
         elif arg == "anis":
             model.anis_bounds = bounds
         else:
-            raise ValueError(
-                "set_arg_bounds: unknown argument '{}'".format(arg)
-            )
+            raise ValueError(f"set_arg_bounds: unknown argument '{arg}'")
         if check_args and check_arg_in_bounds(model, arg) > 0:
             def_arg = default_arg_from_bounds(bounds)
             if arg == "anis":
@@ -471,21 +467,13 @@ def check_arg_bounds(model):
         val = getattr(model, arg)
         error_case = check_arg_in_bounds(model, arg)
         if error_case == 1:
-            raise ValueError(
-                "{0} needs to be >= {1}, got: {2}".format(arg, bnd[0], val)
-            )
+            raise ValueError(f"{arg} needs to be >= {bnd[0]}, got: {val}")
         if error_case == 2:
-            raise ValueError(
-                "{0} needs to be > {1}, got: {2}".format(arg, bnd[0], val)
-            )
+            raise ValueError(f"{arg} needs to be > {bnd[0]}, got: {val}")
         if error_case == 3:
-            raise ValueError(
-                "{0} needs to be <= {1}, got: {2}".format(arg, bnd[1], val)
-            )
+            raise ValueError(f"{arg} needs to be <= {bnd[1]}, got: {val}")
         if error_case == 4:
-            raise ValueError(
-                "{0} needs to be < {1}, got: {2}".format(arg, bnd[1], val)
-            )
+            raise ValueError(f"{arg} needs to be < {bnd[1]}, got: {val}")
 
 
 def set_dim(model, dim):
