@@ -28,6 +28,7 @@ The mean of the field has to be given beforehand.
 
 """
 import numpy as np
+
 from gstools import Gaussian, krige
 
 # condtions

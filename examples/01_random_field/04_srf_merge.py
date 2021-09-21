@@ -8,6 +8,7 @@ to merge two unstructured rectangular fields.
 """
 # sphinx_gallery_thumbnail_number = 2
 import numpy as np
+
 import gstools as gs
 
 # creating our own unstructured grid

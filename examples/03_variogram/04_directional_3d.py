@@ -7,10 +7,11 @@ setting the estimation directions in 3D.
 
 Afterwards we will fit a model to this estimated variogram and show the result.
 """
-import numpy as np
-import gstools as gs
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+
+import gstools as gs
 
 ###############################################################################
 # Generating synthetic field with anisotropy and rotation by Tait-Bryan angles.

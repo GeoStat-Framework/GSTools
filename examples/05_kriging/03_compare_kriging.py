@@ -2,9 +2,10 @@
 Compare Kriging
 ---------------
 """
-import numpy as np
-from gstools import Gaussian, krige
 import matplotlib.pyplot as plt
+import numpy as np
+
+from gstools import Gaussian, krige
 
 # condtions
 cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]

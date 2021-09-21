@@ -3,8 +3,9 @@ Finding the best fitting variogram model
 ----------------------------------------
 """
 import numpy as np
-import gstools as gs
 from matplotlib import pyplot as plt
+
+import gstools as gs
 
 ###############################################################################
 # Generate a synthetic field with an exponential model.

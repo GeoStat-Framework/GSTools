@@ -13,8 +13,10 @@ series.
 """
 
 import copy
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 # fix the seed for reproducibility

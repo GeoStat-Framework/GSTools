@@ -5,10 +5,10 @@ Multi-field variogram estimation
 In this example, we demonstrate how to estimate a variogram from multiple
 fields on the same point-set that should have the same statistical properties.
 """
-import numpy as np
-import gstools as gs
 import matplotlib.pyplot as plt
+import numpy as np
 
+import gstools as gs
 
 x = np.random.RandomState(19970221).rand(1000) * 100.0
 y = np.random.RandomState(20011012).rand(1000) * 100.0

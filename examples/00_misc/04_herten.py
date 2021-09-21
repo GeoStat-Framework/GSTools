@@ -31,8 +31,10 @@ functions, since the only produce the ``herten_transmissivity.gz``
 and ``grid_dim_origin_spacing.txt``, which are already present.
 """
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 VTK_PATH = os.path.join("Herten-analog", "sim-big_1000x1000x140", "sim.vtk")
@@ -42,8 +44,8 @@ VTK_PATH = os.path.join("Herten-analog", "sim-big_1000x1000x140", "sim.vtk")
 
 def download_herten():
     """Download the data, warning: its about 250MB."""
-    import zipfile
     import urllib.request
+    import zipfile
 
     print("Downloading Herten data")
     data_filename = "data.zip"
@@ -62,8 +64,9 @@ def download_herten():
 
 def generate_transmissivity():
     """Generate a file with a transmissivity field from the HERTEN data."""
-    import pyvista as pv
     import shutil
+
+    import pyvista as pv
 
     print("Loading Herten data with pyvista")
     mesh = pv.read(VTK_PATH)

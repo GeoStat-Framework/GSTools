@@ -5,7 +5,9 @@ This is the unittest of SRF class.
 """
 
 import unittest
+
 import numpy as np
+
 import gstools as gs
 
 

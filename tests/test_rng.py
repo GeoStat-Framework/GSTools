@@ -4,9 +4,10 @@ This is the unittest of the RNG class.
 """
 
 import unittest
+
 import numpy as np
-from scipy.stats import skew, kurtosis
-from scipy.stats import normaltest
+from scipy.stats import kurtosis, normaltest, skew
+
 from gstools import Gaussian, TPLStable
 from gstools.random.rng import RNG
 

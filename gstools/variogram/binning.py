@@ -12,10 +12,10 @@ The following functions are provided
 import numpy as np
 
 from gstools.tools.geometric import (
-    generate_grid,
-    format_struct_pos_dim,
-    latlon2pos,
     chordal_to_great_circle,
+    format_struct_pos_dim,
+    generate_grid,
+    latlon2pos,
 )
 
 __all__ = ["standard_bins"]

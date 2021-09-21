@@ -7,9 +7,11 @@ This is the randomization method summator, implemented in cython.
 import numpy as np
 
 cimport cython
+
 from cython.parallel import prange
-from libc.math cimport sin, cos
+
 cimport numpy as np
+from libc.math cimport cos, sin
 
 
 def summate(

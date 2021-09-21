@@ -10,10 +10,11 @@ The following classes are provided
    RNG
 """
 # pylint: disable=E1101
+import emcee as mc
 import numpy as np
 import numpy.random as rand
-import emcee as mc
 from emcee.state import State
+
 from gstools.random.tools import MasterRNG, dist_gen
 
 __all__ = ["RNG"]

@@ -12,13 +12,12 @@ The following classes and functions are provided
    generate_on_mesh
 """
 # pylint: disable=W0212, C0415
-import numpy as np
 import meshio
+import numpy as np
 
 from gstools.normalizer import Normalizer
 from gstools.tools.export import to_vtk, vtk_export
 from gstools.tools.misc import list_format
-
 
 __all__ = ["fmt_mean_norm_trend", "to_vtk_helper", "generate_on_mesh"]
 

@@ -18,11 +18,12 @@ In this example, we will generate a simple mesh with the aid of
 `meshzoo <https://github.com/nschloe/meshzoo>`_.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
-import meshzoo
 import meshio
+import meshzoo
+import numpy as np
+
 import gstools as gs
 
 # generate a triangulated hexagon with meshzoo

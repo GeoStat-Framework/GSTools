@@ -5,7 +5,9 @@ This is the unittest of the RandMeth class.
 
 import copy
 import unittest
+
 import numpy as np
+
 import gstools as gs
 from gstools.field.generator import IncomprRandMeth
 

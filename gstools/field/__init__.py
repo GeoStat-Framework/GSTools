@@ -30,7 +30,7 @@ Field Base Class
 """
 
 from gstools.field.base import Field
-from gstools.field.srf import SRF
 from gstools.field.cond_srf import CondSRF
+from gstools.field.srf import SRF
 
 __all__ = ["SRF", "CondSRF", "Field"]

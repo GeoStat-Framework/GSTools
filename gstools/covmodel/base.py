@@ -11,33 +11,35 @@ The following classes are provided
 """
 # pylint: disable=C0103, R0201, E1101, C0302, W0613
 import copy
+
 import numpy as np
-from scipy.integrate import quad as integral
 from hankel import SymmetricFourierTransform as SFT
-from gstools.tools.geometric import (
-    set_angles,
-    matrix_anisometrize,
-    matrix_isometrize,
-    rotated_main_axes,
-    latlon2pos,
-    pos2latlon,
-)
-from gstools.covmodel.tools import (
-    _init_subclass,
-    set_opt_args,
-    set_len_anis,
-    check_bounds,
-    spectral_rad_pdf,
-    percentile_scale,
-    set_arg_bounds,
-    check_arg_bounds,
-    set_dim,
-    compare,
-    model_repr,
-    default_arg_from_bounds,
-)
+from scipy.integrate import quad as integral
+
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
+from gstools.covmodel.tools import (
+    _init_subclass,
+    check_arg_bounds,
+    check_bounds,
+    compare,
+    default_arg_from_bounds,
+    model_repr,
+    percentile_scale,
+    set_arg_bounds,
+    set_dim,
+    set_len_anis,
+    set_opt_args,
+    spectral_rad_pdf,
+)
+from gstools.tools.geometric import (
+    latlon2pos,
+    matrix_anisometrize,
+    matrix_isometrize,
+    pos2latlon,
+    rotated_main_axes,
+    set_angles,
+)
 
 __all__ = ["CovModel"]
 

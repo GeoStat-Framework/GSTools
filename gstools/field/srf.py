@@ -11,8 +11,9 @@ The following classes are provided
 """
 # pylint: disable=C0103, W0221, E1102
 import numpy as np
-from gstools.field.generator import RandMeth, IncomprRandMeth
+
 from gstools.field.base import Field
+from gstools.field.generator import IncomprRandMeth, RandMeth
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]

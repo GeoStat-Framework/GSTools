@@ -14,15 +14,16 @@ The following classes and functions are provided
 """
 # pylint: disable=C0103, E1101
 import warnings
+
 import numpy as np
+
 from gstools.covmodel.base import CovModel
 from gstools.covmodel.tools import AttributeWarning
 from gstools.tools.special import (
-    tplstable_cor,
-    tpl_gau_spec_dens,
     tpl_exp_spec_dens,
+    tpl_gau_spec_dens,
+    tplstable_cor,
 )
-
 
 __all__ = ["TPLGaussian", "TPLExponential", "TPLStable", "TPLSimple"]
 

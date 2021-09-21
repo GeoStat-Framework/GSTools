@@ -52,24 +52,24 @@ Truncated Power Law Covariance Models
 
 from gstools.covmodel.base import CovModel
 from gstools.covmodel.models import (
-    Gaussian,
-    Exponential,
-    Matern,
-    Stable,
-    Rational,
-    Cubic,
-    Linear,
     Circular,
-    Spherical,
+    Cubic,
+    Exponential,
+    Gaussian,
     HyperSpherical,
-    SuperSpherical,
     JBessel,
+    Linear,
+    Matern,
+    Rational,
+    Spherical,
+    Stable,
+    SuperSpherical,
 )
 from gstools.covmodel.tpl_models import (
-    TPLGaussian,
     TPLExponential,
-    TPLStable,
+    TPLGaussian,
     TPLSimple,
+    TPLStable,
 )
 
 __all__ = [

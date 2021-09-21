@@ -18,7 +18,6 @@ The following functions are provided
 import numpy as np
 from pyevtk.hl import gridToVTK, pointsToVTK
 
-
 try:
     import pyvista as pv
 except ImportError:

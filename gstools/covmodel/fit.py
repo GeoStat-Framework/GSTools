@@ -12,9 +12,9 @@ The following classes and functions are provided
 # pylint: disable=C0103, W0632
 import numpy as np
 from scipy.optimize import curve_fit
+
 from gstools.covmodel.tools import check_arg_in_bounds, default_arg_from_bounds
 from gstools.tools.geometric import set_anis
-
 
 __all__ = ["fit_variogram"]
 

@@ -8,8 +8,9 @@ a great idea. Let's reuse most of the previous code.
 We will set the position tuple `pos` before generation to reuse it afterwards.
 """
 
-import numpy as np
 import matplotlib.pyplot as pt
+import numpy as np
+
 import gstools as gs
 
 x = y = np.arange(100)

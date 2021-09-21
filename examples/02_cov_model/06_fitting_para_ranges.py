@@ -7,6 +7,7 @@ variogram data. In the following we will use the self defined stable model
 from a previous example.
 """
 import numpy as np
+
 import gstools as gs
 
 

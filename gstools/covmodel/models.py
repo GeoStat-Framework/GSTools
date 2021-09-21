@@ -22,10 +22,12 @@ The following classes are provided
 """
 # pylint: disable=C0103, E1101, R0201
 import warnings
+
 import numpy as np
 from scipy import special as sps
-from gstools.covmodel.tools import AttributeWarning
+
 from gstools.covmodel.base import CovModel
+from gstools.covmodel.tools import AttributeWarning
 
 __all__ = [
     "Gaussian",

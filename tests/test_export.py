@@ -1,12 +1,13 @@
 """Test the PyVista/VTK export methods
 """
-import unittest
-import numpy as np
 import os
-import tempfile
 import shutil
+import tempfile
+import unittest
 
-from gstools import SRF, Gaussian, Exponential
+import numpy as np
+
+from gstools import SRF, Exponential, Gaussian
 from gstools.random import MasterRNG
 
 HAS_PYVISTA = False

@@ -13,11 +13,12 @@ The following classes are provided
 # pylint: disable=C0103, W0222
 import warnings
 from copy import deepcopy as dcp
-import numpy as np
-from gstools.covmodel.base import CovModel
-from gstools.random.rng import RNG
-from gstools.field.summator import summate, summate_incompr
 
+import numpy as np
+
+from gstools.covmodel.base import CovModel
+from gstools.field.summator import summate, summate_incompr
+from gstools.random.rng import RNG
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
 

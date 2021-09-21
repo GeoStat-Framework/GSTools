@@ -18,9 +18,10 @@ Here we generate log-normal data following a Gaussian covariance model.
 We will generate the "original" field on a 60x60 mesh, from which we will take
 samples in order to pretend a situation of data-scarcity.
 """
-import numpy as np
-import gstools as gs
 import matplotlib.pyplot as plt
+import numpy as np
+
+import gstools as gs
 
 # structured field with edge length of 50
 x = y = range(51)

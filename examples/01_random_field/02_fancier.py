@@ -16,6 +16,7 @@ following
 """
 
 import numpy as np
+
 import gstools as gs
 
 x = y = np.arange(100)

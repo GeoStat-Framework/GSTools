@@ -11,8 +11,8 @@ The following classes are provided
    dist_gen
 """
 
-from scipy.stats import rv_continuous
 import numpy.random as rand
+from scipy.stats import rv_continuous
 
 __all__ = ["MasterRNG", "dist_gen"]
 

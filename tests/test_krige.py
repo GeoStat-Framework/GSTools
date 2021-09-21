@@ -3,8 +3,10 @@
 This is the unittest of the kriging module.
 """
 
-import numpy as np
 import unittest
+
+import numpy as np
+
 import gstools as gs
 
 

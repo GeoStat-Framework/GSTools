@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-import sys
-import os
 import glob
-import tempfile
+import os
 import subprocess
-
-from distutils.errors import CompileError, LinkError
+import sys
+import tempfile
 from distutils.ccompiler import new_compiler
+from distutils.errors import CompileError, LinkError
 from distutils.sysconfig import customize_compiler
 
-from setuptools import setup, Extension
-from Cython.Build import cythonize
 import numpy as np
-
+from Cython.Build import cythonize
+from setuptools import Extension, setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 

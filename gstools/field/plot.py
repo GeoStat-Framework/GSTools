@@ -14,12 +14,13 @@ The following classes and functions are provided
 import numpy as np
 from scipy import interpolate as inter
 from scipy.spatial import ConvexHull
-from gstools.tools.misc import get_fig_ax
+
 from gstools.tools.geometric import rotation_planes
+from gstools.tools.misc import get_fig_ax
 
 try:
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import Slider, RadioButtons
+    from matplotlib.widgets import RadioButtons, Slider
 except ImportError as exc:
     raise ImportError("Plotting: Matplotlib not installed.") from exc
 

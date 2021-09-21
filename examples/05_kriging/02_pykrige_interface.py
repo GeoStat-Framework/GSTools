@@ -12,9 +12,10 @@ To demonstrate the general workflow, we compare ordinary kriging of PyKrige
 with the corresponding GSTools routine in 2D:
 """
 import numpy as np
-import gstools as gs
-from pykrige.ok import OrdinaryKriging
 from matplotlib import pyplot as plt
+from pykrige.ok import OrdinaryKriging
+
+import gstools as gs
 
 # conditioning data
 cond_x = [0.3, 1.9, 1.1, 3.3, 4.7]

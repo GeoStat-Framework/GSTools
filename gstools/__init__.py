@@ -127,54 +127,54 @@ Misc
 """
 # Hooray!
 from gstools import (
-    field,
-    variogram,
-    random,
     covmodel,
-    tools,
+    field,
     krige,
-    transform,
     normalizer,
+    random,
+    tools,
+    transform,
+    variogram,
 )
-from gstools.krige import Krige
+from gstools.covmodel import (
+    Circular,
+    CovModel,
+    Cubic,
+    Exponential,
+    Gaussian,
+    HyperSpherical,
+    JBessel,
+    Linear,
+    Matern,
+    Rational,
+    Spherical,
+    Stable,
+    SuperSpherical,
+    TPLExponential,
+    TPLGaussian,
+    TPLSimple,
+    TPLStable,
+)
 from gstools.field import SRF, CondSRF
+from gstools.krige import Krige
 from gstools.tools import (
-    rotated_main_axes,
+    EARTH_RADIUS,
     generate_grid,
     generate_st_grid,
-    EARTH_RADIUS,
-    vtk_export,
-    vtk_export_structured,
-    vtk_export_unstructured,
+    rotated_main_axes,
     to_vtk,
     to_vtk_structured,
     to_vtk_unstructured,
+    vtk_export,
+    vtk_export_structured,
+    vtk_export_unstructured,
 )
 from gstools.variogram import (
+    standard_bins,
     vario_estimate,
     vario_estimate_axis,
     vario_estimate_structured,
     vario_estimate_unstructured,
-    standard_bins,
-)
-from gstools.covmodel import (
-    CovModel,
-    Gaussian,
-    Exponential,
-    Matern,
-    Stable,
-    Rational,
-    Cubic,
-    Linear,
-    Circular,
-    Spherical,
-    HyperSpherical,
-    SuperSpherical,
-    JBessel,
-    TPLGaussian,
-    TPLExponential,
-    TPLStable,
-    TPLSimple,
 )
 
 try:

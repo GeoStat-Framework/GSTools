@@ -13,8 +13,8 @@ The following functions are provided
 """
 # pylint: disable=C0103, C0415
 import numpy as np
-from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 
+from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 
 __all__ = ["get_fig_ax", "list_format", "eval_func"]
 

@@ -12,9 +12,10 @@ timeseries over a two dimensional domain of 50km x 40km. This workflow is
 suited for sub daily precipitation time series.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 # fix the seed for reproducibility
