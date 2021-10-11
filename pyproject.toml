@@ -73,5 +73,5 @@ target-version = [
 # Disable building PyPy wheels on all platforms
 skip = "pp*"
 # Run the package tests using `pytest`
-test-extras: "test"
+test-extras = "test"
 test-command = "pytest -v {package}/tests"
