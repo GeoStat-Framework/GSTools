@@ -68,3 +68,10 @@ target-version = [
     max-statements = 80
     max-attributes = 25
     max-public-methods = 75
+
+[tool.cibuildwheel]
+# Disable building PyPy wheels on all platforms
+skip = "pp*"
+# Run the package tests using `pytest`
+test-extras: "test"
+test-command = "pytest -v {package}/tests"
