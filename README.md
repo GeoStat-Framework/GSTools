@@ -66,13 +66,17 @@ To install the latest development version via pip, see the
 
 ## Citation
 
-At the moment you can cite the Zenodo code publication of GSTools:
+If you are using GSTools in your publication please cite our paper:
+
+> Müller, S., Schüler, L., Zech, A., and Heße, F.:
+> GSTools v1.3: A toolbox for geostatistical modelling in Python,
+> Geosci. Model Dev. Discuss. [preprint], https://doi.org/10.5194/gmd-2021-301, in review, 2021.
+
+You can cite the Zenodo code publication of GSTools by:
 
 > Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628
 
-If you want to cite a specific version, have a look at the Zenodo site.
-
-A publication for the GeoStat-Framework is in preperation.
+If you want to cite a specific version, have a look at the [Zenodo site](https://doi.org/10.5281/zenodo.1313628).
 
 
 ## Documentation for GSTools
