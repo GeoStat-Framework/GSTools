@@ -70,8 +70,8 @@ target-version = [
     max-public-methods = 75
 
 [tool.cibuildwheel]
-# Disable building PyPy wheels on all platforms
-skip = "pp*"
+# Disable building PyPy wheels on all platforms and 32bit for py3.10
+skip = "pp* cp310-win32 cp310-manylinux_i686"
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
