@@ -16,8 +16,8 @@ from copy import deepcopy as dcp
 
 import numpy as np
 
+from gstools_core import summate, summate_incompr
 from gstools.covmodel.base import CovModel
-from gstools.field.summator import summate, summate_incompr
 from gstools.random.rng import RNG
 
 __all__ = ["RandMeth", "IncomprRandMeth"]

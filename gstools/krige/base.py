@@ -16,11 +16,11 @@ import numpy as np
 import scipy.linalg as spl
 from scipy.spatial.distance import cdist
 
-from gstools.field.base import Field
-from gstools.krige.krigesum import (
+from gstools_core import (
     calc_field_krige,
     calc_field_krige_and_variance,
 )
+from gstools.field.base import Field
 from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func

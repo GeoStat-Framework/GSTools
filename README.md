@@ -338,6 +338,7 @@ in memory for immediate 3D plotting in Python.
 
 - [NumPy >= 1.14.5](https://www.numpy.org)
 - [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
+- [GSTools-Core >= 0.1.0](https://github.com/GeoStat-Framework/GSTools-Core)
 - [hankel >= 1.0.2](https://github.com/steven-murray/hankel)
 - [emcee >= 3.0.0](https://github.com/dfm/emcee)
 - [pyevtk >= 1.1.1](https://github.com/pyscience-projects/pyevtk)
