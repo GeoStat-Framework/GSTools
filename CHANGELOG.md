@@ -3,6 +3,15 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
+## [1.3.4] - Pure Pink ?
+
+### Enhancements
+- add GStools-Core as optional dependency [#215](https://github.com/GeoStat-Framework/GSTools/pull/215)
+
+### Changes
+- remove unnecessary `dim` argument in Cython code [#216](https://github.com/GeoStat-Framework/GSTools/issues/216)
+
+
 ## [1.3.3] - Pure Pink - 2021-08
 
 ### Enhancements
