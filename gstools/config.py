@@ -9,6 +9,6 @@ GStools subpackage providing global variables.
 try:
     import gstools_core
 
-    USE_RUST = True #pragma: no cover
+    USE_RUST = True  # pragma: no cover
 except ImportError:
     USE_RUST = False

@@ -26,17 +26,17 @@ from gstools.variogram.binning import standard_bins
 if config.USE_RUST:
     # pylint: disable=E0401
     from gstools_core import (
-        variogram_directional as directional,
-    )  # pragma: no cover
+        variogram_directional as directional,  # pragma: no cover
+    )
     from gstools_core import (
-        variogram_ma_structured as ma_structured,
-    )  # pragma: no cover
+        variogram_ma_structured as ma_structured,  # pragma: no cover
+    )
     from gstools_core import (
-        variogram_structured as structured,
-    )  # pragma: no cover
+        variogram_structured as structured,  # pragma: no cover
+    )
     from gstools_core import (
-        variogram_unstructured as unstructured,
-    )  # pragma: no cover
+        variogram_unstructured as unstructured,  # pragma: no cover
+    )
 else:
     # pylint: disable=C0412
     from gstools.variogram.estimator import (

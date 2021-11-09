@@ -25,10 +25,10 @@ from gstools.variogram import vario_estimate
 
 if config.USE_RUST:
     # pylint: disable=E0401
-    from gstools_core import (
+    from gstools_core import (  # pragma: no cover
         calc_field_krige,
         calc_field_krige_and_variance,
-    )  # pragma: no cover
+    )
 else:
     from gstools.krige.krigesum import (
         calc_field_krige,

@@ -70,6 +70,8 @@ To get the latest development version you can install it directly from GitHub:
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
+**Speeding up GSTools by parallelization**
+
 To enable the OpenMP support, you have to provide a C compiler and OpenMP.
 Parallel support is controlled by an environment variable ``GSTOOLS_BUILD_PARALLEL``,
 that can be ``0`` or ``1`` (interpreted as ``0`` if not present).
@@ -88,6 +90,31 @@ For the development version, you can do almost the same:
 
     export GSTOOLS_BUILD_PARALLEL=1
     pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
+
+**Using experimental GSTools-Core for even more speed**
+
+You can install the optional dependency `GSTools-Core <https://github.com/GeoStat-Framework/GSTools-Core>`_,
+which is a re-implementation of the main algorithms used in GSTools. The new
+package uses the language Rust and it should be faster (in some cases by orders
+of magnitude), safer, and it will potentially completely replace the current
+standard implementation in Cython. Once the package GSTools-Core is available
+on your machine, it will be used by default. In case you want to switch back to
+the Cython implementation, you can set :code:`gstools.config.USE_RUST=False` in
+your code.  This also works at runtime. You can install the optional dependency
+e.g. by
+
+.. code-block:: none
+
+    pip install gstools[rust]
+
+or by manually installing the package
+
+.. code-block:: none
+
+    pip install gstools-core
+
+GSTools-Core will automatically use all your cores in parallel, without having
+to use OpenMP or a local C compiler.
 
 
 Citation
