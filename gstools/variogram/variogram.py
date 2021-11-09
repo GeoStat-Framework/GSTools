@@ -10,14 +10,10 @@ The following functions are provided
    vario_estimate
    vario_estimate_axis
 """
+# pylint: disable=C0412
 import numpy as np
 
-from gstools_core import (
-    variogram_directional as directional,
-    variogram_ma_structured as ma_structured,
-    variogram_structured as structured,
-    variogram_unstructured as unstructured,
-)
+from gstools import config
 from gstools.normalizer.tools import remove_trend_norm_mean
 from gstools.tools.geometric import (
     ang2dir,
@@ -26,6 +22,21 @@ from gstools.tools.geometric import (
     generate_grid,
 )
 from gstools.variogram.binning import standard_bins
+
+if config.USE_RUST:
+    # pylint: disable=E0401
+    from gstools_core import variogram_directional as directional
+    from gstools_core import variogram_ma_structured as ma_structured
+    from gstools_core import variogram_structured as structured
+    from gstools_core import variogram_unstructured as unstructured
+else:
+    # pylint: disable=C0412
+    from gstools.variogram.estimator import (
+        directional,
+        ma_structured,
+        structured,
+        unstructured,
+    )
 
 __all__ = [
     "vario_estimate",
@@ -443,6 +454,8 @@ def vario_estimate_axis(
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
         mask = np.ma.getmaskarray(field)
+        if not config.USE_RUST:
+            mask = np.asarray(mask, dtype=np.int32)
     else:
         field = np.array(field, ndmin=1, dtype=np.double, copy=False)
         missing_mask = None  # free space

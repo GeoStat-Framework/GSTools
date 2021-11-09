@@ -1,6 +1,6 @@
 prune *
 graft tests
-recursive-include gstools *.py
+recursive-include gstools *.py *.pyx
 recursive-exclude gstools *.c *.cpp
 include LICENSE README.md pyproject.toml setup.py setup.cfg
 exclude CHANGELOG.md CONTRIBUTING.md AUTHORS.md

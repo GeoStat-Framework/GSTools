@@ -378,7 +378,6 @@ Requirements
 
 - `Numpy >= 1.14.5 <http://www.numpy.org>`_
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
-- `GSTools-Core >= 0.1.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
 - `hankel >= 1.0.2 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
@@ -388,6 +387,7 @@ Requirements
 Optional
 --------
 
+- `GSTools-Core >= 0.1.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
 - `matplotlib <https://matplotlib.org>`_
 - `pyvista <https://docs.pyvista.org>`_
 
