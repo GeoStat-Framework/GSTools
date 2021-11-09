@@ -416,7 +416,7 @@ Requirements
 Optional
 --------
 
-- `GSTools-Core >= 0.1.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
+- `GSTools-Core >= 0.2.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
 - `matplotlib <https://matplotlib.org>`_
 - `pyvista <https://docs.pyvista.org>`_
 
