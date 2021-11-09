@@ -353,7 +353,6 @@ def vario_estimate(
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
         estimates, counts = unstructured(
-            dim,
             field,
             bin_edges,
             pos,
@@ -362,7 +361,6 @@ def vario_estimate(
         )
     else:
         estimates, counts = directional(
-            dim,
             field,
             bin_edges,
             pos,
