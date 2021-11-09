@@ -22,7 +22,7 @@ class ErrMod(gs.CovModel):
         return 2
 
 
-class TestCondition(unittest.TestCase):
+class TestLatLon(unittest.TestCase):
     def setUp(self):
         self.cmod = gs.Gaussian(
             latlon=True, var=2, len_scale=777, rescale=gs.EARTH_RADIUS

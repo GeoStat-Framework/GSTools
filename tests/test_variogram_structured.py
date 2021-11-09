@@ -10,7 +10,7 @@ import numpy as np
 import gstools as gs
 
 
-class TestVariogramstructured(unittest.TestCase):
+class TestVariogramStructured(unittest.TestCase):
     def setUp(self):
         pass
 

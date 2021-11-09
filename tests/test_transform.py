@@ -7,7 +7,7 @@ import numpy as np
 import gstools as gs
 
 
-class TestSRF(unittest.TestCase):
+class TestTransform(unittest.TestCase):
     def setUp(self):
         self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4.0)
         self.mean = 0.3
