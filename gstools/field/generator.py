@@ -22,7 +22,7 @@ from gstools.random.rng import RNG
 
 if config.USE_RUST:
     # pylint: disable=E0401
-    from gstools_core import summate, summate_incompr
+    from gstools_core import summate, summate_incompr  # pragma: no cover
 else:
     # pylint: disable=C0412
     from gstools.field.summator import summate, summate_incompr
