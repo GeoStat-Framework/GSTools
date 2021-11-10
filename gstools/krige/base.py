@@ -23,12 +23,9 @@ from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
 
-if config.USE_RUST:
+if config.USE_RUST:  # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import (  # pragma: no cover
-        calc_field_krige,
-        calc_field_krige_and_variance,
-    )
+    from gstools_core import calc_field_krige, calc_field_krige_and_variance
 else:
     from gstools.krige.krigesum import (
         calc_field_krige,

@@ -20,11 +20,10 @@ from gstools import config
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
 
-if config.USE_RUST:
+if config.USE_RUST:  # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import summate, summate_incompr  # pragma: no cover
+    from gstools_core import summate, summate_incompr
 else:
-    # pylint: disable=C0412
     from gstools.field.summator import summate, summate_incompr
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
