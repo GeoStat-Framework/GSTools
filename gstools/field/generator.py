@@ -10,15 +10,21 @@ The following classes are provided
    RandMeth
    IncomprRandMeth
 """
-# pylint: disable=C0103, W0222
+# pylint: disable=C0103, W0222, C0412
 import warnings
 from copy import deepcopy as dcp
 
 import numpy as np
 
+from gstools import config
 from gstools.covmodel.base import CovModel
-from gstools.field.summator import summate, summate_incompr
 from gstools.random.rng import RNG
+
+if config.USE_RUST:  # pragma: no cover
+    # pylint: disable=E0401
+    from gstools_core import summate, summate_incompr
+else:
+    from gstools.field.summator import summate, summate_incompr
 
 __all__ = ["RandMeth", "IncomprRandMeth"]
 

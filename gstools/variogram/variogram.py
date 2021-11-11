@@ -10,8 +10,10 @@ The following functions are provided
    vario_estimate
    vario_estimate_axis
 """
+# pylint: disable=C0412
 import numpy as np
 
+from gstools import config
 from gstools.normalizer.tools import remove_trend_norm_mean
 from gstools.tools.geometric import (
     ang2dir,
@@ -20,12 +22,20 @@ from gstools.tools.geometric import (
     generate_grid,
 )
 from gstools.variogram.binning import standard_bins
-from gstools.variogram.estimator import (
-    directional,
-    ma_structured,
-    structured,
-    unstructured,
-)
+
+if config.USE_RUST:  # pragma: no cover
+    # pylint: disable=E0401
+    from gstools_core import variogram_directional as directional
+    from gstools_core import variogram_ma_structured as ma_structured
+    from gstools_core import variogram_structured as structured
+    from gstools_core import variogram_unstructured as unstructured
+else:
+    from gstools.variogram.estimator import (
+        directional,
+        ma_structured,
+        structured,
+        unstructured,
+    )
 
 __all__ = [
     "vario_estimate",
@@ -59,7 +69,8 @@ def _separate_dirs_test(direction, angles_tol):
         for j in range(i + 1, direction.shape[0]):
             s_prod = np.minimum(np.abs(np.dot(direction[i], direction[j])), 1)
             separate_dirs &= np.arccos(s_prod) >= 2 * angles_tol
-    return separate_dirs
+    # gstools-core doesn't like the type `numpy.bool_`
+    return bool(separate_dirs)
 
 
 def vario_estimate(
@@ -341,7 +352,6 @@ def vario_estimate(
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
         estimates, counts = unstructured(
-            dim,
             field,
             bin_edges,
             pos,
@@ -350,7 +360,6 @@ def vario_estimate(
         )
     else:
         estimates, counts = directional(
-            dim,
             field,
             bin_edges,
             pos,
@@ -441,7 +450,9 @@ def vario_estimate_axis(
         field = np.ma.array(field, ndmin=1, dtype=np.double)
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
-        mask = np.asarray(np.ma.getmaskarray(field), dtype=np.int32)
+        mask = np.ma.getmaskarray(field)
+        if not config.USE_RUST:
+            mask = np.asarray(mask, dtype=np.int32)
     else:
         field = np.array(field, ndmin=1, dtype=np.double, copy=False)
         missing_mask = None  # free space

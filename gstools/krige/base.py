@@ -9,22 +9,28 @@ The following classes are provided
 .. autosummary::
    Krige
 """
-# pylint: disable=C0103, W0221, E1102, R0201
+# pylint: disable=C0103, W0221, E1102, R0201, C0412
 import collections
 
 import numpy as np
 import scipy.linalg as spl
 from scipy.spatial.distance import cdist
 
+from gstools import config
 from gstools.field.base import Field
-from gstools.krige.krigesum import (
-    calc_field_krige,
-    calc_field_krige_and_variance,
-)
 from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
+
+if config.USE_RUST:  # pragma: no cover
+    # pylint: disable=E0401
+    from gstools_core import calc_field_krige, calc_field_krige_and_variance
+else:
+    from gstools.krige.krigesum import (
+        calc_field_krige,
+        calc_field_krige_and_variance,
+    )
 
 __all__ = ["Krige"]
 

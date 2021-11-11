@@ -127,6 +127,7 @@ Misc
 """
 # Hooray!
 from gstools import (
+    config,
     covmodel,
     field,
     krige,

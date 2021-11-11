@@ -345,6 +345,7 @@ in memory for immediate 3D plotting in Python.
 
 ### Optional
 
+- [GSTools-Core >= 0.2.0](https://github.com/GeoStat-Framework/GSTools-Core)
 - [matplotlib](https://matplotlib.org)
 - [pyvista](https://docs.pyvista.org/)
 

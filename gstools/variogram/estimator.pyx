@@ -178,7 +178,6 @@ cdef _normalization_func_vec choose_estimator_normalization_vec(str estimator_ty
 
 
 def directional(
-    const int dim,
     const double[:,:] f,
     const double[:] bin_edges,
     const double[:,:] pos,
@@ -203,6 +202,7 @@ def directional(
         choose_estimator_normalization_vec(estimator_type)
     )
 
+    cdef int dim = pos.shape[0]
     cdef int d_max = direction.shape[0]
     cdef int i_max = bin_edges.shape[0] - 1
     cdef int j_max = pos.shape[1] - 1
@@ -237,13 +237,13 @@ def directional(
     return np.asarray(variogram), np.asarray(counts)
 
 def unstructured(
-    const int dim,
     const double[:,:] f,
     const double[:] bin_edges,
     const double[:,:] pos,
     str estimator_type='m',
     str distance_type='e',
 ):
+    cdef int dim = pos.shape[0]
     cdef _dist_func distance
 
     if distance_type == 'e':
