@@ -3,10 +3,12 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
-## [1.3.4] - Pure Pink ?
+## [1.3.4] - Pure Pink - 2021-11
 
 ### Enhancements
 - add GStools-Core as optional dependency [#215](https://github.com/GeoStat-Framework/GSTools/pull/215)
+- provide wheels for Python 3.10 [#211](https://github.com/GeoStat-Framework/GSTools/pull/211)
+- provide macOS wheels for Apple Silicon [#211](https://github.com/GeoStat-Framework/GSTools/pull/211)
 
 ### Changes
 - remove unnecessary `dim` argument in Cython code [#216](https://github.com/GeoStat-Framework/GSTools/issues/216)
@@ -319,7 +321,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...HEAD
+[1.3.4]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.0...v1.3.1
