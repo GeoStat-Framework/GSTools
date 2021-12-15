@@ -3,6 +3,12 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
+## [1.3.5] - Pure Pink - ?
+
+### Bugfixes
+- `Field.mesh` was not compatible with [meshio](https://github.com/nschloe/meshio) v5.1+ [#227](https://github.com/GeoStat-Framework/GSTools/pull/227)
+
+
 ## [1.3.4] - Pure Pink - 2021-11
 
 ### Enhancements
@@ -321,7 +327,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...HEAD
+[1.3.5]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...HEAD
 [1.3.4]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...v1.3.2
