@@ -407,10 +407,10 @@ Requirements
 
 - `Numpy >= 1.14.5 <http://www.numpy.org>`_
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
-- `hankel >= 1.0.2 <https://github.com/steven-murray/hankel>`_
+- `hankel >= 1.0.0 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
-- `meshio >= 5.1 <https://github.com/nschloe/meshio>`_
+- `meshio >= 4.0.0 <https://github.com/nschloe/meshio>`_
 
 
 Optional
