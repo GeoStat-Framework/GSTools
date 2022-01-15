@@ -83,4 +83,4 @@ test-skip = "*-macosx_arm64 *-macosx_universal2:arm64"
 [[tool.cibuildwheel.overrides]]
 select = "*manylinux_i686"
 # no wheels for 32 bit anymore
-test-requires = "numpy<1.22"
+before-test = "pip install numpy<1.22"
