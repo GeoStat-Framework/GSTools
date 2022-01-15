@@ -79,8 +79,5 @@ test-extras = "test"
 test-command = "pytest -v {package}/tests"
 # Skip trying to test arm64 builds on Intel Macs
 test-skip = "*-macosx_arm64 *-macosx_universal2:arm64"
-
-[[tool.cibuildwheel.overrides]]
-select = "*manylinux_i686"
-# no wheels for 32 bit anymore
-before-test = "pip install 'numpy<1.22'"
+# no wheels for linux-32bit anymore for numpy>=1.22
+environment = "PIP_PREFER_BINARY=1"
