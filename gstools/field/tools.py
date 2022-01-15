@@ -22,6 +22,9 @@ from gstools.tools.misc import list_format
 __all__ = ["fmt_mean_norm_trend", "to_vtk_helper", "generate_on_mesh"]
 
 
+MESHIO_VERSION = list(map(int, meshio.__version__.split(".")[:2]))
+
+
 def _fmt_func_val(f_cls, func_val):  # pragma: no cover
     if func_val is None:
         return str(None)
@@ -190,7 +193,8 @@ def generate_on_mesh(
                 raise ValueError("Field.mesh: mesh dimension too low!")
             pnts = np.empty((0, mesh_dim), dtype=np.double)
             for cell in mesh.cells:
-                pnt = np.mean(mesh.points[cell[1]], axis=1)
+                cell_points = cell[1] if MESHIO_VERSION < [5, 1] else cell.data
+                pnt = np.mean(mesh.points[cell_points], axis=1)
                 offset.append(pnts.shape[0])
                 length.append(pnt.shape[0])
                 pnts = np.vstack((pnts, pnt))

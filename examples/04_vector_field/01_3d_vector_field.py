@@ -16,8 +16,8 @@ pv.set_plot_theme("document")
 
 ###############################################################################
 # create a uniform grid with PyVista
-dim, spacing, origin = (40, 30, 10), (1, 1, 1), (-10, 0, 0)
-mesh = pv.UniformGrid(dim, spacing, origin)
+dims, spacing, origin = (40, 30, 10), (1, 1, 1), (-10, 0, 0)
+mesh = pv.UniformGrid(dims=dims, spacing=spacing, origin=origin)
 
 ###############################################################################
 # create an incompressible random 3d velocity field on the given mesh

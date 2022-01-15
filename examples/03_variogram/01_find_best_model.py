@@ -55,12 +55,9 @@ for model in models:
 ###############################################################################
 # Create a ranking based on the score and determine the best models
 
-ranking = [
-    (k, v)
-    for k, v in sorted(scores.items(), key=lambda item: item[1], reverse=True)
-]
-print("RANKING")
+ranking = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+print("RANKING by Pseudo-r2 score")
 for i, (model, score) in enumerate(ranking, 1):
-    print(i, model, score)
+    print(f"{i:>6}. {model:>15}: {score:.5}")
 
 plt.show()
