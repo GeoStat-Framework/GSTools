@@ -3,7 +3,11 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
-## [1.3.5] - Pure Pink - ?
+## [1.3.5] - Pure Pink - 2022-01
+
+### Changes
+- remove caps for dependencies [#229](https://github.com/GeoStat-Framework/GSTools/pull/229)
+- build linux wheels with manylinux2014 for all versions ([CIBW v2.3.1](https://github.com/pypa/cibuildwheel/releases/tag/v2.3.1)) [#227](https://github.com/GeoStat-Framework/GSTools/pull/227)
 
 ### Bugfixes
 - `Field.mesh` was not compatible with [meshio](https://github.com/nschloe/meshio) v5.1+ [#227](https://github.com/GeoStat-Framework/GSTools/pull/227)
@@ -327,7 +331,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[1.3.5]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.5...HEAD
+[1.3.5]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...v1.3.5
 [1.3.4]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.1...v1.3.2
