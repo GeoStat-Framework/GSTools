@@ -118,7 +118,8 @@ gstools/_version.py
 docs/source/examples/
 docs/source/generated/
 
-
+# other settings
+.vscode/
 *.DS_Store
 
 *.zip
