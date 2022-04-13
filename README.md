@@ -69,8 +69,8 @@ To install the latest development version via pip, see the
 If you are using GSTools in your publication please cite our paper:
 
 > Müller, S., Schüler, L., Zech, A., and Heße, F.:
-> GSTools v1.3: A toolbox for geostatistical modelling in Python,
-> Geosci. Model Dev. Discuss. [preprint], https://doi.org/10.5194/gmd-2021-301, in review, 2021.
+> GSTools v1.3: a toolbox for geostatistical modelling in Python,
+> Geosci. Model Dev., 15, 3161–3182, https://doi.org/10.5194/gmd-15-3161-2022, 2022.
 
 You can cite the Zenodo code publication of GSTools by:
 
