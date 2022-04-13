@@ -499,7 +499,7 @@ def _r2_score(model, x_data, y_data, is_dir_vario):
     else:
         vario = model.variogram(x_data)
     residuals = y_data - vario
-    ss_res = np.sum(residuals ** 2)
+    ss_res = np.sum(residuals**2)
     ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
     return 1.0 - (ss_res / ss_tot)
 

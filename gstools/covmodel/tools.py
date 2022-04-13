@@ -128,7 +128,7 @@ def rad_fac(dim, r):
     elif dim == 2:
         fac = 2 * np.pi * r
     elif dim == 3:
-        fac = 4 * np.pi * r ** 2
+        fac = 4 * np.pi * r**2
     else:  # pragma: no cover
         fac = (
             dim

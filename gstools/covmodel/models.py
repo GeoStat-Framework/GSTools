@@ -68,7 +68,7 @@ class Gaussian(CovModel):
 
     def cor(self, h):
         """Gaussian normalized correlation function."""
-        return np.exp(-(h ** 2))
+        return np.exp(-(h**2))
 
     def default_rescale(self):
         """Gaussian rescaling factor to result in integral scale."""
@@ -147,7 +147,7 @@ class Exponential(CovModel):
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
         return (
-            self.len_rescaled ** self.dim
+            self.len_rescaled**self.dim
             * sps.gamma((self.dim + 1) / 2.0)
             / (np.pi * (1.0 + (k * self.len_rescaled) ** 2))
             ** ((self.dim + 1) / 2.0)
@@ -186,7 +186,7 @@ class Exponential(CovModel):
         if self.dim == 2:
             u_power = np.divide(
                 1,
-                u ** 2,
+                u**2,
                 out=np.full_like(u, np.inf),
                 where=np.logical_not(np.isclose(u, 0)),
             )
@@ -454,7 +454,7 @@ class Rational(CovModel):
 
     def cor(self, h):
         """Rational normalized correlation function."""
-        return np.power(1 + h ** 2 / self.alpha, -self.alpha)
+        return np.power(1 + h**2 / self.alpha, -self.alpha)
 
     def calc_integral_scale(self):  # noqa: D102
         return (
@@ -499,7 +499,7 @@ class Cubic(CovModel):
     def cor(self, h):
         """Spherical normalized correlation function."""
         h = np.minimum(np.abs(h, dtype=np.double), 1.0)
-        return 1.0 - 7 * h ** 2 + 8.75 * h ** 3 - 3.5 * h ** 5 + 0.75 * h ** 7
+        return 1.0 - 7 * h**2 + 8.75 * h**3 - 3.5 * h**5 + 0.75 * h**7
 
 
 class Linear(CovModel):
@@ -578,7 +578,7 @@ class Circular(CovModel):
         h_l1 = h < 1.0
         h_low = h[h_l1]
         res[h_l1] = (
-            2 / np.pi * (np.arccos(h_low) - h_low * np.sqrt(1 - h_low ** 2))
+            2 / np.pi * (np.arccos(h_low) - h_low * np.sqrt(1 - h_low**2))
         )
         return res
 
@@ -619,7 +619,7 @@ class Spherical(CovModel):
     def cor(self, h):
         """Spherical normalized correlation function."""
         h = np.minimum(np.abs(h, dtype=np.double), 1.0)
-        return 1.0 - 1.5 * h + 0.5 * h ** 3
+        return 1.0 - 1.5 * h + 0.5 * h**3
 
     def check_dim(self, dim):
         """Spherical model is only valid in 1D, 2D and 3D."""

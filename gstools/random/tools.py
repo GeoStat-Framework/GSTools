@@ -31,7 +31,7 @@ class MasterRNG:
     def __init__(self, seed):
         self._seed = seed
         self._master_rng_fct = rand.RandomState(seed)
-        self._master_rng = lambda: self._master_rng_fct.randint(1, 2 ** 16)
+        self._master_rng = lambda: self._master_rng_fct.randint(1, 2**16)
 
     def __call__(self):
         """Return a random seed."""

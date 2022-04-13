@@ -66,9 +66,9 @@ def inc_gamma(s, x):
     if np.isclose(s, 0):
         return sps.exp1(x)
     if np.isclose(s, np.around(s)) and s < -0.5:
-        return x ** s * sps.expn(int(1 - np.around(s)), x)
+        return x**s * sps.expn(int(1 - np.around(s)), x)
     if s < 0:
-        return (inc_gamma(s + 1, x) - x ** s * np.exp(-x)) / s
+        return (inc_gamma(s + 1, x) - x**s * np.exp(-x)) / s
     return sps.gamma(s) * sps.gammaincc(s, x)
 
 
@@ -87,7 +87,7 @@ def inc_gamma_low(s, x):
     if np.isclose(s, np.around(s)) and s < 0.5:
         return np.full_like(x, np.inf, dtype=np.double)
     if s < 0:
-        return (inc_gamma_low(s + 1, x) + x ** s * np.exp(-x)) / s
+        return (inc_gamma_low(s + 1, x) + x**s * np.exp(-x)) / s
     return sps.gamma(s) * sps.gammainc(s, x)
 
 
@@ -206,7 +206,7 @@ def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
         b = hurst + 0.5
         c = hurst + dim / 2.0 + 1.0
         d = dim / 2.0 + 0.5
-        fac = len_scale ** dim * hurst * sps.gamma(d) / (np.pi ** d * a)
+        fac = len_scale**dim * hurst * sps.gamma(d) / (np.pi**d * a)
         return fac / (1.0 + z) ** a * sps.hyp2f1(a, b, c, z / (1.0 + z))
     fac_up = (len_scale + len_low) ** (2 * hurst)
     spec_up = tpl_exp_spec_dens(k, dim, len_scale + len_low, hurst)

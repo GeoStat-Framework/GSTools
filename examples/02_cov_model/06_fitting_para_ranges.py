@@ -16,7 +16,7 @@ class Stab(gs.CovModel):
         return {"alpha": 1.5}
 
     def cor(self, h):
-        return np.exp(-(h ** self.alpha))
+        return np.exp(-(h**self.alpha))
 
 
 # Exemplary variogram data (e.g. estimated from field observations)

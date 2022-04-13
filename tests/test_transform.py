@@ -37,7 +37,7 @@ class TestTransform(unittest.TestCase):
         self.assertTrue(set(self.methods) == set(srf.field_names[1:]))
         # force moments
         self.assertAlmostEqual(srf["normal_force_moments"].mean(), srf.mean)
-        self.assertAlmostEqual(srf["normal_force_moments"].var(), std ** 2)
+        self.assertAlmostEqual(srf["normal_force_moments"].var(), std**2)
         # binary
         np.testing.assert_allclose(
             np.unique(srf.binary), srf.mean + np.array([-std, std])
@@ -135,7 +135,7 @@ class TestTransform(unittest.TestCase):
             np.log(srf["normal_force_moments"]).mean(), srf.mean
         )
         self.assertAlmostEqual(
-            np.log(srf["normal_force_moments"]).var(), std ** 2
+            np.log(srf["normal_force_moments"]).var(), std**2
         )
         # binary
         np.testing.assert_allclose(

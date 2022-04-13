@@ -35,24 +35,24 @@ from gstools.covmodel.tools import (
 class Gau_var(CovModel):
     def variogram(self, r):
         h = np.abs(r) / self.len_rescaled
-        return self.var * (1.0 - np.exp(-(h ** 2))) + self.nugget
+        return self.var * (1.0 - np.exp(-(h**2))) + self.nugget
 
 
 class Gau_cov(CovModel):
     def covariance(self, r):
         h = np.abs(r) / self.len_rescaled
-        return self.var * np.exp(-(h ** 2))
+        return self.var * np.exp(-(h**2))
 
 
 class Gau_cor(CovModel):
     def correlation(self, r):
         h = np.abs(r) / self.len_rescaled
-        return np.exp(-(h ** 2))
+        return np.exp(-(h**2))
 
 
 class Gau_fix(CovModel):
     def cor(self, h):
-        return np.exp(-(h ** 2))
+        return np.exp(-(h**2))
 
     def fix_dim(self):
         return 2
@@ -105,7 +105,7 @@ class TestCovModel(unittest.TestCase):
 
         class User(CovModel):
             def cor(self, h):
-                return np.exp(-(h ** 2))
+                return np.exp(-(h**2))
 
         user = User(len_scale=2)
         self.assertAlmostEqual(user.correlation(1), np.exp(-0.25))

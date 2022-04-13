@@ -16,7 +16,7 @@ def _rel_err(a, b):
 
 class ErrMod(gs.CovModel):
     def cor(self, h):
-        return np.exp(-(h ** 2))
+        return np.exp(-(h**2))
 
     def fix_dim(self):
         return 2

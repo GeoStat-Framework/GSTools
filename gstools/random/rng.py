@@ -170,8 +170,8 @@ class RNG:
         elif dim == 3:
             ang1 = self.random.uniform(0.0, 2 * np.pi, size)
             ang2 = self.random.uniform(-1.0, 1.0, size)
-            coord[0] = np.sqrt(1.0 - ang2 ** 2) * np.cos(ang1)
-            coord[1] = np.sqrt(1.0 - ang2 ** 2) * np.sin(ang1)
+            coord[0] = np.sqrt(1.0 - ang2**2) * np.cos(ang1)
+            coord[1] = np.sqrt(1.0 - ang2**2) * np.sin(ang1)
             coord[2] = ang2
         else:  # pragma: no cover
             # http://corysimon.github.io/articles/uniformdistn-on-sphere/
