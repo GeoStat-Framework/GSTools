@@ -23,3 +23,10 @@ explore its whole beauty and power.
    examples/09_spatio_temporal/index
    examples/10_normalizer/index
    examples/00_misc/index
+
+.. only:: html
+
+   **Youtube Tutorial on GSTools**
+
+   .. youtube:: qZBJ-AZXq6Q
+      :width: 100%

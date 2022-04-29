@@ -69,6 +69,7 @@ extensions = [
     "numpydoc",
     "sphinx_gallery.gen_gallery",
     "m2r2",
+    "sphinxcontrib.youtube",
 ]
 
 # autosummaries from source-files
