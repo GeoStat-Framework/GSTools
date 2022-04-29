@@ -70,7 +70,7 @@ def generate_transmissivity():
 
     print("Loading Herten data with pyvista")
     mesh = pv.read(VTK_PATH)
-    herten = mesh.point_arrays["facies"].reshape(mesh.dimensions, order="F")
+    herten = mesh.point_data["facies"].reshape(mesh.dimensions, order="F")
     # conductivity values per fazies from the supplementary data
     cond = 1e-4 * np.array(
         [2.5, 2.3, 0.61, 260, 1300, 950, 0.43, 0.006, 23, 1.4]
