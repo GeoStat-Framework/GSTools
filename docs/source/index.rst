@@ -6,11 +6,18 @@ GSTools Quickstart
    :width: 150px
    :align: center
 
+.. only:: html
 
-**Get in Touch!**
+   **Get in Touch!**
 
-|GH-Discussions| |Slack-Swung| |Gitter-GSTools| |Email|
+   |GH-Discussions| |Slack-Swung| |Gitter-GSTools| |Email| |Twitter|
 
+   **Youtube Tutorial on GSTools**
+
+   .. youtube:: qZBJ-AZXq6Q
+      :width: 100%
+
+   |
 
 Purpose
 =======
@@ -124,11 +131,11 @@ Citation
 
 If you are using GSTools in your publication please cite our paper:
 
-| *Müller, S., Schüler, L., Zech, A., and Heße, F.: GSTools v1.3: a toolbox for geostatistical modelling in Python, Geosci. Model Dev., 15, 3161–3182, https://doi.org/10.5194/gmd-15-3161-2022, 2022.*
+    Müller, S., Schüler, L., Zech, A., and Heße, F.: GSTools v1.3: a toolbox for geostatistical modelling in Python, Geosci. Model Dev., 15, 3161–3182, https://doi.org/10.5194/gmd-15-3161-2022, 2022.
 
 You can cite the Zenodo code publication of GSTools by:
 
-| *Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628*
+    Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628
 
 If you want to cite a specific version, have a look at the `Zenodo site <https://doi.org/10.5281/zenodo.1313628)>`__.
 
@@ -445,3 +452,6 @@ License
 .. |Email| image:: https://img.shields.io/badge/Email-GeoStat--Framework-468a88?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj48cGF0aCBkPSJNNDQ4IDg4SDUyYy0yNyAwLTQ5IDIyLTQ5IDQ5djIyNmMwIDI3IDIyIDQ5IDQ5IDQ5aDM5NmMyNyAwIDQ5LTIyIDQ5LTQ5VjEzN2MwLTI3LTIyLTQ5LTQ5LTQ5em0xNiA0OXYyMjZsLTIgNy0xMTUtMTE2IDExNy0xMTd6TTM2IDM2M1YxMzdsMTE3IDExN0wzOCAzNzBsLTItN3ptMjE5LTYzYy0zIDMtNyAzLTEwIDBMNjYgMTIxaDM2OHptLTc5LTIzIDQ2IDQ2YTM5IDM5IDAgMCAwIDU2IDBsNDYtNDYgMTAxIDEwMkg3NXoiIHN0eWxlPSJmaWxsOiNmNWY1ZjU7ZmlsbC1vcGFjaXR5OjEiLz48L3N2Zz4=
     :alt: Email
     :target: mailto:info@geostat-framework.org
+.. |Twitter| image:: https://img.shields.io/twitter/follow/GSFramework?style=social
+    :alt: Twitter Follow
+    :target: https://twitter.com/GSFramework
