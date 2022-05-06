@@ -81,7 +81,7 @@ def to_vtk_structured(pos, fields):  # pragma: no cover
     x, y, z, fields = _vtk_structured_helper(pos=pos, fields=fields)
     if pv is not None:
         grid = pv.RectilinearGrid(x, y, z)
-        grid.point_arrays.update(fields)
+        grid.point_data.update(fields)
     else:
         raise ImportError("Please install PyVista to create VTK datasets.")
     return grid
@@ -155,7 +155,7 @@ def to_vtk_unstructured(pos, fields):  # pragma: no cover
     x, y, z, fields = _vtk_unstructured_helper(pos=pos, fields=fields)
     if pv is not None:
         grid = pv.PolyData(np.c_[x, y, z]).cast_to_unstructured_grid()
-        grid.point_arrays.update(fields)
+        grid.point_data.update(fields)
     else:
         raise ImportError("Please install PyVista to create VTK datasets.")
     return grid
