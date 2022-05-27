@@ -19,9 +19,8 @@ CY_MODULES = [
 ]
 # you can set GSTOOLS_BUILD_PARALLEL=0 or GSTOOLS_BUILD_PARALLEL=1
 if int(os.getenv("GSTOOLS_BUILD_PARALLEL", "0")):
-    for mod in CY_MODULES:
-        openmp_flags_added = add_openmp_flags_if_available(mod)
-    print(f"## GSTools setup: OpenMP found: {openmp_flags_added}")
+    added = [add_openmp_flags_if_available(mod) for mod in CY_MODULES]
+    print(f"## GSTools setup: OpenMP used: {any(added)}")
 else:
     print("## GSTools setup: OpenMP not wanted by the user.")
 
