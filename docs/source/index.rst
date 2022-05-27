@@ -137,7 +137,7 @@ You can cite the Zenodo code publication of GSTools by:
 
     Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628
 
-If you want to cite a specific version, have a look at the `Zenodo site <https://doi.org/10.5281/zenodo.1313628)>`__.
+If you want to cite a specific version, have a look at the `Zenodo site <https://doi.org/10.5281/zenodo.1313628>`__.
 
 
 Tutorials and Examples
