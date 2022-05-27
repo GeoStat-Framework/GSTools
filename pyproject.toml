@@ -50,7 +50,7 @@ dependencies = [
     "scipy>=1.1.0",
 ]
 dynamic = ["version"]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 
 [project.urls]
 Changelog = "https://github.com/GeoStat-Framework/GSTools/blob/main/CHANGELOG.md"
@@ -144,8 +144,8 @@ target-version = [
 [tool.cibuildwheel]
 # Switch to using build
 build-frontend = "build"
-# Disable building PyPy wheels on all platforms, 32bit for py3.10 and musllinux builds
-skip = "pp* cp310-win32 cp310-manylinux_i686 *-musllinux_*"
+# Disable building PyPy wheels on all platforms, 32bit for py3.10 and musllinux builds, py3.6
+skip = ["cp36-*", "pp*", "cp310-win32", "cp310-manylinux_i686", "*-musllinux_*"]
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
