@@ -39,7 +39,7 @@ jobs:
 
       - name: pylint check
         run: |
-          python -m pylint gstools/
+          python -m pylint src/gstools/
 
       - name: isort check
         run: |

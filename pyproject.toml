@@ -81,7 +81,7 @@ rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]
 
 [tool.setuptools_scm]
-write_to = "gstools/_version.py"
+write_to = "src/gstools/_version.py"
 write_to_template = "__version__ = '{version}'"
 local_scheme = "no-local-version"
 fallback_version = "0.0.0.dev0"
@@ -106,8 +106,8 @@ target-version = [
         "*docs*",
         "*examples*",
         "*tests*",
-        "*/gstools/covmodel/plot.py",
-        "*/gstools/field/plot.py",
+        "*/src/gstools/covmodel/plot.py",
+        "*/src/gstools/field/plot.py",
     ]
 
     [tool.coverage.report]
