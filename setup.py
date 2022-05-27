@@ -1,169 +1,39 @@
 # -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
-import glob
 import os
-import subprocess
-import sys
-import tempfile
-from distutils.ccompiler import new_compiler
-from distutils.errors import CompileError, LinkError
-from distutils.sysconfig import customize_compiler
 
 import numpy as np
 from Cython.Build import cythonize
+from extension_helpers import add_openmp_flags_if_available
 from setuptools import Extension, setup
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
-
-# openmp finder ###############################################################
-# This code is adapted for a large part from the scikit-learn openmp_helpers.py
-# which can be found at:
-# https://github.com/scikit-learn/scikit-learn/blob/0.24.0/sklearn/_build_utils
-
-
-CCODE = """
-#include <omp.h>
-#include <stdio.h>
-int main(void) {
-#pragma omp parallel
-printf("nthreads=%d\\n", omp_get_num_threads());
-return 0;
-}
-"""
-
-
-def get_openmp_flag(compiler):
-    """Get the compiler dependent openmp flag."""
-    if hasattr(compiler, "compiler"):
-        compiler = compiler.compiler[0]
-    else:
-        compiler = compiler.__class__.__name__
-
-    if sys.platform == "win32" and ("icc" in compiler or "icl" in compiler):
-        return ["/Qopenmp"]
-    if sys.platform == "win32":
-        return ["/openmp"]
-    if sys.platform == "darwin" and ("icc" in compiler or "icl" in compiler):
-        return ["-openmp"]
-    if sys.platform == "darwin" and "openmp" in os.getenv("CPPFLAGS", ""):
-        return []
-    # Default flag for GCC and clang:
-    return ["-fopenmp"]
-
-
-def check_openmp_support():
-    """Check whether OpenMP test code can be compiled and run."""
-    ccompiler = new_compiler()
-    customize_compiler(ccompiler)
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        try:
-            os.chdir(tmp_dir)
-            # Write test program
-            with open("test_openmp.c", "w") as cfile:
-                cfile.write(CCODE)
-            os.mkdir("objects")
-            # Compile, test program
-            openmp_flags = get_openmp_flag(ccompiler)
-            ccompiler.compile(
-                ["test_openmp.c"],
-                output_dir="objects",
-                extra_postargs=openmp_flags,
-            )
-            # Link test program
-            extra_preargs = os.getenv("LDFLAGS", None)
-            if extra_preargs is not None:
-                extra_preargs = extra_preargs.split(" ")
-            else:
-                extra_preargs = []
-            objects = glob.glob(
-                os.path.join("objects", "*" + ccompiler.obj_extension)
-            )
-            ccompiler.link_executable(
-                objects,
-                "test_openmp",
-                extra_preargs=extra_preargs,
-                extra_postargs=openmp_flags,
-            )
-            # Run test program
-            output = subprocess.check_output("./test_openmp")
-            output = output.decode(sys.stdout.encoding or "utf-8").splitlines()
-            # Check test program output
-            if "nthreads=" in output[0]:
-                nthreads = int(output[0].strip().split("=")[1])
-                openmp_supported = len(output) == nthreads
-            else:
-                openmp_supported = False
-                openmp_flags = []
-        except (CompileError, LinkError, subprocess.CalledProcessError):
-            openmp_supported = False
-            openmp_flags = []
-        finally:
-            os.chdir(HERE)
-    return openmp_supported, openmp_flags
-
-
-# openmp ######################################################################
-
+# cython extensions
+CY_FILES = [
+    {"name": "gstools.field.summator", "language": "c"},
+    {"name": "gstools.variogram.estimator", "language": "c++"},
+    {"name": "gstools.krige.krigesum", "language": "c"},
+]
+CY_MODULES = []
+for file in CY_FILES:
+    CY_MODULES.append(
+        Extension(
+            name=file["name"],
+            sources=[os.path.join("src", *file["name"].split(".")) + ".pyx"],
+            language=file["language"],
+            define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+        )
+    )
 
 # you can set GSTOOLS_BUILD_PARALLEL=0 or GSTOOLS_BUILD_PARALLEL=1
-GS_PARALLEL = os.getenv("GSTOOLS_BUILD_PARALLEL")
-USE_OPENMP = bool(int(GS_PARALLEL)) if GS_PARALLEL else False
-
+USE_OPENMP = bool(int(os.getenv("GSTOOLS_BUILD_PARALLEL", "0")))
 if USE_OPENMP:
-    # just check if wanted
-    CAN_USE_OPENMP, FLAGS = check_openmp_support()
-    if CAN_USE_OPENMP:
+    for mod in CY_MODULES:
+        openmp_flags_added = add_openmp_flags_if_available(mod)
+    if openmp_flags_added:
         print("## GSTOOLS setup: OpenMP found.")
-        print("## OpenMP flags:", FLAGS)
     else:
         print("## GSTOOLS setup: OpenMP not found.")
 else:
     print("## GSTOOLS setup: OpenMP not wanted by the user.")
-    FLAGS = []
 
-
-# cython extensions ###########################################################
-
-
-CY_KWARGS = dict(
-    include_dirs=[np.get_include()],
-    extra_compile_args=FLAGS,
-    extra_link_args=FLAGS,
-    define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-)
-CY_MODULES = []
-CY_MODULES.append(
-    Extension(
-        "gstools.field.summator",
-        [os.path.join("src", "gstools", "field", "summator.pyx")],
-        **CY_KWARGS,
-    )
-)
-CY_MODULES.append(
-    Extension(
-        "gstools.variogram.estimator",
-        [os.path.join("src", "gstools", "variogram", "estimator.pyx")],
-        language="c++",
-        **CY_KWARGS,
-    )
-)
-CY_MODULES.append(
-    Extension(
-        "gstools.krige.krigesum",
-        [os.path.join("src", "gstools", "krige", "krigesum.pyx")],
-        **CY_KWARGS,
-    )
-)
-EXT_MODULES = cythonize(CY_MODULES)  # annotate=True
-
-# embed signatures for sphinx
-for ext_m in EXT_MODULES:
-    ext_m.cython_directives = {"embedsignature": True}
-
-
-# setup #######################################################################
-
-
-setup(ext_modules=EXT_MODULES, include_package_data=False)
+setup(ext_modules=cythonize(CY_MODULES), include_package_data=False)
