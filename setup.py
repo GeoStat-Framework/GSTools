@@ -127,33 +127,33 @@ else:
 # cython extensions ###########################################################
 
 
+CY_KWARGS = dict(
+    include_dirs=[np.get_include()],
+    extra_compile_args=FLAGS,
+    extra_link_args=FLAGS,
+    define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+)
 CY_MODULES = []
 CY_MODULES.append(
     Extension(
         "gstools.field.summator",
-        [os.path.join("gstools", "field", "summator.pyx")],
-        include_dirs=[np.get_include()],
-        extra_compile_args=FLAGS,
-        extra_link_args=FLAGS,
+        [os.path.join("src", "gstools", "field", "summator.pyx")],
+        **CY_KWARGS,
     )
 )
 CY_MODULES.append(
     Extension(
         "gstools.variogram.estimator",
-        [os.path.join("gstools", "variogram", "estimator.pyx")],
+        [os.path.join("src", "gstools", "variogram", "estimator.pyx")],
         language="c++",
-        include_dirs=[np.get_include()],
-        extra_compile_args=FLAGS,
-        extra_link_args=FLAGS,
+        **CY_KWARGS,
     )
 )
 CY_MODULES.append(
     Extension(
         "gstools.krige.krigesum",
-        [os.path.join("gstools", "krige", "krigesum.pyx")],
-        include_dirs=[np.get_include()],
-        extra_compile_args=FLAGS,
-        extra_link_args=FLAGS,
+        [os.path.join("src", "gstools", "krige", "krigesum.pyx")],
+        **CY_KWARGS,
     )
 )
 EXT_MODULES = cythonize(CY_MODULES)  # annotate=True
@@ -166,4 +166,4 @@ for ext_m in EXT_MODULES:
 # setup #######################################################################
 
 
-setup(ext_modules=EXT_MODULES, include_dirs=[np.get_include()])
+setup(ext_modules=EXT_MODULES, include_package_data=False)
