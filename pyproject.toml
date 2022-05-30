@@ -10,12 +10,20 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
+requires-python = ">=3.7"
 name = "gstools"
 description = "GSTools: A geostatistical toolbox."
-authors = [{name = "Sebastian Müller", email = "info@geostat-framework.org"}, {name = "Lennart Schüler"}]
-maintainers = [{name = "Sebastian Müller", email = "info@geostat-framework.org"}, {name = "Lennart Schüler"}]
+authors = [
+    {name = "Sebastian Müller", email = "sebastian@geostat-framework.org"},
+    {name = "Lennart Schüler", email = "lennart@geostat-framework.org"},
+]
+maintainers = [
+    {name = "Sebastian Müller", email = "sebastian@geostat-framework.org"},
+    {name = "Lennart Schüler", email = "lennart@geostat-framework.org"},
+]
 readme = "README.md"
 license = {file = "LICENSE"}
+dynamic = ["version"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -50,16 +58,6 @@ dependencies = [
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
-dynamic = ["version"]
-requires-python = ">=3.7"
-
-[project.urls]
-Changelog = "https://github.com/GeoStat-Framework/GSTools/blob/main/CHANGELOG.md"
-Conda-Forge = "https://anaconda.org/conda-forge/gstools"
-Documentation = "https://gstools.readthedocs.io"
-Homepage = "https://geostat-framework.org/#gstools"
-Source = "https://github.com/GeoStat-Framework/GSTools"
-Tracker = "https://github.com/GeoStat-Framework/GSTools/issues"
 
 [project.optional-dependencies]
 doc = [
@@ -80,6 +78,14 @@ plotting = [
 ]
 rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]
+
+[project.urls]
+Changelog = "https://github.com/GeoStat-Framework/GSTools/blob/main/CHANGELOG.md"
+Conda-Forge = "https://anaconda.org/conda-forge/gstools"
+Documentation = "https://gstools.readthedocs.io"
+Homepage = "https://geostat-framework.org/#gstools"
+Source = "https://github.com/GeoStat-Framework/GSTools"
+Tracker = "https://github.com/GeoStat-Framework/GSTools/issues"
 
 [tool.setuptools_scm]
 write_to = "src/gstools/_version.py"
