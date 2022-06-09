@@ -124,12 +124,15 @@ target-version = [
     ]
 
 [tool.pylint]
-    [tool.pylint.master]
+    [tool.pylint.main]
     extension-pkg-whitelist = [
         "numpy",
         "scipy",
     ]
     ignore = "_version.py"
+    load-plugins = [
+        "pylint.extensions.no_self_use",
+    ]
 
     [tool.pylint.message_control]
     disable = [
