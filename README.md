@@ -350,7 +350,7 @@ in memory for immediate 3D plotting in Python.
 - [hankel >= 1.0.0](https://github.com/steven-murray/hankel)
 - [emcee >= 3.0.0](https://github.com/dfm/emcee)
 - [pyevtk >= 1.1.1](https://github.com/pyscience-projects/pyevtk)
-- [meshio >= 4.0.0](https://github.com/nschloe/meshio)
+- [meshio >= 5.1.0](https://github.com/nschloe/meshio)
 
 ### Optional
 
