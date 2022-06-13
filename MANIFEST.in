@@ -1,7 +1,4 @@
-prune *
-graft tests
-recursive-include gstools *.py *.pyx
-recursive-exclude gstools *.c *.cpp
-include LICENSE README.md pyproject.toml setup.py setup.cfg
-exclude CHANGELOG.md CONTRIBUTING.md AUTHORS.md
-global-exclude __pycache__ *.py[cod] .*
+prune **
+recursive-include tests *.py
+recursive-include src/gstools *.py *.pyx
+include AUTHORS.md LICENSE README.md pyproject.toml setup.py

@@ -137,7 +137,7 @@ You can cite the Zenodo code publication of GSTools by:
 
     Sebastian Müller & Lennart Schüler. GeoStat-Framework/GSTools. Zenodo. https://doi.org/10.5281/zenodo.1313628
 
-If you want to cite a specific version, have a look at the `Zenodo site <https://doi.org/10.5281/zenodo.1313628)>`__.
+If you want to cite a specific version, have a look at the `Zenodo site <https://doi.org/10.5281/zenodo.1313628>`__.
 
 
 Tutorials and Examples
@@ -417,7 +417,7 @@ Requirements
 - `hankel >= 1.0.0 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
-- `meshio >= 4.0.0 <https://github.com/nschloe/meshio>`_
+- `meshio >= 5.1.0 <https://github.com/nschloe/meshio>`_
 
 
 Optional

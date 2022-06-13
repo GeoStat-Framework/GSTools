@@ -112,7 +112,7 @@ info/
 *.cpp
 
 # generated version file
-gstools/_version.py
+src/gstools/_version.py
 
 # generated docs
 docs/source/examples/

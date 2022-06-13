@@ -21,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -31,7 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install black 'pylint<3' 'isort[colors]<6'
-          pip install --editable .
+          pip install -v --editable .
 
       - name: black check
         run: |
@@ -39,7 +41,7 @@ jobs:
 
       - name: pylint check
         run: |
-          python -m pylint gstools/
+          python -m pylint src/gstools/
 
       - name: isort check
         run: |
@@ -66,7 +68,7 @@ jobs:
           fetch-depth: '0'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.6.0
         env:
           CIBW_ARCHS: ${{ matrix.cfg.arch }}
         with:
@@ -83,7 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
 
     steps:
       - uses: actions/checkout@v2
@@ -101,7 +103,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install build coveralls>=3.0.0
-          pip install --editable .[test]
+          pip install -v --editable .[test]
 
       - name: Run tests
         env:
