@@ -16,6 +16,7 @@ from gstools import (
     JBessel,
     Linear,
     Matern,
+    Mueller,
     Rational,
     Spherical,
     Stable,
@@ -82,6 +83,7 @@ class TestCovModel(unittest.TestCase):
             SuperSpherical,
             JBessel,
             TPLSimple,
+            Mueller,
         ]
         self.tpl_cov_models = [
             TPLGaussian,
