@@ -400,13 +400,13 @@ class TestCovModel(unittest.TestCase):
     def test_special_models(self):
         # matern and mueller converge to gaussian
         model0 = Mueller(rescale=0.5)
-        model0.set_arg_bounds(nu=[0, 101])
-        model0.nu = 100
+        model0.set_arg_bounds(nu=[0, 1001])
+        model0.nu = 1000
         model1 = Matern()
         model1.set_arg_bounds(nu=[0, 101])
         model1.nu = 100
         model2 = Gaussian(rescale=0.5)
-        self.assertAlmostEqual(model0.variogram(1), model2.variogram(1))
+        self.assertAlmostEqual(model0.variogram(1), model2.variogram(1), 2)
         self.assertAlmostEqual(model0.spectrum(1), model2.spectrum(1), 2)
         self.assertAlmostEqual(model1.variogram(1), model2.variogram(1))
         self.assertAlmostEqual(model1.spectrum(1), model2.spectrum(1), 2)
