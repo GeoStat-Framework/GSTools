@@ -469,8 +469,8 @@ class Mueller(CovModel):
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
         x = (k * self.len_rescaled / 2.0) ** 2
-        # for nu > 20 we just use an approximation of the gaussian model
-        if self.nu > 20.0:
+        # for nu > 50 we just use an approximation of the gaussian model
+        if self.nu > 50.0:
             return (
                 (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
                 * np.exp(-x)
