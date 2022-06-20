@@ -29,6 +29,8 @@ Standard Covariance Models
    Gaussian
    Exponential
    Matern
+   ExpInt
+   Mueller
    Stable
    Rational
    Cubic
@@ -54,12 +56,14 @@ from gstools.covmodel.base import CovModel
 from gstools.covmodel.models import (
     Circular,
     Cubic,
+    ExpInt,
     Exponential,
     Gaussian,
     HyperSpherical,
     JBessel,
     Linear,
     Matern,
+    Mueller,
     Rational,
     Spherical,
     Stable,
@@ -77,6 +81,8 @@ __all__ = [
     "Gaussian",
     "Exponential",
     "Matern",
+    "ExpInt",
+    "Mueller",
     "Stable",
     "Rational",
     "Cubic",
