@@ -156,7 +156,7 @@ cdef _estimator_func choose_estimator_func(str estimator_type):
     cdef _estimator_func estimator_func
     if estimator_type == 'm':
         estimator_func = estimator_matheron
-    elif estimator_type == 'c':
+    else: # estimator_type == 'c'
         estimator_func = estimator_cressie
     return estimator_func
 
@@ -164,7 +164,7 @@ cdef _normalization_func choose_estimator_normalization(str estimator_type):
     cdef _normalization_func normalization_func
     if estimator_type == 'm':
         normalization_func = normalization_matheron
-    elif estimator_type == 'c':
+    else: # estimator_type == 'c'
         normalization_func = normalization_cressie
     return normalization_func
 
@@ -172,7 +172,7 @@ cdef _normalization_func_vec choose_estimator_normalization_vec(str estimator_ty
     cdef _normalization_func_vec normalization_func_vec
     if estimator_type == 'm':
         normalization_func_vec = normalization_matheron_vec
-    elif estimator_type == 'c':
+    else: # estimator_type == 'c'
         normalization_func_vec = normalization_cressie_vec
     return normalization_func_vec
 
