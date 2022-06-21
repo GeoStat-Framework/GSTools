@@ -368,23 +368,17 @@ class Matern(CovModel):
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
+        x = (k * self.len_rescaled) ** 2
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
             return (
                 (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
-                * np.exp(-((k * self.len_rescaled) ** 2))
-                * (
-                    1
-                    + (
-                        ((k * self.len_rescaled) ** 2 - self.dim / 2.0) ** 2
-                        - self.dim / 2.0
-                    )
-                    / self.nu
-                )
+                * np.exp(-x)
+                * (1 + 0.5 * x**2 / self.nu)
+                * np.sqrt(1 + x / self.nu) ** (-self.dim)
             )
         return (self.len_rescaled / np.sqrt(np.pi)) ** self.dim * np.exp(
-            -(self.nu + self.dim / 2.0)
-            * np.log(1.0 + (k * self.len_rescaled) ** 2 / self.nu)
+            -(self.nu + self.dim / 2.0) * np.log(1.0 + x / self.nu)
             + sps.loggamma(self.nu + self.dim / 2.0)
             - sps.loggamma(self.nu)
             - self.dim * np.log(np.sqrt(self.nu))
@@ -474,7 +468,9 @@ class Mueller(CovModel):
             return (
                 (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
                 * np.exp(-x)
-                * (1.0 + x / (self.nu * 0.5 + 1.0))
+                * self.nu
+                / (self.nu + self.dim)
+                * (1.0 + 2 * x / (self.nu + self.dim + 2))
             )
         return (
             self.nu
