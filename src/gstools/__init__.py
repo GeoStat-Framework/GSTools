@@ -180,7 +180,7 @@ from gstools.variogram import (
 
 try:
     from gstools._version import __version__
-except ModuleNotFoundError:  # pragma: nocover
+except ModuleNotFoundError:  # pragma: no cover
     # package is not installed
     __version__ = "0.0.0.dev0"
 
