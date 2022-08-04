@@ -67,8 +67,7 @@ class Simple(Krige):
     pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
-            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinv"`: use `pinv` from `scipy` which uses `SVD`
             * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
@@ -162,8 +161,7 @@ class Ordinary(Krige):
     pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
-            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinv"`: use `pinv` from `scipy` which uses `SVD`
             * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
@@ -267,8 +265,7 @@ class Universal(Krige):
     pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
-            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinv"`: use `pinv` from `scipy` which uses `SVD`
             * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
@@ -369,8 +366,7 @@ class ExtDrift(Krige):
     pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
-            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinv"`: use `pinv` from `scipy` which uses `SVD`
             * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
@@ -464,8 +460,7 @@ class Detrended(Krige):
     pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
-            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinv"`: use `pinv` from `scipy` which uses `SVD`
             * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
