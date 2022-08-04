@@ -63,19 +63,19 @@ class TestTransform(unittest.TestCase):
         srf.transform(
             "discrete", values=values, thresholds=thresholds, store="f1"
         )
-        np.testing.assert_array_equal(np.unique(srf.f1), [-1, 0, 1])
+        np.testing.assert_allclose(np.unique(srf.f1), [-1, 0, 1])
 
         values = [-1, 0, 1]
         srf.transform(
             "discrete", values=values, thresholds="arithmetic", store="f2"
         )
-        np.testing.assert_array_equal(np.unique(srf.f2), [-1.0, 0.0, 1.0])
+        np.testing.assert_allclose(np.unique(srf.f2), [-1.0, 0.0, 1.0])
 
         values = [-1, 0, 0.5, 1]
         srf.transform(
             "discrete", values=values, thresholds="equal", store="f3"
         )
-        np.testing.assert_array_equal(np.unique(srf.f3), values)
+        np.testing.assert_allclose(np.unique(srf.f3), values)
         # checks
         with self.assertRaises(ValueError):
             srf.transform("discrete", values=values, thresholds=[1])
@@ -84,7 +84,7 @@ class TestTransform(unittest.TestCase):
 
         # function
         srf.transform("function", function=lambda x: 2 * x, store="f4")
-        np.testing.assert_array_equal(2 * srf.field, srf.f4)
+        np.testing.assert_allclose(2 * srf.field, srf.f4)
         with self.assertRaises(ValueError):
             srf.transform("function", function=None)
 
@@ -162,7 +162,7 @@ class TestTransform(unittest.TestCase):
             store="f1",
             process=True,
         )
-        np.testing.assert_array_equal(np.unique(np.log(srf.f1)), [-1, 0, 1])
+        np.testing.assert_allclose(np.unique(np.log(srf.f1)), [-1, 0, 1])
 
         values = [-1, 0, 1]
         srf.transform(
@@ -172,7 +172,7 @@ class TestTransform(unittest.TestCase):
             store="f2",
             process=True,
         )
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             np.unique(np.log(srf.f2)), [-1.0, 0.0, 1.0]
         )
 
@@ -184,7 +184,7 @@ class TestTransform(unittest.TestCase):
             store="f3",
             process=True,
         )
-        np.testing.assert_array_equal(np.unique(np.log(srf.f3)), values)
+        np.testing.assert_allclose(np.unique(np.log(srf.f3)), values)
 
 
 if __name__ == "__main__":
