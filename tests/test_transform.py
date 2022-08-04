@@ -172,9 +172,7 @@ class TestTransform(unittest.TestCase):
             store="f2",
             process=True,
         )
-        np.testing.assert_allclose(
-            np.unique(np.log(srf.f2)), [-1.0, 0.0, 1.0]
-        )
+        np.testing.assert_allclose(np.unique(np.log(srf.f2)), [-1.0, 0.0, 1.0])
 
         values = [-1, 0, 0.5, 1]
         srf.transform(
