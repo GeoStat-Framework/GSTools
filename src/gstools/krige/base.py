@@ -35,7 +35,7 @@ else:
 __all__ = ["Krige"]
 
 
-P_INV = {"pinv": spl.pinv, "pinv2": spl.pinv2, "pinvh": spl.pinvh}
+P_INV = {"pinv": spl.pinv, "pinvh": spl.pinvh}
 """dict: Standard pseudo-inverse routines"""
 
 
@@ -103,8 +103,7 @@ class Krige(Field):
     pseudo_inv_type : :class:`str` or :any:`callable`, optional
         Here you can select the algorithm to compute the pseudo-inverse matrix:
 
-            * `"pinv"`: use `pinv` from `scipy` which uses `lstsq`
-            * `"pinv2"`: use `pinv2` from `scipy` which uses `SVD`
+            * `"pinv"`: use `pinv` from `scipy` which uses `SVD`
             * `"pinvh"`: use `pinvh` from `scipy` which uses eigen-values
 
         If you want to use another routine to invert the kriging matrix,
