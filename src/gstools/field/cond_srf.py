@@ -10,6 +10,7 @@ The following classes are provided
    CondSRF
 """
 # pylint: disable=C0103, W0231, W0221, W0222, E1102
+import inspect
 import numpy as np
 
 from gstools.field.base import Field
@@ -31,8 +32,8 @@ class CondSRF(Field):
     ----------
     krige : :any:`Krige`
         Kriging setup to condition the spatial random field.
-    generator : :class:`str`, optional
-        Name of the field generator to be used.
+    generator : :class:`str` or :any:`RandMeth`, optional
+        Name or class of the field generator to be used.
         At the moment, only the following generator is provided:
 
             * "RandMeth" : The Randomization Method.
@@ -180,8 +181,8 @@ class CondSRF(Field):
 
         Parameters
         ----------
-        generator : :class:`str`, optional
-            Name of the generator to use for field generation.
+        generator : :class:`str` or :any:`RandMeth`, optional
+            Name or class of the generator to use for field generation.
             Default: "RandMeth"
         **generator_kwargs
             keyword arguments that are forwarded to the generator in use.
@@ -191,7 +192,17 @@ class CondSRF(Field):
             self._generator = gen(self.model, **generator_kwargs)
             self.value_type = self.generator.value_type
         else:
-            raise ValueError(f"gstools.CondSRF: Unknown generator {generator}")
+            error = False
+            if not inspect.isclass(generator):
+                error = True
+            if not error and issubclass(generator, RandMeth):
+                error = True
+            if error:
+                raise ValueError(
+                    f"gstools.CondSRF: Unknown or wrong generator: {generator}"
+                )
+            self._generator = generator(self.model, **generator_kwargs)
+            self.value_type = self._generator.value_type
 
     def set_pos(self, pos, mesh_type="unstructured", info=False):
         """
