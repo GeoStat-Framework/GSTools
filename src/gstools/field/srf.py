@@ -10,7 +10,6 @@ The following classes are provided
    SRF
 """
 # pylint: disable=C0103, W0221, E1102
-import inspect
 
 import numpy as np
 
@@ -173,22 +172,13 @@ class SRF(Field):
         **generator_kwargs
             keyword arguments that are forwarded to the generator in use.
         """
-        if generator in GENERATOR:
-            gen = GENERATOR[generator]
-            self._generator = gen(self.model, **generator_kwargs)
-            self.value_type = self._generator.value_type
-        else:
-            error = False
-            if not inspect.isclass(generator):
-                error = True
-            if issubclass(generator, RandMeth):
-                error = True
-            if error:
-                raise ValueError(
-                    f"gstools.SRF: Unknown or wrong generator: {generator}"
-                )
-            self._generator = generator(self.model, **generator_kwargs)
-            self.value_type = self._generator.value_type
+        gen = GENERATOR[generator] if generator in GENERATOR else generator 
+        if not (isinstance(gen, type) and issubclass(gen, RandMeth)):
+            raise ValueError(
+                f"gstools.SRF: Unknown or wrong generator: {generator}"
+            )
+        self._generator = gen(self.model, **generator_kwargs)
+        self.value_type = self.generator.value_type
 
         for val in [self.mean, self.trend]:
             if not callable(val) and val is not None:
