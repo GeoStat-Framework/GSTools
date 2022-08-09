@@ -10,7 +10,6 @@ The following classes are provided
    CondSRF
 """
 # pylint: disable=C0103, W0231, W0221, W0222, E1102
-import inspect
 
 import numpy as np
 
@@ -188,22 +187,13 @@ class CondSRF(Field):
         **generator_kwargs
             keyword arguments that are forwarded to the generator in use.
         """
-        if generator in GENERATOR:
-            gen = GENERATOR[generator]
-            self._generator = gen(self.model, **generator_kwargs)
-            self.value_type = self.generator.value_type
-        else:
-            error = False
-            if not inspect.isclass(generator):
-                error = True
-            if not error and issubclass(generator, RandMeth):
-                error = True
-            if error:
-                raise ValueError(
-                    f"gstools.CondSRF: Unknown or wrong generator: {generator}"
-                )
-            self._generator = generator(self.model, **generator_kwargs)
-            self.value_type = self._generator.value_type
+        gen = GENERATOR[generator] if generator in GENERATOR else generator
+        if not (isinstance(gen, type) and issubclass(gen, RandMeth)):
+            raise ValueError(
+                f"gstools.CondSRF: Unknown or wrong generator: {generator}"
+            )
+        self._generator = gen(self.model, **generator_kwargs)
+        self.value_type = self.generator.value_type
 
     def set_pos(self, pos, mesh_type="unstructured", info=False):
         """
