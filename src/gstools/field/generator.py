@@ -339,6 +339,8 @@ class IncomprRandMeth(RandMeth):
         the mean velocity in x-direction
     mode_no : :class:`int`, optional
         number of Fourier modes. Default: ``1000``
+    vec_dim : :class:`int`, optional
+        vector dimension, in case it mismatches the model dimension
     seed : :class:`int` or :any:`None`, optional
         the seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -391,18 +393,27 @@ class IncomprRandMeth(RandMeth):
         model,
         mean_velocity=1.0,
         mode_no=1000,
+        vec_dim=None,
         seed=None,
         verbose=False,
         sampling="auto",
         **kwargs,
     ):
-        if model.dim < 2 or model.dim > 3:
+        if vec_dim is None and (model.dim < 2 or model.dim > 3):
             raise ValueError(
-                "Only 2D and 3D incompressible fields can be generated."
+                "Only 2D and 3D incompressible vectors can be generated."
+            )
+        if vec_dim is not None and (vec_dim < 2 or vec_dim > 3):
+            raise ValueError(
+                "Only 2D and 3D incompressible vectors can be generated."
             )
         super().__init__(model, mode_no, seed, verbose, sampling, **kwargs)
 
         self.mean_u = mean_velocity
+        if vec_dim is None:
+            self.vec_dim = model.dim
+        else:
+            self.vec_dim = vec_dim
         self._value_type = "vector"
 
     def __call__(self, pos):
@@ -425,7 +436,7 @@ class IncomprRandMeth(RandMeth):
         """
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate_incompr(
-            self._cov_sample, self._z_1, self._z_2, pos
+            self.vec_dim, self._cov_sample, self._z_1, self._z_2, pos
         )
         nugget = self.get_nugget(summed_modes.shape)
 
@@ -458,7 +469,7 @@ class IncomprRandMeth(RandMeth):
             the unit vector
         """
         shape = np.ones(len(broadcast_shape), dtype=int)
-        shape[0] = self.model.dim
+        shape[0] = self.vec_dim
 
         e1 = np.zeros(shape)
         e1[axis] = 1.0
