@@ -131,6 +131,9 @@ class Krige(Field):
            Springer, Berlin, Heidelberg (2003)
     """
 
+    valid_value_types = ["scalar"]
+    """:class:`list` of :class:`str`: valid field value types."""
+
     default_field_names = ["field", "krige_var", "mean_field"]
     """:class:`list`: Default field names."""
 

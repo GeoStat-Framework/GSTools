@@ -45,6 +45,9 @@ class CondSRF(Field):
         Have a look at the provided generators for further information.
     """
 
+    valid_value_types = ["scalar"]
+    """:class:`list` of :class:`str`: valid field value types."""
+
     default_field_names = ["field", "raw_field", "raw_krige"]
     """:class:`list`: Default field names."""
 
