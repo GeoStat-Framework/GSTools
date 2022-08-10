@@ -11,7 +11,7 @@ The following classes are provided
    RandMeth
    IncomprRandMeth
 """
-# pylint: disable=C0103, W0222, C0412
+# pylint: disable=C0103, W0222, C0412, W0221
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
@@ -68,6 +68,10 @@ class AGenerator(ABC):
         nugget : :class:`numpy.ndarray`
             the nugget in the same shape as the summed modes
         """
+
+    @abstractmethod
+    def __call__(self, pos, **kwargs):
+        """Generate the field."""
 
     @property
     @abstractmethod
