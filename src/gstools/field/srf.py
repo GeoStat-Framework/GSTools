@@ -14,7 +14,7 @@ The following classes are provided
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.field.generator import IncomprRandMeth, RandMeth
+from gstools.field.generator import AGenerator, IncomprRandMeth, RandMeth
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
@@ -172,8 +172,8 @@ class SRF(Field):
         **generator_kwargs
             keyword arguments that are forwarded to the generator in use.
         """
-        gen = GENERATOR[generator] if generator in GENERATOR else generator 
-        if not (isinstance(gen, type) and issubclass(gen, RandMeth)):
+        gen = GENERATOR[generator] if generator in GENERATOR else generator
+        if not (isinstance(gen, type) and issubclass(gen, AGenerator)):
             raise ValueError(
                 f"gstools.SRF: Unknown or wrong generator: {generator}"
             )
