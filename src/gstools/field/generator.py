@@ -7,11 +7,13 @@ GStools subpackage providing generators for spatial random fields.
 The following classes are provided
 
 .. autosummary::
+   AGenerator
    RandMeth
    IncomprRandMeth
 """
 # pylint: disable=C0103, W0222, C0412
 import warnings
+from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
 
 import numpy as np
@@ -26,13 +28,59 @@ if config.USE_RUST:  # pragma: no cover
 else:
     from gstools.field.summator import summate, summate_incompr
 
-__all__ = ["RandMeth", "IncomprRandMeth"]
+__all__ = ["AGenerator", "RandMeth", "IncomprRandMeth"]
 
 
 SAMPLING = ["auto", "inversion", "mcmc"]
 
 
-class RandMeth:
+class AGenerator(ABC):
+    """Abstract generator class."""
+
+    @abstractmethod
+    def update(self, model=None, seed=np.nan):
+        """Update the model and the seed.
+
+        If model and seed are not different, nothing will be done.
+
+        Parameters
+        ----------
+        model : :any:`CovModel` or :any:`None`, optional
+            covariance model. Default: :any:`None`
+        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
+            the seed of the random number generator.
+            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
+            the actual seed will be kept. Default: :any:`numpy.nan`
+        """
+
+    @abstractmethod
+    def get_nugget(self, shape):
+        """
+        Generate normal distributed values for the nugget simulation.
+
+        Parameters
+        ----------
+        shape : :class:`tuple`
+            the shape of the summed modes
+
+        Returns
+        -------
+        nugget : :class:`numpy.ndarray`
+            the nugget in the same shape as the summed modes
+        """
+
+    @property
+    @abstractmethod
+    def value_type(self):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+
+    @property
+    def name(self):
+        """:class:`str`: Name of the generator."""
+        return self.__class__.__name__
+
+
+class RandMeth(AGenerator):
     r"""Randomization method for calculating isotropic random fields.
 
     Parameters
@@ -309,11 +357,6 @@ class RandMeth:
     @verbose.setter
     def verbose(self, verbose):
         self._verbose = bool(verbose)
-
-    @property
-    def name(self):
-        """:class:`str`: Name of the generator."""
-        return self.__class__.__name__
 
     @property
     def value_type(self):
