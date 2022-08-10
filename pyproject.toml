@@ -128,6 +128,7 @@ target-version = [
     extension-pkg-whitelist = [
         "numpy",
         "scipy",
+        "gstools_core",
     ]
     ignore = "_version.py"
     load-plugins = [
