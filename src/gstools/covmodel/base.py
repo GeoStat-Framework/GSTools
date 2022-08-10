@@ -321,9 +321,11 @@ class CovModel:
 
     # pykrige functions
 
-    def pykrige_vario(self, args=None, r=0):
+    def pykrige_vario(self, args=None, r=0):  # pragma: no cover
         """Isotropic variogram of the model for pykrige."""
-        return self.variogram(r)  # pragma: no cover
+        if self.latlon:
+            return self.vario_yadrenko(np.deg2rad(r))
+        return self.variogram(r)
 
     @property
     def pykrige_anis(self):
