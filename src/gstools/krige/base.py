@@ -72,7 +72,7 @@ class Krige(Field):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function

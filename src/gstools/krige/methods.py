@@ -40,7 +40,7 @@ class Simple(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -134,7 +134,7 @@ class Ordinary(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -238,7 +238,7 @@ class Universal(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -339,7 +339,7 @@ class ExtDrift(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -439,7 +439,7 @@ class Detrended(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions (nan values will be ignored)
     trend_function : :any:`callable`
-        The callable trend function. Should have the signiture: f(x, [y, z])
+        The callable trend function. Should have the signature: f(x, [y, z])
     exact : :class:`bool`, optional
         Whether the interpolator should reproduce the exact input values.
         If `False`, `cond_err` is interpreted as measurement error

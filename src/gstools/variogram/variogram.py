@@ -217,7 +217,7 @@ def vario_estimate(
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         If no normalizer is applied, this behaves equal to 'mean'.
         The default is None.
     fit_normalizer : :class:`bool`, optional
