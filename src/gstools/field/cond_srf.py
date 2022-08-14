@@ -78,7 +78,7 @@ class CondSRF(Field):
             the position tuple, containing main direction and transversal
             directions
         seed : :class:`int`, optional
-            seed for RNG for reseting. Default: keep seed from generator
+            seed for RNG for resetting. Default: keep seed from generator
         mesh_type : :class:`str`
             'structured' / 'unstructured'
         post_process : :class:`bool`, optional

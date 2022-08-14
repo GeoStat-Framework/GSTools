@@ -89,7 +89,7 @@ class CovModel:
         Default: :any:`None`
     rescale : :class:`float` or :any:`None`, optional
         Optional rescaling factor to divide the length scale with.
-        This could be used for unit convertion or rescaling the length scale
+        This could be used for unit conversion or rescaling the length scale
         to coincide with e.g. the integral scale.
         Will be set by each model individually.
         Default: :any:`None`
@@ -569,14 +569,14 @@ class CovModel:
         **para_select,
     ):
         """
-        Fiting the variogram-model to an empirical variogram.
+        Fitting the variogram-model to an empirical variogram.
 
         Parameters
         ----------
         x_data : :class:`numpy.ndarray`
             The bin-centers of the empirical variogram.
         y_data : :class:`numpy.ndarray`
-            The messured variogram
+            The measured variogram
             If multiple are given, they are interpreted as the directional
             variograms along the main axis of the associated rotated
             coordinate system.
@@ -601,7 +601,7 @@ class CovModel:
 
             If variance is deselected, it needs to be less than the sill,
             otherwise a ValueError comes up. Same for nugget.
-            If sill=False, it will be deslected from estimation
+            If sill=False, it will be deselected from estimation
             and set to the current sill of the model.
             Then, the procedure above is applied.
             Default: None
@@ -680,7 +680,7 @@ class CovModel:
         Returns
         -------
         fit_para : :class:`dict`
-            Dictonary with the fitted parameter values
+            Dictionary with the fitted parameter values
         pcov : :class:`numpy.ndarray`
             The estimated covariance of `popt` from
             :any:`scipy.optimize.curve_fit`.
@@ -734,7 +734,7 @@ class CovModel:
         ----------
         check_args : bool, optional
             Whether to check if the arguments are in their valid bounds.
-            In case not, a propper default value will be determined.
+            In case not, a proper default value will be determined.
             Default: True
         **kwargs
             Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
@@ -772,7 +772,7 @@ class CovModel:
 
     @property
     def len_scale_bounds(self):
-        """:class:`list`: Bounds for the lenght scale.
+        """:class:`list`: Bounds for the length scale.
 
         Notes
         -----

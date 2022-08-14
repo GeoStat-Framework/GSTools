@@ -47,7 +47,7 @@ def fit_variogram(
     x_data : :class:`numpy.ndarray`
         The bin-centers of the empirical variogram.
     y_data : :class:`numpy.ndarray`
-        The messured variogram
+        The measured variogram
         If multiple are given, they are interpreted as the directional
         variograms along the main axis of the associated rotated
         coordinate system.
@@ -72,7 +72,7 @@ def fit_variogram(
 
         If variance is deselected, it needs to be less than the sill,
         otherwise a ValueError comes up. Same for nugget.
-        If sill=False, it will be deslected from estimation
+        If sill=False, it will be deselected from estimation
         and set to the current sill of the model.
         Then, the procedure above is applied.
         Default: None
@@ -149,7 +149,7 @@ def fit_variogram(
     Returns
     -------
     fit_para : :class:`dict`
-        Dictonary with the fitted parameter values
+        Dictionary with the fitted parameter values
     pcov : :class:`numpy.ndarray`
         The estimated covariance of `popt` from
         :any:`scipy.optimize.curve_fit`.

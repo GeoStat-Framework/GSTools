@@ -44,7 +44,7 @@ class Krige(Field):
     A Swiss Army knife for kriging.
 
     A Kriging class enabling the basic kriging routines:
-    Simple-, Ordinary-, Univseral-, External Drift-
+    Simple-, Ordinary-, Universal-, External Drift-
     and detrended/regression-Kriging as well as
     Kriging the Mean [Wackernagel2003]_.
 
@@ -335,7 +335,7 @@ class Krige(Field):
             # set points to limit of the covariance to only get the mean
             res[: self.cond_no, :] = 0
         else:
-            # get correct covarinace functions (depending on exact values)
+            # get correct covariance functions (depending on exact values)
             cf = self.model.cov_nugget if self.exact else self.model.covariance
             res[: self.cond_no, :] = cf(
                 self._get_dists(self._krige_pos, pos, chunk_slice)

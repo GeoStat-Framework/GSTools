@@ -109,7 +109,7 @@ def generate_on_mesh(
         of the given mesh.
         Default: "centroids"
     direction : :class:`str` or :class:`list`, optional
-        Here you can state which direction should be choosen for
+        Here you can state which direction should be chosen for
         lower dimension. For example, if you got a 2D mesh in xz direction,
         you have to pass "xz". By default, all directions are used.
         One can also pass a list of indices.
@@ -119,7 +119,7 @@ def generate_on_mesh(
         cell_data. If to few names are given, digits will be appended.
         Default: "field"
     **kwargs
-        Keyword arguments forwareded to `Field.__call__`.
+        Keyword arguments forwarded to `Field.__call__`.
 
     Notes
     -----

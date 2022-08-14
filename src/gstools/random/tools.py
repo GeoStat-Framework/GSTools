@@ -57,7 +57,7 @@ def dist_gen(pdf_in=None, cdf_in=None, ppf_in=None, **kwargs):
     Parameters
     ----------
     pdf_in : :any:`callable` or :any:`None`, optional
-        Proprobability distribution function of the given distribution, that
+        Probability distribution function of the given distribution, that
         takes a single argument
         Default: ``None``
     cdf_in : :any:`callable` or :any:`None`, optional

@@ -97,10 +97,10 @@ class RandMeth:
     ):
         if kwargs:
             warnings.warn("gstools.RandMeth: **kwargs are ignored")
-        # initialize atributes
+        # initialize attributes
         self._mode_no = int(mode_no)
         self._verbose = bool(verbose)
-        # initialize private atributes
+        # initialize private attributes
         self._model = None
         self._seed = None
         self._rng = None
@@ -237,7 +237,7 @@ class RandMeth:
         self._z_2 = self._rng.random.normal(size=self._mode_no)
         # sample uniform on a sphere
         sphere_coord = self._rng.sample_sphere(self.model.dim, self._mode_no)
-        # sample radii acording to radial spectral density of the model
+        # sample radii according to radial spectral density of the model
         if self.sampling == "inversion" or (
             self.sampling == "auto" and self.model.has_ppf
         ):

@@ -117,14 +117,14 @@ def vario_estimate(
     being the bins.
     The Cressie estimator is more robust to outliers [Webster2007]_.
 
-    By provding `direction` vector[s] or angles, a directional variogram
+    By providing `direction` vector[s] or angles, a directional variogram
     can be calculated. If multiple directions are given, a set of variograms
     will be returned.
-    Directional bining is controled by a given angle tolerance (`angles_tol`)
+    Directional bining is controlled by a given angle tolerance (`angles_tol`)
     and an optional `bandwidth`, that truncates the width of the search band
     around the given direction[s].
 
-    To reduce the calcuation time, `sampling_size` could be passed to sample
+    To reduce the calculation time, `sampling_size` could be passed to sample
     down the number of field points.
 
     Parameters
@@ -167,13 +167,13 @@ def vario_estimate(
         Default: False
     direction : :class:`list` of :class:`numpy.ndarray`, optional
         directions to evaluate a directional variogram.
-        Anglular tolerance is given by `angles_tol`.
+        Angular tolerance is given by `angles_tol`.
         bandwidth to cut off how wide the search for point pairs should be
         is given by `bandwidth`.
         You can provide multiple directions at once to get one variogram
         for each direction.
         For a single direction you can also use the `angles` parameter,
-        to provide the direction by its spherical coordianates.
+        to provide the direction by its spherical coordinates.
         Default: :any:`None`
     angles : :class:`numpy.ndarray`, optional
         the angles of the main axis to calculate the variogram for in radians
