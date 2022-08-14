@@ -110,10 +110,10 @@ class Krige(Field):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -490,10 +490,10 @@ class Krige(Field):
             The "exact=True" variant only works with "cond_err='nugget'".
             Default: "nugget"
         fit_normalizer : :class:`bool`, optional
-            Wheater to fit the data-normalizer to the given conditioning data.
+            Whether to fit the data-normalizer to the given conditioning data.
             Default: False
         fit_variogram : :class:`bool`, optional
-            Wheater to fit the given variogram model to the data.
+            Whether to fit the given variogram model to the data.
             This is done by using isotropy settings of the given model,
             assuming the sill to be the data variance and with the
             standard bins provided by the :any:`standard_bins` routine.

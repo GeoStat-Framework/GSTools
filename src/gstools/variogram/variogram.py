@@ -221,7 +221,7 @@ def vario_estimate(
         If no normalizer is applied, this behaves equal to 'mean'.
         The default is None.
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given (detrended) field.
+        Whether to fit the data-normalizer to the given (detrended) field.
         Default: False
 
     Returns

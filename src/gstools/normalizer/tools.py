@@ -71,9 +71,9 @@ def apply_mean_norm_trend(
         Value type of the field. Either "scalar" or "vector".
         The default is "scalar".
     check_shape : :class:`bool`, optional
-        Wheather to check pos and field shapes. The default is True.
+        Whether to check pos and field shapes. The default is True.
     stacked : :class:`bool`, optional
-        Wheather the field is stacked or not. The default is False.
+        Whether the field is stacked or not. The default is False.
 
     Returns
     -------
@@ -144,11 +144,11 @@ def remove_trend_norm_mean(
         Value type of the field. Either "scalar" or "vector".
         The default is "scalar".
     check_shape : :class:`bool`, optional
-        Wheather to check pos and field shapes. The default is True.
+        Whether to check pos and field shapes. The default is True.
     stacked : :class:`bool`, optional
-        Wheather the field is stacked or not. The default is False.
+        Whether the field is stacked or not. The default is False.
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given (detrended) field.
+        Whether to fit the data-normalizer to the given (detrended) field.
         Default: False
 
     Returns

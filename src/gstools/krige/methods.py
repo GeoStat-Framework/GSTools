@@ -74,10 +74,10 @@ class Simple(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -168,10 +168,10 @@ class Ordinary(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -272,10 +272,10 @@ class Universal(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -373,10 +373,10 @@ class ExtDrift(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -467,7 +467,7 @@ class Detrended(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
