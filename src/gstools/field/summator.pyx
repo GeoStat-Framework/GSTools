@@ -72,7 +72,7 @@ def summate_incompr(
 
     for i in range(X_len):
         for j in range(N):
-            k_2 = abs_square(cov_samples[:, j])
+            k_2 = abs_square(cov_samples[:vec_dim, j])
             phase = 0.
             for d in range(field_dim):
                 phase += cov_samples[d, j] * pos[d, i]
