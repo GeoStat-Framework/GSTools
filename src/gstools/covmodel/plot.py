@@ -236,7 +236,7 @@ def plot_cor_axis(
 def plot_spectrum(
     model, x_min=0.0, x_max=None, fig=None, ax=None, **kwargs
 ):  # pragma: no cover
-    """Plot specturm of a given CovModel."""
+    """Plot spectrum of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
         x_max = 3 / model.len_scale

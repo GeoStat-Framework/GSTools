@@ -40,7 +40,7 @@ class Simple(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -74,10 +74,10 @@ class Simple(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -134,7 +134,7 @@ class Ordinary(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -168,10 +168,10 @@ class Ordinary(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -238,7 +238,7 @@ class Universal(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -272,10 +272,10 @@ class Universal(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -339,7 +339,7 @@ class ExtDrift(Krige):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -373,10 +373,10 @@ class ExtDrift(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -439,7 +439,7 @@ class Detrended(Krige):
     cond_val : :class:`numpy.ndarray`
         the values of the conditions (nan values will be ignored)
     trend_function : :any:`callable`
-        The callable trend function. Should have the signiture: f(x, [y, z])
+        The callable trend function. Should have the signature: f(x, [y, z])
     exact : :class:`bool`, optional
         Whether the interpolator should reproduce the exact input values.
         If `False`, `cond_err` is interpreted as measurement error
@@ -467,7 +467,7 @@ class Detrended(Krige):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.

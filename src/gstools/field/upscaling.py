@@ -71,7 +71,7 @@ def var_coarse_graining(model, point_volumes=0.0):
         warnings.warn(
             "var_coarse_graining: non-zero nugget will violate upscaling!"
         )
-    # interprete volume as a hypercube and calculate the edge length
+    # interpret volume as a hypercube and calculate the edge length
     edge = point_volumes ** (1.0 / model.dim)
     var_factor = (
         model.len_scale**2 / (model.len_scale**2 + edge**2 / 4)

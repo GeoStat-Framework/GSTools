@@ -78,7 +78,7 @@ def eval_func(
     ----------
     func_val : :any:`callable` or :class:`float` or :any:`None`
         Function to be called or single value to be filled.
-        Should have the signiture f(x, [y, z, ...]) in case of callable.
+        Should have the signature f(x, [y, z, ...]) in case of callable.
         In case of a float, the field will be filled with a single value and
         in case of None, this value will be set to 0.
     pos : :class:`list`

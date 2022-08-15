@@ -228,7 +228,7 @@ class Field:
             of the given mesh.
             Default: "centroids"
         direction : :class:`str` or :class:`list`, optional
-            Here you can state which direction should be choosen for
+            Here you can state which direction should be chosen for
             lower dimension. For example, if you got a 2D mesh in xz direction,
             you have to pass "xz". By default, all directions are used.
             One can also pass a list of indices.

@@ -119,7 +119,7 @@ class SRF(Field):
             the position tuple, containing main direction and transversal
             directions
         seed : :class:`int`, optional
-            seed for RNG for reseting. Default: keep seed from generator
+            seed for RNG for resetting. Default: keep seed from generator
         point_volumes : :class:`float` or :class:`numpy.ndarray`
             If your evaluation points for the field are coming from a mesh,
             they are probably representing a certain element volume.

@@ -166,7 +166,7 @@ def set_opt_args(model, opt_arg):
                 "Or you made a Typo... hehe.",
                 AttributeWarning,
             )
-    # add the default vaules if not specified
+    # add the default values if not specified
     for def_arg in default:
         if def_arg not in opt_arg:
             opt_arg[def_arg] = default[def_arg]
@@ -400,7 +400,7 @@ def set_arg_bounds(model, check_args=True, **kwargs):
         The covariance model in use.
     check_args : bool, optional
         Whether to check if the arguments are in their valid bounds.
-        In case not, a propper default value will be determined.
+        In case not, a proper default value will be determined.
         Default: True
     **kwargs
         Parameter name as keyword ("var", "len_scale", "nugget", <opt_arg>)
@@ -438,7 +438,7 @@ def set_arg_bounds(model, check_args=True, **kwargs):
                 setattr(model, arg, [def_arg] * (model.dim - 1))
             else:
                 setattr(model, arg, def_arg)
-    # set var last like allways
+    # set var last like always
     if var_bnds:
         model.var_bounds = var_bnds
         if check_args and check_arg_in_bounds(model, "var") > 0:

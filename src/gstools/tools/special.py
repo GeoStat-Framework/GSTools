@@ -178,7 +178,7 @@ def tplstable_cor(r, len_scale, hurst, alpha):
 
 def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     r"""
-    Spectal density of the TPLExponential covariance model.
+    Spectral density of the TPLExponential covariance model.
 
     Parameters
     ----------
@@ -197,7 +197,7 @@ def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     Returns
     -------
     :class:`float`
-        spectal density of the TPLExponential model
+        spectral density of the TPLExponential model
     """
     if np.isclose(len_low, 0.0):
         k = np.asarray(k, dtype=np.double)
@@ -217,7 +217,7 @@ def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
 
 def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     r"""
-    Spectal density of the TPLGaussian covariance model.
+    Spectral density of the TPLGaussian covariance model.
 
     Parameters
     ----------
@@ -236,7 +236,7 @@ def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     Returns
     -------
     :class:`float`
-        spectal density of the TPLExponential model
+        spectral density of the TPLExponential model
     """
     if np.isclose(len_low, 0.0):
         k = np.asarray(k, dtype=np.double)

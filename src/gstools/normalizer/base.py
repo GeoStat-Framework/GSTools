@@ -198,7 +198,7 @@ class Normalizer:
         data : array_like
             Input data to fit the transformation to in order to gain normality.
         skip : :class:`list` of :class:`str` or :any:`None`, optional
-            Names of parameters to be skiped in fitting.
+            Names of parameters to be skipped in fitting.
             The default is None.
         **kwargs
             Keyword arguments passed to :any:`scipy.optimize.minimize_scalar`
@@ -207,7 +207,7 @@ class Normalizer:
         Returns
         -------
         :class:`dict`
-            Optimal paramters given by names.
+            Optimal parameters given by names.
         """
         skip = [] if skip is None else skip
         all_names = sorted(self.default_parameter)

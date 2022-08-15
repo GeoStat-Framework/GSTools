@@ -44,7 +44,7 @@ class Krige(Field):
     A Swiss Army knife for kriging.
 
     A Kriging class enabling the basic kriging routines:
-    Simple-, Ordinary-, Univseral-, External Drift-
+    Simple-, Ordinary-, Universal-, External Drift-
     and detrended/regression-Kriging as well as
     Kriging the Mean [Wackernagel2003]_.
 
@@ -72,7 +72,7 @@ class Krige(Field):
         Normalizer to be applied to the input data to gain normality.
         The default is None.
     trend : :any:`None` or :class:`float` or :any:`callable`, optional
-        A callable trend function. Should have the signiture: f(x, [y, z, ...])
+        A callable trend function. Should have the signature: f(x, [y, z, ...])
         This is used for detrended kriging, where the trended is subtracted
         from the conditions before kriging is applied.
         This can be used for regression kriging, where the trend function
@@ -110,10 +110,10 @@ class Krige(Field):
         you can pass a callable which takes a matrix and returns the inverse.
         Default: `"pinv"`
     fit_normalizer : :class:`bool`, optional
-        Wheater to fit the data-normalizer to the given conditioning data.
+        Whether to fit the data-normalizer to the given conditioning data.
         Default: False
     fit_variogram : :class:`bool`, optional
-        Wheater to fit the given variogram model to the data.
+        Whether to fit the given variogram model to the data.
         This is done by using isotropy settings of the given model,
         assuming the sill to be the data variance and with the
         standard bins provided by the :any:`standard_bins` routine.
@@ -335,7 +335,7 @@ class Krige(Field):
             # set points to limit of the covariance to only get the mean
             res[: self.cond_no, :] = 0
         else:
-            # get correct covarinace functions (depending on exact values)
+            # get correct covariance functions (depending on exact values)
             cf = self.model.cov_nugget if self.exact else self.model.covariance
             res[: self.cond_no, :] = cf(
                 self._get_dists(self._krige_pos, pos, chunk_slice)
@@ -490,10 +490,10 @@ class Krige(Field):
             The "exact=True" variant only works with "cond_err='nugget'".
             Default: "nugget"
         fit_normalizer : :class:`bool`, optional
-            Wheater to fit the data-normalizer to the given conditioning data.
+            Whether to fit the data-normalizer to the given conditioning data.
             Default: False
         fit_variogram : :class:`bool`, optional
-            Wheater to fit the given variogram model to the data.
+            Whether to fit the given variogram model to the data.
             This is done by using isotropy settings of the given model,
             assuming the sill to be the data variance and with the
             standard bins provided by the :any:`standard_bins` routine.

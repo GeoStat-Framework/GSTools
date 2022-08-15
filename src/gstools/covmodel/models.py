@@ -357,7 +357,7 @@ class Matern(CovModel):
         ) * sps.kv(self.nu, np.sqrt(self.nu) * h_gz)
         # if nu >> 1 we get errors for the farfield, there 0 is approached
         res[np.logical_not(np.isfinite(res))] = 0.0
-        # covariance is positiv
+        # covariance is positive
         res = np.maximum(res, 0.0)
         return res
 
