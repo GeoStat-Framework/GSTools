@@ -7,7 +7,7 @@ GStools subpackage providing generators for spatial random fields.
 The following classes are provided
 
 .. autosummary::
-   AGenerator
+   Generator
    RandMeth
    IncomprRandMeth
 """
@@ -28,13 +28,13 @@ if config.USE_RUST:  # pragma: no cover
 else:
     from gstools.field.summator import summate, summate_incompr
 
-__all__ = ["AGenerator", "RandMeth", "IncomprRandMeth"]
+__all__ = ["Generator", "RandMeth", "IncomprRandMeth"]
 
 
 SAMPLING = ["auto", "inversion", "mcmc"]
 
 
-class AGenerator(ABC):
+class Generator(ABC):
     """Abstract generator class."""
 
     @abstractmethod
@@ -84,7 +84,7 @@ class AGenerator(ABC):
         return self.__class__.__name__
 
 
-class RandMeth(AGenerator):
+class RandMeth(Generator):
     r"""Randomization method for calculating isotropic random fields.
 
     Parameters

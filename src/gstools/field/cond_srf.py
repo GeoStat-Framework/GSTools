@@ -14,7 +14,7 @@ The following classes are provided
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.field.generator import AGenerator, RandMeth
+from gstools.field.generator import Generator, RandMeth
 from gstools.krige import Krige
 
 __all__ = ["CondSRF"]
@@ -191,7 +191,7 @@ class CondSRF(Field):
             keyword arguments that are forwarded to the generator in use.
         """
         gen = GENERATOR[generator] if generator in GENERATOR else generator
-        if not (isinstance(gen, type) and issubclass(gen, AGenerator)):
+        if not (isinstance(gen, type) and issubclass(gen, Generator)):
             raise ValueError(
                 f"gstools.CondSRF: Unknown or wrong generator: {generator}"
             )
