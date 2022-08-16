@@ -7,11 +7,13 @@ GStools subpackage providing generators for spatial random fields.
 The following classes are provided
 
 .. autosummary::
+   Generator
    RandMeth
    IncomprRandMeth
 """
 # pylint: disable=C0103, W0222, C0412
 import warnings
+from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
 
 import numpy as np
@@ -26,13 +28,77 @@ if config.USE_RUST:  # pragma: no cover
 else:
     from gstools.field.summator import summate, summate_incompr
 
-__all__ = ["RandMeth", "IncomprRandMeth"]
+__all__ = ["Generator", "RandMeth", "IncomprRandMeth"]
 
 
 SAMPLING = ["auto", "inversion", "mcmc"]
 
 
-class RandMeth:
+class Generator(ABC):
+    """Abstract generator class."""
+
+    @abstractmethod
+    def update(self, model=None, seed=np.nan):
+        """Update the model and the seed.
+
+        If model and seed are not different, nothing will be done.
+
+        Parameters
+        ----------
+        model : :any:`CovModel` or :any:`None`, optional
+            covariance model. Default: :any:`None`
+        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
+            the seed of the random number generator.
+            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
+            the actual seed will be kept. Default: :any:`numpy.nan`
+        """
+
+    @abstractmethod
+    def get_nugget(self, shape):
+        """
+        Generate normal distributed values for the nugget simulation.
+
+        Parameters
+        ----------
+        shape : :class:`tuple`
+            the shape of the summed modes
+
+        Returns
+        -------
+        nugget : :class:`numpy.ndarray`
+            the nugget in the same shape as the summed modes
+        """
+
+    @abstractmethod
+    def __call__(self, pos, add_nugget=True):
+        """
+        Generate the field.
+
+        Parameters
+        ----------
+        pos : (d, n), :class:`numpy.ndarray`
+            the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Whether to add nugget noise to the field.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            the random modes
+        """
+
+    @property
+    @abstractmethod
+    def value_type(self):
+        """:class:`str`: Type of the field values (scalar, vector)."""
+
+    @property
+    def name(self):
+        """:class:`str`: Name of the generator."""
+        return self.__class__.__name__
+
+
+class RandMeth(Generator):
     r"""Randomization method for calculating isotropic random fields.
 
     Parameters
@@ -311,11 +377,6 @@ class RandMeth:
         self._verbose = bool(verbose)
 
     @property
-    def name(self):
-        """:class:`str`: Name of the generator."""
-        return self.__class__.__name__
-
-    @property
     def value_type(self):
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
@@ -405,7 +466,7 @@ class IncomprRandMeth(RandMeth):
         self.mean_u = mean_velocity
         self._value_type = "vector"
 
-    def __call__(self, pos):
+    def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods,
@@ -417,6 +478,8 @@ class IncomprRandMeth(RandMeth):
         ----------
         pos : (d, n), :class:`numpy.ndarray`
             the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Whether to add nugget noise to the field.
 
         Returns
         -------
@@ -427,10 +490,8 @@ class IncomprRandMeth(RandMeth):
         summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )
-        nugget = self.get_nugget(summed_modes.shape)
-
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         e1 = self._create_unit_vector(summed_modes.shape)
-
         return (
             self.mean_u * e1
             + self.mean_u
