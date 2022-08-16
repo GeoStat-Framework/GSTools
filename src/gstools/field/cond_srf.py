@@ -32,7 +32,7 @@ class CondSRF(Field):
     ----------
     krige : :any:`Krige`
         Kriging setup to condition the spatial random field.
-    generator : :class:`str` or :any:`RandMeth`, optional
+    generator : :class:`str` or :any:`Generator`, optional
         Name or class of the field generator to be used.
         At the moment, only the following generator is provided:
 
@@ -184,7 +184,7 @@ class CondSRF(Field):
 
         Parameters
         ----------
-        generator : :class:`str` or :any:`RandMeth`, optional
+        generator : :class:`str` or :any:`Generator`, optional
             Name or class of the generator to use for field generation.
             Default: "RandMeth"
         **generator_kwargs

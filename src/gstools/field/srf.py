@@ -64,7 +64,7 @@ class SRF(Field):
               See: :any:`var_coarse_graining`
 
         Default: "no_scaling"
-    generator : :class:`str` or :any:`RandMeth`, optional
+    generator : :class:`str` or :any:`Generator`, optional
         Name or class of the field generator to be used.
         At the moment, the following generators are provided:
 
@@ -166,7 +166,7 @@ class SRF(Field):
 
         Parameters
         ----------
-        generator : :class:`str` or :any:`RandMeth`, optional
+        generator : :class:`str` or :any:`Generator`, optional
             Name or class of the field generator to be used.
             Default: "RandMeth"
         **generator_kwargs
