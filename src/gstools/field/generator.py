@@ -11,7 +11,7 @@ The following classes are provided
    RandMeth
    IncomprRandMeth
 """
-# pylint: disable=C0103, W0222, C0412
+# pylint: disable=C0103, W0222, C0412, W0231
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
@@ -35,7 +35,20 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 
 class Generator(ABC):
-    """Abstract generator class."""
+    """
+    Abstract generator class.
+
+    Parameters
+    ----------
+    model : :any:`CovModel`
+        Covariance model
+    **kwargs
+        Placeholder for keyword-args
+    """
+
+    @abstractmethod
+    def __init__(self, model, **kwargs):
+        pass
 
     @abstractmethod
     def update(self, model=None, seed=np.nan):
