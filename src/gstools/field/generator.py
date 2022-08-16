@@ -11,7 +11,7 @@ The following classes are provided
    RandMeth
    IncomprRandMeth
 """
-# pylint: disable=C0103, W0222, C0412, W0221
+# pylint: disable=C0103, W0222, C0412
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
@@ -70,8 +70,22 @@ class Generator(ABC):
         """
 
     @abstractmethod
-    def __call__(self, pos, **kwargs):
-        """Generate the field."""
+    def __call__(self, pos, add_nugget=True):
+        """
+        Generate the field.
+
+        Parameters
+        ----------
+        pos : (d, n), :class:`numpy.ndarray`
+            the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Whether to add nugget noise to the field.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            the random modes
+        """
 
     @property
     @abstractmethod
@@ -452,7 +466,7 @@ class IncomprRandMeth(RandMeth):
         self.mean_u = mean_velocity
         self._value_type = "vector"
 
-    def __call__(self, pos):
+    def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
         This method  calls the `summate_incompr_*` Cython methods,
@@ -464,6 +478,8 @@ class IncomprRandMeth(RandMeth):
         ----------
         pos : (d, n), :class:`numpy.ndarray`
             the position tuple with d dimensions and n points.
+        add_nugget : :class:`bool`
+            Whether to add nugget noise to the field.
 
         Returns
         -------
@@ -474,10 +490,8 @@ class IncomprRandMeth(RandMeth):
         summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )
-        nugget = self.get_nugget(summed_modes.shape)
-
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         e1 = self._create_unit_vector(summed_modes.shape)
-
         return (
             self.mean_u * e1
             + self.mean_u
