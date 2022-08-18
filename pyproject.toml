@@ -14,15 +14,13 @@ requires-python = ">=3.7"
 name = "gstools"
 description = "GSTools: A geostatistical toolbox."
 authors = [
-    {name = "Sebastian Müller", email = "sebastian@geostat-framework.org"},
-    {name = "Lennart Schüler", email = "lennart@geostat-framework.org"},
+    {name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org"},
 ]
 maintainers = [
-    {name = "Sebastian Müller", email = "sebastian@geostat-framework.org"},
-    {name = "Lennart Schüler", email = "lennart@geostat-framework.org"},
+    {name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org"},
 ]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = {text = "LGPL-3.0"}
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -85,6 +83,9 @@ Documentation = "https://gstools.readthedocs.io"
 Homepage = "https://geostat-framework.org/#gstools"
 Source = "https://github.com/GeoStat-Framework/GSTools"
 Tracker = "https://github.com/GeoStat-Framework/GSTools/issues"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools_scm]
 write_to = "src/gstools/_version.py"
