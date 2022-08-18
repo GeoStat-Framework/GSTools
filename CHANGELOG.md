@@ -3,7 +3,7 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
-## [1.4.0] - ? - 2022-08
+## [1.4.0] - Sassy Sapphire - 2022-08
 
 ### Enhancements
 - added Youtube tutorial to documentation [#239](https://github.com/GeoStat-Framework/GSTools/pull/239)
@@ -81,7 +81,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 ## [1.3.2] - Pure Pink - 2021-07
 
 ### Bugfixes
-- `vario_estimate` was altering the input field unter certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
+- `vario_estimate` was altering the input field under certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
 - `emcee` v3.1 now requires `nsteps` in `run_mcmc()` to be integer (called in `RNG.sample_ln_pdf`) [#184](https://github.com/GeoStat-Framework/GSTools/pull/184)
 
 
@@ -235,6 +235,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 - `CovModel.opt_arg` now sorted [#103](https://github.com/GeoStat-Framework/GSTools/issues/103)
 - CovModel.fit: check if weights are given as a string (numpy comparison error) [#111](https://github.com/GeoStat-Framework/GSTools/issues/111)
 - several pylint fixes ([#159](https://github.com/GeoStat-Framework/GSTools/pull/159))
+
 
 ## [1.2.1] - Volatile Violet - 2020-04-14
 
