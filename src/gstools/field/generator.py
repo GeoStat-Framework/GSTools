@@ -175,6 +175,7 @@ class RandMeth:
             If :any:`None`, a random seed is used. If :any:`numpy.nan`,
             the actual seed will be kept. Default: :any:`numpy.nan`
         """
+
         # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
@@ -234,7 +235,7 @@ class RandMeth:
         if seed is None or not np.isnan(seed):
             self._seed = seed
         self._rng = RNG(self._seed)
-        
+
         # normal distributed samples for randmeth
         self._z_1 = self._rng.random.normal(size=self._mode_no)
         self._z_2 = self._rng.random.normal(size=self._mode_no)
@@ -249,12 +250,14 @@ class RandMeth:
             rad = self._rng.sample_dist(
                 size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
             )
+
         else:
             rad = self._rng.sample_ln_pdf(
                 ln_pdf=self.model.ln_spectral_rad_pdf,
                 size=self._mode_no,
                 sample_around=1.0 / self.model.len_rescaled,
             )
+
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
 
@@ -548,6 +551,8 @@ class IncomprRandZeroVelMeth(RandMeth):
         seed=None,
         verbose=False,
         sampling="auto",
+        periodic_bc=False,
+        box_len=None,
         **kwargs,
     ):
         if vec_dim is None and (model.dim < 2 or model.dim > 3):
@@ -567,6 +572,9 @@ class IncomprRandZeroVelMeth(RandMeth):
             self.vec_dim = vec_dim
         self._value_type = "vector"
         
+        self.periodic_bc=periodic_bc
+        self.box_len=box_len
+
         # for using the Kraichnan method for zero-velocity fluid, z_1 and z_2 must instead contain N=self._mode_no independent realizations of normal vectors of size vec_dim,
         mean = np.zeros(self.vec_dim)
         cov = np.identity(self.vec_dim)
@@ -594,8 +602,21 @@ class IncomprRandZeroVelMeth(RandMeth):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
+        
         print("\nStarting summate_incompr_zero_vel")
 
+        if self.periodic_bc:
+            if not self.box_len==None:
+                print("\nimposing periodic boundary conditions on spatial coordinates!")
+                print("\nrounding first 'vec_dim' vector components in cov_sample to multiples of 2pi/box_length")
+                fac = 2*np.pi/np.array(self.box_len)
+                self._cov_sample[:self.vec_dim,:] = fac[:,None]*np.round(self._cov_sample[:self.vec_dim,:]/fac[:,None])
+            else:
+                raise ValueError(
+                "For periodic boundary conditions on spatial coordinates, specify parameter box_len, an array of lengths of the box in each spatial dimension. The length of box_len must be equal to vec_dim."
+                )
+                
+        
         summed_modes = summate_incompr_zero_vel(
             self.vec_dim, self._cov_sample, self._z_1, self._z_2, pos
         )
