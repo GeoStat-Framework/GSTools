@@ -14,7 +14,7 @@ The following classes are provided
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.field.generator import Generator, IncomprRandMeth, RandMeth
+from gstools.field.generator import IncomprRandMeth, IncomprRandZeroVelMeth, RandMeth, GenericRandVectorFieldMeth 
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
@@ -22,8 +22,10 @@ __all__ = ["SRF"]
 GENERATOR = {
     "RandMeth": RandMeth,
     "IncomprRandMeth": IncomprRandMeth,
+    "IncomprRandZeroVelMeth": IncomprRandZeroVelMeth,
     "VectorField": IncomprRandMeth,
     "VelocityField": IncomprRandMeth,
+    "GenericRandVectorFieldMeth": GenericRandVectorFieldMeth,
 }
 """dict: Standard generators for spatial random fields."""
 
@@ -120,7 +122,7 @@ class SRF(Field):
             the position tuple, containing main direction and transversal
             directions
         seed : :class:`int`, optional
-            seed for RNG for resetting. Default: keep seed from generator
+            seed for RNG for reseting. Default: keep seed from generator
         point_volumes : :class:`float` or :class:`numpy.ndarray`
             If your evaluation points for the field are coming from a mesh,
             they are probably representing a certain element volume.
