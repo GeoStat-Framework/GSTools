@@ -10,6 +10,7 @@ The following classes are provided
    SRF
 """
 # pylint: disable=C0103, W0221, E1102
+
 import numpy as np
 
 from gstools.field.base import Field
@@ -65,8 +66,8 @@ class SRF(Field):
               See: :any:`var_coarse_graining`
 
         Default: "no_scaling"
-    generator : :class:`str`, optional
-        Name of the field generator to be used.
+    generator : :class:`str` or :any:`Generator`, optional
+        Name or class of the field generator to be used.
         At the moment, the following generators are provided:
 
             * "RandMeth" : The Randomization Method.
@@ -167,18 +168,20 @@ class SRF(Field):
 
         Parameters
         ----------
-        generator : :class:`str`, optional
-            Name of the generator to use for field generation.
+        generator : :class:`str` or :any:`Generator`, optional
+            Name or class of the field generator to be used.
             Default: "RandMeth"
         **generator_kwargs
             keyword arguments that are forwarded to the generator in use.
         """
-        if generator in GENERATOR:
-            gen = GENERATOR[generator]
-            self._generator = gen(self.model, **generator_kwargs)
-            self.value_type = self._generator.value_type
-        else:
-            raise ValueError(f"gstools.SRF: Unknown generator: {generator}")
+        gen = GENERATOR[generator] if generator in GENERATOR else generator
+        if not (isinstance(gen, type) and issubclass(gen, Generator)):
+            raise ValueError(
+                f"gstools.SRF: Unknown or wrong generator: {generator}"
+            )
+        self._generator = gen(self.model, **generator_kwargs)
+        self.value_type = self.generator.value_type
+
         for val in [self.mean, self.trend]:
             if not callable(val) and val is not None:
                 if np.size(val) > 1 and self.value_type == "scalar":

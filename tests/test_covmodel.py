@@ -279,11 +279,20 @@ class TestCovModel(unittest.TestCase):
         # init guess
         with self.assertRaises(ValueError):
             model.fit_variogram(self.gamma_x, self.gamma_y, init_guess="wrong")
+        with self.assertRaises(ValueError):
+            model.fit_variogram(
+                self.gamma_x, self.gamma_y, init_guess={"wrong": 1}
+            )
+        # sill fixing
         model.var_bounds = [0, np.inf]
         model.fit_variogram(
             self.gamma_x, np.array(self.gamma_y) + 1, sill=2, alpha=False
         )
         self.assertAlmostEqual(model.var + model.nugget, 2)
+        # check isotropicity for latlon models
+        model = Stable(latlon=True)
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, 3 * [self.gamma_y])
 
     def test_covmodel_class(self):
         model_std = Gaussian(rescale=3, var=1.1, nugget=1.2, len_scale=1.3)

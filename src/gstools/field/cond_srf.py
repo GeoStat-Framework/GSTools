@@ -10,10 +10,11 @@ The following classes are provided
    CondSRF
 """
 # pylint: disable=C0103, W0231, W0221, W0222, E1102
+
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.field.generator import RandMeth
+from gstools.field.generator import Generator, RandMeth
 from gstools.krige import Krige
 
 __all__ = ["CondSRF"]
@@ -31,8 +32,8 @@ class CondSRF(Field):
     ----------
     krige : :any:`Krige`
         Kriging setup to condition the spatial random field.
-    generator : :class:`str`, optional
-        Name of the field generator to be used.
+    generator : :class:`str` or :any:`Generator`, optional
+        Name or class of the field generator to be used.
         At the moment, only the following generator is provided:
 
             * "RandMeth" : The Randomization Method.
@@ -43,6 +44,9 @@ class CondSRF(Field):
         Keyword arguments that are forwarded to the generator in use.
         Have a look at the provided generators for further information.
     """
+
+    valid_value_types = ["scalar"]
+    """:class:`list` of :class:`str`: valid field value types."""
 
     default_field_names = ["field", "raw_field", "raw_krige"]
     """:class:`list`: Default field names."""
@@ -180,18 +184,19 @@ class CondSRF(Field):
 
         Parameters
         ----------
-        generator : :class:`str`, optional
-            Name of the generator to use for field generation.
+        generator : :class:`str` or :any:`Generator`, optional
+            Name or class of the generator to use for field generation.
             Default: "RandMeth"
         **generator_kwargs
             keyword arguments that are forwarded to the generator in use.
         """
-        if generator in GENERATOR:
-            gen = GENERATOR[generator]
-            self._generator = gen(self.model, **generator_kwargs)
-            self.value_type = self.generator.value_type
-        else:
-            raise ValueError(f"gstools.CondSRF: Unknown generator {generator}")
+        gen = GENERATOR[generator] if generator in GENERATOR else generator
+        if not (isinstance(gen, type) and issubclass(gen, Generator)):
+            raise ValueError(
+                f"gstools.CondSRF: Unknown or wrong generator: {generator}"
+            )
+        self._generator = gen(self.model, **generator_kwargs)
+        self.value_type = self.generator.value_type
 
     def set_pos(self, pos, mesh_type="unstructured", info=False):
         """

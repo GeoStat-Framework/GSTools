@@ -1140,6 +1140,13 @@ class CovModel:
             return False
         return compare(self, other)
 
+    def __setattr__(self, name, value):
+        """Set an attribute."""
+        super().__setattr__(name, value)
+        # if an optional variogram argument was given, check bounds
+        if hasattr(self, "_opt_arg") and name in self._opt_arg:
+            self.check_arg_bounds()
+
     def __repr__(self):
         """Return String representation."""
         return model_repr(self)

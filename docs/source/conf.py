@@ -252,7 +252,6 @@ suppress_warnings = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "Python 3.6": ("https://docs.python.org/3.6", None),
     "Python": ("https://docs.python.org/", None),
     "NumPy": ("http://docs.scipy.org/doc/numpy/", None),
     "SciPy": ("http://docs.scipy.org/doc/scipy/reference", None),

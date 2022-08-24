@@ -29,9 +29,6 @@ from gstools.transform.field import apply
 
 __all__ = ["Field"]
 
-VALUE_TYPES = ["scalar", "vector"]
-""":class:`list` of :class:`str`: valid field value types."""
-
 
 def _pos_equal(pos1, pos2):
     if pos1 is None or pos2 is None:
@@ -78,6 +75,9 @@ class Field:
     dim : :any:`None` or :class:`int`, optional
         Dimension of the field if no model is given.
     """
+
+    valid_value_types = ["scalar", "vector"]
+    """:class:`list` of :class:`str`: valid field value types."""
 
     default_field_names = ["field"]
     """:class:`list`: Default field names."""
@@ -578,7 +578,7 @@ class Field:
             self._pos, self._field_shape = format_struct_pos_dim(pos, self.dim)
         # prepend dimension if we have a vector field
         if self.value_type == "vector":
-            self._field_shape = (self.dim,) + self._field_shape
+            self._field_shape = (self.generator.vec_dim,) + self._field_shape
             if self.latlon:
                 raise ValueError("Field: Vector fields not allowed for latlon")
 
@@ -663,8 +663,10 @@ class Field:
 
     @value_type.setter
     def value_type(self, value_type):
-        if value_type not in VALUE_TYPES:
-            raise ValueError(f"Field: value type not in {VALUE_TYPES}")
+        if value_type not in self.valid_value_types:
+            raise ValueError(
+                f"Field: value type not in {self.valid_value_types}"
+            )
         self._value_type = value_type
 
     @property

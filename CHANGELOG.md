@@ -3,6 +3,31 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
+## [1.4.0] - Sassy Sapphire - 2022-08
+
+### Enhancements
+- added Youtube tutorial to documentation [#239](https://github.com/GeoStat-Framework/GSTools/pull/239)
+- better support for custom generators [#250](https://github.com/GeoStat-Framework/GSTools/pull/250) [#259](https://github.com/GeoStat-Framework/GSTools/pull/259)
+- add `valid_value_types` class variable to all field classes [#250](https://github.com/GeoStat-Framework/GSTools/pull/250)
+- PyKrige: fix passed variogram in case of latlon models [#254](https://github.com/GeoStat-Framework/GSTools/pull/254)
+- add bounds checks for optional arguments of CovModel when resetting by class attribute [#255](https://github.com/GeoStat-Framework/GSTools/pull/255)
+- minor coverage improvements [#255](https://github.com/GeoStat-Framework/GSTools/pull/255)
+- documentation: readability improvements [#257](https://github.com/GeoStat-Framework/GSTools/pull/257)
+
+### Changes
+- drop Python 3.6 support (setuptools>60 needs py>3.7) [#241](https://github.com/GeoStat-Framework/GSTools/pull/241)
+- move `setup.cfg` content to `pyproject.toml` ([PEP 621](https://peps.python.org/pep-0621/)) [#241](https://github.com/GeoStat-Framework/GSTools/pull/241)
+- move to `src/` based package structure (better testing, building and structure) [#241](https://github.com/GeoStat-Framework/GSTools/pull/241)
+- use [extension-helpers](https://pypi.org/project/extension-helpers/) for openmp support in `setup.py` [#241](https://github.com/GeoStat-Framework/GSTools/pull/241)
+- increase minimal version of meshio to v5.1 [#241](https://github.com/GeoStat-Framework/GSTools/pull/241)
+
+### Bugfixes
+- Pyvista v0.32 deprecation warning: use point_data instead of point_arrays [#237](https://github.com/GeoStat-Framework/GSTools/pull/237)
+- remove deprecated scipy (v1.9) method pinv2 [#247](https://github.com/GeoStat-Framework/GSTools/pull/247)
+- change float comparison in tests [#248](https://github.com/GeoStat-Framework/GSTools/pull/248)
+- Cython: solve `-Wsometimes-uninitialized` warning [#255](https://github.com/GeoStat-Framework/GSTools/pull/255)
+
+
 ## [1.3.5] - Pure Pink - 2022-01
 
 ### Changes
@@ -56,7 +81,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 ## [1.3.2] - Pure Pink - 2021-07
 
 ### Bugfixes
-- `vario_estimate` was altering the input field unter certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
+- `vario_estimate` was altering the input field under certain circumstances [#180](https://github.com/GeoStat-Framework/GSTools/issues/180)
 - `emcee` v3.1 now requires `nsteps` in `run_mcmc()` to be integer (called in `RNG.sample_ln_pdf`) [#184](https://github.com/GeoStat-Framework/GSTools/pull/184)
 
 
@@ -211,6 +236,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 - CovModel.fit: check if weights are given as a string (numpy comparison error) [#111](https://github.com/GeoStat-Framework/GSTools/issues/111)
 - several pylint fixes ([#159](https://github.com/GeoStat-Framework/GSTools/pull/159))
 
+
 ## [1.2.1] - Volatile Violet - 2020-04-14
 
 ### Bugfixes
@@ -331,7 +357,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.5...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.5...v1.4.0
 [1.3.5]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...v1.3.5
 [1.3.4]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.2...v1.3.3

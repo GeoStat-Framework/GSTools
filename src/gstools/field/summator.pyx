@@ -77,7 +77,7 @@ def summate_incompr(
             for d in range(field_dim):
                 phase += cov_samples[d, j] * pos[d, i]
             for d in range(vec_dim):
-                proj[d] = e1[d] - cov_samples[d, j] * cov_samples[0, j] / k_2 #!!! this gives realizations with zero curl in x-direction
+                proj[d] = e1[d] - cov_samples[d, j] * cov_samples[0, j] / k_2
                 summed_modes[d, i] += proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
 
     return np.asarray(summed_modes)
