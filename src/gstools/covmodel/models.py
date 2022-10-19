@@ -10,8 +10,7 @@ The following classes are provided
    Gaussian
    Exponential
    Matern
-   ExpInt
-   Mueller
+   Integral
    Stable
    Rational
    Cubic
@@ -36,8 +35,7 @@ __all__ = [
     "Gaussian",
     "Exponential",
     "Matern",
-    "ExpInt",
-    "Mueller",
+    "Integral",
     "Stable",
     "Rational",
     "Cubic",
@@ -393,7 +391,7 @@ class Matern(CovModel):
         )
 
 
-class Mueller(CovModel):
+class Integral(CovModel):
     r"""The Exponential Integral covariance model.
 
     Notes
@@ -456,7 +454,7 @@ class Mueller(CovModel):
         return {"nu": [0.0, 50.0, "oc"]}
 
     def cor(self, h):
-        """ExpInt normalized correlation function."""
+        """Exponential Integral normalized correlation function."""
         h = np.asarray(h, dtype=np.double)
         return 0.5 * self.nu * exp_int(1.0 + 0.5 * self.nu, h**2)
 
@@ -482,9 +480,6 @@ class Mueller(CovModel):
         return (
             self.len_rescaled * self.nu * np.sqrt(np.pi) / (2 * self.nu + 2.0)
         )
-
-
-ExpInt = Mueller
 
 
 class Rational(CovModel):

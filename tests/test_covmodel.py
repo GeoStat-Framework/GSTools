@@ -13,10 +13,10 @@ from gstools import (
     Exponential,
     Gaussian,
     HyperSpherical,
+    Integral,
     JBessel,
     Linear,
     Matern,
-    Mueller,
     Rational,
     Spherical,
     Stable,
@@ -83,7 +83,7 @@ class TestCovModel(unittest.TestCase):
             SuperSpherical,
             JBessel,
             TPLSimple,
-            Mueller,
+            Integral,
         ]
         self.tpl_cov_models = [
             TPLGaussian,
@@ -398,8 +398,8 @@ class TestCovModel(unittest.TestCase):
         self.assertAlmostEqual(model1.integral_scale, model3.integral_scale)
 
     def test_special_models(self):
-        # matern and mueller converge to gaussian
-        model0 = Mueller(rescale=0.5)
+        # Matern and Integral converge to gaussian
+        model0 = Integral(rescale=0.5)
         model0.set_arg_bounds(nu=[0, 1001])
         model0.nu = 1000
         model1 = Matern()
