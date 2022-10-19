@@ -83,7 +83,7 @@ class CondSRF(Field):
         seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`Ellipsis`,
-            the actual seed will be kept. Default: :any:`Ellipsis`
+            the current seed will be kept. Default: :any:`Ellipsis`
         mesh_type : :class:`str`
             'structured' / 'unstructured'
         post_process : :class:`bool`, optional

@@ -64,7 +64,7 @@ class Generator(ABC):
         seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`Ellipsis`,
-            the actual seed will be kept. Default: :any:`Ellipsis`
+            the current seed will be kept. Default: :any:`Ellipsis`
         """
 
     @abstractmethod
@@ -247,21 +247,18 @@ class RandMeth(Generator):
         seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`Ellipsis`,
-            the actual seed will be kept. Default: :any:`Ellipsis`
+            the current seed will be kept. Default: :any:`Ellipsis`
         """
         # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
                 self._model = dcp(model)
-                if seed is None or seed is not Ellipsis:
-                    self.reset_seed(seed)
-                else:
-                    self.reset_seed(self._seed)
+                self.reset_seed(self._seed if seed is Ellipsis else seed)
             # just update the seed, if its a new one
-            elif seed is None or seed is not Ellipsis:
+            elif seed is not Ellipsis:
                 self.seed = seed
         # or just update the seed, when no model is given
-        elif model is None and (seed is None or seed is not Ellipsis):
+        elif model is None and seed is not Ellipsis:
             if isinstance(self._model, CovModel):
                 self.seed = seed
             else:
@@ -296,13 +293,13 @@ class RandMeth(Generator):
         seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`Ellipsis`,
-            the actual seed will be kept. Default: :any:`Ellipsis`
+            the current seed will be kept. Default: :any:`Ellipsis`
 
         Notes
         -----
         Even if the given seed is the present one, modes will be recalculated.
         """
-        if seed is None or seed is not Ellipsis:
+        if seed is not Ellipsis:
             self._seed = seed
         self._rng = RNG(self._seed)
         # normal distributed samples for randmeth
@@ -351,7 +348,7 @@ class RandMeth(Generator):
 
     @seed.setter
     def seed(self, new_seed):
-        if new_seed is not self._seed:
+        if new_seed != self._seed:
             self.reset_seed(new_seed)
 
     @property

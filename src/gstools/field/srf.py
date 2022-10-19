@@ -121,7 +121,7 @@ class SRF(Field):
         seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`Ellipsis`,
-            the actual seed will be kept. Default: :any:`Ellipsis`
+            the current seed will be kept. Default: :any:`Ellipsis`
         point_volumes : :class:`float` or :class:`numpy.ndarray`
             If your evaluation points for the field are coming from a mesh,
             they are probably representing a certain element volume.
