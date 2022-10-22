@@ -14,6 +14,8 @@ Subpackages
 ===========
 
 .. autosummary::
+   :toctree: generated
+
     covmodel
     field
     variogram
@@ -123,7 +125,6 @@ Misc
 
 .. autosummary::
    EARTH_RADIUS
-
 """
 # Hooray!
 from gstools import (

@@ -61,6 +61,8 @@ Misc
    EARTH_RADIUS
 
 ----
+
+.. autodata:: EARTH_RADIUS
 """
 
 from gstools.tools.export import (

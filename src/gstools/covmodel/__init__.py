@@ -8,7 +8,9 @@ Subpackages
 ^^^^^^^^^^^
 
 .. autosummary::
-    plot
+   :toctree: generated
+
+   plot
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^

@@ -8,6 +8,8 @@ Subpackages
 ^^^^^^^^^^^
 
 .. autosummary::
+   :toctree: generated
+
     generator
     upscaling
 
