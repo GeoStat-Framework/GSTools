@@ -254,7 +254,6 @@ def plot_nd(
             s.valstep = ax_steps[i]
             s.ax.set_xlim(*ax_ends[i])
             # update representation
-            s.poly.xy[:2] = (s.valmin, 0), (s.valmin, 1)
             s.vline.set_data(2 * [s.valinit], [-0.1, 1.1])
             s.reset()
         im.set_extent(ax_extents[p])
