@@ -1,11 +1,10 @@
 [build-system]
 requires = [
-    "setuptools>=62",
-    "wheel",
-    "setuptools_scm[toml]>=6.4",
+    "setuptools>=64",
+    "setuptools_scm>=7",
     "oldest-supported-numpy",
-    "Cython>=0.28.3,<3.0",
-    "extension-helpers",
+    "Cython>=0.29.32,<3.0",
+    "extension-helpers>=1",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -14,9 +13,6 @@ requires-python = ">=3.7"
 name = "gstools"
 description = "GSTools: A geostatistical toolbox."
 authors = [
-    {name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org"},
-]
-maintainers = [
     {name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org"},
 ]
 readme = "README.md"
@@ -40,6 +36,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: GIS",
     "Topic :: Scientific/Engineering :: Hydrology",
@@ -101,9 +98,11 @@ line_length = 79
 [tool.black]
 line-length = 79
 target-version = [
-    "py36",
     "py37",
     "py38",
+    "py39",
+    "py310",
+    "py311",
 ]
 
 [tool.coverage]
@@ -155,8 +154,8 @@ target-version = [
 [tool.cibuildwheel]
 # Switch to using build
 build-frontend = "build"
-# Disable building PyPy wheels on all platforms, 32bit for py3.10 and musllinux builds, py3.6
-skip = ["cp36-*", "pp*", "cp310-win32", "cp310-manylinux_i686", "*-musllinux_*"]
+# Disable building PyPy wheels on all platforms, 32bit for py3.10/11 and musllinux builds, py3.6
+skip = ["cp36-*", "pp*", "cp31*-win32", "cp31*-manylinux_i686", "*-musllinux_*"]
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
