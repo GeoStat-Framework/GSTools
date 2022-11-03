@@ -62,6 +62,7 @@ The following standard covariance models are provided by GSTools
     Gaussian
     Exponential
     Matern
+    Integral
     Stable
     Rational
     Cubic

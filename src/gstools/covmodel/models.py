@@ -10,6 +10,7 @@ The following classes are provided
    Gaussian
    Exponential
    Matern
+   Integral
    Stable
    Rational
    Cubic
@@ -28,11 +29,13 @@ from scipy import special as sps
 
 from gstools.covmodel.base import CovModel
 from gstools.covmodel.tools import AttributeWarning
+from gstools.tools.special import exp_int, inc_gamma_low
 
 __all__ = [
     "Gaussian",
     "Exponential",
     "Matern",
+    "Integral",
     "Stable",
     "Rational",
     "Cubic",
@@ -363,23 +366,17 @@ class Matern(CovModel):
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
+        x = (k * self.len_rescaled) ** 2
         # for nu > 20 we just use an approximation of the gaussian model
         if self.nu > 20.0:
             return (
                 (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
-                * np.exp(-((k * self.len_rescaled) ** 2))
-                * (
-                    1
-                    + (
-                        ((k * self.len_rescaled) ** 2 - self.dim / 2.0) ** 2
-                        - self.dim / 2.0
-                    )
-                    / self.nu
-                )
+                * np.exp(-x)
+                * (1 + 0.5 * x**2 / self.nu)
+                * np.sqrt(1 + x / self.nu) ** (-self.dim)
             )
         return (self.len_rescaled / np.sqrt(np.pi)) ** self.dim * np.exp(
-            -(self.nu + self.dim / 2.0)
-            * np.log(1.0 + (k * self.len_rescaled) ** 2 / self.nu)
+            -(self.nu + self.dim / 2.0) * np.log(1.0 + x / self.nu)
             + sps.loggamma(self.nu + self.dim / 2.0)
             - sps.loggamma(self.nu)
             - self.dim * np.log(np.sqrt(self.nu))
@@ -391,6 +388,97 @@ class Matern(CovModel):
             * np.pi
             / np.sqrt(self.nu)
             / sps.beta(self.nu, 0.5)
+        )
+
+
+class Integral(CovModel):
+    r"""The Exponential Integral covariance model.
+
+    Notes
+    -----
+    This model is given by the following correlation function [Mueller2021]_:
+
+    .. math::
+       \rho(r) =
+       \frac{\nu}{2}\cdot
+       E_{1+\frac{\nu}{2}}\left( \left( s\cdot\frac{r}{\ell} \right)^2 \right)
+
+    Where the standard rescale factor is :math:`s=1`.
+    :math:`E_s(x)` is the exponential integral.
+
+    :math:`\nu` is a shape parameter (1 by default).
+
+    For :math:`\nu \to \infty`, a gaussian model is approached, since it represents
+    the limiting case:
+
+    .. math::
+       \rho(r) =
+       \exp\left(-\left(s\cdot\frac{r}{\ell}\right)^2\right)
+
+    References
+    ----------
+    .. [Mueller2021] Müller, S., Heße, F., Attinger, S., and Zech, A.,
+           "The extended generalized radial flow model and effective
+           conductivity for truncated power law variograms",
+           Adv. Water Resour., 156, 104027, (2021)
+
+    Other Parameters
+    ----------------
+    nu : :class:`float`, optional
+        Shape parameter. Standard range: ``(0.0, 50]``
+        Default: ``1.0``
+    """
+
+    def default_opt_arg(self):
+        """Defaults for the optional arguments.
+
+            * ``{"nu": 1.0}``
+
+        Returns
+        -------
+        :class:`dict`
+            Defaults for optional arguments
+        """
+        return {"nu": 1.0}
+
+    def default_opt_arg_bounds(self):
+        """Defaults for boundaries of the optional arguments.
+
+            * ``{"nu": [0.0, 50.0, "oc"]}``
+
+        Returns
+        -------
+        :class:`dict`
+            Boundaries for optional arguments
+        """
+        return {"nu": [0.0, 50.0, "oc"]}
+
+    def cor(self, h):
+        """Exponential Integral normalized correlation function."""
+        h = np.asarray(h, dtype=np.double)
+        return 0.5 * self.nu * exp_int(1.0 + 0.5 * self.nu, h**2)
+
+    def spectral_density(self, k):  # noqa: D102
+        k = np.asarray(k, dtype=np.double)
+        x = (k * self.len_rescaled / 2.0) ** 2
+        # for nu > 50 we just use an approximation of the gaussian model
+        if self.nu > 50.0:
+            return (
+                (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+                * np.exp(-x)
+                * self.nu
+                / (self.nu + self.dim)
+                * (1.0 + 2 * x / (self.nu + self.dim + 2))
+            )
+        return (
+            self.nu
+            / (x ** (self.nu * 0.5) * 2 * (k * np.sqrt(np.pi)) ** self.dim)
+            * inc_gamma_low((self.nu + self.dim) / 2.0, x)
+        )
+
+    def calc_integral_scale(self):  # noqa: D102
+        return (
+            self.len_rescaled * self.nu * np.sqrt(np.pi) / (2 * self.nu + 2.0)
         )
 
 

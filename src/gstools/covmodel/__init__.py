@@ -31,6 +31,7 @@ Standard Covariance Models
    Gaussian
    Exponential
    Matern
+   Integral
    Stable
    Rational
    Cubic
@@ -59,6 +60,7 @@ from gstools.covmodel.models import (
     Exponential,
     Gaussian,
     HyperSpherical,
+    Integral,
     JBessel,
     Linear,
     Matern,
@@ -79,6 +81,7 @@ __all__ = [
     "Gaussian",
     "Exponential",
     "Matern",
+    "Integral",
     "Stable",
     "Rational",
     "Cubic",
