@@ -7,6 +7,8 @@ GStools subpackage providing plotting routines for the covariance models.
 The following classes and functions are provided
 
 .. autosummary::
+   :toctree: generated
+
    plot_variogram
    plot_covariance
    plot_correlation

@@ -310,7 +310,7 @@ class CovModel:
 
         **kwargs
             Keyword arguments forwarded to the plotting function
-            `"plot_" + func` in :any:`gstools.covmodel.plot`.
+            `"plot_" + func` in :py:mod:`gstools.covmodel.plot`.
 
         See Also
         --------

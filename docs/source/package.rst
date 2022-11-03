@@ -7,15 +7,3 @@ GSTools API
 .. raw:: latex
 
     \clearpage
-
-.. toctree::
-   :hidden:
-
-   covmodel.rst
-   field.rst
-   variogram.rst
-   krige.rst
-   random.rst
-   tools.rst
-   transform.rst
-   normalizer.rst
