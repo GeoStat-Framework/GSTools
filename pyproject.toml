@@ -63,7 +63,7 @@ doc = [
     "pyvista>=0.29",
     "sphinx>=4",
     "sphinx-gallery>=0.8",
-    "sphinx-rtd-theme>=1",
+    "sphinx-rtd-theme>=1,<1.1",
     "sphinxcontrib-youtube>=1.1",
 ]
 plotting = [

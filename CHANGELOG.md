@@ -3,6 +3,21 @@
 All notable changes to **GSTools** will be documented in this file.
 
 
+## [1.4.1] - Sassy Sapphire - 2022-11
+
+### Enhancements
+- new (Exponential-) Integral model added [#243](https://github.com/GeoStat-Framework/GSTools/pull/243)
+- added wheels for Python 3.11 [#272](https://github.com/GeoStat-Framework/GSTools/pull/272)
+
+### Changes
+- API documentation is polished and fully auto-generated now [#271](https://github.com/GeoStat-Framework/GSTools/pull/271)
+
+### Bugfixes
+- fixed approximation of `Matern.spectrum` for big `nu` [#243](https://github.com/GeoStat-Framework/GSTools/pull/243)
+- GSTools had wrong version when installed from git archive [#272](https://github.com/GeoStat-Framework/GSTools/pull/272)
+- Field.plot: solve long-standing mpl slider bug [#273](https://github.com/GeoStat-Framework/GSTools/pull/273)
+
+
 ## [1.4.0] - Sassy Sapphire - 2022-08
 
 ### Enhancements
@@ -357,7 +372,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.5...v1.4.0
 [1.3.5]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...v1.3.5
 [1.3.4]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.3...v1.3.4
