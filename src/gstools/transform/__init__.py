@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GStools subpackage providing transformations to post-process normal fields.
 

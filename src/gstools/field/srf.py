@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GStools subpackage providing a class for standard spatial random fields.
 

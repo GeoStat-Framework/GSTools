@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # GeoStatTools documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  5 14:20:43 2018.
@@ -111,7 +110,7 @@ master_doc = "contents"
 # General information about the project.
 curr_year = datetime.datetime.now().year
 project = "GSTools"
-copyright = "2018 - {}, Sebastian Müller, Lennart Schüler".format(curr_year)
+copyright = f"2018 - {curr_year}, Sebastian Müller, Lennart Schüler"
 author = "Sebastian Müller, Lennart Schüler"
 
 # The version info for the project you're documenting, acts as replacement for

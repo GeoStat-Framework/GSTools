@@ -46,13 +46,13 @@ srf = gs.SRF(model, mean=1)
 # You can specify the field name by the keyword `name`.
 
 for i in range(fields_no):
-    srf.mesh(mesh, points="centroids", name="c-field-{}".format(i), seed=i)
+    srf.mesh(mesh, points="centroids", name=f"c-field-{i}", seed=i)
 
 ###############################################################################
 # Now we generate fields on the mesh-points again controlled by a seed.
 
 for i in range(fields_no):
-    srf.mesh(mesh, points="points", name="p-field-{}".format(i), seed=i)
+    srf.mesh(mesh, points="points", name=f"p-field-{i}", seed=i)
 
 ###############################################################################
 # To get an impression we now want to plot the generated fields.

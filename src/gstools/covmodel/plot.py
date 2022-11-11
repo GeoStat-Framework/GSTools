@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GStools subpackage providing plotting routines for the covariance models.
 

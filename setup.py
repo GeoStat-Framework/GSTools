@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """GSTools: A geostatistical toolbox."""
 import os
 

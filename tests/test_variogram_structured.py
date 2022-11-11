@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This is a unittest of the variogram module.
 """

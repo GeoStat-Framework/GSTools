@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This is the unittest of CovModel class.
 """

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GStools subpackage providing upscaling routines for the spatial random field.
 

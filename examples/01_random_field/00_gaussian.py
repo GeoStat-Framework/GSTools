@@ -1,4 +1,4 @@
-"""
+r"""
 A Very Simple Example
 ---------------------
 

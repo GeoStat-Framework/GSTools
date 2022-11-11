@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This is the unittest for latlon related routines.
 """

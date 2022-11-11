@@ -1,6 +1,5 @@
 #cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 # distutils: language = c++
-# -*- coding: utf-8 -*-
 """
 This is the variogram estimater, implemented in cython.
 """
@@ -251,7 +250,7 @@ def unstructured(
     else:
         distance = dist_haversine
         if dim != 2:
-            raise ValueError('Haversine: dim = {0} != 2'.format(dim))
+            raise ValueError('Haversine: dim = {} != 2'.format(dim))
 
     if pos.shape[1] != f.shape[1]:
         raise ValueError('len(pos) = {0} != len(f) = {1} '.
