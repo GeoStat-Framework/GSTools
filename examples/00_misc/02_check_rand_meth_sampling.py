@@ -57,7 +57,7 @@ def plot_rand_meth_samples(generator):
     sample_in = np.sum(rad <= np.max(x))
     ax.hist(rad[rad <= np.max(x)], bins=sample_in // 50, density=True)
     ax.set_xlim([0, np.max(x)])
-    ax.set_title("Radius samples shown {}/{}".format(sample_in, len(rad)))
+    ax.set_title(f"Radius samples shown {sample_in}/{len(rad)}")
     ax.legend()
     plt.show()
 
