@@ -8,5 +8,5 @@ Contents
 
    index
    tutorials
-   package
+   api
    changelog

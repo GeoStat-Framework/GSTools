@@ -7,7 +7,7 @@ Subpackages
 ^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    plot
 
@@ -16,7 +16,7 @@ Covariance Base-Class
 Class to construct user defined covariance models
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    CovModel
 
@@ -25,7 +25,7 @@ Covariance Models
 Standard Covariance Models
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    Gaussian
    Exponential
@@ -42,9 +42,10 @@ Standard Covariance Models
    JBessel
 
 Truncated Power Law Covariance Models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    TPLGaussian
    TPLExponential

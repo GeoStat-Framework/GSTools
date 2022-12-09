@@ -116,7 +116,7 @@ src/gstools/_version.py
 
 # generated docs
 docs/source/examples/
-docs/source/generated/
+docs/source/api/
 
 # other settings
 .vscode/

@@ -7,7 +7,7 @@ Wrapper
 ^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    apply
 
@@ -15,7 +15,7 @@ Field Transformations
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    binary
    discrete
@@ -32,7 +32,7 @@ Array Transformations
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    array_discrete
    array_boxcox

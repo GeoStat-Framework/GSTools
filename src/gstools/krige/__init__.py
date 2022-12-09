@@ -7,7 +7,7 @@ Kriging Classes
 ^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    Krige
    Simple

@@ -7,7 +7,7 @@ Random Number Generator
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    RNG
 
@@ -15,7 +15,7 @@ Seed Generator
 ^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
     MasterRNG
 
@@ -23,7 +23,7 @@ Distribution factory
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    dist_gen
 
