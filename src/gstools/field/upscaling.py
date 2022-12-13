@@ -6,7 +6,7 @@ GStools subpackage providing upscaling routines for the spatial random field.
 The following functions are provided
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    var_coarse_graining
    var_no_scaling

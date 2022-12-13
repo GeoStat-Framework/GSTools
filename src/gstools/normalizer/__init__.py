@@ -7,7 +7,7 @@ Base-Normalizer
 ^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    Normalizer
 
@@ -15,7 +15,7 @@ Field-Normalizer
 ^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    LogNormal
    BoxCox
@@ -28,7 +28,7 @@ Convenience Routines
 ^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    apply_mean_norm_trend
    remove_trend_norm_mean

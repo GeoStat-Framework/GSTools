@@ -6,7 +6,7 @@ GStools subpackage providing generators for spatial random fields.
 The following classes are provided
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    Generator
    RandMeth

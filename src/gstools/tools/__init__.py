@@ -7,7 +7,7 @@ Export
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    vtk_export
    vtk_export_structured
@@ -20,7 +20,7 @@ Special functions
 ^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    confidence_scaling
    inc_gamma
@@ -35,7 +35,7 @@ Geometric
 ^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated
+   :toctree:
 
    rotated_main_axes
    set_angles

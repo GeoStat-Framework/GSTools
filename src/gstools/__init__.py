@@ -13,7 +13,7 @@ Subpackages
 ===========
 
 .. autosummary::
-   :toctree: generated
+   :toctree: api
 
     covmodel
     field
