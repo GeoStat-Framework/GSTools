@@ -10,7 +10,7 @@ cimport cython
 from cython.parallel import prange
 
 cimport numpy as np
-from libc.math cimport cos, sin
+from libc.math cimport pi, cos, sin, sqrt
 
 
 def summate(
@@ -77,5 +77,33 @@ def summate_incompr(
             for d in range(dim):
                 proj[d] = e1[d] - cov_samples[d, j] * cov_samples[0, j] / k_2
                 summed_modes[d, i] += proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
+
+    return np.asarray(summed_modes)
+
+
+def summate_fourier(
+    const double[:] spectral_density_sqrt,
+    const double[:, :] modes,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:, :] pos
+    ):
+    cdef int i, j, d
+    cdef double phase
+    cdef int dim = pos.shape[0]
+
+    cdef int X_len = pos.shape[1]
+    cdef int N = modes.shape[1]
+
+    cdef double[:] summed_modes = np.zeros(X_len, dtype=float)
+
+    for i in prange(X_len, nogil=True):
+        for j in range(N):
+            phase = 0.
+            for d in range(dim):
+                phase += modes[d, j] * pos[d, i]
+            # OpenMP doesn't like *= after +=... seems to be a compiler specific thing
+            phase = phase * 2. * pi
+            summed_modes[i] += spectral_density_sqrt[j] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
 
     return np.asarray(summed_modes)
