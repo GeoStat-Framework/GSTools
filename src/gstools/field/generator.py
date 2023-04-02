@@ -611,14 +611,11 @@ class Fourier(Generator):
         for d in range(model.dim):
             self._modes.append(
                 np.linspace(
-                    -self._modes_truncation[d],
-                    self._modes_truncation[d],
-                    modes_no[d],
+                    -self._modes_truncation[d]/2,
+                    self._modes_truncation[d]/2,
+                    self._modes_no[d],
                 ).T
             )
-            self._modes_delta.append(self._modes[-1][1] - self._modes[-1][0])
-        self._modes_delta = np.asarray(self._modes_delta)
-        self._modes = generate_grid(self._modes)
 
         self._verbose = bool(verbose)
         # initialize private attributes
@@ -653,11 +650,17 @@ class Fourier(Generator):
         """
         pos = np.asarray(pos, dtype=np.double)
         domain_size = pos.max(axis=1) - pos.min(axis=1)
-        self._modes *= (
-            self._modes_no[:, np.newaxis] /
-            self._modes_truncation[:, np.newaxis] /
-            domain_size[:, np.newaxis]
-        )
+        self._modes = [
+            self._modes[d] / domain_size[d]
+                for d in range(self._model.dim)
+        ]
+
+        self._modes_delta = [
+            self._modes[d][1] - self._modes[d][0] for d in range(self._model.dim)
+        ]
+        self._modes_delta = np.asarray(self._modes_delta)
+        self._modes = generate_grid(self._modes)
+
         # pre calc. the spectral density for all wave numbers
         # they are handed over to Cython
         k_norm = np.linalg.norm(self._modes, axis=0)
@@ -773,8 +776,8 @@ class Fourier(Generator):
             self._seed = seed
         self._rng = RNG(self._seed)
         # normal distributed samples for randmeth
-        self._z_1 = self._rng.random.normal(size=self._modes.shape[1])
-        self._z_2 = self._rng.random.normal(size=self._modes.shape[1])
+        self._z_1 = self._rng.random.normal(size=np.prod(self._modes_no))
+        self._z_2 = self._rng.random.normal(size=np.prod(self._modes_no))
 
     @property
     def seed(self):
