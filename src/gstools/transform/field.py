@@ -585,7 +585,10 @@ def normal_to_uniform(
     if not process:
         _check_for_default_normal(fld)
     kw = dict(
-        mean=0.0 if process and not keep_mean else fld.mean, var=fld.model.sill
+        mean=0.0 if process and not keep_mean else fld.mean,
+        var=fld.model.sill,
+        low=low,
+        high=high,
     )
     return apply_function(
         fld=fld,
