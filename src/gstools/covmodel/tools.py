@@ -498,13 +498,13 @@ def set_dim(model, dim):
             AttributeWarning,
         )
         dim = model.fix_dim()
-        if model.latlon and dim != 3:
+        if model.latlon and dim != (3 + int(model.time)):
             raise ValueError(
                 f"{model.name}: using fixed dimension {model.fix_dim()}, "
-                "which is not compatible with a latlon model."
+                f"which is not compatible with a latlon model (with time={model.time})."
             )
-    # force dim=3 for latlon models
-    dim = 3 if model.latlon else dim
+    # force dim=3 (or 4 when time=True) for latlon models
+    dim = (3 + int(model.time)) if model.latlon else dim
     # set the dimension
     if dim < 1:
         raise ValueError("Only dimensions of d >= 1 are supported.")
@@ -551,6 +551,7 @@ def compare(this, that):
     equal &= np.all(np.isclose(this.angles, that.angles))
     equal &= np.isclose(this.rescale, that.rescale)
     equal &= this.latlon == that.latlon
+    equal &= this.time == that.time
     for opt in this.opt_arg:
         equal &= np.isclose(getattr(this, opt), getattr(that, opt))
     return equal

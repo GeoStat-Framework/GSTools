@@ -624,60 +624,75 @@ def ang2dir(angles, dtype=np.double, dim=None):
     return vec
 
 
-def latlon2pos(latlon, radius=1.0, dtype=np.double):
+def latlon2pos(latlon, radius=1.0, dtype=np.double, time=False):
     """Convert lat-lon geo coordinates to 3D position tuple.
 
     Parameters
     ----------
     latlon : :class:`list` of :class:`numpy.ndarray`
         latitude and longitude given in degrees.
+        May includes an appended time axis if `time=True`.
     radius : :class:`float`, optional
         Earth radius. Default: `1.0`
     dtype : data-type, optional
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
+    time : bool, optional
+        Whether latlon includes an appended time axis.
+        Default: False
 
     Returns
     -------
     :class:`numpy.ndarray`
         the 3D position array
     """
-    latlon = np.asarray(latlon, dtype=dtype).reshape((2, -1))
+    latlon = np.asarray(latlon, dtype=dtype).reshape((3 if time else 2, -1))
+    if time:
+        timeax = latlon[2]
+        latlon = latlon[:2]
     lat, lon = np.deg2rad(latlon)
-    return np.array(
-        (
-            radius * np.cos(lat) * np.cos(lon),
-            radius * np.cos(lat) * np.sin(lon),
-            radius * np.sin(lat) * np.ones_like(lon),
-        ),
-        dtype=dtype,
+    pos_tuple = (
+        radius * np.cos(lat) * np.cos(lon),
+        radius * np.cos(lat) * np.sin(lon),
+        radius * np.sin(lat) * np.ones_like(lon),
     )
+    if time:
+        return np.array(pos_tuple + (timeax,), dtype=dtype)
+    return np.array(pos_tuple, dtype=dtype)
 
 
-def pos2latlon(pos, radius=1.0, dtype=np.double):
+def pos2latlon(pos, radius=1.0, dtype=np.double, time=False):
     """Convert 3D position tuple from sphere to lat-lon geo coordinates.
 
     Parameters
     ----------
     pos : :class:`list` of :class:`numpy.ndarray`
         The position tuple containing points on a unit-sphere.
+        May includes an appended time axis if `time=True`.
     radius : :class:`float`, optional
         Earth radius. Default: `1.0`
     dtype : data-type, optional
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
+    time : bool, optional
+        Whether latlon includes an appended time axis.
+        Default: False
 
     Returns
     -------
     :class:`numpy.ndarray`
         the 3D position array
     """
-    pos = np.asarray(pos, dtype=dtype).reshape((3, -1))
+    pos = np.asarray(pos, dtype=dtype).reshape((4 if time else 3, -1))
     # prevent numerical errors in arcsin
     lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
     lon = np.arctan2(pos[1], pos[0])
+    if time:
+        timeax = pos[3]
+        lat, lon = np.rad2deg((lat, lon), dtype=dtype)
+        return np.array((lat, lon, timeax), dtype=dtype)
     return np.rad2deg((lat, lon), dtype=dtype)
 
 
