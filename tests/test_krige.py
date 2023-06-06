@@ -132,7 +132,6 @@ class TestKrige(unittest.TestCase):
                         )
 
     def test_detrended(self):
-
         for Model in self.cov_models:
             for dim in self.dims:
                 model = Model(
