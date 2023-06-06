@@ -215,9 +215,9 @@ def array_to_lognormal(field):
     return np.exp(field)
 
 
-def array_to_uniform(field, mean=None, var=None):
+def array_to_uniform(field, mean=None, var=None, low=0.0, high=1.0):
     """
-    Transform normal distribution to uniform distribution on [0, 1].
+    Transform normal distribution to uniform distribution on [low, high].
 
     Parameters
     ----------
@@ -230,6 +230,12 @@ def array_to_uniform(field, mean=None, var=None):
         Variance of the given field.
         If None is given, the variance will be calculated.
         Default: :any:`None`
+    low : :class:`float`, optional
+        Lower bound for the uniform distribution.
+        Default: 0.0
+    high : :class:`float`, optional
+        Upper bound for the uniform distribution.
+        Default: 1.0
 
     Returns
     -------
@@ -239,7 +245,9 @@ def array_to_uniform(field, mean=None, var=None):
     field = np.asarray(field)
     mean = np.mean(field) if mean is None else float(mean)
     var = np.var(field) if var is None else float(var)
-    return 0.5 * (1 + erf((field - mean) / np.sqrt(2 * var)))
+    return (
+        0.5 * (1 + erf((field - mean) / np.sqrt(2 * var))) * (high - low) + low
+    )
 
 
 def array_to_arcsin(field, mean=None, var=None, a=None, b=None):
