@@ -522,6 +522,7 @@ def logistic_weights(p=0.1, mean=0.7):  # pragma: no cover
     callable
         Weighting function.
     """
+
     # define the callable weights function
     def func(x_data):
         """Callable function for the weights."""
