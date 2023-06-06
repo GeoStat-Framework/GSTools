@@ -54,7 +54,14 @@ def plot_field(
     if fld.dim == 1:
         return plot_1d(fld.pos, fld[field], fig, ax, **kwargs)
     return plot_nd(
-        fld.pos, fld[field], fld.mesh_type, fig, ax, fld.latlon, **kwargs
+        fld.pos,
+        fld[field],
+        fld.mesh_type,
+        fig,
+        ax,
+        fld.latlon,
+        fld.time,
+        **kwargs,
     )
 
 
@@ -104,6 +111,7 @@ def plot_nd(
     fig=None,
     ax=None,
     latlon=False,
+    time=False,
     resolution=128,
     ax_names=None,
     aspect="quad",
@@ -136,6 +144,11 @@ def plot_nd(
         ValueError will be raised, if a direction was specified.
         Bin edges need to be given in radians in this case.
         Default: False
+    time : :class:`bool`, optional
+        Indicate a metric spatio-temporal covariance model.
+        The time-dimension is assumed to be appended,
+        meaning the pos tuple is (x,y,z,...,t) or (lat, lon, t).
+        Default: False
     resolution : :class:`int`, optional
         Resolution of the imshow plot. The default is 128.
     ax_names : :class:`list` of :class:`str`, optional
@@ -159,14 +172,20 @@ def plot_nd(
     """
     dim = len(pos)
     assert dim > 1
-    assert not latlon or dim == 2
+    assert not latlon or dim == 2 + int(bool(time))
     if dim == 2 and contour_plot:
         return _plot_2d(
             pos, field, mesh_type, fig, ax, latlon, ax_names, **kwargs
         )
-    pos = pos[::-1] if latlon else pos
-    field = field.T if (latlon and mesh_type != "unstructured") else field
-    ax_names = _ax_names(dim, latlon, ax_names)
+    if latlon:
+        # swap lat-lon to lon-lat (x-y)
+        if time:
+            pos = (pos[1], pos[0], pos[2])
+        else:
+            pos = (pos[1], pos[0])
+        if mesh_type != "unstructured":
+            field = np.moveaxis(field, [0, 1], [1, 0])
+    ax_names = _ax_names(dim, latlon, time, ax_names)
     # init planes
     planes = rotation_planes(dim)
     plane_names = [f" {ax_names[p[0]]} - {ax_names[p[1]]}" for p in planes]
@@ -323,15 +342,20 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     return ax
 
 
-def _ax_names(dim, latlon=False, ax_names=None):
+def _ax_names(dim, latlon=False, time=False, ax_names=None):
+    t_fac = int(bool(time))
     if ax_names is not None:
         assert len(ax_names) >= dim
         return ax_names[:dim]
-    if dim == 2 and latlon:
-        return ["lon", "lat"]
+    if dim == 2 + t_fac and latlon:
+        return ["lon", "lat"] + t_fac * ["time"]
     if dim <= 3:
-        return ["$x$", "$y$", "$z$"][:dim] + (dim == 1) * ["field"]
-    return [f"$x_{{{i}}}$" for i in range(dim)]
+        return (
+            ["$x$", "$y$", "$z$"][:dim]
+            + t_fac * ["time"]
+            + (dim == 1) * ["field"]
+        )
+    return [f"$x_{{{i}}}$" for i in range(dim - t_fac)] + t_fac * ["time"]
 
 
 def _plot_2d(
