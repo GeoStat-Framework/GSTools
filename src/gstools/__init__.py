@@ -125,6 +125,7 @@ Misc
 
 .. autosummary::
    EARTH_RADIUS
+   DEGREE_SCALE
 """
 # Hooray!
 from gstools import (
@@ -161,6 +162,7 @@ from gstools.covmodel import (
 from gstools.field import SRF, CondSRF
 from gstools.krige import Krige
 from gstools.tools import (
+    DEGREE_SCALE,
     EARTH_RADIUS,
     generate_grid,
     generate_st_grid,
@@ -188,7 +190,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 __all__ = ["__version__"]
 __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
-__all__ += ["transform", "normalizer"]
+__all__ += ["transform", "normalizer", "config"]
 __all__ += [
     "CovModel",
     "Gaussian",
@@ -226,6 +228,7 @@ __all__ += [
     "generate_grid",
     "generate_st_grid",
     "EARTH_RADIUS",
+    "DEGREE_SCALE",
     "vtk_export",
     "vtk_export_structured",
     "vtk_export_unstructured",

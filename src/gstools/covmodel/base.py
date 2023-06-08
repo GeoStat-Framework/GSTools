@@ -103,6 +103,12 @@ class CovModel:
         disabled. `rescale` can be set to e.g. earth's radius,
         to have a meaningful `len_scale` parameter.
         Default: False
+    radius : :class:`float`, optional
+        Sphere radius in case of latlon coordinates to get a meaningful length
+        scale. By default, len_scale is assumed to be in radians with latlon=True.
+        Can be set to :any:`EARTH_RADIUS` to have len_scale in km or
+        :any:`DEGREE_SCALE` to have len_scale in degree.
+        Default: ``1.0``
     time : :class:`bool`, optional
         Create a metric spatio-temporal covariance model.
         Setting this to true will increase `dim` and `field_dim` by 1.
@@ -138,6 +144,7 @@ class CovModel:
         integral_scale=None,
         rescale=None,
         latlon=False,
+        radius=1.0,
         time=False,
         var_raw=None,
         hankel_kw=None,
@@ -167,6 +174,7 @@ class CovModel:
         # Set latlon and time first
         self._latlon = bool(latlon)
         self._time = bool(time)
+        self._radius = abs(float(radius))
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
         # using time increases model dimension
@@ -254,15 +262,15 @@ class CovModel:
 
     def vario_yadrenko(self, zeta):
         r"""Yadrenko variogram for great-circle distance from latlon-pos."""
-        return self.variogram(2 * np.sin(zeta / 2))
+        return self.variogram(2 * np.sin(zeta / 2) * self.radius)
 
     def cov_yadrenko(self, zeta):
         r"""Yadrenko covariance for great-circle distance from latlon-pos."""
-        return self.covariance(2 * np.sin(zeta / 2))
+        return self.covariance(2 * np.sin(zeta / 2) * self.radius)
 
     def cor_yadrenko(self, zeta):
         r"""Yadrenko correlation for great-circle distance from latlon-pos."""
-        return self.correlation(2 * np.sin(zeta / 2))
+        return self.correlation(2 * np.sin(zeta / 2) * self.radius)
 
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
@@ -542,14 +550,24 @@ class CovModel:
         """Make a position tuple ready for isotropic operations."""
         pos = np.asarray(pos, dtype=np.double).reshape((self.field_dim, -1))
         if self.latlon:
-            return latlon2pos(pos, time=self.time)
+            return latlon2pos(
+                pos,
+                radius=self.radius,
+                time=self.time,
+                time_scale=self.anis[-1],
+            )
         return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
 
     def anisometrize(self, pos):
         """Bring a position tuple into the anisotropic coordinate-system."""
         pos = np.asarray(pos, dtype=np.double).reshape((self.dim, -1))
         if self.latlon:
-            return pos2latlon(pos, time=self.time)
+            return pos2latlon(
+                pos,
+                radius=self.radius,
+                time=self.time,
+                time_scale=self.anis[-1],
+            )
         return np.dot(
             matrix_anisometrize(self.dim, self.angles, self.anis), pos
         )
@@ -885,6 +903,11 @@ class CovModel:
     def latlon(self):
         """:class:`bool`: Whether the model depends on geographical coords."""
         return self._latlon
+
+    @property
+    def radius(self):
+        """:class:`float`: Sphere radius for geographical coords."""
+        return self._radius
 
     @property
     def field_dim(self):
