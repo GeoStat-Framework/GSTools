@@ -569,21 +569,29 @@ def model_repr(model):  # pragma: no cover
     m = model
     p = model._prec
     opt_str = ""
+    t_str = ", time=True" if m.time else ""
     if not np.isclose(m.rescale, m.default_rescale()):
         opt_str += f", rescale={m.rescale:.{p}}"
     for opt in m.opt_arg:
         opt_str += f", {opt}={getattr(m, opt):.{p}}"
-    # only print anis and angles if model is anisotropic or rotated
-    ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
-    ang_str = f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
     if m.latlon:
+        ani_str = (
+            "" if m.is_isotropic or not m.time else f", anis={m.anis[-1]:.{p}}"
+        )
+        r_str = "" if np.isclose(m.radius, 1) else f", radius={m.radius:.{p}}"
         repr_str = (
-            f"{m.name}(latlon={m.latlon}, var={m.var:.{p}}, "
-            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}{opt_str})"
+            f"{m.name}(latlon={m.latlon}{t_str}, var={m.var:.{p}}, "
+            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
+            f"{ani_str}{r_str}{opt_str})"
         )
     else:
+        # only print anis and angles if model is anisotropic or rotated
+        ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
+        ang_str = (
+            f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
+        )
         repr_str = (
-            f"{m.name}(dim={m.dim}, var={m.var:.{p}}, "
+            f"{m.name}(dim={m.spatial_dim}{t_str}, var={m.var:.{p}}, "
             f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
             f"{ani_str}{ang_str}{opt_str})"
         )
