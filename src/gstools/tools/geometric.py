@@ -624,7 +624,9 @@ def ang2dir(angles, dtype=np.double, dim=None):
     return vec
 
 
-def latlon2pos(latlon, radius=1.0, dtype=np.double, time=False):
+def latlon2pos(
+    latlon, radius=1.0, dtype=np.double, time=False, time_scale=1.0
+):
     """Convert lat-lon geo coordinates to 3D position tuple.
 
     Parameters
@@ -638,9 +640,12 @@ def latlon2pos(latlon, radius=1.0, dtype=np.double, time=False):
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
-    time : bool, optional
+    time : :class:`bool`, optional
         Whether latlon includes an appended time axis.
         Default: False
+    time_scale : :class:`float`, optional
+        Scaling factor (e.g. anisotropy) for the time axis.
+        Default: `1.0`
 
     Returns
     -------
@@ -648,21 +653,18 @@ def latlon2pos(latlon, radius=1.0, dtype=np.double, time=False):
         the 3D position array
     """
     latlon = np.asarray(latlon, dtype=dtype).reshape((3 if time else 2, -1))
-    if time:
-        timeax = latlon[2]
-        latlon = latlon[:2]
-    lat, lon = np.deg2rad(latlon)
+    lat, lon = np.deg2rad(latlon[:2])
     pos_tuple = (
         radius * np.cos(lat) * np.cos(lon),
         radius * np.cos(lat) * np.sin(lon),
         radius * np.sin(lat) * np.ones_like(lon),
     )
     if time:
-        return np.array(pos_tuple + (timeax,), dtype=dtype)
+        return np.array(pos_tuple + (latlon[2] / time_scale,), dtype=dtype)
     return np.array(pos_tuple, dtype=dtype)
 
 
-def pos2latlon(pos, radius=1.0, dtype=np.double, time=False):
+def pos2latlon(pos, radius=1.0, dtype=np.double, time=False, time_scale=1.0):
     """Convert 3D position tuple from sphere to lat-lon geo coordinates.
 
     Parameters
@@ -676,9 +678,12 @@ def pos2latlon(pos, radius=1.0, dtype=np.double, time=False):
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
-    time : bool, optional
+    time : :class:`bool`, optional
         Whether latlon includes an appended time axis.
         Default: False
+    time_scale : :class:`float`, optional
+        Scaling factor (e.g. anisotropy) for the time axis.
+        Default: `1.0`
 
     Returns
     -------
@@ -689,11 +694,12 @@ def pos2latlon(pos, radius=1.0, dtype=np.double, time=False):
     # prevent numerical errors in arcsin
     lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
     lon = np.arctan2(pos[1], pos[0])
+    latlon = np.rad2deg((lat, lon), dtype=dtype)
     if time:
-        timeax = pos[3]
-        lat, lon = np.rad2deg((lat, lon), dtype=dtype)
-        return np.array((lat, lon, timeax), dtype=dtype)
-    return np.rad2deg((lat, lon), dtype=dtype)
+        return np.array(
+            (latlon[0], latlon[1], pos[3] * time_scale), dtype=dtype
+        )
+    return latlon
 
 
 def chordal_to_great_circle(dist):

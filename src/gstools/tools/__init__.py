@@ -58,10 +58,13 @@ Misc
 
 .. autosummary::
    EARTH_RADIUS
+   DEGREE_SCALE
 
 ----
 
 .. autodata:: EARTH_RADIUS
+
+.. autodata:: DEGREE_SCALE
 """
 
 from gstools.tools.export import (
@@ -102,6 +105,9 @@ from gstools.tools.special import (
 
 EARTH_RADIUS = 6371.0
 """float: earth radius for WGS84 ellipsoid in km"""
+
+DEGREE_SCALE = 57.29577951308232
+"""float: radius for unit sphere in degree"""
 
 
 __all__ = [

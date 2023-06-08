@@ -341,7 +341,7 @@ def _check_vario(model, x_data, y_data):
         )
     if model.latlon:
         # convert to yadrenko model
-        x_data = 2 * np.sin(x_data / 2)
+        x_data = 2 * np.sin(x_data / 2) * model.radius
     return x_data, y_data, is_dir_vario
 
 
