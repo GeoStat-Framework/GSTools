@@ -14,8 +14,10 @@ to have a meaningful length scale in km.
 To generate the field, we simply pass ``(lat, lon, time)`` as the position tuple
 to the :any:`SRF` class.
 
-The anisotropy factor of `0.1` will result in a time length-scale of `77.7` days.
+The anisotropy factor of `0.1` (days/km) will result in a time length-scale of `77.7` days.
 """
+import numpy as np
+
 import gstools as gs
 
 model = gs.Gaussian(
@@ -24,11 +26,11 @@ model = gs.Gaussian(
     var=1,
     len_scale=777,
     anis=0.1,
-    rescale=gs.EARTH_RADIUS,
+    radius=gs.EARTH_RADIUS,
 )
 
-lat = lon = range(-80, 81)
-time = range(0, 110, 10)
+lat = lon = np.linspace(-80, 81, 50)
+time = np.linspace(0, 777, 50)
 srf = gs.SRF(model, seed=1234)
 field = srf.structured((lat, lon, time))
 srf.plot()
