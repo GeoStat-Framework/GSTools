@@ -580,7 +580,9 @@ class CovModel:
 
     def _get_iso_rad(self, pos):
         """Isometrized radians."""
-        return np.linalg.norm(self.isometrize(pos), axis=0)
+        pos = np.asarray(pos, dtype=np.double).reshape((self.dim, -1))
+        iso = np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
+        return np.linalg.norm(iso, axis=0)
 
     # fitting routine
 
