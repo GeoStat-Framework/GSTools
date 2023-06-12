@@ -22,14 +22,14 @@ in your desired model (see :any:`CovModel`):
 By doing so, the model will use the associated `Yadrenko` model on a sphere
 (see `here <https://onlinelibrary.wiley.com/doi/abs/10.1002/sta4.84>`_).
 The `len_scale` is given in radians to scale the arc-length.
-In order to have a more meaningful length scale, one can use the ``radius``
+In order to have a more meaningful length scale, one can use the ``geo_scale``
 argument:
 
 .. code-block:: python
 
     import gstools as gs
 
-    model = gs.Gaussian(latlon=True, var=2, len_scale=500, radius=gs.EARTH_RADIUS)
+    model = gs.Gaussian(latlon=True, var=2, len_scale=500, geo_scale=gs.EARTH_RADIUS)
 
 Then ``len_scale`` can be interpreted as given in km.
 

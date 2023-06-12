@@ -86,7 +86,7 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 # Now we can use this estimated variogram to fit a model to it.
 # Here we will use a :any:`Spherical` model. We select the ``latlon`` option
 # to use the `Yadrenko` variant of the model to gain a valid model for lat-lon
-# coordinates and we set the radius to the earth-radius. Otherwise the length
+# coordinates and we set the ``geo_scale`` to the earth-radius. Otherwise the length
 # scale would be given in radians representing the great-circle distance.
 #
 # We deselect the nugget from fitting and plot the result afterwards.
@@ -97,7 +97,7 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 #    still holds the ordinary routine that is not respecting the great-circle
 #    distance.
 
-model = gs.Spherical(latlon=True, radius=gs.EARTH_RADIUS)
+model = gs.Spherical(latlon=True, geo_scale=gs.EARTH_RADIUS)
 model.fit_variogram(bin_c, vario, nugget=False)
 ax = model.plot("vario_yadrenko", x_max=bins[-1])
 ax.scatter(bin_c, vario)

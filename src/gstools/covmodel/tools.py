@@ -578,7 +578,11 @@ def model_repr(model):  # pragma: no cover
         ani_str = (
             "" if m.is_isotropic or not m.time else f", anis={m.anis[-1]:.{p}}"
         )
-        r_str = "" if np.isclose(m.radius, 1) else f", radius={m.radius:.{p}}"
+        r_str = (
+            ""
+            if np.isclose(m.geo_scale, 1)
+            else f", geo_scale={m.geo_scale:.{p}}"
+        )
         repr_str = (
             f"{m.name}(latlon={m.latlon}{t_str}, var={m.var:.{p}}, "
             f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
