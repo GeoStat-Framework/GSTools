@@ -171,4 +171,3 @@ ax.legend()
 
 ###############################################################################
 # Interpretion of the results is now up to you! ;-)
-plt.show()
