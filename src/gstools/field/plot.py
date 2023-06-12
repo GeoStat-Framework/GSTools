@@ -349,9 +349,9 @@ def _ax_names(dim, latlon=False, time=False, ax_names=None):
         return ax_names[:dim]
     if dim == 2 + t_fac and latlon:
         return ["lon", "lat"] + t_fac * ["time"]
-    if dim <= 3:
+    if dim - t_fac <= 3:
         return (
-            ["$x$", "$y$", "$z$"][:dim]
+            ["$x$", "$y$", "$z$"][: dim - t_fac]
             + t_fac * ["time"]
             + (dim == 1) * ["field"]
         )
