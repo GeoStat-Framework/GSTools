@@ -250,18 +250,18 @@ def vario_estimate(
     """
     if bin_edges is not None:
         bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double, copy=False)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_center = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double, copy=True)
     masked = np.ma.is_masked(field) or np.any(mask)
     # catch special case if everything is masked
     if masked and np.all(mask):
-        bin_centres = np.empty(0) if bin_edges is None else bin_centres
-        estimates = np.zeros_like(bin_centres)
+        bin_center = np.empty(0) if bin_edges is None else bin_center
+        estimates = np.zeros_like(bin_center)
         if return_counts:
-            return bin_centres, estimates, np.zeros_like(estimates, dtype=int)
-        return bin_centres, estimates
+            return bin_center, estimates, np.zeros_like(estimates, dtype=int)
+        return bin_center, estimates
     if not masked:
         field = field.filled()
     # check mesh shape
@@ -334,7 +334,7 @@ def vario_estimate(
     # create bining if not given
     if bin_edges is None:
         bin_edges = standard_bins(pos, dim, latlon)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_center = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # normalize field
     norm_field_out = remove_trend_norm_mean(
         *(pos, field, mean, normalizer, trend),
@@ -371,7 +371,7 @@ def vario_estimate(
         if dir_no == 1:
             estimates, counts = estimates[0], counts[0]
     est_out = (estimates, counts)
-    return (bin_centres,) + est_out[: 2 if return_counts else 1] + norm_out
+    return (bin_center,) + est_out[: 2 if return_counts else 1] + norm_out
 
 
 def vario_estimate_axis(
