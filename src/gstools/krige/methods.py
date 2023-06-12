@@ -77,8 +77,12 @@ class Simple(Krige):
         Default: False
     fit_variogram : :class:`bool`, optional
         Whether to fit the given variogram model to the data.
-        This is done by using isotropy settings of the given model,
-        assuming the sill to be the data variance and with the
+        Directional variogram fitting is triggered by setting
+        any anisotropy factor of the model to anything unequal 1
+        but the main axes of correlation are taken from the model
+        rotation angles. If the model is a spatio-temporal latlon
+        model, this will raise an error.
+        This assumes the sill to be the data variance and with
         standard bins provided by the :any:`standard_bins` routine.
         Default: False
     """
@@ -171,8 +175,12 @@ class Ordinary(Krige):
         Default: False
     fit_variogram : :class:`bool`, optional
         Whether to fit the given variogram model to the data.
-        This is done by using isotropy settings of the given model,
-        assuming the sill to be the data variance and with the
+        Directional variogram fitting is triggered by setting
+        any anisotropy factor of the model to anything unequal 1
+        but the main axes of correlation are taken from the model
+        rotation angles. If the model is a spatio-temporal latlon
+        model, this will raise an error.
+        This assumes the sill to be the data variance and with
         standard bins provided by the :any:`standard_bins` routine.
         Default: False
     """
@@ -275,8 +283,12 @@ class Universal(Krige):
         Default: False
     fit_variogram : :class:`bool`, optional
         Whether to fit the given variogram model to the data.
-        This is done by using isotropy settings of the given model,
-        assuming the sill to be the data variance and with the
+        Directional variogram fitting is triggered by setting
+        any anisotropy factor of the model to anything unequal 1
+        but the main axes of correlation are taken from the model
+        rotation angles. If the model is a spatio-temporal latlon
+        model, this will raise an error.
+        This assumes the sill to be the data variance and with
         standard bins provided by the :any:`standard_bins` routine.
         Default: False
     """
@@ -376,8 +388,12 @@ class ExtDrift(Krige):
         Default: False
     fit_variogram : :class:`bool`, optional
         Whether to fit the given variogram model to the data.
-        This is done by using isotropy settings of the given model,
-        assuming the sill to be the data variance and with the
+        Directional variogram fitting is triggered by setting
+        any anisotropy factor of the model to anything unequal 1
+        but the main axes of correlation are taken from the model
+        rotation angles. If the model is a spatio-temporal latlon
+        model, this will raise an error.
+        This assumes the sill to be the data variance and with
         standard bins provided by the :any:`standard_bins` routine.
         Default: False
     """
@@ -467,8 +483,12 @@ class Detrended(Krige):
         Default: `"pinv"`
     fit_variogram : :class:`bool`, optional
         Whether to fit the given variogram model to the data.
-        This is done by using isotropy settings of the given model,
-        assuming the sill to be the data variance and with the
+        Directional variogram fitting is triggered by setting
+        any anisotropy factor of the model to anything unequal 1
+        but the main axes of correlation are taken from the model
+        rotation angles. If the model is a spatio-temporal latlon
+        model, this will raise an error.
+        This assumes the sill to be the data variance and with
         standard bins provided by the :any:`standard_bins` routine.
         Default: False
     """

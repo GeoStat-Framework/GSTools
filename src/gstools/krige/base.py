@@ -113,8 +113,12 @@ class Krige(Field):
         Default: False
     fit_variogram : :class:`bool`, optional
         Whether to fit the given variogram model to the data.
-        This is done by using isotropy settings of the given model,
-        assuming the sill to be the data variance and with the
+        Directional variogram fitting is triggered by setting
+        any anisotropy factor of the model to anything unequal 1
+        but the main axes of correlation are taken from the model
+        rotation angles. If the model is a spatio-temporal latlon
+        model, this will raise an error.
+        This assumes the sill to be the data variance and with
         standard bins provided by the :any:`standard_bins` routine.
         Default: False
 
@@ -496,8 +500,12 @@ class Krige(Field):
             Default: False
         fit_variogram : :class:`bool`, optional
             Whether to fit the given variogram model to the data.
-            This is done by using isotropy settings of the given model,
-            assuming the sill to be the data variance and with the
+            Directional variogram fitting is triggered by setting
+            any anisotropy factor of the model to anything unequal 1
+            but the main axes of correlation are taken from the model
+            rotation angles. If the model is a spatio-temporal latlon
+            model, this will raise an error.
+            This assumes the sill to be the data variance and with
             standard bins provided by the :any:`standard_bins` routine.
             Default: False
         """
@@ -522,6 +530,9 @@ class Krige(Field):
             self.normalizer.fit(self.cond_val - self.cond_trend)
         if fit_variogram:  # fitting model to empirical variogram of data
             # normalize field
+            if self.model.latlon and self.model.time:
+                msg = "Krige: can't fit variogram for spatio-temporal latlon data."
+                raise ValueError(msg)
             field = self.normalizer.normalize(self.cond_val - self.cond_trend)
             field -= self.cond_mean
             sill = np.var(field)
