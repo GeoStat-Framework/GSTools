@@ -94,6 +94,7 @@ def vario_estimate(
     trend=None,
     fit_normalizer=False,
     geo_scale=RADIAN_SCALE,
+    **std_bins,
 ):
     r"""
     Estimates the empirical variogram.
@@ -230,6 +231,9 @@ def vario_estimate(
         Can be set to :any:`EARTH_RADIUS` to have units in km or
         :any:`DEGREE_SCALE` to have units in degree.
         Default: :any:`RADIAN_SCALE`
+    **std_bins
+        Optional arguments that are forwarded to the :any:`standard_bins` routine
+        if no bins are given (bin_no, max_dist).
 
     Returns
     -------
@@ -341,7 +345,9 @@ def vario_estimate(
         pos = pos[:, sampled_idx]
     # create bining if not given
     if bin_edges is None:
-        bin_edges = standard_bins(pos, dim, latlon, geo_scale=geo_scale)
+        bin_edges = standard_bins(
+            pos, dim, latlon, geo_scale=geo_scale, **std_bins
+        )
         bin_center = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     if latlon:
         # internally we always use radians
