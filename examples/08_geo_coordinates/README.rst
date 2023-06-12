@@ -37,20 +37,21 @@ A `Yadrenko` model :math:`C` is derived from a valid
 isotropic covariance model in 3D :math:`C_{3D}` by the following relation:
 
 .. math::
-   C(\zeta)=C_{3D}\left(2 \cdot \sin\left(\frac{\zeta}{2}\right)\right)
+   C(\zeta)=C_{3D}\left(2r \cdot \sin\left(\frac{\zeta}{2r}\right)\right)
 
 Where :math:`\zeta` is the
-`great-circle distance <https://en.wikipedia.org/wiki/Great-circle_distance>`_.
+`great-circle distance <https://en.wikipedia.org/wiki/Great-circle_distance>`_
+and :math:`r` is the ``geo_scale``.
 
 .. note::
 
    ``lat`` and ``lon`` are given in degree, whereas the great-circle distance
-   :math:`zeta` is given in radians.
+   :math:`zeta` is given in units of the ``geo_scale``.
 
-Note, that :math:`2 \cdot \sin(\frac{\zeta}{2})` is the
+Note, that :math:`2r \cdot \sin(\frac{\zeta}{2r})` is the
 `chordal distance <https://en.wikipedia.org/wiki/Chord_(geometry)>`_
-of two points on a sphere, which means we simply think of the earth surface
-as a sphere, that is cut out of the surrounding three dimensional space,
+of two points on a sphere with radius :math:`r`, which means we simply think of the
+earth surface as a sphere, that is cut out of the surrounding three dimensional space,
 when using the `Yadrenko` model.
 
 .. note::
