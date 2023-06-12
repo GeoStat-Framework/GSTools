@@ -76,11 +76,11 @@ ids, lat, lon, temp = np.loadtxt("temp_obs.txt").T
 
 ###############################################################################
 # First we will estimate the variogram of our temperature data.
-# As the maximal bin distance we choose 8 degrees, which corresponds to a
-# chordal length of about 900 km.
+# As the maximal bin distance we choose 900 km.
 
-bins = gs.standard_bins((lat, lon), max_dist=np.deg2rad(8), latlon=True)
-bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
+bin_center, vario = gs.vario_estimate(
+    (lat, lon), temp, latlon=True, geo_scale=gs.EARTH_RADIUS, max_dist=900
+)
 
 ###############################################################################
 # Now we can use this estimated variogram to fit a model to it.
@@ -98,9 +98,9 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 #    distance.
 
 model = gs.Spherical(latlon=True, geo_scale=gs.EARTH_RADIUS)
-model.fit_variogram(bin_c, vario, nugget=False)
-ax = model.plot("vario_yadrenko", x_max=bins[-1])
-ax.scatter(bin_c, vario)
+model.fit_variogram(bin_center, vario, nugget=False)
+ax = model.plot("vario_yadrenko", x_max=max(bin_center))
+ax.scatter(bin_center, vario)
 print(model)
 
 ###############################################################################
@@ -171,3 +171,4 @@ ax.legend()
 
 ###############################################################################
 # Interpretion of the results is now up to you! ;-)
+plt.show()

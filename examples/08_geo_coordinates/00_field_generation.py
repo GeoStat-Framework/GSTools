@@ -14,6 +14,8 @@ as ``geo_scale`` to have a meaningful length scale in km.
 To generate the field, we simply pass ``(lat, lon)`` as the position tuple
 to the :any:`SRF` class.
 """
+import numpy as np
+
 import gstools as gs
 
 model = gs.Gaussian(latlon=True, len_scale=777, geo_scale=gs.EARTH_RADIUS)
@@ -32,7 +34,7 @@ srf.plot()
 #
 # As we will see, everthing went well... phew!
 
-bin_edges = [0.01 * i for i in range(30)]
+bin_edges = np.linspace(0, 777 * 3, 30)
 bin_center, emp_vario = gs.vario_estimate(
     (lat, lon),
     field,
@@ -41,11 +43,12 @@ bin_center, emp_vario = gs.vario_estimate(
     mesh_type="structured",
     sampling_size=2000,
     sampling_seed=12345,
+    geo_scale=gs.EARTH_RADIUS,
 )
 
-ax = model.plot("vario_yadrenko", x_max=0.3)
+ax = model.plot("vario_yadrenko", x_max=max(bin_center))
 model.fit_variogram(bin_center, emp_vario, nugget=False)
-model.plot("vario_yadrenko", ax=ax, label="fitted", x_max=0.3)
+model.plot("vario_yadrenko", ax=ax, label="fitted", x_max=max(bin_center))
 ax.scatter(bin_center, emp_vario, color="k")
 print(model)
 
