@@ -9,7 +9,7 @@ First we setup a model, with ``latlon=True`` and ``time=True``,
 to get the associated spatio-temporal Yadrenko model.
 
 In addition, we will use the earth radius provided by :any:`EARTH_RADIUS`
- as ``geo_scale`` to have a meaningful length scale in km.
+as ``geo_scale`` to have a meaningful length scale in km.
 
 To generate the field, we simply pass ``(lat, lon, time)`` as the position tuple
 to the :any:`SRF` class.
