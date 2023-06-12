@@ -14,6 +14,7 @@ import numpy as np
 
 from gstools import config
 from gstools.normalizer.tools import remove_trend_norm_mean
+from gstools.tools import RADIAN_SCALE
 from gstools.tools.geometric import (
     ang2dir,
     format_struct_pos_shape,
@@ -92,6 +93,7 @@ def vario_estimate(
     normalizer=None,
     trend=None,
     fit_normalizer=False,
+    geo_scale=RADIAN_SCALE,
 ):
     r"""
     Estimates the empirical variogram.
@@ -222,6 +224,12 @@ def vario_estimate(
     fit_normalizer : :class:`bool`, optional
         Whether to fit the data-normalizer to the given (detrended) field.
         Default: False
+    geo_scale : :class:`float`, optional
+        Geographic scaling in case of latlon coordinates to get meaningful bins.
+        By default, bins are assumed to be given in radians with latlon=True.
+        Can be set to :any:`EARTH_RADIUS` to have units in km or
+        :any:`DEGREE_SCALE` to have units in degree.
+        Default: :any:`RADIAN_SCALE`
 
     Returns
     -------
@@ -333,8 +341,11 @@ def vario_estimate(
         pos = pos[:, sampled_idx]
     # create bining if not given
     if bin_edges is None:
-        bin_edges = standard_bins(pos, dim, latlon)
+        bin_edges = standard_bins(pos, dim, latlon, geo_scale=geo_scale)
         bin_center = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    if latlon:
+        # internally we always use radians
+        bin_edges /= geo_scale
     # normalize field
     norm_field_out = remove_trend_norm_mean(
         *(pos, field, mean, normalizer, trend),

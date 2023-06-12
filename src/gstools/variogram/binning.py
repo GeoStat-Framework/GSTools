@@ -10,6 +10,7 @@ The following functions are provided
 """
 import numpy as np
 
+from gstools.tools import RADIAN_SCALE
 from gstools.tools.geometric import (
     chordal_to_great_circle,
     format_struct_pos_dim,
@@ -31,6 +32,7 @@ def standard_bins(
     mesh_type="unstructured",
     bin_no=None,
     max_dist=None,
+    geo_scale=RADIAN_SCALE,
 ):
     r"""
     Get standard binning.
@@ -62,6 +64,12 @@ def standard_bins(
         Cut of length for the bins. If None is given, it will be set to one
         third of the box-diameter from the given points.
         Default: None
+    geo_scale : :class:`float`, optional
+        Geographic scaling in case of latlon coordinates to get meaningful bins.
+        By default, bins are assumed to be given in radians with latlon=True.
+        Can be set to :any:`EARTH_RADIUS` to have units in km or
+        :any:`DEGREE_SCALE` to have units in degree.
+        Default: :any:`RADIAN_SCALE`
 
     Returns
     -------
@@ -80,7 +88,7 @@ def standard_bins(
             pos = generate_grid(format_struct_pos_dim(pos, dim)[0])
         else:
             pos = np.asarray(pos, dtype=np.double).reshape(dim, -1)
-        pos = latlon2pos(pos) if latlon else pos
+        pos = latlon2pos(pos, radius=geo_scale) if latlon else pos
         pnt_cnt = len(pos[0])
         box = []
         for axis in pos:
@@ -88,7 +96,7 @@ def standard_bins(
         box = np.asarray(box)
         diam = np.linalg.norm(box[:, 0] - box[:, 1])
         # convert diameter to great-circle distance if using latlon
-        diam = chordal_to_great_circle(diam) if latlon else diam
+        diam = chordal_to_great_circle(diam, geo_scale) if latlon else diam
         bin_no = _sturges(pnt_cnt) if bin_no is None else int(bin_no)
         max_dist = diam / 3 if max_dist is None else float(max_dist)
     return np.linspace(0, max_dist, num=bin_no + 1, dtype=np.double)
