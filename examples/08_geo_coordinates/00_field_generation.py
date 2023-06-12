@@ -16,9 +16,7 @@ to the :any:`SRF` class.
 """
 import gstools as gs
 
-model = gs.Gaussian(
-    latlon=True, var=1, len_scale=777, geo_scale=gs.EARTH_RADIUS
-)
+model = gs.Gaussian(latlon=True, len_scale=777, geo_scale=gs.EARTH_RADIUS)
 
 lat = lon = range(-80, 81)
 srf = gs.SRF(model, seed=1234)

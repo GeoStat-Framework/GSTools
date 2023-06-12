@@ -58,13 +58,19 @@ Misc
 
 .. autosummary::
    EARTH_RADIUS
+   KM_SCALE
    DEGREE_SCALE
+   RADIAN_SCALE
 
 ----
 
 .. autodata:: EARTH_RADIUS
 
+.. autodata:: KM_SCALE
+
 .. autodata:: DEGREE_SCALE
+
+.. autodata:: RADIAN_SCALE
 """
 
 from gstools.tools.export import (
