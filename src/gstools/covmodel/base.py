@@ -33,6 +33,7 @@ from gstools.covmodel.tools import (
 )
 from gstools.tools import RADIAN_SCALE
 from gstools.tools.geometric import (
+    great_circle_to_chordal,
     latlon2pos,
     matrix_anisometrize,
     matrix_isometrize,
@@ -263,15 +264,15 @@ class CovModel:
 
     def vario_yadrenko(self, zeta):
         r"""Yadrenko variogram for great-circle distance from latlon-pos."""
-        return self.variogram(2 * np.sin(zeta / 2) * self.geo_scale)
+        return self.variogram(great_circle_to_chordal(zeta, self.geo_scale))
 
     def cov_yadrenko(self, zeta):
         r"""Yadrenko covariance for great-circle distance from latlon-pos."""
-        return self.covariance(2 * np.sin(zeta / 2) * self.geo_scale)
+        return self.covariance(great_circle_to_chordal(zeta, self.geo_scale))
 
     def cor_yadrenko(self, zeta):
         r"""Yadrenko correlation for great-circle distance from latlon-pos."""
-        return self.correlation(2 * np.sin(zeta / 2) * self.geo_scale)
+        return self.correlation(great_circle_to_chordal(zeta, self.geo_scale))
 
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""

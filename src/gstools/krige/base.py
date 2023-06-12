@@ -527,7 +527,10 @@ class Krige(Field):
             sill = np.var(field)
             if self.model.is_isotropic:
                 emp_vario = vario_estimate(
-                    self.cond_pos, field, latlon=self.model.latlon
+                    self.cond_pos,
+                    field,
+                    latlon=self.model.latlon,
+                    geo_scale=self.model.geo_scale,
                 )
             else:
                 axes = rotated_main_axes(self.model.dim, self.model.angles)
