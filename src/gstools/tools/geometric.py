@@ -27,6 +27,7 @@ The following functions are provided
    latlon2pos
    pos2latlon
    chordal_to_great_circle
+   great_circle_to_chordal
 """
 # pylint: disable=C0103
 import numpy as np
@@ -702,14 +703,16 @@ def pos2latlon(pos, radius=1.0, dtype=np.double, time=False, time_scale=1.0):
     return latlon
 
 
-def chordal_to_great_circle(dist):
+def chordal_to_great_circle(dist, radius=1.0):
     """
     Calculate great circle distance corresponding to given chordal distance.
 
     Parameters
     ----------
     dist : array_like
-        Chordal distance of two points on the unit-sphere.
+        Chordal distance of two points on the sphere.
+    radius : :class:`float`, optional
+        Sphere radius. Default: `1.0`
 
     Returns
     -------
@@ -718,6 +721,29 @@ def chordal_to_great_circle(dist):
 
     Notes
     -----
-    If given values are not in [0, 1], they will be truncated.
+    If given values are not in [0, 2 * radius], they will be truncated.
     """
-    return 2 * np.arcsin(np.maximum(np.minimum(np.divide(dist, 2), 1), 0))
+    diameter = 2 * radius
+    return diameter * np.arcsin(
+        np.maximum(np.minimum(np.divide(dist, diameter), 1), 0)
+    )
+
+
+def great_circle_to_chordal(dist, radius=1.0):
+    """
+    Calculate chordal distance corresponding to given great circle distance.
+
+    Parameters
+    ----------
+    dist : array_like
+        Great circle distance of two points on the sphere.
+    radius : :class:`float`, optional
+        Sphere radius. Default: `1.0`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Chordal distance corresponding to given great circle distance.
+    """
+    diameter = 2 * radius
+    return diameter * np.sin(np.divide(dist, diameter))
