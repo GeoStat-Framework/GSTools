@@ -31,6 +31,7 @@ from gstools.covmodel.tools import (
     set_opt_args,
     spectral_rad_pdf,
 )
+from gstools.tools import RADIAN_SCALE
 from gstools.tools.geometric import (
     latlon2pos,
     matrix_anisometrize,
@@ -108,7 +109,7 @@ class CovModel:
         scale. By default, len_scale is assumed to be in radians with latlon=True.
         Can be set to :any:`EARTH_RADIUS` to have len_scale in km or
         :any:`DEGREE_SCALE` to have len_scale in degree.
-        Default: ``1.0``
+        Default: :any:`RADIAN_SCALE`
     time : :class:`bool`, optional
         Create a metric spatio-temporal covariance model.
         Setting this to true will increase `dim` and `field_dim` by 1.
@@ -144,7 +145,7 @@ class CovModel:
         integral_scale=None,
         rescale=None,
         latlon=False,
-        geo_scale=1.0,
+        geo_scale=RADIAN_SCALE,
         time=False,
         var_raw=None,
         hankel_kw=None,

@@ -125,7 +125,9 @@ Misc
 
 .. autosummary::
    EARTH_RADIUS
+   KM_SCALE
    DEGREE_SCALE
+   RADIAN_SCALE
 """
 # Hooray!
 from gstools import (
