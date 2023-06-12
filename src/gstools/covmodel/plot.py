@@ -150,7 +150,7 @@ def plot_vario_yadrenko(
     """Plot Yadrenko variogram of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = min(3 * model.len_scale / model.radius, np.pi)
+        x_max = min(3 * model.len_scale / model.geo_scale, np.pi)
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} Yadrenko variogram")
     ax.plot(x_s, model.vario_yadrenko(x_s), **kwargs)
@@ -165,7 +165,7 @@ def plot_cov_yadrenko(
     """Plot Yadrenko covariance of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = min(3 * model.len_scale / model.radius, np.pi)
+        x_max = min(3 * model.len_scale / model.geo_scale, np.pi)
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} Yadrenko covariance")
     ax.plot(x_s, model.cov_yadrenko(x_s), **kwargs)
@@ -180,7 +180,7 @@ def plot_cor_yadrenko(
     """Plot Yadrenko correlation function of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = min(3 * model.len_scale / model.radius, np.pi)
+        x_max = min(3 * model.len_scale / model.geo_scale, np.pi)
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} Yadrenko correlation")
     ax.plot(x_s, model.cor_yadrenko(x_s), **kwargs)

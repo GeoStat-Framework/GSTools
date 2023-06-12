@@ -164,6 +164,8 @@ from gstools.krige import Krige
 from gstools.tools import (
     DEGREE_SCALE,
     EARTH_RADIUS,
+    KM_SCALE,
+    RADIAN_SCALE,
     generate_grid,
     generate_st_grid,
     rotated_main_axes,
@@ -228,7 +230,9 @@ __all__ += [
     "generate_grid",
     "generate_st_grid",
     "EARTH_RADIUS",
+    "KM_SCALE",
     "DEGREE_SCALE",
+    "RADIAN_SCALE",
     "vtk_export",
     "vtk_export_structured",
     "vtk_export_unstructured",

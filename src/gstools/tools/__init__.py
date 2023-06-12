@@ -106,8 +106,14 @@ from gstools.tools.special import (
 EARTH_RADIUS = 6371.0
 """float: earth radius for WGS84 ellipsoid in km"""
 
+KM_SCALE = 6371.0
+"""float: earth radius for WGS84 ellipsoid in km"""
+
 DEGREE_SCALE = 57.29577951308232
 """float: radius for unit sphere in degree"""
+
+RADIAN_SCALE = 1.0
+"""float: radius for unit sphere"""
 
 
 __all__ = [
@@ -141,4 +147,7 @@ __all__ = [
     "generate_grid",
     "generate_st_grid",
     "EARTH_RADIUS",
+    "KM_SCALE",
+    "DEGREE_SCALE",
+    "RADIAN_SCALE",
 ]

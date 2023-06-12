@@ -8,15 +8,17 @@ geographical coordinates.
 First we setup a model, with ``latlon=True``, to get the associated
 Yadrenko model.
 
-In addition, we will use the earth radius provided by :any:`EARTH_RADIUS`,
-to have a meaningful length scale in km.
+In addition, we will use the earth radius provided by :any:`EARTH_RADIUS`
+as ``geo_scale`` to have a meaningful length scale in km.
 
 To generate the field, we simply pass ``(lat, lon)`` as the position tuple
 to the :any:`SRF` class.
 """
 import gstools as gs
 
-model = gs.Gaussian(latlon=True, var=1, len_scale=777, rescale=gs.EARTH_RADIUS)
+model = gs.Gaussian(
+    latlon=True, var=1, len_scale=777, geo_scale=gs.EARTH_RADIUS
+)
 
 lat = lon = range(-80, 81)
 srf = gs.SRF(model, seed=1234)

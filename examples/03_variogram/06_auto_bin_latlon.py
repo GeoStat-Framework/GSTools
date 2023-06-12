@@ -45,7 +45,7 @@ field = data.T[2]  # temperature
 # data-variance as additional information during the fit of the variogram.
 
 emp_v = gs.vario_estimate(pos, field, latlon=True)
-sph = gs.Spherical(latlon=True, radius=gs.EARTH_RADIUS)
+sph = gs.Spherical(latlon=True, geo_scale=gs.EARTH_RADIUS)
 sph.fit_variogram(*emp_v, sill=np.var(field))
 ax = sph.plot(x_max=2 * np.max(emp_v[0]))
 ax.scatter(*emp_v, label="Empirical variogram")

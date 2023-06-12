@@ -635,7 +635,7 @@ def latlon2pos(
         latitude and longitude given in degrees.
         May includes an appended time axis if `time=True`.
     radius : :class:`float`, optional
-        Earth radius. Default: `1.0`
+        Sphere radius. Default: `1.0`
     dtype : data-type, optional
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
@@ -673,7 +673,7 @@ def pos2latlon(pos, radius=1.0, dtype=np.double, time=False, time_scale=1.0):
         The position tuple containing points on a unit-sphere.
         May includes an appended time axis if `time=True`.
     radius : :class:`float`, optional
-        Earth radius. Default: `1.0`
+        Sphere radius. Default: `1.0`
     dtype : data-type, optional
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
