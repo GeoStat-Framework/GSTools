@@ -56,7 +56,7 @@ def _plot_spatial(dim, pos, field, fig, ax, temporal, **kwargs):
     from gstools.field.plot import plot_1d, plot_nd
 
     if dim == 1:
-        return plot_1d(pos, field, fig, ax, **kwargs)
+        return plot_1d(pos, field, fig, ax, temporal, **kwargs)
     return plot_nd(
         pos, field, "structured", fig, ax, temporal=temporal, **kwargs
     )
