@@ -197,7 +197,7 @@ class CovModel:
 
         # set anisotropy and len_scale, disable anisotropy for latlon models
         self._len_scale, self._anis = set_len_anis(
-            self.dim, len_scale, anis, self.latlon, self.temporal
+            self.dim, len_scale, anis, self.latlon
         )
         self._angles = set_model_angles(
             self.dim, angles, self.latlon, self.temporal
@@ -974,7 +974,9 @@ class CovModel:
 
     @len_scale.setter
     def len_scale(self, len_scale):
-        self._len_scale, anis = set_len_anis(self.dim, len_scale, self.anis)
+        self._len_scale, anis = set_len_anis(
+            self.dim, len_scale, self.anis, self.latlon
+        )
         if self.latlon:
             self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
         else:
@@ -1004,7 +1006,7 @@ class CovModel:
     @anis.setter
     def anis(self, anis):
         self._len_scale, self._anis = set_len_anis(
-            self.dim, self.len_scale, anis, self.latlon, self.temporal
+            self.dim, self.len_scale, anis, self.latlon
         )
         self.check_arg_bounds()
 

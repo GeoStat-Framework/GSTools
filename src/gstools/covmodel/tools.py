@@ -184,7 +184,7 @@ def set_opt_args(model, opt_arg):
         setattr(model, opt_name, float(opt_arg[opt_name]))
 
 
-def set_len_anis(dim, len_scale, anis, latlon=False, temporal=False):
+def set_len_anis(dim, len_scale, anis, latlon=False):
     """Set the length scale and anisotropy factors for the given dimension.
 
     Parameters
@@ -197,10 +197,7 @@ def set_len_anis(dim, len_scale, anis, latlon=False, temporal=False):
         the anisotropy of length scales along the transversal axes
     latlon : :class:`bool`, optional
         Whether the model is describing 2D fields on earths surface described
-        by latitude and longitude.
-        Default: False
-    temporal : :class:`bool`, optional
-        Whether a time-dimension is appended.
+        by latitude and longitude. In this case there is no spatial anisotropy.
         Default: False
 
     Returns
@@ -241,11 +238,11 @@ def set_len_anis(dim, len_scale, anis, latlon=False, temporal=False):
     for ani in out_anis:
         if not ani > 0.0:
             raise ValueError(
-                "anisotropy-ratios needs to be > 0, " + "got: " + str(out_anis)
+                f"anisotropy-ratios needs to be > 0, " + "got: {out_anis}"
             )
-    # no anisotropy for latlon (only when temporal, but then only in time-dimension)
+    # no spatial anisotropy for latlon
     if latlon:
-        out_anis[: dim - (2 if temporal else 1)] = 1.0
+        out_anis[:2] = 1.0
     return out_len_scale, out_anis
 
 
