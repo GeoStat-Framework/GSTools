@@ -52,7 +52,7 @@ def plot_field(
         Forwarded to the plotting routine.
     """
     if fld.dim == 1:
-        return plot_1d(fld.pos, fld[field], fig, ax, **kwargs)
+        return plot_1d(fld.pos, fld[field], fig, ax, fld.temporal, **kwargs)
     return plot_nd(
         fld.pos,
         fld[field],
@@ -65,7 +65,9 @@ def plot_field(
     )
 
 
-def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
+def plot_1d(
+    pos, field, fig=None, ax=None, temporal=False, ax_names=None
+):  # pragma: no cover
     """
     Plot a 1D field.
 
@@ -76,6 +78,11 @@ def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
         or the axes descriptions (for mesh_type='structured')
     field : :class:`numpy.ndarray`
         Field values.
+    temporal : :class:`bool`, optional
+        Indicate a metric spatio-temporal covariance model.
+        The time-dimension is assumed to be appended,
+        meaning the pos tuple is (x,y,z,...,t) or (lat, lon, t).
+        Default: False
     fig : :class:`Figure` or :any:`None`, optional
         Figure to plot the axes on. If `None`, a new one will be created.
         Default: `None`
@@ -95,7 +102,7 @@ def plot_1d(pos, field, fig=None, ax=None, ax_names=None):  # pragma: no cover
     x = pos[0]
     x = x.flatten()
     arg = np.argsort(x)
-    ax_names = _ax_names(1, ax_names=ax_names)
+    ax_names = _ax_names(1, temporal=temporal, ax_names=ax_names)
     ax.plot(x[arg], field.ravel()[arg])
     ax.set_xlabel(ax_names[0])
     ax.set_ylabel(ax_names[1])
@@ -175,7 +182,15 @@ def plot_nd(
     assert not latlon or dim == 2 + int(bool(temporal))
     if dim == 2 and contour_plot:
         return _plot_2d(
-            pos, field, mesh_type, fig, ax, latlon, ax_names, **kwargs
+            pos,
+            field,
+            mesh_type,
+            fig,
+            ax,
+            latlon,
+            temporal,
+            ax_names,
+            **kwargs,
         )
     if latlon:
         # swap lat-lon to lon-lat (x-y)
@@ -365,6 +380,7 @@ def _plot_2d(
     fig=None,
     ax=None,
     latlon=False,
+    temporal=False,
     ax_names=None,
     levels=64,
     antialias=True,
@@ -372,7 +388,7 @@ def _plot_2d(
     """Plot a 2d field with a contour plot."""
     fig, ax = get_fig_ax(fig, ax)
     title = f"Field 2D {mesh_type}: {field.shape}"
-    ax_names = _ax_names(2, latlon, ax_names=ax_names)
+    ax_names = _ax_names(2, latlon, temporal, ax_names=ax_names)
     x, y = pos[::-1] if latlon else pos
     if mesh_type == "unstructured":
         cont = ax.tricontourf(x, y, field.ravel(), levels=levels)
