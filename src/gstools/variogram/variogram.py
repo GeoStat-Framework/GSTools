@@ -226,10 +226,11 @@ def vario_estimate(
         Whether to fit the data-normalizer to the given (detrended) field.
         Default: False
     geo_scale : :class:`float`, optional
-        Geographic scaling in case of latlon coordinates to get meaningful bins.
-        By default, bins are assumed to be given in radians with latlon=True.
-        Can be set to :any:`EARTH_RADIUS` to have units in km or
-        :any:`DEGREE_SCALE` to have units in degree.
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful bins unit.
+        By default, bins are assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have bins in km or
+        :any:`DEGREE_SCALE` to have bins in degrees.
         Default: :any:`RADIAN_SCALE`
     **std_bins
         Optional arguments that are forwarded to the :any:`standard_bins` routine

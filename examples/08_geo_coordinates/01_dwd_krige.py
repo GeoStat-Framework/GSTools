@@ -79,7 +79,7 @@ ids, lat, lon, temp = np.loadtxt("temp_obs.txt").T
 # As the maximal bin distance we choose 900 km.
 
 bin_center, vario = gs.vario_estimate(
-    (lat, lon), temp, latlon=True, geo_scale=gs.EARTH_RADIUS, max_dist=900
+    (lat, lon), temp, latlon=True, geo_scale=gs.KM_SCALE, max_dist=900
 )
 
 ###############################################################################
@@ -97,7 +97,7 @@ bin_center, vario = gs.vario_estimate(
 #    still holds the ordinary routine that is not respecting the great-circle
 #    distance.
 
-model = gs.Spherical(latlon=True, geo_scale=gs.EARTH_RADIUS)
+model = gs.Spherical(latlon=True, geo_scale=gs.KM_SCALE)
 model.fit_variogram(bin_center, vario, nugget=False)
 ax = model.plot("vario_yadrenko", x_max=max(bin_center))
 ax.scatter(bin_center, vario)

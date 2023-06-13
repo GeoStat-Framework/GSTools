@@ -24,7 +24,7 @@ class ErrMod(gs.CovModel):
 class TestLatLon(unittest.TestCase):
     def setUp(self):
         self.cmod = gs.Gaussian(
-            latlon=True, var=2, len_scale=777, rescale=gs.EARTH_RADIUS
+            latlon=True, var=2, len_scale=777, rescale=gs.KM_SCALE
         )
         self.lat = self.lon = range(-80, 81)
 
@@ -99,7 +99,7 @@ class TestLatLon(unittest.TestCase):
             sampling_size=2000,
             sampling_seed=12345,
         )
-        mod = gs.Gaussian(latlon=True, rescale=gs.EARTH_RADIUS)
+        mod = gs.Gaussian(latlon=True, rescale=gs.KM_SCALE)
         mod.fit_variogram(bin_center, emp_vario, nugget=False)
         # allow 10 percent relative error
         self.assertLess(_rel_err(mod.var, self.cmod.var), 0.1)
@@ -114,7 +114,7 @@ class TestLatLon(unittest.TestCase):
             bin_edges,
             latlon=True,
         )
-        mod = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
+        mod = gs.Spherical(latlon=True, rescale=gs.KM_SCALE)
         mod.fit_variogram(*emp_vario, nugget=False)
         kri = gs.krige.Ordinary(
             mod,
@@ -134,7 +134,7 @@ class TestLatLon(unittest.TestCase):
             bin_edges,
             latlon=True,
         )
-        mod = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
+        mod = gs.Spherical(latlon=True, rescale=gs.KM_SCALE)
         mod.fit_variogram(*emp_vario, nugget=False)
         krige = gs.krige.Ordinary(
             mod, (self.data[:, 0], self.data[:, 1]), self.data[:, 2]

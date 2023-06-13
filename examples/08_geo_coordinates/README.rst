@@ -29,7 +29,7 @@ argument:
 
     import gstools as gs
 
-    model = gs.Gaussian(latlon=True, var=2, len_scale=500, geo_scale=gs.EARTH_RADIUS)
+    model = gs.Gaussian(latlon=True, var=2, len_scale=500, geo_scale=gs.KM_SCALE)
 
 Then ``len_scale`` can be interpreted as given in km.
 

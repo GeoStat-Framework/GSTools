@@ -65,10 +65,11 @@ def standard_bins(
         third of the box-diameter from the given points.
         Default: None
     geo_scale : :class:`float`, optional
-        Geographic scaling in case of latlon coordinates to get meaningful bins.
-        By default, bins are assumed to be given in radians with latlon=True.
-        Can be set to :any:`EARTH_RADIUS` to have units in km or
-        :any:`DEGREE_SCALE` to have units in degree.
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful bins unit.
+        By default, bins are assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have bins in km or
+        :any:`DEGREE_SCALE` to have bins in degrees.
         Default: :any:`RADIAN_SCALE`
 
     Returns
