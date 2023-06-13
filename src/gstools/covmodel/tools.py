@@ -30,7 +30,7 @@ from hankel import SymmetricFourierTransform as SFT
 from scipy import special as sps
 from scipy.optimize import root
 
-from gstools.tools.geometric import set_angles, set_anis
+from gstools.tools.geometric import no_of_angles, set_angles, set_anis
 from gstools.tools.misc import list_format
 
 __all__ = [
@@ -38,6 +38,7 @@ __all__ = [
     "rad_fac",
     "set_opt_args",
     "set_len_anis",
+    "set_model_angles",
     "check_bounds",
     "check_arg_in_bounds",
     "default_arg_from_bounds",
@@ -183,7 +184,7 @@ def set_opt_args(model, opt_arg):
         setattr(model, opt_name, float(opt_arg[opt_name]))
 
 
-def set_len_anis(dim, len_scale, anis):
+def set_len_anis(dim, len_scale, anis, latlon=False, temporal=False):
     """Set the length scale and anisotropy factors for the given dimension.
 
     Parameters
@@ -194,6 +195,13 @@ def set_len_anis(dim, len_scale, anis):
         the length scale of the SRF in x direction or in x- (y-, ...) direction
     anis : :class:`float` or :class:`list`
         the anisotropy of length scales along the transversal axes
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude.
+        Default: False
+    temporal : :class:`bool`, optional
+        Whether a time-dimension is appended.
+        Default: False
 
     Returns
     -------
@@ -235,7 +243,45 @@ def set_len_anis(dim, len_scale, anis):
             raise ValueError(
                 "anisotropy-ratios needs to be > 0, " + "got: " + str(out_anis)
             )
+    # no anisotropy for latlon (only when temporal, but then only in time-dimension)
+    if latlon:
+        out_anis[: dim - (2 if temporal else 1)] = 1.0
     return out_len_scale, out_anis
+
+
+def set_model_angles(dim, angles, latlon=False, temporal=False):
+    """Set the model angles for the given dimension.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the angles of the SRF
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude.
+        Default: False
+    temporal : :class:`bool`, optional
+        Whether a time-dimension is appended.
+        Default: False
+
+    Returns
+    -------
+    angles : :class:`float`
+        the angles fitting to the dimension
+
+    Notes
+    -----
+        If too few angles are given, they are filled up with `0`.
+    """
+    if latlon:
+        return np.array(no_of_angles(dim) * [0], dtype=np.double)
+    out_angles = set_angles(dim, angles)
+    if temporal:
+        # no rotation between spatial dimensions and temporal dimension
+        out_angles[no_of_angles(dim - 1) :] = 0.0
+    return out_angles
 
 
 def check_bounds(bounds):
@@ -522,7 +568,9 @@ def set_dim(model, dim):
             model.dim, model._len_scale, model._anis
         )
     if model._angles is not None:
-        model._angles = set_angles(model.dim, model._angles)
+        model._angles = set_model_angles(
+            model.dim, model._angles, model.latlon, model.temporal
+        )
     model.check_arg_bounds()
 
 

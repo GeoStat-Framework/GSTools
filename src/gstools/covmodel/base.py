@@ -28,6 +28,7 @@ from gstools.covmodel.tools import (
     set_arg_bounds,
     set_dim,
     set_len_anis,
+    set_model_angles,
     set_opt_args,
     spectral_rad_pdf,
 )
@@ -39,7 +40,6 @@ from gstools.tools.geometric import (
     matrix_isometrize,
     pos2latlon,
     rotated_main_axes,
-    set_angles,
 )
 
 __all__ = ["CovModel"]
@@ -194,16 +194,15 @@ class CovModel:
         # set parameters
         self.rescale = rescale
         self._nugget = float(nugget)
+
         # set anisotropy and len_scale, disable anisotropy for latlon models
-        self._len_scale, anis = set_len_anis(self.dim, len_scale, anis)
-        if self.latlon:
-            # keep time anisotropy for metric spatio-temporal model
-            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
-            self._anis[-1] = anis[-1] if self.temporal else 1.0
-            self._angles = np.array(self.dim * [0], dtype=np.double)
-        else:
-            self._anis = anis
-            self._angles = set_angles(self.dim, angles)
+        self._len_scale, self._anis = set_len_anis(
+            self.dim, len_scale, anis, self.latlon, self.temporal
+        )
+        self._angles = set_model_angles(
+            self.dim, angles, self.latlon, self.temporal
+        )
+
         # set var at last, because of the var_factor (to be right initialized)
         if var_raw is None:
             self._var = None
@@ -1004,12 +1003,9 @@ class CovModel:
 
     @anis.setter
     def anis(self, anis):
-        if self.latlon:
-            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
-        else:
-            self._len_scale, self._anis = set_len_anis(
-                self.dim, self.len_scale, anis
-            )
+        self._len_scale, self._anis = set_len_anis(
+            self.dim, self.len_scale, anis, self.latlon, self.temporal
+        )
         self.check_arg_bounds()
 
     @property
@@ -1019,10 +1015,9 @@ class CovModel:
 
     @angles.setter
     def angles(self, angles):
-        if self.latlon:
-            self._angles = np.array(self.dim * [0], dtype=np.double)
-        else:
-            self._angles = set_angles(self.dim, angles)
+        self._angles = set_model_angles(
+            self.dim, angles, self.latlon, self.temporal
+        )
         self.check_arg_bounds()
 
     @property
