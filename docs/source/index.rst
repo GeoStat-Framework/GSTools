@@ -200,7 +200,7 @@ This works perfectly well with `cartopy <https://scitools.org.uk/cartopy/docs/la
     import gstools as gs
     # define a structured field by latitude and longitude
     lat = lon = range(-80, 81)
-    model = gs.Gaussian(latlon=True, len_scale=777, rescale=gs.EARTH_RADIUS)
+    model = gs.Gaussian(latlon=True, len_scale=777, geo_scale=gs.KM_SCALE)
     srf = gs.SRF(model, seed=12345)
     field = srf.structured((lat, lon))
     # Orthographic plotting with cartopy

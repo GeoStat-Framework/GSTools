@@ -106,10 +106,11 @@ class CovModel:
         to have a meaningful `len_scale` parameter.
         Default: False
     geo_scale : :class:`float`, optional
-        Geographic scaling in case of latlon coordinates to get a meaningful length
-        scale. By default, len_scale is assumed to be in radians with latlon=True.
-        Can be set to :any:`EARTH_RADIUS` to have len_scale in km or
-        :any:`DEGREE_SCALE` to have len_scale in degree.
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful length scale unit.
+        By default, len_scale is assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have len_scale in km or
+        :any:`DEGREE_SCALE` to have len_scale in degrees.
         Default: :any:`RADIAN_SCALE`
     temporal : :class:`bool`, optional
         Create a metric spatio-temporal covariance model.
