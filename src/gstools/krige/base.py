@@ -530,7 +530,7 @@ class Krige(Field):
             self.normalizer.fit(self.cond_val - self.cond_trend)
         if fit_variogram:  # fitting model to empirical variogram of data
             # normalize field
-            if self.model.latlon and self.model.time:
+            if self.model.latlon and self.model.temporal:
                 msg = "Krige: can't fit variogram for spatio-temporal latlon data."
                 raise ValueError(msg)
             field = self.normalizer.normalize(self.cond_val - self.cond_trend)
