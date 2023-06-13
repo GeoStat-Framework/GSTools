@@ -60,7 +60,7 @@ def plot_field(
         fig,
         ax,
         fld.latlon,
-        fld.time,
+        fld.temporal,
         **kwargs,
     )
 
@@ -111,7 +111,7 @@ def plot_nd(
     fig=None,
     ax=None,
     latlon=False,
-    time=False,
+    temporal=False,
     resolution=128,
     ax_names=None,
     aspect="quad",
@@ -144,7 +144,7 @@ def plot_nd(
         ValueError will be raised, if a direction was specified.
         Bin edges need to be given in radians in this case.
         Default: False
-    time : :class:`bool`, optional
+    temporal : :class:`bool`, optional
         Indicate a metric spatio-temporal covariance model.
         The time-dimension is assumed to be appended,
         meaning the pos tuple is (x,y,z,...,t) or (lat, lon, t).
@@ -172,20 +172,20 @@ def plot_nd(
     """
     dim = len(pos)
     assert dim > 1
-    assert not latlon or dim == 2 + int(bool(time))
+    assert not latlon or dim == 2 + int(bool(temporal))
     if dim == 2 and contour_plot:
         return _plot_2d(
             pos, field, mesh_type, fig, ax, latlon, ax_names, **kwargs
         )
     if latlon:
         # swap lat-lon to lon-lat (x-y)
-        if time:
+        if temporal:
             pos = (pos[1], pos[0], pos[2])
         else:
             pos = (pos[1], pos[0])
         if mesh_type != "unstructured":
             field = np.moveaxis(field, [0, 1], [1, 0])
-    ax_names = _ax_names(dim, latlon, time, ax_names)
+    ax_names = _ax_names(dim, latlon, temporal, ax_names)
     # init planes
     planes = rotation_planes(dim)
     plane_names = [f" {ax_names[p[0]]} - {ax_names[p[1]]}" for p in planes]
@@ -342,8 +342,8 @@ def plot_vec_field(fld, field="field", fig=None, ax=None):  # pragma: no cover
     return ax
 
 
-def _ax_names(dim, latlon=False, time=False, ax_names=None):
-    t_fac = int(bool(time))
+def _ax_names(dim, latlon=False, temporal=False, ax_names=None):
+    t_fac = int(bool(temporal))
     if ax_names is not None:
         assert len(ax_names) >= dim
         return ax_names[:dim]

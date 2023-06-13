@@ -626,7 +626,7 @@ def ang2dir(angles, dtype=np.double, dim=None):
 
 
 def latlon2pos(
-    latlon, radius=1.0, dtype=np.double, time=False, time_scale=1.0
+    latlon, radius=1.0, dtype=np.double, temporal=False, time_scale=1.0
 ):
     """Convert lat-lon geo coordinates to 3D position tuple.
 
@@ -641,7 +641,7 @@ def latlon2pos(
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
-    time : :class:`bool`, optional
+    temporal : :class:`bool`, optional
         Whether latlon includes an appended time axis.
         Default: False
     time_scale : :class:`float`, optional
@@ -653,19 +653,23 @@ def latlon2pos(
     :class:`numpy.ndarray`
         the 3D position array
     """
-    latlon = np.asarray(latlon, dtype=dtype).reshape((3 if time else 2, -1))
+    latlon = np.asarray(latlon, dtype=dtype).reshape(
+        (3 if temporal else 2, -1)
+    )
     lat, lon = np.deg2rad(latlon[:2])
     pos_tuple = (
         radius * np.cos(lat) * np.cos(lon),
         radius * np.cos(lat) * np.sin(lon),
         radius * np.sin(lat) * np.ones_like(lon),
     )
-    if time:
+    if temporal:
         return np.array(pos_tuple + (latlon[2] / time_scale,), dtype=dtype)
     return np.array(pos_tuple, dtype=dtype)
 
 
-def pos2latlon(pos, radius=1.0, dtype=np.double, time=False, time_scale=1.0):
+def pos2latlon(
+    pos, radius=1.0, dtype=np.double, temporal=False, time_scale=1.0
+):
     """Convert 3D position tuple from sphere to lat-lon geo coordinates.
 
     Parameters
@@ -679,7 +683,7 @@ def pos2latlon(pos, radius=1.0, dtype=np.double, time=False, time_scale=1.0):
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
-    time : :class:`bool`, optional
+    temporal : :class:`bool`, optional
         Whether latlon includes an appended time axis.
         Default: False
     time_scale : :class:`float`, optional
@@ -691,12 +695,12 @@ def pos2latlon(pos, radius=1.0, dtype=np.double, time=False, time_scale=1.0):
     :class:`numpy.ndarray`
         the 3D position array
     """
-    pos = np.asarray(pos, dtype=dtype).reshape((4 if time else 3, -1))
+    pos = np.asarray(pos, dtype=dtype).reshape((4 if temporal else 3, -1))
     # prevent numerical errors in arcsin
     lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
     lon = np.arctan2(pos[1], pos[0])
     latlon = np.rad2deg((lat, lon), dtype=dtype)
-    if time:
+    if temporal:
         return np.array(
             (latlon[0], latlon[1], pos[3] * time_scale), dtype=dtype
         )

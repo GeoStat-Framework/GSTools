@@ -111,7 +111,7 @@ class CovModel:
         Can be set to :any:`EARTH_RADIUS` to have len_scale in km or
         :any:`DEGREE_SCALE` to have len_scale in degree.
         Default: :any:`RADIAN_SCALE`
-    time : :class:`bool`, optional
+    temporal : :class:`bool`, optional
         Create a metric spatio-temporal covariance model.
         Setting this to true will increase `dim` and `field_dim` by 1.
         `spatial_dim` will be `field_dim - 1`.
@@ -147,7 +147,7 @@ class CovModel:
         rescale=None,
         latlon=False,
         geo_scale=RADIAN_SCALE,
-        time=False,
+        temporal=False,
         var_raw=None,
         hankel_kw=None,
         **opt_arg,
@@ -173,14 +173,14 @@ class CovModel:
         self._nugget_bounds = None
         self._anis_bounds = None
         self._opt_arg_bounds = {}
-        # Set latlon and time first
+        # Set latlon and temporal first
         self._latlon = bool(latlon)
-        self._time = bool(time)
+        self._temporal = bool(temporal)
         self._geo_scale = abs(float(geo_scale))
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
         # using time increases model dimension
-        self.dim = dim + int(self.time)
+        self.dim = dim + int(self.temporal)
 
         # optional arguments for the variogram-model
         set_opt_args(self, opt_arg)
@@ -198,7 +198,7 @@ class CovModel:
         if self.latlon:
             # keep time anisotropy for metric spatio-temporal model
             self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
-            self._anis[-1] = anis[-1] if self.time else 1.0
+            self._anis[-1] = anis[-1] if self.temporal else 1.0
             self._angles = np.array(self.dim * [0], dtype=np.double)
         else:
             self._anis = anis
@@ -555,7 +555,7 @@ class CovModel:
             return latlon2pos(
                 pos,
                 radius=self.geo_scale,
-                time=self.time,
+                temporal=self.temporal,
                 time_scale=self.anis[-1],
             )
         return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
@@ -567,7 +567,7 @@ class CovModel:
             return pos2latlon(
                 pos,
                 radius=self.geo_scale,
-                time=self.time,
+                temporal=self.temporal,
                 time_scale=self.anis[-1],
             )
         return np.dot(
@@ -897,9 +897,9 @@ class CovModel:
         return res
 
     @property
-    def time(self):
+    def temporal(self):
         """:class:`bool`: Whether the model is a metric spatio-temporal one."""
-        return self._time
+        return self._temporal
 
     # geographical coordinates related
 
@@ -916,12 +916,12 @@ class CovModel:
     @property
     def field_dim(self):
         """:class:`int`: The (parametric) field dimension of the model (with time)."""
-        return 2 + int(self._time) if self.latlon else self.dim
+        return 2 + int(self.temporal) if self.latlon else self.dim
 
     @property
     def spatial_dim(self):
         """:class:`int`: The spatial field dimension of the model (without time)."""
-        return 2 if self.latlon else self.dim - int(self._time)
+        return 2 if self.latlon else self.dim - int(self.temporal)
 
     # standard parameters
 

@@ -5,7 +5,7 @@ Working with spatio-temporal lat-lon fields
 In this example, we demonstrate how to generate a spatio-temporal
 random field on geographical coordinates.
 
-First we setup a model, with ``latlon=True`` and ``time=True``,
+First we setup a model, with ``latlon=True`` and ``temporal=True``,
 to get the associated spatio-temporal Yadrenko model.
 
 In addition, we will use the earth radius provided by :any:`EARTH_RADIUS`
@@ -22,7 +22,7 @@ import gstools as gs
 
 model = gs.Matern(
     latlon=True,
-    time=True,
+    temporal=True,
     var=1,
     len_scale=1000,
     anis=0.1,

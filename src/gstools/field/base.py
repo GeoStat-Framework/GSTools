@@ -679,9 +679,9 @@ class Field:
         return False if self.model is None else self.model.latlon
 
     @property
-    def time(self):
+    def temporal(self):
         """:class:`bool`: Whether the field depends on time."""
-        return False if self.model is None else self.model.time
+        return False if self.model is None else self.model.temporal
 
     @property
     def name(self):
