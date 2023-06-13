@@ -498,13 +498,13 @@ def set_dim(model, dim):
             AttributeWarning,
         )
         dim = model.fix_dim()
-        if model.latlon and dim != (3 + int(model.time)):
+        if model.latlon and dim != (3 + int(model.temporal)):
             raise ValueError(
                 f"{model.name}: using fixed dimension {model.fix_dim()}, "
-                f"which is not compatible with a latlon model (with time={model.time})."
+                f"which is not compatible with a latlon model (with temporal={model.temporal})."
             )
-    # force dim=3 (or 4 when time=True) for latlon models
-    dim = (3 + int(model.time)) if model.latlon else dim
+    # force dim=3 (or 4 when temporal=True) for latlon models
+    dim = (3 + int(model.temporal)) if model.latlon else dim
     # set the dimension
     if dim < 1:
         raise ValueError("Only dimensions of d >= 1 are supported.")
@@ -551,7 +551,7 @@ def compare(this, that):
     equal &= np.all(np.isclose(this.angles, that.angles))
     equal &= np.isclose(this.rescale, that.rescale)
     equal &= this.latlon == that.latlon
-    equal &= this.time == that.time
+    equal &= this.temporal == that.temporal
     for opt in this.opt_arg:
         equal &= np.isclose(getattr(this, opt), getattr(that, opt))
     return equal
@@ -569,14 +569,16 @@ def model_repr(model):  # pragma: no cover
     m = model
     p = model._prec
     opt_str = ""
-    t_str = ", time=True" if m.time else ""
+    t_str = ", temporal=True" if m.temporal else ""
     if not np.isclose(m.rescale, m.default_rescale()):
         opt_str += f", rescale={m.rescale:.{p}}"
     for opt in m.opt_arg:
         opt_str += f", {opt}={getattr(m, opt):.{p}}"
     if m.latlon:
         ani_str = (
-            "" if m.is_isotropic or not m.time else f", anis={m.anis[-1]:.{p}}"
+            ""
+            if m.is_isotropic or not m.temporal
+            else f", anis={m.anis[-1]:.{p}}"
         )
         r_str = (
             ""

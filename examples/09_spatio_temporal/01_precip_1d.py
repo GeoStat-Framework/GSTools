@@ -30,7 +30,7 @@ t = np.arange(0.0, 90.0, 0.5)
 st_anis = 0.4
 
 # an exponential variogram with a corr. lengths of 2d and 5km
-model = gs.Exponential(dim=1, time=True, var=1.0, len_scale=5.0, anis=st_anis)
+model = gs.Exponential(dim=1, temporal=True, var=1, len_scale=5, anis=st_anis)
 # create a spatial random field instance
 srf = gs.SRF(model, seed=seed)
 

@@ -52,12 +52,14 @@ __all__ = [
 # plotting routines #######################################################
 
 
-def _plot_spatial(dim, pos, field, fig, ax, time, **kwargs):
+def _plot_spatial(dim, pos, field, fig, ax, temporal, **kwargs):
     from gstools.field.plot import plot_1d, plot_nd
 
     if dim == 1:
         return plot_1d(pos, field, fig, ax, **kwargs)
-    return plot_nd(pos, field, "structured", fig, ax, time=time, **kwargs)
+    return plot_nd(
+        pos, field, "structured", fig, ax, temporal=temporal, **kwargs
+    )
 
 
 def plot_vario_spatial(
@@ -70,7 +72,9 @@ def plot_vario_spatial(
     pos = [x_s] * model.dim
     shp = tuple(len(p) for p in pos)
     fld = model.vario_spatial(generate_grid(pos)).reshape(shp)
-    return _plot_spatial(model.dim, pos, fld, fig, ax, model.time, **kwargs)
+    return _plot_spatial(
+        model.dim, pos, fld, fig, ax, model.temporal, **kwargs
+    )
 
 
 def plot_cov_spatial(
@@ -83,7 +87,9 @@ def plot_cov_spatial(
     pos = [x_s] * model.dim
     shp = tuple(len(p) for p in pos)
     fld = model.cov_spatial(generate_grid(pos)).reshape(shp)
-    return _plot_spatial(model.dim, pos, fld, fig, ax, model.time, **kwargs)
+    return _plot_spatial(
+        model.dim, pos, fld, fig, ax, model.temporal, **kwargs
+    )
 
 
 def plot_cor_spatial(
@@ -96,7 +102,9 @@ def plot_cor_spatial(
     pos = [x_s] * model.dim
     shp = tuple(len(p) for p in pos)
     fld = model.cor_spatial(generate_grid(pos)).reshape(shp)
-    return _plot_spatial(model.dim, pos, fld, fig, ax, model.time, **kwargs)
+    return _plot_spatial(
+        model.dim, pos, fld, fig, ax, model.temporal, **kwargs
+    )
 
 
 def plot_variogram(
