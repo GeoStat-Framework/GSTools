@@ -238,7 +238,7 @@ def set_len_anis(dim, len_scale, anis, latlon=False):
     for ani in out_anis:
         if not ani > 0.0:
             raise ValueError(
-                f"anisotropy-ratios needs to be > 0, " + "got: {out_anis}"
+                f"anisotropy-ratios needs to be > 0, got: {out_anis}"
             )
     # no spatial anisotropy for latlon
     if latlon:
