@@ -54,7 +54,10 @@ class CovModel:
     Parameters
     ----------
     dim : :class:`int`, optional
-        dimension of the model. Default: ``3``
+        dimension of the model.
+        Includes the temporal dimension if temporal is true.
+        To specify only the spatial dimension in that case, use `spatial_dim`.
+        Default: ``3``
     var : :class:`float`, optional
         variance of the model (the nugget is not included in "this" variance)
         Default: ``1.0``
@@ -118,6 +121,11 @@ class CovModel:
         `spatial_dim` will be `field_dim - 1`.
         The time-dimension is appended, meaning the pos tuple is (x,y,z,...,t).
         Default: False
+    spatial_dim : :class:`int`, optional
+        spatial dimension of the model.
+        If given, the model dimension will be determined from this spatial dimension
+        and the possible temporal dimension if temporal is ture.
+        Default: None
     var_raw : :class:`float` or :any:`None`, optional
         raw variance of the model which will be multiplied with
         :any:`CovModel.var_factor` to result in the actual variance.
@@ -149,6 +157,7 @@ class CovModel:
         latlon=False,
         geo_scale=RADIAN_SCALE,
         temporal=False,
+        spatial_dim=None,
         var_raw=None,
         hankel_kw=None,
         **opt_arg,
@@ -180,8 +189,10 @@ class CovModel:
         self._geo_scale = abs(float(geo_scale))
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
-        # using time increases model dimension
-        self.dim = dim + int(self.temporal)
+        # using time increases model dimension given by "spatial_dim"
+        self.dim = (
+            dim if spatial_dim is None else spatial_dim + int(self.temporal)
+        )
 
         # optional arguments for the variogram-model
         set_opt_args(self, opt_arg)

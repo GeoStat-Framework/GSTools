@@ -58,8 +58,11 @@ class TestTemporal(unittest.TestCase):
         )
 
     def test_rotation(self):
-        mod = gs.Gaussian(dim=3, temporal=True, angles=[1, 2, 3, 4, 5, 6])
+        mod = gs.Gaussian(
+            spatial_dim=3, temporal=True, angles=[1, 2, 3, 4, 5, 6]
+        )
         self.assertTrue(np.allclose(mod.angles, [1, 2, 3, 0, 0, 0]))
+        self.assertEqual(mod.dim, 4)
 
     def test_krige(self):
         # auto-fitting latlon-temporal model in kriging not possible
