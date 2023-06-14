@@ -144,7 +144,7 @@ class TestLatLon(unittest.TestCase):
         for i, dat in enumerate(self.data[:, 2]):
             self.assertAlmostEqual(field[i], dat, 3)
 
-    def error_test(self):
+    def test_error(self):
         # try fitting directional variogram
         mod = gs.Gaussian(latlon=True)
         with self.assertRaises(ValueError):
