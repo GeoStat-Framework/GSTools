@@ -24,7 +24,7 @@ All notable changes to **GSTools** will be documented in this file.
 - `vario_estimate` now forwards additional kwargs to `standard_bins` (`bin_no`, `max_dist`) [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
 
 ### Changes
-- CovModels expect all arguments by keyword now (except `dim`) [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+- CovModels expect special arguments by keyword now [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
 - always use f-strings internally [#283](https://github.com/GeoStat-Framework/GSTools/pull/283)
 
 ### Bugfixes
