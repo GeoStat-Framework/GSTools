@@ -146,12 +146,12 @@ class CovModel:
     def __init__(
         self,
         dim=3,
-        *,
         var=1.0,
         len_scale=1.0,
         nugget=0.0,
         anis=1.0,
         angles=0.0,
+        *,
         integral_scale=None,
         rescale=None,
         latlon=False,
