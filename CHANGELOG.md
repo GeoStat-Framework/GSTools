@@ -2,6 +2,34 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [Unreleased] - ? - 2023-?
+
+### Enhancements
+- added `temporal` flag to CovModel to explicitly specify spatio-temporal models [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+  - rotation between spatial and temporal dimension will be ignored
+  - added `spatial_dim` to CovModel to explicitly set spatial dimension for spatio-temporal models
+    - if not using `spatial_dim`, the provided `dim` needs to include the possible temporal dimension
+    - `spatial_dim` is always one less than `field_dim` for spatio-temporal models
+  - also works with `latlon=True` to have a spatio-temporal model with geographic coordinates
+  - all plotting routines respect this
+  - the `Field` class now has a `temporal` attribute which forwards the model attribute
+  - automatic variogram fitting in kriging classes for `temporal=True` and `latlon=True` will raise an error
+- added `geo_scale` to CovModel to have a more consistent way to set the units of the model length scale for geographic coordinates [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+  - no need to use `rescale` for this anymore (was rather a hack)
+  - added `gs.KM_SCALE` which is the same as `gs.EARTH_RADIUS` for kilometer scaling
+  - added `gs.DEGREE_SCALE` for great circle distance in degrees
+  - added `gs.RADIAN_SCALE` for great circle distance in radians (default and previous behavior)
+  - yadrenko variogram respects this and assumes the great circle distances is given in the respective unit
+  - `vario_estimate` also has `geo_scale` now to control the units of the bins
+- `vario_estimate` now forwards additional kwargs to `standard_bins` (`bin_no`, `max_dist`) [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+
+### Changes
+- CovModels expect all arguments by keyword now (except `dim`) [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+- always use f-strings internally [#283](https://github.com/GeoStat-Framework/GSTools/pull/283)
+
+### Bugfixes
+- latex equations were not rendered correctly in docs [#290](https://github.com/GeoStat-Framework/GSTools/pull/290)
+
 
 ## [1.4.1] - Sassy Sapphire - 2022-11
 
