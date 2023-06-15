@@ -13,7 +13,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 from gstools.covmodel.tools import check_arg_in_bounds, default_arg_from_bounds
-from gstools.tools.geometric import set_anis
+from gstools.tools.geometric import great_circle_to_chordal, set_anis
 
 __all__ = ["fit_variogram"]
 
@@ -341,7 +341,7 @@ def _check_vario(model, x_data, y_data):
         )
     if model.latlon:
         # convert to yadrenko model
-        x_data = 2 * np.sin(x_data / 2)
+        x_data = great_circle_to_chordal(x_data, model.geo_scale)
     return x_data, y_data, is_dir_vario
 
 
@@ -522,6 +522,7 @@ def logistic_weights(p=0.1, mean=0.7):  # pragma: no cover
     callable
         Weighting function.
     """
+
     # define the callable weights function
     def func(x_data):
         """Callable function for the weights."""

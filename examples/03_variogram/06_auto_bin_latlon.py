@@ -44,10 +44,10 @@ field = data.T[2]  # temperature
 # Since the overall range of these meteo-stations is too low, we can use the
 # data-variance as additional information during the fit of the variogram.
 
-emp_v = gs.vario_estimate(pos, field, latlon=True)
-sph = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
+emp_v = gs.vario_estimate(pos, field, latlon=True, geo_scale=gs.KM_SCALE)
+sph = gs.Spherical(latlon=True, geo_scale=gs.KM_SCALE)
 sph.fit_variogram(*emp_v, sill=np.var(field))
-ax = sph.plot(x_max=2 * np.max(emp_v[0]))
+ax = sph.plot("vario_yadrenko", x_max=2 * np.max(emp_v[0]))
 ax.scatter(*emp_v, label="Empirical variogram")
 ax.legend()
 print(sph)

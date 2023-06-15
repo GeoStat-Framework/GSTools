@@ -30,7 +30,7 @@ from hankel import SymmetricFourierTransform as SFT
 from scipy import special as sps
 from scipy.optimize import root
 
-from gstools.tools.geometric import set_angles, set_anis
+from gstools.tools.geometric import no_of_angles, set_angles, set_anis
 from gstools.tools.misc import list_format
 
 __all__ = [
@@ -38,6 +38,7 @@ __all__ = [
     "rad_fac",
     "set_opt_args",
     "set_len_anis",
+    "set_model_angles",
     "check_bounds",
     "check_arg_in_bounds",
     "default_arg_from_bounds",
@@ -183,7 +184,7 @@ def set_opt_args(model, opt_arg):
         setattr(model, opt_name, float(opt_arg[opt_name]))
 
 
-def set_len_anis(dim, len_scale, anis):
+def set_len_anis(dim, len_scale, anis, latlon=False):
     """Set the length scale and anisotropy factors for the given dimension.
 
     Parameters
@@ -194,6 +195,10 @@ def set_len_anis(dim, len_scale, anis):
         the length scale of the SRF in x direction or in x- (y-, ...) direction
     anis : :class:`float` or :class:`list`
         the anisotropy of length scales along the transversal axes
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude. In this case there is no spatial anisotropy.
+        Default: False
 
     Returns
     -------
@@ -233,9 +238,47 @@ def set_len_anis(dim, len_scale, anis):
     for ani in out_anis:
         if not ani > 0.0:
             raise ValueError(
-                "anisotropy-ratios needs to be > 0, " + "got: " + str(out_anis)
+                f"anisotropy-ratios needs to be > 0, got: {out_anis}"
             )
+    # no spatial anisotropy for latlon
+    if latlon:
+        out_anis[:2] = 1.0
     return out_len_scale, out_anis
+
+
+def set_model_angles(dim, angles, latlon=False, temporal=False):
+    """Set the model angles for the given dimension.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the angles of the SRF
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude.
+        Default: False
+    temporal : :class:`bool`, optional
+        Whether a time-dimension is appended.
+        Default: False
+
+    Returns
+    -------
+    angles : :class:`float`
+        the angles fitting to the dimension
+
+    Notes
+    -----
+        If too few angles are given, they are filled up with `0`.
+    """
+    if latlon:
+        return np.array(no_of_angles(dim) * [0], dtype=np.double)
+    out_angles = set_angles(dim, angles)
+    if temporal:
+        # no rotation between spatial dimensions and temporal dimension
+        out_angles[no_of_angles(dim - 1) :] = 0.0
+    return out_angles
 
 
 def check_bounds(bounds):
@@ -378,9 +421,7 @@ def percentile_scale(model, per=0.9):
     """
     # check the given percentile
     if not 0.0 < per < 1.0:
-        raise ValueError(
-            "percentile needs to be within (0, 1), got: " + str(per)
-        )
+        raise ValueError(f"percentile needs to be within (0, 1), got: {per}")
 
     # define a curve, that has its root at the wanted point
     def curve(x):
@@ -494,17 +535,17 @@ def set_dim(model, dim):
     # check if a fixed dimension should be used
     if model.fix_dim() is not None and model.fix_dim() != dim:
         warnings.warn(
-            model.name + ": using fixed dimension " + str(model.fix_dim()),
+            f"{model.name}: using fixed dimension {model.fix_dim()}",
             AttributeWarning,
         )
         dim = model.fix_dim()
-        if model.latlon and dim != 3:
+        if model.latlon and dim != (3 + int(model.temporal)):
             raise ValueError(
                 f"{model.name}: using fixed dimension {model.fix_dim()}, "
-                "which is not compatible with a latlon model."
+                f"which is not compatible with a latlon model (with temporal={model.temporal})."
             )
-    # force dim=3 for latlon models
-    dim = 3 if model.latlon else dim
+    # force dim=3 (or 4 when temporal=True) for latlon models
+    dim = (3 + int(model.temporal)) if model.latlon else dim
     # set the dimension
     if dim < 1:
         raise ValueError("Only dimensions of d >= 1 are supported.")
@@ -522,7 +563,9 @@ def set_dim(model, dim):
             model.dim, model._len_scale, model._anis
         )
     if model._angles is not None:
-        model._angles = set_angles(model.dim, model._angles)
+        model._angles = set_model_angles(
+            model.dim, model._angles, model.latlon, model.temporal
+        )
     model.check_arg_bounds()
 
 
@@ -551,6 +594,7 @@ def compare(this, that):
     equal &= np.all(np.isclose(this.angles, that.angles))
     equal &= np.isclose(this.rescale, that.rescale)
     equal &= this.latlon == that.latlon
+    equal &= this.temporal == that.temporal
     for opt in this.opt_arg:
         equal &= np.isclose(getattr(this, opt), getattr(that, opt))
     return equal
@@ -568,21 +612,35 @@ def model_repr(model):  # pragma: no cover
     m = model
     p = model._prec
     opt_str = ""
+    t_str = ", temporal=True" if m.temporal else ""
     if not np.isclose(m.rescale, m.default_rescale()):
         opt_str += f", rescale={m.rescale:.{p}}"
     for opt in m.opt_arg:
         opt_str += f", {opt}={getattr(m, opt):.{p}}"
-    # only print anis and angles if model is anisotropic or rotated
-    ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
-    ang_str = f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
     if m.latlon:
+        ani_str = (
+            ""
+            if m.is_isotropic or not m.temporal
+            else f", anis={m.anis[-1]:.{p}}"
+        )
+        r_str = (
+            ""
+            if np.isclose(m.geo_scale, 1)
+            else f", geo_scale={m.geo_scale:.{p}}"
+        )
         repr_str = (
-            f"{m.name}(latlon={m.latlon}, var={m.var:.{p}}, "
-            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}{opt_str})"
+            f"{m.name}(latlon={m.latlon}{t_str}, var={m.var:.{p}}, "
+            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
+            f"{ani_str}{r_str}{opt_str})"
         )
     else:
+        # only print anis and angles if model is anisotropic or rotated
+        ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
+        ang_str = (
+            f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
+        )
         repr_str = (
-            f"{m.name}(dim={m.dim}, var={m.var:.{p}}, "
+            f"{m.name}(dim={m.spatial_dim}{t_str}, var={m.var:.{p}}, "
             f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
             f"{ani_str}{ang_str}{opt_str})"
         )

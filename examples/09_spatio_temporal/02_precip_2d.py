@@ -27,13 +27,13 @@ y = np.arange(0, 40, 1.0)
 # half daily timesteps over three months
 t = np.arange(0.0, 90.0, 0.5)
 
-# total spatio-temporal dimension
-st_dim = 2 + 1
 # space-time anisotropy ratio given in units d / km
 st_anis = 0.4
 
 # an exponential variogram with a corr. lengths of 5km, 5km, and 2d
-model = gs.Exponential(dim=st_dim, var=1.0, len_scale=5.0, anis=st_anis)
+model = gs.Exponential(
+    temporal=True, spatial_dim=2, var=1, len_scale=5, anis=st_anis
+)
 # create a spatial random field instance
 srf = gs.SRF(model, seed=seed)
 

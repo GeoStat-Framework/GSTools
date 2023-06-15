@@ -147,9 +147,9 @@ target-version = [
     max-args = 20
     max-locals = 50
     max-branches = 30
-    max-statements = 80
+    max-statements = 85
     max-attributes = 25
-    max-public-methods = 75
+    max-public-methods = 80
 
 [tool.cibuildwheel]
 # Switch to using build

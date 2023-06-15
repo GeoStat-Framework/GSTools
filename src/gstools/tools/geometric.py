@@ -27,6 +27,7 @@ The following functions are provided
    latlon2pos
    pos2latlon
    chordal_to_great_circle
+   great_circle_to_chordal
 """
 # pylint: disable=C0103
 import numpy as np
@@ -624,71 +625,98 @@ def ang2dir(angles, dtype=np.double, dim=None):
     return vec
 
 
-def latlon2pos(latlon, radius=1.0, dtype=np.double):
+def latlon2pos(
+    latlon, radius=1.0, dtype=np.double, temporal=False, time_scale=1.0
+):
     """Convert lat-lon geo coordinates to 3D position tuple.
 
     Parameters
     ----------
     latlon : :class:`list` of :class:`numpy.ndarray`
         latitude and longitude given in degrees.
+        May includes an appended time axis if `time=True`.
     radius : :class:`float`, optional
-        Earth radius. Default: `1.0`
+        Sphere radius. Default: `1.0`
     dtype : data-type, optional
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
+    temporal : :class:`bool`, optional
+        Whether latlon includes an appended time axis.
+        Default: False
+    time_scale : :class:`float`, optional
+        Scaling factor (e.g. anisotropy) for the time axis.
+        Default: `1.0`
 
     Returns
     -------
     :class:`numpy.ndarray`
         the 3D position array
     """
-    latlon = np.asarray(latlon, dtype=dtype).reshape((2, -1))
-    lat, lon = np.deg2rad(latlon)
-    return np.array(
-        (
-            radius * np.cos(lat) * np.cos(lon),
-            radius * np.cos(lat) * np.sin(lon),
-            radius * np.sin(lat) * np.ones_like(lon),
-        ),
-        dtype=dtype,
+    latlon = np.asarray(latlon, dtype=dtype).reshape(
+        (3 if temporal else 2, -1)
     )
+    lat, lon = np.deg2rad(latlon[:2])
+    pos_tuple = (
+        radius * np.cos(lat) * np.cos(lon),
+        radius * np.cos(lat) * np.sin(lon),
+        radius * np.sin(lat) * np.ones_like(lon),
+    )
+    if temporal:
+        return np.array(pos_tuple + (latlon[2] / time_scale,), dtype=dtype)
+    return np.array(pos_tuple, dtype=dtype)
 
 
-def pos2latlon(pos, radius=1.0, dtype=np.double):
+def pos2latlon(
+    pos, radius=1.0, dtype=np.double, temporal=False, time_scale=1.0
+):
     """Convert 3D position tuple from sphere to lat-lon geo coordinates.
 
     Parameters
     ----------
     pos : :class:`list` of :class:`numpy.ndarray`
         The position tuple containing points on a unit-sphere.
+        May includes an appended time axis if `time=True`.
     radius : :class:`float`, optional
-        Earth radius. Default: `1.0`
+        Sphere radius. Default: `1.0`
     dtype : data-type, optional
         The desired data-type for the array.
         If not given, then the type will be determined as the minimum type
         required to hold the objects in the sequence. Default: None
+    temporal : :class:`bool`, optional
+        Whether latlon includes an appended time axis.
+        Default: False
+    time_scale : :class:`float`, optional
+        Scaling factor (e.g. anisotropy) for the time axis.
+        Default: `1.0`
 
     Returns
     -------
     :class:`numpy.ndarray`
         the 3D position array
     """
-    pos = np.asarray(pos, dtype=dtype).reshape((3, -1))
+    pos = np.asarray(pos, dtype=dtype).reshape((4 if temporal else 3, -1))
     # prevent numerical errors in arcsin
     lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
     lon = np.arctan2(pos[1], pos[0])
-    return np.rad2deg((lat, lon), dtype=dtype)
+    latlon = np.rad2deg((lat, lon), dtype=dtype)
+    if temporal:
+        return np.array(
+            (latlon[0], latlon[1], pos[3] * time_scale), dtype=dtype
+        )
+    return latlon
 
 
-def chordal_to_great_circle(dist):
+def chordal_to_great_circle(dist, radius=1.0):
     """
     Calculate great circle distance corresponding to given chordal distance.
 
     Parameters
     ----------
     dist : array_like
-        Chordal distance of two points on the unit-sphere.
+        Chordal distance of two points on the sphere.
+    radius : :class:`float`, optional
+        Sphere radius. Default: `1.0`
 
     Returns
     -------
@@ -697,6 +725,29 @@ def chordal_to_great_circle(dist):
 
     Notes
     -----
-    If given values are not in [0, 1], they will be truncated.
+    If given values are not in [0, 2 * radius], they will be truncated.
     """
-    return 2 * np.arcsin(np.maximum(np.minimum(np.divide(dist, 2), 1), 0))
+    diameter = 2 * radius
+    return diameter * np.arcsin(
+        np.maximum(np.minimum(np.divide(dist, diameter), 1), 0)
+    )
+
+
+def great_circle_to_chordal(dist, radius=1.0):
+    """
+    Calculate chordal distance corresponding to given great circle distance.
+
+    Parameters
+    ----------
+    dist : array_like
+        Great circle distance of two points on the sphere.
+    radius : :class:`float`, optional
+        Sphere radius. Default: `1.0`
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Chordal distance corresponding to given great circle distance.
+    """
+    diameter = 2 * radius
+    return diameter * np.sin(np.divide(dist, diameter))

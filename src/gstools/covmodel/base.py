@@ -28,16 +28,18 @@ from gstools.covmodel.tools import (
     set_arg_bounds,
     set_dim,
     set_len_anis,
+    set_model_angles,
     set_opt_args,
     spectral_rad_pdf,
 )
+from gstools.tools import RADIAN_SCALE
 from gstools.tools.geometric import (
+    great_circle_to_chordal,
     latlon2pos,
     matrix_anisometrize,
     matrix_isometrize,
     pos2latlon,
     rotated_main_axes,
-    set_angles,
 )
 
 __all__ = ["CovModel"]
@@ -52,7 +54,10 @@ class CovModel:
     Parameters
     ----------
     dim : :class:`int`, optional
-        dimension of the model. Default: ``3``
+        dimension of the model.
+        Includes the temporal dimension if temporal is true.
+        To specify only the spatial dimension in that case, use `spatial_dim`.
+        Default: ``3``
     var : :class:`float`, optional
         variance of the model (the nugget is not included in "this" variance)
         Default: ``1.0``
@@ -100,9 +105,27 @@ class CovModel:
         :math:`2\sin(\alpha/2)`, where :math:`\alpha` is the great-circle
         distance, which is equal to the spatial distance of two points in 3D.
         As a consequence, `dim` will be set to `3` and anisotropy will be
-        disabled. `rescale` can be set to e.g. earth's radius,
+        disabled. `geo_scale` can be set to e.g. earth's radius,
         to have a meaningful `len_scale` parameter.
         Default: False
+    geo_scale : :class:`float`, optional
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful length scale unit.
+        By default, len_scale is assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have len_scale in km or
+        :any:`DEGREE_SCALE` to have len_scale in degrees.
+        Default: :any:`RADIAN_SCALE`
+    temporal : :class:`bool`, optional
+        Create a metric spatio-temporal covariance model.
+        Setting this to true will increase `dim` and `field_dim` by 1.
+        `spatial_dim` will be `field_dim - 1`.
+        The time-dimension is appended, meaning the pos tuple is (x,y,z,...,t).
+        Default: False
+    spatial_dim : :class:`int`, optional
+        spatial dimension of the model.
+        If given, the model dimension will be determined from this spatial dimension
+        and the possible temporal dimension if temporal is ture.
+        Default: None
     var_raw : :class:`float` or :any:`None`, optional
         raw variance of the model which will be multiplied with
         :any:`CovModel.var_factor` to result in the actual variance.
@@ -128,9 +151,13 @@ class CovModel:
         nugget=0.0,
         anis=1.0,
         angles=0.0,
+        *,
         integral_scale=None,
         rescale=None,
         latlon=False,
+        geo_scale=RADIAN_SCALE,
+        temporal=False,
+        spatial_dim=None,
         var_raw=None,
         hankel_kw=None,
         **opt_arg,
@@ -156,11 +183,16 @@ class CovModel:
         self._nugget_bounds = None
         self._anis_bounds = None
         self._opt_arg_bounds = {}
-        # Set latlon first
+        # Set latlon and temporal first
         self._latlon = bool(latlon)
+        self._temporal = bool(temporal)
+        self._geo_scale = abs(float(geo_scale))
         # SFT class will be created within dim.setter but needs hankel_kw
         self.hankel_kw = hankel_kw
-        self.dim = dim
+        # using time increases model dimension given by "spatial_dim"
+        self.dim = (
+            dim if spatial_dim is None else spatial_dim + int(self.temporal)
+        )
 
         # optional arguments for the variogram-model
         set_opt_args(self, opt_arg)
@@ -173,14 +205,15 @@ class CovModel:
         # set parameters
         self.rescale = rescale
         self._nugget = float(nugget)
+
         # set anisotropy and len_scale, disable anisotropy for latlon models
-        self._len_scale, anis = set_len_anis(self.dim, len_scale, anis)
-        if self.latlon:
-            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
-            self._angles = np.array(self.dim * [0], dtype=np.double)
-        else:
-            self._anis = anis
-            self._angles = set_angles(self.dim, angles)
+        self._len_scale, self._anis = set_len_anis(
+            self.dim, len_scale, anis, self.latlon
+        )
+        self._angles = set_model_angles(
+            self.dim, angles, self.latlon, self.temporal
+        )
+
         # set var at last, because of the var_factor (to be right initialized)
         if var_raw is None:
             self._var = None
@@ -242,15 +275,15 @@ class CovModel:
 
     def vario_yadrenko(self, zeta):
         r"""Yadrenko variogram for great-circle distance from latlon-pos."""
-        return self.variogram(2 * np.sin(zeta / 2))
+        return self.variogram(great_circle_to_chordal(zeta, self.geo_scale))
 
     def cov_yadrenko(self, zeta):
         r"""Yadrenko covariance for great-circle distance from latlon-pos."""
-        return self.covariance(2 * np.sin(zeta / 2))
+        return self.covariance(great_circle_to_chordal(zeta, self.geo_scale))
 
     def cor_yadrenko(self, zeta):
         r"""Yadrenko correlation for great-circle distance from latlon-pos."""
-        return self.correlation(2 * np.sin(zeta / 2))
+        return self.correlation(great_circle_to_chordal(zeta, self.geo_scale))
 
     def vario_spatial(self, pos):
         r"""Spatial variogram respecting anisotropy and rotation."""
@@ -530,14 +563,24 @@ class CovModel:
         """Make a position tuple ready for isotropic operations."""
         pos = np.asarray(pos, dtype=np.double).reshape((self.field_dim, -1))
         if self.latlon:
-            return latlon2pos(pos)
+            return latlon2pos(
+                pos,
+                radius=self.geo_scale,
+                temporal=self.temporal,
+                time_scale=self.anis[-1],
+            )
         return np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
 
     def anisometrize(self, pos):
         """Bring a position tuple into the anisotropic coordinate-system."""
         pos = np.asarray(pos, dtype=np.double).reshape((self.dim, -1))
         if self.latlon:
-            return pos2latlon(pos)
+            return pos2latlon(
+                pos,
+                radius=self.geo_scale,
+                temporal=self.temporal,
+                time_scale=self.anis[-1],
+            )
         return np.dot(
             matrix_anisometrize(self.dim, self.angles, self.anis), pos
         )
@@ -548,7 +591,9 @@ class CovModel:
 
     def _get_iso_rad(self, pos):
         """Isometrized radians."""
-        return np.linalg.norm(self.isometrize(pos), axis=0)
+        pos = np.asarray(pos, dtype=np.double).reshape((self.dim, -1))
+        iso = np.dot(matrix_isometrize(self.dim, self.angles, self.anis), pos)
+        return np.linalg.norm(iso, axis=0)
 
     # fitting routine
 
@@ -862,6 +907,11 @@ class CovModel:
         res.update(self.opt_arg_bounds)
         return res
 
+    @property
+    def temporal(self):
+        """:class:`bool`: Whether the model is a metric spatio-temporal one."""
+        return self._temporal
+
     # geographical coordinates related
 
     @property
@@ -870,9 +920,19 @@ class CovModel:
         return self._latlon
 
     @property
+    def geo_scale(self):
+        """:class:`float`: Geographic scaling for geographical coords."""
+        return self._geo_scale
+
+    @property
     def field_dim(self):
-        """:class:`int`: The field dimension of the model."""
-        return 2 if self.latlon else self.dim
+        """:class:`int`: The (parametric) field dimension of the model (with time)."""
+        return 2 + int(self.temporal) if self.latlon else self.dim
+
+    @property
+    def spatial_dim(self):
+        """:class:`int`: The spatial field dimension of the model (without time)."""
+        return 2 if self.latlon else self.dim - int(self.temporal)
 
     # standard parameters
 
@@ -925,7 +985,9 @@ class CovModel:
 
     @len_scale.setter
     def len_scale(self, len_scale):
-        self._len_scale, anis = set_len_anis(self.dim, len_scale, self.anis)
+        self._len_scale, anis = set_len_anis(
+            self.dim, len_scale, self.anis, self.latlon
+        )
         if self.latlon:
             self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
         else:
@@ -954,12 +1016,9 @@ class CovModel:
 
     @anis.setter
     def anis(self, anis):
-        if self.latlon:
-            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
-        else:
-            self._len_scale, self._anis = set_len_anis(
-                self.dim, self.len_scale, anis
-            )
+        self._len_scale, self._anis = set_len_anis(
+            self.dim, self.len_scale, anis, self.latlon
+        )
         self.check_arg_bounds()
 
     @property
@@ -969,10 +1028,9 @@ class CovModel:
 
     @angles.setter
     def angles(self, angles):
-        if self.latlon:
-            self._angles = np.array(self.dim * [0], dtype=np.double)
-        else:
-            self._angles = set_angles(self.dim, angles)
+        self._angles = set_model_angles(
+            self.dim, angles, self.latlon, self.temporal
+        )
         self.check_arg_bounds()
 
     @property

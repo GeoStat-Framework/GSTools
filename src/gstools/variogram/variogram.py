@@ -14,6 +14,7 @@ import numpy as np
 
 from gstools import config
 from gstools.normalizer.tools import remove_trend_norm_mean
+from gstools.tools import RADIAN_SCALE
 from gstools.tools.geometric import (
     ang2dir,
     format_struct_pos_shape,
@@ -92,6 +93,8 @@ def vario_estimate(
     normalizer=None,
     trend=None,
     fit_normalizer=False,
+    geo_scale=RADIAN_SCALE,
+    **std_bins,
 ):
     r"""
     Estimates the empirical variogram.
@@ -222,10 +225,20 @@ def vario_estimate(
     fit_normalizer : :class:`bool`, optional
         Whether to fit the data-normalizer to the given (detrended) field.
         Default: False
+    geo_scale : :class:`float`, optional
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful bins unit.
+        By default, bins are assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have bins in km or
+        :any:`DEGREE_SCALE` to have bins in degrees.
+        Default: :any:`RADIAN_SCALE`
+    **std_bins
+        Optional arguments that are forwarded to the :any:`standard_bins` routine
+        if no bins are given (bin_no, max_dist).
 
     Returns
     -------
-    bin_center : (n), :class:`numpy.ndarray`
+    bin_centers : (n), :class:`numpy.ndarray`
         The bin centers.
     gamma : (n) or (d, n), :class:`numpy.ndarray`
         The estimated variogram values at bin centers.
@@ -250,18 +263,18 @@ def vario_estimate(
     """
     if bin_edges is not None:
         bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double, copy=False)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double, copy=True)
     masked = np.ma.is_masked(field) or np.any(mask)
     # catch special case if everything is masked
     if masked and np.all(mask):
-        bin_centres = np.empty(0) if bin_edges is None else bin_centres
-        estimates = np.zeros_like(bin_centres)
+        bin_centers = np.empty(0) if bin_edges is None else bin_centers
+        estimates = np.zeros_like(bin_centers)
         if return_counts:
-            return bin_centres, estimates, np.zeros_like(estimates, dtype=int)
-        return bin_centres, estimates
+            return bin_centers, estimates, np.zeros_like(estimates, dtype=int)
+        return bin_centers, estimates
     if not masked:
         field = field.filled()
     # check mesh shape
@@ -331,10 +344,15 @@ def vario_estimate(
         )
         field = field[:, sampled_idx]
         pos = pos[:, sampled_idx]
-    # create bining if not given
+    # create bins
     if bin_edges is None:
-        bin_edges = standard_bins(pos, dim, latlon)
-        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_edges = standard_bins(
+            pos, dim, latlon, geo_scale=geo_scale, **std_bins
+        )
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+    if latlon:
+        # internally we always use radians
+        bin_edges /= geo_scale
     # normalize field
     norm_field_out = remove_trend_norm_mean(
         *(pos, field, mean, normalizer, trend),
@@ -371,7 +389,7 @@ def vario_estimate(
         if dir_no == 1:
             estimates, counts = estimates[0], counts[0]
     est_out = (estimates, counts)
-    return (bin_centres,) + est_out[: 2 if return_counts else 1] + norm_out
+    return (bin_centers,) + est_out[: 2 if return_counts else 1] + norm_out
 
 
 def vario_estimate_axis(

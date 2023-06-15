@@ -26,7 +26,7 @@ Transformations
    normal_to_arcsin
    normal_to_uquad
 """
-# pylint: disable=C0103, C0123, R0911
+# pylint: disable=C0103, C0123, R0911, R1735
 import numpy as np
 
 from gstools.normalizer import (

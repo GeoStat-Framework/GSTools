@@ -76,17 +76,17 @@ ids, lat, lon, temp = np.loadtxt("temp_obs.txt").T
 
 ###############################################################################
 # First we will estimate the variogram of our temperature data.
-# As the maximal bin distance we choose 8 degrees, which corresponds to a
-# chordal length of about 900 km.
+# As the maximal bin distance we choose 900 km.
 
-bins = gs.standard_bins((lat, lon), max_dist=np.deg2rad(8), latlon=True)
-bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
+bin_center, vario = gs.vario_estimate(
+    (lat, lon), temp, latlon=True, geo_scale=gs.KM_SCALE, max_dist=900
+)
 
 ###############################################################################
 # Now we can use this estimated variogram to fit a model to it.
 # Here we will use a :any:`Spherical` model. We select the ``latlon`` option
 # to use the `Yadrenko` variant of the model to gain a valid model for lat-lon
-# coordinates and we rescale it to the earth-radius. Otherwise the length
+# coordinates and we set the ``geo_scale`` to the earth-radius. Otherwise the length
 # scale would be given in radians representing the great-circle distance.
 #
 # We deselect the nugget from fitting and plot the result afterwards.
@@ -97,10 +97,10 @@ bin_c, vario = gs.vario_estimate((lat, lon), temp, bins, latlon=True)
 #    still holds the ordinary routine that is not respecting the great-circle
 #    distance.
 
-model = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
-model.fit_variogram(bin_c, vario, nugget=False)
-ax = model.plot("vario_yadrenko", x_max=bins[-1])
-ax.scatter(bin_c, vario)
+model = gs.Spherical(latlon=True, geo_scale=gs.KM_SCALE)
+model.fit_variogram(bin_center, vario, nugget=False)
+ax = model.plot("vario_yadrenko", x_max=max(bin_center))
+ax.scatter(bin_center, vario)
 print(model)
 
 ###############################################################################

@@ -2,6 +2,34 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [Unreleased] - ? - 2023-?
+
+### Enhancements
+- added `temporal` flag to `CovModel` to explicitly specify spatio-temporal models [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+  - rotation between spatial and temporal dimension will be ignored
+  - added `spatial_dim` to `CovModel` to explicitly set spatial dimension for spatio-temporal models
+    - if not using `spatial_dim`, the provided `dim` needs to include the possible temporal dimension
+    - `spatial_dim` is always one less than `field_dim` for spatio-temporal models
+  - also works with `latlon=True` to have a spatio-temporal model with geographic coordinates
+  - all plotting routines respect this
+  - the `Field` class now has a `temporal` attribute which forwards the model attribute
+  - automatic variogram fitting in kriging classes for `temporal=True` and `latlon=True` will raise an error
+- added `geo_scale` to `CovModel` to have a more consistent way to set the units of the model length scale for geographic coordinates [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+  - no need to use `rescale` for this anymore (was rather a hack)
+  - added `gs.KM_SCALE` which is the same as `gs.EARTH_RADIUS` for kilometer scaling
+  - added `gs.DEGREE_SCALE` for great circle distance in degrees
+  - added `gs.RADIAN_SCALE` for great circle distance in radians (default and previous behavior)
+  - yadrenko variogram respects this and assumes the great circle distances is given in the respective unit
+  - `vario_estimate` also has `geo_scale` now to control the units of the bins
+- `vario_estimate` now forwards additional kwargs to `standard_bins` (`bin_no`, `max_dist`) [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+
+### Changes
+- `CovModel`s expect special arguments by keyword now [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+- always use f-strings internally [#283](https://github.com/GeoStat-Framework/GSTools/pull/283)
+
+### Bugfixes
+- latex equations were not rendered correctly in docs [#290](https://github.com/GeoStat-Framework/GSTools/pull/290)
+
 
 ## [1.4.1] - Sassy Sapphire - 2022-11
 
@@ -25,7 +53,7 @@ All notable changes to **GSTools** will be documented in this file.
 - better support for custom generators [#250](https://github.com/GeoStat-Framework/GSTools/pull/250) [#259](https://github.com/GeoStat-Framework/GSTools/pull/259)
 - add `valid_value_types` class variable to all field classes [#250](https://github.com/GeoStat-Framework/GSTools/pull/250)
 - PyKrige: fix passed variogram in case of latlon models [#254](https://github.com/GeoStat-Framework/GSTools/pull/254)
-- add bounds checks for optional arguments of CovModel when resetting by class attribute [#255](https://github.com/GeoStat-Framework/GSTools/pull/255)
+- add bounds checks for optional arguments of `CovModel` when resetting by class attribute [#255](https://github.com/GeoStat-Framework/GSTools/pull/255)
 - minor coverage improvements [#255](https://github.com/GeoStat-Framework/GSTools/pull/255)
 - documentation: readability improvements [#257](https://github.com/GeoStat-Framework/GSTools/pull/257)
 
@@ -181,7 +209,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 - added new `len_rescaled` attribute to the `CovModel` class, which is the rescaled `len_scale`: `len_rescaled = len_scale / rescale`
 - new method `default_rescale` to provide default rescale factor (can be overridden)
 - remove `doctest` calls
-- docstring updates in CovModel and derived models
+- docstring updates in `CovModel` and derived models
 - updated all models to use the `cor` routine and make use of the `rescale` argument (See: [#90](https://github.com/GeoStat-Framework/GSTools/issues/90))
 - TPL models got a separate base class to not repeat code
 - added **new models** (See: [#88](https://github.com/GeoStat-Framework/GSTools/issues/88)):
@@ -208,7 +236,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 #### Arbitrary dimensions ([#112](https://github.com/GeoStat-Framework/GSTools/issues/112))
 - allow arbitrary dimensions in all routines (CovModel, Krige, SRF, variogram)
 - anisotropy and rotation following a generalization of tait-bryan angles
-- CovModel provides `isometrize` and `anisometrize` routines to convert points
+- `CovModel` provides `isometrize` and `anisometrize` routines to convert points
 
 #### New Class for Conditioned Random Fields ([#130](https://github.com/GeoStat-Framework/GSTools/issues/130))
 - **THIS BREAKS BACKWARD COMPATIBILITY**
@@ -232,7 +260,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 
 ### Changes
 - drop support for Python 3.5 [#146](https://github.com/GeoStat-Framework/GSTools/pull/146)
-- added a finit limit for shape-parameters in some CovModels [#147](https://github.com/GeoStat-Framework/GSTools/pull/147)
+- added a finit limit for shape-parameters in some `CovModel`s [#147](https://github.com/GeoStat-Framework/GSTools/pull/147)
 - drop usage of `pos2xyz` and `xyz2pos`
 - remove structured option from generators (structured pos need to be converted first)
 - explicitly assert dim=2,3 when generating vector fields
@@ -248,7 +276,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 - typo in keyword argument for vario_estimate_structured [#80](https://github.com/GeoStat-Framework/GSTools/issues/80)
 - isotropic rotation of SRF was not possible [#100](https://github.com/GeoStat-Framework/GSTools/issues/100)
 - `CovModel.opt_arg` now sorted [#103](https://github.com/GeoStat-Framework/GSTools/issues/103)
-- CovModel.fit: check if weights are given as a string (numpy comparison error) [#111](https://github.com/GeoStat-Framework/GSTools/issues/111)
+- `CovModel.fit`: check if weights are given as a string (numpy comparison error) [#111](https://github.com/GeoStat-Framework/GSTools/issues/111)
 - several pylint fixes ([#159](https://github.com/GeoStat-Framework/GSTools/pull/159))
 
 
@@ -266,7 +294,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 ### Enhancements
 - different variogram estimator functions can now be used #51
 - the TPLGaussian and TPLExponential now have analytical spectra #67
-- added property ``is_isotropic`` to CovModel #67
+- added property `is_isotropic` to `CovModel` #67
 - reworked the whole krige sub-module to provide multiple kriging methods #67
   - Simple
   - Ordinary
@@ -279,7 +307,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 
 ### Changes
 - Python versions 2.7 and 3.4 are no longer supported #40 #43
-- CovModel: in 3D the input of anisotropy is now treated slightly different: #67
+- `CovModel`: in 3D the input of anisotropy is now treated slightly different: #67
   - single given anisotropy value [e] is converted to [1, e] (it was [e, e] before)
   - two given length-scales [l_1, l_2] are converted to [l_1, l_2, l_2] (it was [l_1, l_2, l_1] before)
 
@@ -297,7 +325,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 
 ### Bugfixes
 - define spectral_density instead of spectrum in covariance models since Cov-base derives spectrum. See: [commit 00f2747](https://github.com/GeoStat-Framework/GSTools/commit/00f2747fd0503ff8806f2eebfba36acff813416b)
-- better boundaries for CovModel parameters. See: https://github.com/GeoStat-Framework/GSTools/issues/37
+- better boundaries for `CovModel` parameters. See: https://github.com/GeoStat-Framework/GSTools/issues/37
 
 
 ## [1.1.0] - Reverberating Red - 2019-10-01
@@ -305,23 +333,23 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 ### Enhancements
 - by using Cython for all the heavy computations, we could achieve quite some speed ups and reduce the memory consumption significantly #16
 - parallel computation in Cython is now supported with the help of OpenMP and the performance increase is nearly linear with increasing cores #16
-- new submodule ``krige`` providing simple (known mean) and ordinary (estimated mean) kriging working analogous to the srf class
-- interface to pykrige to use the gstools CovModel with the pykrige routines (https://github.com/bsmurphy/PyKrige/issues/124)
-- the srf class now provides a ``plot`` and a ``vtk_export`` routine
+- new submodule `krige` providing simple (known mean) and ordinary (estimated mean) kriging working analogous to the srf class
+- interface to pykrige to use the gstools `CovModel` with the pykrige routines (https://github.com/bsmurphy/PyKrige/issues/124)
+- the srf class now provides a `plot` and a `vtk_export` routine
 - incompressible flow fields can now be generated #14
 - new submodule providing several field transformations like: Zinn&Harvey, log-normal, bimodal, ... #13
 - Python 3.4 and 3.7 wheel support #19
 - field can now be generated directly on meshes from [meshio](https://github.com/nschloe/meshio) and [ogs5py](https://github.com/GeoStat-Framework/ogs5py), see: [commit f4a3439](https://github.com/GeoStat-Framework/GSTools/commit/f4a3439400b81d8d9db81a5f7fbf6435f603cf05)
-- the srf and kriging classes now store the last ``pos``, ``mesh_type`` and ``field`` values to keep them accessible, see: [commit 29f7f1b](https://github.com/GeoStat-Framework/GSTools/commit/29f7f1b029866379ce881f44765f72534d757fae)
+- the srf and kriging classes now store the last `pos`, `mesh_type` and `field` values to keep them accessible, see: [commit 29f7f1b](https://github.com/GeoStat-Framework/GSTools/commit/29f7f1b029866379ce881f44765f72534d757fae)
 - tutorials on all important features of GSTools have been written for you guys #20
 - a new interface to pyvista is provided to export fields to python vtk representation, which can be used for plotting, exploring and exporting fields #29
 
 ### Changes
 - the license was changed from GPL to LGPL in order to promote the use of this library #25
 - the rotation angles are now interpreted in positive direction (counter clock wise)
-- the ``force_moments`` keyword was removed from the SRF call method, it is now in provided as a field transformation #13
+- the `force_moments` keyword was removed from the SRF call method, it is now in provided as a field transformation #13
 - drop support of python implementations of the variogram estimators #18
-- the ``variogram_normed`` method was removed from the ``CovModel`` class due to redundance [commit 25b1647](https://github.com/GeoStat-Framework/GSTools/commit/25b164722ac6744ebc7e03f3c0bf1c30be1eba89)
+- the `variogram_normed` method was removed from the `CovModel` class due to redundance [commit 25b1647](https://github.com/GeoStat-Framework/GSTools/commit/25b164722ac6744ebc7e03f3c0bf1c30be1eba89)
 - the position vector of 1D fields does not have to be provided in a list-like object with length 1 [commit a6f5be8](https://github.com/GeoStat-Framework/GSTools/commit/a6f5be8bfd2db1f002e7889ecb8e9a037ea08886)
 
 ### Bugfixes
@@ -353,7 +381,7 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 
 ### Changes
 - release is not downwards compatible with release v0.4.0
-- SRF creation has been adapted for the CovModel
+- SRF creation has been adapted for the `CovModel`
 - a tuple `pos` is now used instead of `x`, `y`, and `z` for the axes
 - renamed `estimate_unstructured` and `estimate_structured` to `vario_estimate_unstructured` and `vario_estimate_structured` for less ambiguity
 

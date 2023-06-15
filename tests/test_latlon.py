@@ -24,7 +24,7 @@ class ErrMod(gs.CovModel):
 class TestLatLon(unittest.TestCase):
     def setUp(self):
         self.cmod = gs.Gaussian(
-            latlon=True, var=2, len_scale=777, rescale=gs.EARTH_RADIUS
+            latlon=True, var=2, len_scale=777, geo_scale=gs.KM_SCALE
         )
         self.lat = self.lon = range(-80, 81)
 
@@ -66,7 +66,10 @@ class TestLatLon(unittest.TestCase):
             6, self.cmod.anisometrize(self.cmod.isometrize((8, 6)))[1, 0]
         )
         self.assertAlmostEqual(
-            1, self.cmod.isometrize(self.cmod.anisometrize((1, 0, 0)))[0, 0]
+            gs.EARTH_RADIUS,
+            self.cmod.isometrize(
+                self.cmod.anisometrize((gs.EARTH_RADIUS, 0, 0))
+            )[0, 0],
         )
 
     def test_cov_model(self):
@@ -91,15 +94,16 @@ class TestLatLon(unittest.TestCase):
         srf = gs.SRF(self.cmod, seed=12345)
         field = srf.structured((self.lat, self.lon))
 
-        bin_edges = [0.01 * i for i in range(30)]
+        bin_edges = np.linspace(0, 3 * 777, 30)
         bin_center, emp_vario = gs.vario_estimate(
             *((self.lat, self.lon), field, bin_edges),
             latlon=True,
             mesh_type="structured",
             sampling_size=2000,
             sampling_seed=12345,
+            geo_scale=gs.KM_SCALE,
         )
-        mod = gs.Gaussian(latlon=True, rescale=gs.EARTH_RADIUS)
+        mod = gs.Gaussian(latlon=True, geo_scale=gs.KM_SCALE)
         mod.fit_variogram(bin_center, emp_vario, nugget=False)
         # allow 10 percent relative error
         self.assertLess(_rel_err(mod.var, self.cmod.var), 0.1)
@@ -114,7 +118,7 @@ class TestLatLon(unittest.TestCase):
             bin_edges,
             latlon=True,
         )
-        mod = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
+        mod = gs.Spherical(latlon=True, geo_scale=gs.KM_SCALE)
         mod.fit_variogram(*emp_vario, nugget=False)
         kri = gs.krige.Ordinary(
             mod,
@@ -134,7 +138,7 @@ class TestLatLon(unittest.TestCase):
             bin_edges,
             latlon=True,
         )
-        mod = gs.Spherical(latlon=True, rescale=gs.EARTH_RADIUS)
+        mod = gs.Spherical(latlon=True, geo_scale=gs.KM_SCALE)
         mod.fit_variogram(*emp_vario, nugget=False)
         krige = gs.krige.Ordinary(
             mod, (self.data[:, 0], self.data[:, 1]), self.data[:, 2]
@@ -144,7 +148,7 @@ class TestLatLon(unittest.TestCase):
         for i, dat in enumerate(self.data[:, 2]):
             self.assertAlmostEqual(field[i], dat, 3)
 
-    def error_test(self):
+    def test_error(self):
         # try fitting directional variogram
         mod = gs.Gaussian(latlon=True)
         with self.assertRaises(ValueError):
