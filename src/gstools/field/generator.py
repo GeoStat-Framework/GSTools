@@ -124,9 +124,6 @@ class RandMeth(Generator):
     seed : :class:`int` or :any:`None`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
-    verbose : :class:`bool`, optional
-        Be chatty during the generation.
-        Default: :any:`False`
     sampling : :class:`str`, optional
         Sampling strategy. Either
 
@@ -169,9 +166,9 @@ class RandMeth(Generator):
     def __init__(
         self,
         model,
+        *,
         mode_no=1000,
         seed=None,
-        verbose=False,
         sampling="auto",
         **kwargs,
     ):
@@ -179,7 +176,6 @@ class RandMeth(Generator):
             warnings.warn("gstools.RandMeth: **kwargs are ignored")
         # initialize attributes
         self._mode_no = int(mode_no)
-        self._verbose = bool(verbose)
         # initialize private attributes
         self._model = None
         self._seed = None
@@ -274,15 +270,12 @@ class RandMeth(Generator):
                 )
         # if the user tries to trick us, we beat him!
         elif model is None and np.isnan(seed):
-            if (
+            if not (
                 isinstance(self._model, CovModel)
                 and self._z_1 is not None
                 and self._z_2 is not None
                 and self._cov_sample is not None
             ):
-                if self.verbose:
-                    print("RandMeth.update: Nothing will be done...")
-            else:
                 raise ValueError(
                     "gstools.field.generator.RandMeth: "
                     "neither 'model' nor 'seed' given!"
@@ -382,15 +375,6 @@ class RandMeth(Generator):
             self.reset_seed(self._seed)
 
     @property
-    def verbose(self):
-        """:class:`bool`: Verbosity of the generator."""
-        return self._verbose
-
-    @verbose.setter
-    def verbose(self, verbose):
-        self._verbose = bool(verbose)
-
-    @property
     def value_type(self):
         """:class:`str`: Type of the field values (scalar, vector)."""
         return self._value_type
@@ -417,9 +401,6 @@ class IncomprRandMeth(RandMeth):
     seed : :class:`int` or :any:`None`, optional
         the seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
-    verbose : :class:`bool`, optional
-        State if there should be output during the generation.
-        Default: :any:`False`
     sampling : :class:`str`, optional
         Sampling strategy. Either
 
@@ -464,10 +445,10 @@ class IncomprRandMeth(RandMeth):
     def __init__(
         self,
         model,
+        *,
         mean_velocity=1.0,
         mode_no=1000,
         seed=None,
-        verbose=False,
         sampling="auto",
         **kwargs,
     ):
@@ -475,7 +456,13 @@ class IncomprRandMeth(RandMeth):
             raise ValueError(
                 "Only 2D and 3D incompressible fields can be generated."
             )
-        super().__init__(model, mode_no, seed, verbose, sampling, **kwargs)
+        super().__init__(
+            model=model,
+            mode_no=mode_no,
+            seed=seed,
+            sampling=sampling,
+            **kwargs,
+        )
 
         self.mean_u = mean_velocity
         self._value_type = "vector"

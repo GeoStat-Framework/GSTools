@@ -26,9 +26,9 @@ class TestRandMeth(unittest.TestCase):
         self.y_tuple = np.linspace(-5.0, 5.0, 10)
         self.z_tuple = np.linspace(-6.0, 8.0, 10)
 
-        self.rm_1d = RandMeth(self.cov_model_1d, 100, self.seed)
-        self.rm_2d = RandMeth(self.cov_model_2d, 100, self.seed)
-        self.rm_3d = RandMeth(self.cov_model_3d, 100, self.seed)
+        self.rm_1d = RandMeth(self.cov_model_1d, mode_no=100, seed=self.seed)
+        self.rm_2d = RandMeth(self.cov_model_2d, mode_no=100, seed=self.seed)
+        self.rm_3d = RandMeth(self.cov_model_3d, mode_no=100, seed=self.seed)
 
     def test_unstruct_1d(self):
         modes = self.rm_1d((self.x_tuple,))
