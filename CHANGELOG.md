@@ -2,7 +2,7 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
-## [Unreleased] - ? - 2023-?
+## [1.5.0] - Nifty Neon - 2023-06
 
 ### Enhancements
 - added `temporal` flag to `CovModel` to explicitly specify spatio-temporal models [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
@@ -22,10 +22,14 @@ All notable changes to **GSTools** will be documented in this file.
   - yadrenko variogram respects this and assumes the great circle distances is given in the respective unit
   - `vario_estimate` also has `geo_scale` now to control the units of the bins
 - `vario_estimate` now forwards additional kwargs to `standard_bins` (`bin_no`, `max_dist`) [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
+- added `low` and `high` arguments to `uniform` transformation [#310](https://github.com/GeoStat-Framework/GSTools/pull/310)
 
 ### Changes
 - `CovModel`s expect special arguments by keyword now [#308](https://github.com/GeoStat-Framework/GSTools/pull/308)
 - always use f-strings internally [#283](https://github.com/GeoStat-Framework/GSTools/pull/283)
+- removed `verbose` attribute from `RandMeth` classes [#309](https://github.com/GeoStat-Framework/GSTools/pull/309)
+- all arguments for `RandMeth` classes key-word-only now except `model` [#309](https://github.com/GeoStat-Framework/GSTools/pull/309)
+- rename "package" to "api" in doc structure [#290](https://github.com/GeoStat-Framework/GSTools/pull/290)
 
 ### Bugfixes
 - latex equations were not rendered correctly in docs [#290](https://github.com/GeoStat-Framework/GSTools/pull/290)
@@ -400,7 +404,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.5...v1.4.0
 [1.3.5]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.4...v1.3.5
