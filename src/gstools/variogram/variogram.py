@@ -261,6 +261,9 @@ def vario_estimate(
            "Geostatistics for environmental scientists.",
            John Wiley & Sons. (2007)
     """
+    if bin_edges is not None:
+        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double, copy=False)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double, copy=True)
@@ -346,10 +349,7 @@ def vario_estimate(
         bin_edges = standard_bins(
             pos, dim, latlon, geo_scale=geo_scale, **std_bins
         )
-    else:
-        bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double, copy=False)
-    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
-
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
     if latlon:
         # internally we always use radians
         bin_edges /= geo_scale
