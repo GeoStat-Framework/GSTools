@@ -548,6 +548,8 @@ def normal_to_lognormal(
 
 def normal_to_uniform(
     fld,
+    low=0.0,
+    high=1.0,
     field="field",
     store=True,
     process=False,
@@ -562,6 +564,20 @@ def normal_to_uniform(
     ----------
     fld : :any:`Field`
         Field class containing a generated field.
+    low : :class:`float`, optional
+        Lower bound for the uniform distribution.
+        Default: 0.0
+    high : :class:`float`, optional
+        Upper bound for the uniform distribution.
+        Default: 1.0
+    field : :class:`str`, optional
+        Name of field to be transformed. The default is "field".
+    store : :class:`str` or :class:`bool`, optional
+        Whether to store field inplace (True/False) or under a given name.
+        The default is True.
+    process : :class:`bool`, optional
+        Whether to process in/out fields with trend, normalizer and mean
+        of given Field instance. The default is False.
     keep_mean : :class:`bool`, optional
         Whether to keep the mean of the field if process=True.
         The default is True.
@@ -569,7 +585,10 @@ def normal_to_uniform(
     if not process:
         _check_for_default_normal(fld)
     kw = dict(
-        mean=0.0 if process and not keep_mean else fld.mean, var=fld.model.sill
+        mean=0.0 if process and not keep_mean else fld.mean,
+        var=fld.model.sill,
+        low=low,
+        high=high,
     )
     return apply_function(
         fld=fld,
