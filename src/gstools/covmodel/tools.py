@@ -421,9 +421,7 @@ def percentile_scale(model, per=0.9):
     """
     # check the given percentile
     if not 0.0 < per < 1.0:
-        raise ValueError(
-            "percentile needs to be within (0, 1), got: " + str(per)
-        )
+        raise ValueError(f"percentile needs to be within (0, 1), got: {per}")
 
     # define a curve, that has its root at the wanted point
     def curve(x):
@@ -537,7 +535,7 @@ def set_dim(model, dim):
     # check if a fixed dimension should be used
     if model.fix_dim() is not None and model.fix_dim() != dim:
         warnings.warn(
-            model.name + ": using fixed dimension " + str(model.fix_dim()),
+            f"{model.name}: using fixed dimension {model.fix_dim()}",
             AttributeWarning,
         )
         dim = model.fix_dim()
