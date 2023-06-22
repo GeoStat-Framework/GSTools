@@ -72,6 +72,12 @@ plotting = [
 ]
 rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]
+lint = [
+    "black",
+    "pylint<3",
+    "isort[colors]<6",
+    "cython-lint",
+]
 
 [project.urls]
 Changelog = "https://github.com/GeoStat-Framework/GSTools/blob/main/CHANGELOG.md"
