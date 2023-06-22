@@ -4,8 +4,8 @@ This is a summator for the kriging routines
 """
 
 import numpy as np
-
 from cython.parallel import prange
+
 cimport numpy as np
 
 
