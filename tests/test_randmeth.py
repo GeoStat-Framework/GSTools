@@ -12,7 +12,8 @@ from gstools.field.generator import RandMeth
 
 
 class TestRandMeth(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.cov_model_1d = Gaussian(dim=1, var=1.5, len_scale=3.5)
         self.cov_model_2d = copy.deepcopy(self.cov_model_1d)
         self.cov_model_2d.dim = 2
@@ -30,17 +31,17 @@ class TestRandMeth(unittest.TestCase):
         self.rm_2d = RandMeth(self.cov_model_2d, mode_no=100, seed=self.seed)
         self.rm_3d = RandMeth(self.cov_model_3d, mode_no=100, seed=self.seed)
 
-    def test_unstruct_1d(self):
+    def test_first_unstruct_1d(self):
         modes = self.rm_1d((self.x_tuple,))
         self.assertAlmostEqual(modes[0], 3.19799030)
         self.assertAlmostEqual(modes[1], 2.44848295)
 
-    def test_unstruct_2d(self):
+    def test_first_unstruct_2d(self):
         modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], 1.67318010)
         self.assertAlmostEqual(modes[1], 2.12310269)
 
-    def test_unstruct_3d(self):
+    def test_first_unstruct_3d(self):
         modes = self.rm_3d((self.x_tuple, self.y_tuple, self.z_tuple))
         self.assertAlmostEqual(modes[0], 1.3240234883187239)
         self.assertAlmostEqual(modes[1], 1.6367244277732766)

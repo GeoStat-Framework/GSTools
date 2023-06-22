@@ -12,7 +12,8 @@ from gstools.random.rng import RNG
 
 
 class TestRNG(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.seed = 19031977
         self.rng = RNG(self.seed)
         self.many_modes = 1000000

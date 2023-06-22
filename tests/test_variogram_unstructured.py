@@ -10,7 +10,8 @@ import gstools as gs
 
 
 class TestVariogramUnstructured(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         model = gs.Exponential(dim=3, len_scale=[12, 6, 3])
         x = y = z = range(10)
         self.pos = (x, y, z)

@@ -67,7 +67,8 @@ class Mod_add(CovModel):
 
 
 class TestCovModel(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.std_cov_models = [
             Gaussian,
             Exponential,

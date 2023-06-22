@@ -10,7 +10,8 @@ import gstools as gs
 
 
 class TestVariogramStructured(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         pass
 
     def test_doubles(self):

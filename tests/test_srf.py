@@ -21,7 +21,8 @@ except ImportError:
 
 
 class TestSRF(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4.0)
         self.mean = 0.3
         self.mode_no = 100

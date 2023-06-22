@@ -18,7 +18,8 @@ def mean_func(*xyz):
 
 
 class TestKrige(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.cov_models = [gs.Gaussian, gs.Exponential, gs.Spherical]
         self.dims = range(1, 4)
         self.data = np.array(

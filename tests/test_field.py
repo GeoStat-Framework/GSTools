@@ -11,7 +11,8 @@ import gstools as gs
 
 
 class TestField(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4.0)
         rng = np.random.RandomState(123018)
         x = rng.uniform(0.0, 10, 100)

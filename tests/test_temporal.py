@@ -10,7 +10,8 @@ import gstools as gs
 
 
 class TestTemporal(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.mod = gs.Gaussian(
             latlon=True,
             temporal=True,

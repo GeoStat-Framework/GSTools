@@ -14,7 +14,8 @@ def _rel_err(a, b):
 
 
 class TestNormalizer(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.seed = 20210111
         self.rng = gs.random.RNG(self.seed)
         self.mean = 11.1

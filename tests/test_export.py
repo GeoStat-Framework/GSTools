@@ -20,7 +20,8 @@ except ImportError:
 
 
 class TestExport(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.test_dir = tempfile.mkdtemp()
         # structured field with a size 100x100x100 and a grid-size of 1x1x1
         x = y = z = range(50)
@@ -38,7 +39,8 @@ class TestExport(unittest.TestCase):
         self.srf_unstructured = SRF(model, seed=20170519)
         self.srf_unstructured([x, y])
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         # Remove the test data directory after the test
         shutil.rmtree(self.test_dir)
 

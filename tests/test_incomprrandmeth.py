@@ -12,7 +12,8 @@ from gstools.field.generator import IncomprRandMeth
 
 
 class TestIncomprRandMeth(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.cov_model_2d = gs.Gaussian(dim=2, var=1.5, len_scale=2.5)
         self.cov_model_3d = copy.deepcopy(self.cov_model_2d)
         self.cov_model_3d.dim = 3

@@ -22,7 +22,8 @@ class ErrMod(gs.CovModel):
 
 
 class TestLatLon(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.cmod = gs.Gaussian(
             latlon=True, var=2, len_scale=777, geo_scale=gs.KM_SCALE
         )
