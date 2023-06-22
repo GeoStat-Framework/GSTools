@@ -1,12 +1,10 @@
-#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
+# cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 # distutils: language = c++
 """
 This is the variogram estimater, implemented in cython.
 """
 
 import numpy as np
-
-cimport cython
 
 from cython.parallel import parallel, prange
 
@@ -16,20 +14,20 @@ from libc.math cimport M_PI, acos, atan2, cos, fabs, isnan, pow, sin, sqrt
 
 cdef inline double dist_euclid(
     const int dim,
-    const double[:,:] pos,
+    const double[:, :] pos,
     const int i,
     const int j,
 ) nogil:
     cdef int d
     cdef double dist_squared = 0.0
     for d in range(dim):
-        dist_squared += ((pos[d,i] - pos[d,j]) * (pos[d,i] - pos[d,j]))
+        dist_squared += ((pos[d, i] - pos[d, j]) * (pos[d, i] - pos[d, j]))
     return sqrt(dist_squared)
 
 
 cdef inline double dist_haversine(
     const int dim,
-    const double[:,:] pos,
+    const double[:, :] pos,
     const int i,
     const int j,
 ) nogil:
@@ -48,7 +46,7 @@ cdef inline double dist_haversine(
 
 ctypedef double (*_dist_func)(
     const int,
-    const double[:,:],
+    const double[:, :],
     const int,
     const int,
 ) nogil
@@ -56,9 +54,9 @@ ctypedef double (*_dist_func)(
 
 cdef inline bint dir_test(
     const int dim,
-    const double[:,:] pos,
+    const double[:, :] pos,
     const double dist,
-    const double[:,:] direction,
+    const double[:, :] direction,
     const double angles_tol,
     const double bandwidth,
     const int i,
@@ -74,12 +72,12 @@ cdef inline bint dir_test(
 
     # scalar-product calculation for bandwidth projection and angle calculation
     for k in range(dim):
-        s_prod += (pos[k,i] - pos[k,j]) * direction[d,k]
+        s_prod += (pos[k, i] - pos[k, j]) * direction[d, k]
 
     # calculate band-distance by projection of point-pair-vec to direction line
     if bandwidth > 0.0:
         for k in range(dim):
-            tmp = (pos[k,i] - pos[k,j]) - s_prod * direction[d,k]
+            tmp = (pos[k, i] - pos[k, j]) - s_prod * direction[d, k]
             b_dist += tmp * tmp
         in_band = sqrt(b_dist) < bandwidth
 
@@ -130,32 +128,31 @@ ctypedef void (*_normalization_func)(
 )
 
 cdef inline void normalization_matheron_vec(
-    double[:,:] variogram,
-    long[:,:] counts,
+    double[:, :] variogram,
+    long[:, :] counts,
 ):
-    cdef int d, i
+    cdef int d
     for d in range(variogram.shape[0]):
         normalization_matheron(variogram[d, :], counts[d, :])
 
 cdef inline void normalization_cressie_vec(
-    double[:,:] variogram,
-    long[:,:] counts,
+    double[:, :] variogram,
+    long[:, :] counts,
 ):
-    cdef int d, i
-    cdef long cnt
+    cdef int d
     for d in range(variogram.shape[0]):
         normalization_cressie(variogram[d, :], counts[d, :])
 
 ctypedef void (*_normalization_func_vec)(
-    double[:,:],
-    long[:,:],
+    double[:, :],
+    long[:, :],
 )
 
 cdef _estimator_func choose_estimator_func(str estimator_type):
     cdef _estimator_func estimator_func
     if estimator_type == 'm':
         estimator_func = estimator_matheron
-    else: # estimator_type == 'c'
+    else:  # estimator_type == 'c'
         estimator_func = estimator_cressie
     return estimator_func
 
@@ -163,7 +160,7 @@ cdef _normalization_func choose_estimator_normalization(str estimator_type):
     cdef _normalization_func normalization_func
     if estimator_type == 'm':
         normalization_func = normalization_matheron
-    else: # estimator_type == 'c'
+    else:  # estimator_type == 'c'
         normalization_func = normalization_cressie
     return normalization_func
 
@@ -171,16 +168,16 @@ cdef _normalization_func_vec choose_estimator_normalization_vec(str estimator_ty
     cdef _normalization_func_vec normalization_func_vec
     if estimator_type == 'm':
         normalization_func_vec = normalization_matheron_vec
-    else: # estimator_type == 'c'
+    else:  # estimator_type == 'c'
         normalization_func_vec = normalization_cressie_vec
     return normalization_func_vec
 
 
 def directional(
-    const double[:,:] f,
+    const double[:, :] f,
     const double[:] bin_edges,
-    const double[:,:] pos,
-    const double[:,:] direction,  # should be normed
+    const double[:, :] pos,
+    const double[:, :] direction,  # should be normed
     const double angles_tol=M_PI/8.0,
     const double bandwidth=-1.0,  # negative values to turn of bandwidth search
     const bint separate_dirs=False,  # whether the direction bands don't overlap
@@ -207,8 +204,8 @@ def directional(
     cdef int k_max = pos.shape[1]
     cdef int f_max = f.shape[0]
 
-    cdef double[:,:] variogram = np.zeros((d_max, len(bin_edges)-1))
-    cdef long[:,:] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
+    cdef double[:, :] variogram = np.zeros((d_max, len(bin_edges)-1))
+    cdef long[:, :] counts = np.zeros((d_max, len(bin_edges)-1), dtype=long)
     cdef int i, j, k, m, d
     cdef double dist
 
@@ -219,13 +216,15 @@ def directional(
                 if dist < bin_edges[i] or dist >= bin_edges[i+1]:
                     continue  # skip if not in current bin
                 for d in range(d_max):
-                    if not dir_test(dim, pos, dist, direction, angles_tol, bandwidth, k, j, d):
+                    if not dir_test(
+                      dim, pos, dist, direction, angles_tol, bandwidth, k, j, d
+                    ):
                         continue  # skip if not in current direction
                     for m in range(f_max):
                         # skip no data values
-                        if not (isnan(f[m,k]) or isnan(f[m,j])):
+                        if not (isnan(f[m, k]) or isnan(f[m, j])):
                             counts[d, i] += 1
-                            variogram[d, i] += estimator_func(f[m,k] - f[m,j])
+                            variogram[d, i] += estimator_func(f[m, k] - f[m, j])
                     # once we found a fitting direction
                     # break the search if directions are separated
                     if separate_dirs:
@@ -234,10 +233,11 @@ def directional(
     normalization_func_vec(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)
 
+
 def unstructured(
-    const double[:,:] f,
+    const double[:, :] f,
     const double[:] bin_edges,
-    const double[:,:] pos,
+    const double[:, :] pos,
     str estimator_type='m',
     str distance_type='e',
 ):
@@ -280,15 +280,15 @@ def unstructured(
                     continue  # skip if not in current bin
                 for m in range(f_max):
                     # skip no data values
-                    if not (isnan(f[m,k]) or isnan(f[m,j])):
+                    if not (isnan(f[m, k]) or isnan(f[m, j])):
                         counts[i] += 1
-                        variogram[i] += estimator_func(f[m,k] - f[m,j])
+                        variogram[i] += estimator_func(f[m, k] - f[m, j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram), np.asarray(counts)
 
 
-def structured(const double[:,:] f, str estimator_type='m'):
+def structured(const double[:, :] f, str estimator_type='m'):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
         choose_estimator_normalization(estimator_type)
@@ -307,15 +307,15 @@ def structured(const double[:,:] f, str estimator_type='m'):
             for j in range(j_max):
                 for k in prange(1, k_max-i):
                     counts[k] += 1
-                    variogram[k] += estimator_func(f[i,j] - f[i+k,j])
+                    variogram[k] += estimator_func(f[i, j] - f[i+k, j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)
 
 
 def ma_structured(
-    const double[:,:] f,
-    const bint[:,:] mask,
+    const double[:, :] f,
+    const bint[:, :] mask,
     str estimator_type='m',
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
@@ -335,9 +335,9 @@ def ma_structured(
         for i in range(i_max):
             for j in range(j_max):
                 for k in prange(1, k_max-i):
-                    if not mask[i,j] and not mask[i+k,j]:
+                    if not mask[i, j] and not mask[i+k, j]:
                         counts[k] += 1
-                        variogram[k] += estimator_func(f[i,j] - f[i+k,j])
+                        variogram[k] += estimator_func(f[i, j] - f[i+k, j])
 
     normalization_func(variogram, counts)
     return np.asarray(variogram)

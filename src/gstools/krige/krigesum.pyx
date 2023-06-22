@@ -1,11 +1,10 @@
-#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
+# cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 """
 This is a summator for the kriging routines
 """
 
 import numpy as np
 
-cimport cython
 from cython.parallel import prange
 cimport numpy as np
 
