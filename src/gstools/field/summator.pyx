@@ -4,7 +4,6 @@ This is the randomization method summator, implemented in cython.
 """
 
 import numpy as np
-
 from cython.parallel import prange
 
 cimport numpy as np
