@@ -87,7 +87,7 @@ def get_drift_functions(dim, drift_type):
 
 def _f_factory(select):
     def f(*pos):
-        res = 1.0
+        res = 1
         for i in select:
             res *= np.asarray(pos[i])
         return res

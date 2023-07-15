@@ -32,7 +32,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=int)
         bin_centres, gamma = gs.vario_estimate([x], z, bins)
-        self.assertAlmostEqual(gamma[0], 50.0, places=4)
+        self.assertAlmostEqual(gamma[0], 50, places=4)
 
     def test_mixed(self):
         x = np.arange(1, 11, 1, dtype=np.double)
@@ -48,13 +48,13 @@ class TestVariogramUnstructured(unittest.TestCase):
         z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=int)
         bin_centres, gamma = gs.vario_estimate([x], z, bins)
-        self.assertAlmostEqual(gamma[0], 50.0, places=4)
+        self.assertAlmostEqual(gamma[0], 50, places=4)
 
         x = np.arange(1, 5, 1, dtype=np.double)
         z = np.array((10, 20, 30, 40), dtype=int)
         bins = np.arange(1, 11, 1, dtype=np.double)
         bin_centres, gamma = gs.vario_estimate([x], z, bins)
-        self.assertAlmostEqual(gamma[0], 50.0, places=4)
+        self.assertAlmostEqual(gamma[0], 50, places=4)
 
     def test_list(self):
         x = np.arange(1, 11, 1, dtype=np.double)
@@ -76,8 +76,8 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertAlmostEqual(gamma[1], 0.7625, places=4)
 
     def test_uncorrelated_2d(self):
-        x_c = np.linspace(0.0, 100.0, 60)
-        y_c = np.linspace(0.0, 100.0, 60)
+        x_c = np.linspace(0, 100, 60)
+        y_c = np.linspace(0, 100, 60)
         x, y = np.meshgrid(x_c, y_c)
         x = np.reshape(x, len(x_c) * len(y_c))
         y = np.reshape(y, len(x_c) * len(y_c))
@@ -89,15 +89,15 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bin_centres, gamma = gs.vario_estimate((x, y), field, bins)
 
-        var = 1.0 / 12.0
+        var = 1 / 12
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
 
     def test_uncorrelated_3d(self):
-        x_c = np.linspace(0.0, 100.0, 15)
-        y_c = np.linspace(0.0, 100.0, 15)
-        z_c = np.linspace(0.0, 100.0, 15)
+        x_c = np.linspace(0, 100, 15)
+        y_c = np.linspace(0, 100, 15)
+        z_c = np.linspace(0, 100, 15)
         x, y, z = np.meshgrid(x_c, y_c, z_c)
         x = np.reshape(x, len(x_c) * len(y_c) * len(z_c))
         y = np.reshape(y, len(x_c) * len(y_c) * len(z_c))
@@ -110,13 +110,13 @@ class TestVariogramUnstructured(unittest.TestCase):
 
         bin_centres, gamma = gs.vario_estimate((x, y, z), field, bins)
 
-        var = 1.0 / 12.0
+        var = 1 / 12
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
 
     def test_sampling_1d(self):
-        x = np.linspace(0.0, 100.0, 21000)
+        x = np.linspace(0, 100, 21000)
 
         rng = np.random.RandomState(1479373475)
         field = rng.rand(len(x))
@@ -127,14 +127,14 @@ class TestVariogramUnstructured(unittest.TestCase):
             [x], field, bins, sampling_size=5000, sampling_seed=1479373475
         )
 
-        var = 1.0 / 12.0
+        var = 1 / 12
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
 
     def test_sampling_2d(self):
-        x_c = np.linspace(0.0, 100.0, 600)
-        y_c = np.linspace(0.0, 100.0, 600)
+        x_c = np.linspace(0, 100, 600)
+        y_c = np.linspace(0, 100, 600)
         x, y = np.meshgrid(x_c, y_c)
         x = np.reshape(x, len(x_c) * len(y_c))
         y = np.reshape(y, len(x_c) * len(y_c))
@@ -148,15 +148,15 @@ class TestVariogramUnstructured(unittest.TestCase):
             (x, y), field, bins, sampling_size=2000, sampling_seed=1479373475
         )
 
-        var = 1.0 / 12.0
+        var = 1 / 12
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
 
     def test_sampling_3d(self):
-        x_c = np.linspace(0.0, 100.0, 100)
-        y_c = np.linspace(0.0, 100.0, 100)
-        z_c = np.linspace(0.0, 100.0, 100)
+        x_c = np.linspace(0, 100, 100)
+        y_c = np.linspace(0, 100, 100)
+        z_c = np.linspace(0, 100, 100)
         x, y, z = np.meshgrid(x_c, y_c, z_c)
         x = np.reshape(x, len(x_c) * len(y_c) * len(z_c))
         y = np.reshape(y, len(x_c) * len(y_c) * len(z_c))
@@ -174,7 +174,7 @@ class TestVariogramUnstructured(unittest.TestCase):
             sampling_size=2000,
             sampling_seed=1479373475,
         )
-        var = 1.0 / 12.0
+        var = 1 / 12
         self.assertAlmostEqual(gamma[0], var, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
@@ -211,7 +211,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         )
 
     def test_multi_field(self):
-        x = np.random.RandomState(19970221).rand(100) * 100.0
+        x = np.random.RandomState(19970221).rand(100) * 100
         model = gs.Exponential(dim=1, var=2, len_scale=10)
         srf = gs.SRF(model)
         field1 = srf(x, seed=19970221)
@@ -225,8 +225,8 @@ class TestVariogramUnstructured(unittest.TestCase):
             self.assertAlmostEqual(gamma[i], gamma_mean[i], places=2)
 
     def test_no_data(self):
-        x1 = np.random.RandomState(19970221).rand(100) * 100.0
-        field1 = np.random.RandomState(20011012).rand(100) * 100.0
+        x1 = np.random.RandomState(19970221).rand(100) * 100
+        field1 = np.random.RandomState(20011012).rand(100) * 100
         field1[:10] = np.nan
         x2 = x1[10:]
         field2 = field1[10:]
@@ -333,9 +333,9 @@ class TestVariogramUnstructured(unittest.TestCase):
         self.assertAlmostEqual(v1[0], v3[0])
         self.assertEqual(c1[0], c2[0])
         self.assertEqual(c1[0], c3[0])
-        self.assertAlmostEqual(v4[0], 0.0)
+        self.assertAlmostEqual(v4[0], 0)
         self.assertEqual(c4[0], 0)
-        self.assertAlmostEqual(v5[0], 0.0)
+        self.assertAlmostEqual(v5[0], 0)
 
     def test_fit_directional(self):
         model = gs.Stable(dim=3)

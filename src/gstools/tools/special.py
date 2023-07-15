@@ -116,8 +116,8 @@ def exp_int(s, x):
     x_inf = x > max(30, -s / 2)  # function is like exp(-x)*(1/x + s/x^2)
     x_fin = np.logical_not(np.logical_or(x_zero, x_inf))
     x_fin_pos = np.logical_and(x_fin, np.logical_not(x_neg))
-    if s > 1.0:  # limit at x=+0
-        res[x_zero] = 1.0 / (s - 1.0)
+    if s > 1:  # limit at x=+0
+        res[x_zero] = 1 / (s - 1)
     else:
         res[x_zero] = np.inf
     res[x_inf] = np.exp(-x[x_inf]) * (x[x_inf] ** -1 - s * x[x_inf] ** -2)
@@ -198,15 +198,15 @@ def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     :class:`float`
         spectral density of the TPLExponential model
     """
-    if np.isclose(len_low, 0.0):
+    if np.isclose(len_low, 0):
         k = np.asarray(k, dtype=np.double)
         z = (k * len_scale) ** 2
-        a = hurst + dim / 2.0
+        a = hurst + dim / 2
         b = hurst + 0.5
-        c = hurst + dim / 2.0 + 1.0
-        d = dim / 2.0 + 0.5
+        c = hurst + dim / 2 + 1
+        d = dim / 2 + 0.5
         fac = len_scale**dim * hurst * sps.gamma(d) / (np.pi**d * a)
-        return fac / (1.0 + z) ** a * sps.hyp2f1(a, b, c, z / (1.0 + z))
+        return fac / (1 + z) ** a * sps.hyp2f1(a, b, c, z / (1 + z))
     fac_up = (len_scale + len_low) ** (2 * hurst)
     spec_up = tpl_exp_spec_dens(k, dim, len_scale + len_low, hurst)
     fac_low = len_low ** (2 * hurst)
@@ -214,7 +214,7 @@ def tpl_exp_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     return (fac_up * spec_up - fac_low * spec_low) / (fac_up - fac_low)
 
 
-def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
+def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0):
     r"""
     Spectral density of the TPLGaussian covariance model.
 
@@ -237,17 +237,17 @@ def tpl_gau_spec_dens(k, dim, len_scale, hurst, len_low=0.0):
     :class:`float`
         spectral density of the TPLExponential model
     """
-    if np.isclose(len_low, 0.0):
+    if np.isclose(len_low, 0):
         k = np.asarray(k, dtype=np.double)
-        z = np.array((k * len_scale / 2.0) ** 2)
+        z = np.array((k * len_scale / 2) ** 2)
         res = np.empty_like(z)
         z_gz = z > 0.1  # greater zero
         z_nz = np.logical_not(z_gz)  # near zero
-        a = hurst + dim / 2.0
-        fac = (len_scale / 2.0) ** dim * hurst / np.pi ** (dim / 2.0)
+        a = hurst + dim / 2
+        fac = (len_scale / 2) ** dim * hurst / np.pi ** (dim / 2)
         res[z_gz] = fac * inc_gamma_low(a, z[z_gz]) / z[z_gz] ** a
         # first order approximation for z near zero
-        res[z_nz] = fac * (1.0 / a - z[z_nz] / (a + 1.0))
+        res[z_nz] = fac * (1 / a - z[z_nz] / (a + 1))
         return res
     fac_up = (len_scale + len_low) ** (2 * hurst)
     spec_up = tpl_gau_spec_dens(k, dim, len_scale + len_low, hurst)

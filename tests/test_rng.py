@@ -42,7 +42,7 @@ class TestRNG(unittest.TestCase):
         sphere_coord = self.rng.sample_sphere(dim, self.few_modes)
         self.assertEqual(sphere_coord.shape, (dim, self.few_modes))
         sphere_coord = self.rng.sample_sphere(dim, self.many_modes)
-        self.assertAlmostEqual(np.mean(sphere_coord), 0.0, places=3)
+        self.assertAlmostEqual(np.mean(sphere_coord), 0, places=3)
 
     def test_sample_sphere_2d(self):
         dim = 2
@@ -52,7 +52,7 @@ class TestRNG(unittest.TestCase):
             sphere_coord[0, :] ** 2 + sphere_coord[1, :] ** 2,
         )
         sphere_coord = self.rng.sample_sphere(dim, self.many_modes)
-        self.assertAlmostEqual(np.mean(sphere_coord), 0.0, places=3)
+        self.assertAlmostEqual(np.mean(sphere_coord), 0, places=3)
 
     def test_sample_sphere_3d(self):
         dim = 3
@@ -65,24 +65,24 @@ class TestRNG(unittest.TestCase):
             + sphere_coord[2, :] ** 2,
         )
         sphere_coord = self.rng.sample_sphere(dim, self.many_modes)
-        self.assertAlmostEqual(np.mean(sphere_coord), 0.0, places=3)
+        self.assertAlmostEqual(np.mean(sphere_coord), 0, places=3)
 
     def test_sample_dist(self):
-        model = Gaussian(dim=1, var=3.5, len_scale=8.0)
+        model = Gaussian(dim=1, var=3.5, len_scale=8)
         pdf, cdf, ppf = model.dist_func
         rad = self.rng.sample_dist(
             size=self.few_modes, pdf=pdf, cdf=cdf, ppf=ppf, a=0
         )
         self.assertEqual(rad.shape[0], self.few_modes)
 
-        model = Gaussian(dim=2, var=3.5, len_scale=8.0)
+        model = Gaussian(dim=2, var=3.5, len_scale=8)
         pdf, cdf, ppf = model.dist_func
         rad = self.rng.sample_dist(
             size=self.few_modes, pdf=pdf, cdf=cdf, ppf=ppf, a=0
         )
         self.assertEqual(rad.shape[0], self.few_modes)
 
-        model = Gaussian(dim=3, var=3.5, len_scale=8.0)
+        model = Gaussian(dim=3, var=3.5, len_scale=8)
         pdf, cdf, ppf = model.dist_func
         rad = self.rng.sample_dist(
             size=self.few_modes, pdf=pdf, cdf=cdf, ppf=ppf, a=0

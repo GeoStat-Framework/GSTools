@@ -67,14 +67,14 @@ P_cut[P_cut <= threshold] = 0.0
 # the lower this value, the more will be cut off, a value of 0.2 cuts off
 # nearly everything in this example.
 cutoff = 0.55
-gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0 / cutoff)
+gs.transform.boxcox(srf, lmbda=0.5, shift=-1 / cutoff)
 
 ###############################################################################
 # As a last step, the amount of precipitation is set. This should of course be
 # calibrated towards observations (the same goes for the threshold, the
 # variance, correlation length, and so on).
 
-amount = 2.0
+amount = 2
 srf.field *= amount
 P_ana = srf.field
 

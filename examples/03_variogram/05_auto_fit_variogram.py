@@ -9,8 +9,8 @@ import gstools as gs
 ###############################################################################
 # Generate a synthetic field with an exponential model.
 
-x = np.random.RandomState(19970221).rand(1000) * 100.0
-y = np.random.RandomState(20011012).rand(1000) * 100.0
+x = np.random.RandomState(19970221).rand(1000) * 100
+y = np.random.RandomState(20011012).rand(1000) * 100
 model = gs.Exponential(dim=2, var=2, len_scale=8)
 srf = gs.SRF(model, mean=0, seed=19970221)
 field = srf((x, y))

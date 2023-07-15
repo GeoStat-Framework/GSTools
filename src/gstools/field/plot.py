@@ -283,7 +283,7 @@ def plot_nd(
         for i, s in zip(cut_select, slider):
             s.label.set_text(ax_names[i])
             s.valmin, s.valmax = ax_ends[i]
-            s.valinit = ax_ends[i][0] + ax_rngs[i] / 2.0
+            s.valinit = ax_ends[i][0] + ax_rngs[i] / 2
             s.valstep = ax_steps[i]
             s.ax.set_xlim(*ax_ends[i])
             # update representation

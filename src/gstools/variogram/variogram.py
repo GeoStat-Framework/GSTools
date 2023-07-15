@@ -263,7 +263,7 @@ def vario_estimate(
     """
     if bin_edges is not None:
         bin_edges = np.array(bin_edges, ndmin=1, dtype=np.double, copy=False)
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     # allow multiple fields at same positions (ndmin=2: first axis -> field ID)
     # need to convert to ma.array, since list of ma.array is not recognised
     field = np.ma.array(field, ndmin=2, dtype=np.double, copy=True)
@@ -335,7 +335,7 @@ def vario_estimate(
         # only unit-vectors for directions
         direction = np.divide(direction, norms[:, np.newaxis])
         # negative bandwidth to turn it off
-        bandwidth = float(bandwidth) if bandwidth is not None else -1.0
+        bandwidth = float(bandwidth) if bandwidth is not None else -1
         angles_tol = float(angles_tol)
     # prepare sampled variogram
     if sampling_size is not None and sampling_size < pnt_cnt:
@@ -349,7 +349,7 @@ def vario_estimate(
         bin_edges = standard_bins(
             pos, dim, latlon, geo_scale=geo_scale, **std_bins
         )
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     if latlon:
         # internally we always use radians
         bin_edges /= geo_scale

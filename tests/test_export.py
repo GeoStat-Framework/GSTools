@@ -33,7 +33,7 @@ class TestExport(unittest.TestCase):
         x = rng.randint(0, 100, size=1000)
         y = rng.randint(0, 100, size=1000)
         model = Exponential(
-            dim=2, var=1, len_scale=[12.0, 3.0], angles=np.pi / 8.0
+            dim=2, var=1, len_scale=[12, 3], angles=np.pi / 8
         )
         self.srf_unstructured = SRF(model, seed=20170519)
         self.srf_unstructured([x, y])

@@ -12,11 +12,11 @@ import numpy as np
 import gstools as gs
 
 rng = np.random.RandomState(19970221)
-x0 = rng.rand(10000) * 100.0
-x1 = rng.rand(10000) * 100.0
-x2 = rng.rand(10000) * 100.0
-x3 = rng.rand(10000) * 100.0
-values = rng.rand(10000) * 100.0
+x0 = rng.rand(10000) * 100
+x1 = rng.rand(10000) * 100
+x2 = rng.rand(10000) * 100
+x3 = rng.rand(10000) * 100
+values = rng.rand(10000) * 100
 
 ###############################################################################
 # Only thing needed to instantiate the Field is the dimension.

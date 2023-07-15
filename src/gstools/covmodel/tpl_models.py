@@ -167,7 +167,7 @@ class TPLGaussian(TPLCovModel):
         :class:`dict`
             Defaults for optional arguments
         """
-        return {"hurst": 0.5, "len_low": 0.0}
+        return {"hurst": 0.5, "len_low": 0}
 
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
@@ -179,16 +179,16 @@ class TPLGaussian(TPLCovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"hurst": (0.1, 1, "oo"), "len_low": (0.0, np.inf, "co")}
+        return {"hurst": (0.1, 1, "oo"), "len_low": (0, np.inf, "co")}
 
     def cor(self, h):
         """TPL with Gaussian modes - normalized correlation function."""
-        return tplstable_cor(h, 1.0, self.hurst, 2)
+        return tplstable_cor(h, 1, self.hurst, 2)
 
     def correlation(self, r):
         """TPL with Gaussian modes - correlation function."""
         # if lower limit is 0 we use the simplified version (faster)
-        if np.isclose(self.len_low_rescaled, 0.0):
+        if np.isclose(self.len_low_rescaled, 0):
             return tplstable_cor(r, self.len_rescaled, self.hurst, 2)
         return (
             self.len_up_rescaled ** (2 * self.hurst)
@@ -438,7 +438,7 @@ class TPLStable(TPLCovModel):
         :class:`dict`
             Defaults for optional arguments
         """
-        return {"hurst": 0.5, "alpha": 1.5, "len_low": 0.0}
+        return {"hurst": 0.5, "alpha": 1.5, "len_low": 0}
 
     def default_opt_arg_bounds(self):
         """Defaults for boundaries of the optional arguments.
@@ -476,12 +476,12 @@ class TPLStable(TPLCovModel):
 
     def cor(self, h):
         """TPL with Stable modes - normalized correlation function."""
-        return tplstable_cor(h, 1.0, self.hurst, self.alpha)
+        return tplstable_cor(h, 1, self.hurst, self.alpha)
 
     def correlation(self, r):
         """TPL with Stable modes - correlation function."""
         # if lower limit is 0 we use the simplified version (faster)
-        if np.isclose(self.len_low_rescaled, 0.0):
+        if np.isclose(self.len_low_rescaled, 0):
             return tplstable_cor(r, self.len_rescaled, self.hurst, self.alpha)
         return (
             self.len_up_rescaled ** (2 * self.hurst)
@@ -562,8 +562,8 @@ class TPLSimple(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim + 1) / 2, 50.0]}
+        return {"nu": [(self.dim + 1) / 2, 50]}
 
     def cor(self, h):
         """TPL Simple - normalized correlation function."""
-        return np.maximum(1 - np.abs(h, dtype=np.double), 0.0) ** self.nu
+        return np.maximum(1 - np.abs(h, dtype=np.double), 0) ** self.nu

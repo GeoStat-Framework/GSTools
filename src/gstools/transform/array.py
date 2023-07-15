@@ -282,8 +282,8 @@ def array_to_arcsin(field, mean=None, var=None, a=None, b=None):
     field = np.asarray(field)
     mean = np.mean(field) if mean is None else float(mean)
     var = np.var(field) if var is None else float(var)
-    a = mean - np.sqrt(2.0 * var) if a is None else float(a)
-    b = mean + np.sqrt(2.0 * var) if b is None else float(b)
+    a = mean - np.sqrt(2 * var) if a is None else float(a)
+    b = mean + np.sqrt(2 * var) if b is None else float(b)
     return _uniform_to_arcsin(array_to_uniform(field, mean, var), a, b)
 
 
@@ -319,8 +319,8 @@ def array_to_uquad(field, mean=None, var=None, a=None, b=None):
     field = np.asarray(field)
     mean = np.mean(field) if mean is None else float(mean)
     var = np.var(field) if var is None else float(var)
-    a = mean - np.sqrt(5.0 / 3.0 * var) if a is None else float(a)
-    b = mean + np.sqrt(5.0 / 3.0 * var) if b is None else float(b)
+    a = mean - np.sqrt(5 / 3 * var) if a is None else float(a)
+    b = mean + np.sqrt(5 / 3 * var) if b is None else float(b)
     return _uniform_to_uquad(array_to_uniform(field, mean, var), a, b)
 
 

@@ -69,7 +69,7 @@ def _init_subclass(cls):
 
     def correlation(self, r):
         """Correlation function of the model."""
-        return 1.0 - (self.variogram(r) - self.nugget) / self.var
+        return 1 - (self.variogram(r) - self.nugget) / self.var
 
     def correlation_from_cor(self, r):
         """Correlation function of the model."""
@@ -124,7 +124,7 @@ def rad_fac(dim, r):
         Given radii.
     """
     if dim == 1:
-        fac = 2.0
+        fac = 2
     elif dim == 2:
         fac = 2 * np.pi * r
     elif dim == 3:
@@ -236,13 +236,13 @@ def set_len_anis(dim, len_scale, anis, latlon=False):
             out_anis[i - 1] = ls_tmp[i] / ls_tmp[0]
     # sanity check
     for ani in out_anis:
-        if not ani > 0.0:
+        if not ani > 0:
             raise ValueError(
                 f"anisotropy-ratios needs to be > 0, got: {out_anis}"
             )
     # no spatial anisotropy for latlon
     if latlon:
-        out_anis[:2] = 1.0
+        out_anis[:2] = 1
     return out_len_scale, out_anis
 
 
@@ -277,7 +277,7 @@ def set_model_angles(dim, angles, latlon=False, temporal=False):
     out_angles = set_angles(dim, angles)
     if temporal:
         # no rotation between spatial dimensions and temporal dimension
-        out_angles[no_of_angles(dim - 1) :] = 0.0
+        out_angles[no_of_angles(dim - 1) :] = 0
     return out_angles
 
 
@@ -348,12 +348,12 @@ def default_arg_from_bounds(bounds):
         Default value in the given bounds.
     """
     if bounds[0] > -np.inf and bounds[1] < np.inf:
-        return (bounds[0] + bounds[1]) / 2.0
+        return (bounds[0] + bounds[1]) / 2
     if bounds[0] > -np.inf:
-        return bounds[0] + 1.0
+        return bounds[0] + 1
     if bounds[1] < np.inf:
-        return bounds[1] - 1.0
-    return 0.0  # pragma: no cover
+        return bounds[1] - 1
+    return 0  # pragma: no cover
 
 
 # outsourced routines
@@ -387,9 +387,9 @@ def spectral_rad_pdf(model, r):
     else:
         res = rad_fac(model.dim, r) * np.abs(model.spectral_density(r))
     # prevent numerical errors in hankel for small r values (set 0)
-    res[np.logical_not(np.isfinite(res))] = 0.0
+    res[np.logical_not(np.isfinite(res))] = 0
     # prevent numerical errors in hankel for big r (set non-negative)
-    res = np.maximum(res, 0.0)
+    res = np.maximum(res, 0)
     return res
 
 
@@ -420,12 +420,12 @@ def percentile_scale(model, per=0.9):
 
     """
     # check the given percentile
-    if not 0.0 < per < 1.0:
+    if not 0 < per < 1:
         raise ValueError(f"percentile needs to be within (0, 1), got: {per}")
 
     # define a curve, that has its root at the wanted point
     def curve(x):
-        return 1.0 - model.correlation(x) - per
+        return 1 - model.correlation(x) - per
 
     # take 'per * len_rescaled' as initial guess
     return root(curve, per * model.len_rescaled)["x"][0]

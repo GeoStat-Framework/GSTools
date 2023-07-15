@@ -22,7 +22,7 @@ import gstools as gs
 cond_pos = [0.3, 1.9, 1.1, 3.3, 4.7]
 cond_val = [0.47, 0.56, 0.74, 1.47, 1.74]
 # resulting grid
-gridx = np.linspace(0.0, 15.0, 151)
+gridx = np.linspace(0, 15, 151)
 # stable covariance model
 model = gs.Stable(dim=1, var=0.5, len_scale=2.56, alpha=1.9)
 

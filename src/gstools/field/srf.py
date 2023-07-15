@@ -84,7 +84,7 @@ class SRF(Field):
     def __init__(
         self,
         model,
-        mean=0.0,
+        mean=0,
         normalizer=None,
         trend=None,
         upscaling="no_scaling",
@@ -104,7 +104,7 @@ class SRF(Field):
         self,
         pos=None,
         seed=np.nan,
-        point_volumes=0.0,
+        point_volumes=0,
         mesh_type="unstructured",
         post_process=True,
         store=True,

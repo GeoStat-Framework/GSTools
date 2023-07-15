@@ -197,7 +197,7 @@ class TestNormalizer(unittest.TestCase):
             fit_variogram=True,
         )
         # test fitting during kriging
-        self.assertTrue(np.abs(krige.normalizer.lmbda - 0.0) < 1e-1)
+        self.assertTrue(np.abs(krige.normalizer.lmbda - 0) < 1e-1)
         self.assertAlmostEqual(krige.model.len_scale, 10.2677, places=4)
         self.assertAlmostEqual(
             krige.model.sill,
@@ -216,7 +216,7 @@ class TestNormalizer(unittest.TestCase):
         self.assertAlmostEqual(model.var, 0.6426670183, places=4)
         self.assertAlmostEqual(model.len_scale, 9.635193952, places=4)
         self.assertAlmostEqual(model.nugget, 0.001617908408, places=4)
-        self.assertAlmostEqual(model.alpha, 2.0, places=4)
+        self.assertAlmostEqual(model.alpha, 2, places=4)
 
 
 if __name__ == "__main__":

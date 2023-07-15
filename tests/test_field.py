@@ -12,11 +12,11 @@ import gstools as gs
 
 class TestField(unittest.TestCase):
     def setUp(self):
-        self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4.0)
+        self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4)
         rng = np.random.RandomState(123018)
-        x = rng.uniform(0.0, 10, 100)
-        y = rng.uniform(0.0, 10, 100)
-        self.field = rng.uniform(0.0, 10, 100)
+        x = rng.uniform(0, 10, 100)
+        y = rng.uniform(0, 10, 100)
+        self.field = rng.uniform(0, 10, 100)
         self.pos = np.array([x, y])
 
     def test_standalone(self):

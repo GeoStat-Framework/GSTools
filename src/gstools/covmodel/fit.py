@@ -348,13 +348,13 @@ def _check_vario(model, x_data, y_data):
 def _set_weights(model, weights, x_data, curve_fit_kwargs, is_dir_vario):
     if weights is not None:
         if callable(weights):
-            weights = 1.0 / weights(x_data)
+            weights = 1 / weights(x_data)
         elif isinstance(weights, str) and weights == "inv":
-            weights = 1.0 + x_data
+            weights = 1 + x_data
         else:
             if is_dir_vario and weights.size * model.dim == x_data.size:
                 weights = np.tile(weights, model.dim)
-            weights = 1.0 / np.asarray(weights).reshape(-1)
+            weights = 1 / np.asarray(weights).reshape(-1)
         curve_fit_kwargs["sigma"] = weights
         curve_fit_kwargs["absolute_sigma"] = True
 
@@ -500,7 +500,7 @@ def _r2_score(model, x_data, y_data, is_dir_vario):
     residuals = y_data - vario
     ss_res = np.sum(residuals**2)
     ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
-    return 1.0 - (ss_res / ss_tot)
+    return 1 - (ss_res / ss_tot)
 
 
 def logistic_weights(p=0.1, mean=0.7):  # pragma: no cover
@@ -530,6 +530,6 @@ def logistic_weights(p=0.1, mean=0.7):  # pragma: no cover
         # logit function for growth rate
         growth = np.log(p / (1 - p)) / (p * x_range)
         x_mean = mean * x_range + np.amin(x_data)
-        return 1.0 / (1.0 + np.exp(growth * (x_mean - x_data)))
+        return 1 / (1 + np.exp(growth * (x_mean - x_data)))
 
     return func

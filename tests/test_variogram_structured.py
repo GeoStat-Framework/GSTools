@@ -24,7 +24,7 @@ class TestVariogramStructured(unittest.TestCase):
     def test_ints(self):
         z = np.array((10, 20, 30, 40), dtype=int)
         gamma = gs.vario_estimate_axis(z)
-        self.assertAlmostEqual(gamma[1], 50.0, places=4)
+        self.assertAlmostEqual(gamma[1], 50, places=4)
 
     def test_mixed(self):
         z = np.array(
@@ -37,7 +37,7 @@ class TestVariogramStructured(unittest.TestCase):
         z = np.array((10, 20, 30, 40), dtype=int)
 
         gamma = gs.vario_estimate_axis(z)
-        self.assertAlmostEqual(gamma[1], 50.0, places=4)
+        self.assertAlmostEqual(gamma[1], 50, places=4)
 
     def test_list(self):
         z = [41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3]
@@ -47,7 +47,7 @@ class TestVariogramStructured(unittest.TestCase):
     def test_cressie_1d(self):
         z = [41.2, 40.2, 39.7, 39.2, 40.1, 38.3, 39.1, 40.0, 41.1, 40.3]
         gamma = gs.vario_estimate_axis(z, estimator="cressie")
-        self.assertAlmostEqual(gamma[1], 1.546 / 2.0, places=3)
+        self.assertAlmostEqual(gamma[1], 1.546 / 2, places=3)
 
     def test_1d(self):
         # literature values
@@ -86,11 +86,11 @@ class TestVariogramStructured(unittest.TestCase):
         gamma_x = gs.vario_estimate_axis(field_ma, direction="x")
         gamma_y = gs.vario_estimate_axis(field_ma, direction="y")
 
-        var = 1.0 / 12.0
-        self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+        var = 1 / 12
+        self.assertAlmostEqual(gamma_x[0], 0, places=2)
         self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=2)
         self.assertAlmostEqual(gamma_x[-1], var, places=2)
-        self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+        self.assertAlmostEqual(gamma_y[0], 0, places=2)
         self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=2)
         self.assertAlmostEqual(gamma_y[-1], var, places=2)
 
@@ -99,8 +99,8 @@ class TestVariogramStructured(unittest.TestCase):
         field = np.ma.masked_array(field, mask=mask)
         gamma_x = gs.vario_estimate_axis(field_ma, direction="x")
         gamma_y = gs.vario_estimate_axis(field_ma, direction="y")
-        self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
-        self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+        self.assertAlmostEqual(gamma_x[0], 0, places=2)
+        self.assertAlmostEqual(gamma_y[0], 0, places=2)
 
     def test_masked_3d(self):
         rng = np.random.RandomState(1479373475)
@@ -112,14 +112,14 @@ class TestVariogramStructured(unittest.TestCase):
         gamma_y = gs.vario_estimate_axis(field_ma, direction="y")
         gamma_z = gs.vario_estimate_axis(field_ma, direction="z")
 
-        var = 1.0 / 12.0
-        self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+        var = 1 / 12
+        self.assertAlmostEqual(gamma_x[0], 0, places=2)
         self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=2)
         self.assertAlmostEqual(gamma_x[-1], var, places=2)
-        self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+        self.assertAlmostEqual(gamma_y[0], 0, places=2)
         self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=2)
         self.assertAlmostEqual(gamma_y[-1], var, places=2)
-        self.assertAlmostEqual(gamma_z[0], 0.0, places=2)
+        self.assertAlmostEqual(gamma_z[0], 0, places=2)
         self.assertAlmostEqual(gamma_z[len(gamma_y) // 2], var, places=2)
         self.assertAlmostEqual(gamma_z[-1], var, places=2)
 
@@ -129,13 +129,13 @@ class TestVariogramStructured(unittest.TestCase):
         gamma_x = gs.vario_estimate_axis(field_ma, direction="x")
         gamma_y = gs.vario_estimate_axis(field_ma, direction="y")
         gamma_z = gs.vario_estimate_axis(field_ma, direction="z")
-        self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
-        self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
-        self.assertAlmostEqual(gamma_z[0], 0.0, places=2)
+        self.assertAlmostEqual(gamma_x[0], 0, places=2)
+        self.assertAlmostEqual(gamma_y[0], 0, places=2)
+        self.assertAlmostEqual(gamma_z[0], 0, places=2)
 
     def test_uncorrelated_2d(self):
-        x = np.linspace(0.0, 100.0, 80)
-        y = np.linspace(0.0, 100.0, 60)
+        x = np.linspace(0, 100, 80)
+        y = np.linspace(0, 100, 60)
 
         rng = np.random.RandomState(1479373475)
         field = rng.rand(len(x), len(y))
@@ -143,17 +143,17 @@ class TestVariogramStructured(unittest.TestCase):
         gamma_x = gs.vario_estimate_axis(field, direction="x")
         gamma_y = gs.vario_estimate_axis(field, direction="y")
 
-        var = 1.0 / 12.0
-        self.assertAlmostEqual(gamma_x[0], 0.0, places=2)
+        var = 1 / 12
+        self.assertAlmostEqual(gamma_x[0], 0, places=2)
         self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=2)
         self.assertAlmostEqual(gamma_x[-1], var, places=2)
-        self.assertAlmostEqual(gamma_y[0], 0.0, places=2)
+        self.assertAlmostEqual(gamma_y[0], 0, places=2)
         self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=2)
         self.assertAlmostEqual(gamma_y[-1], var, places=2)
 
     def test_uncorrelated_cressie_2d(self):
-        x = np.linspace(0.0, 100.0, 80)
-        y = np.linspace(0.0, 100.0, 60)
+        x = np.linspace(0, 100, 80)
+        y = np.linspace(0, 100, 60)
 
         rng = np.random.RandomState(1479373475)
         field = rng.rand(len(x), len(y))
@@ -165,16 +165,16 @@ class TestVariogramStructured(unittest.TestCase):
             field, direction="y", estimator="cressie"
         )
 
-        var = 1.0 / 12.0
-        self.assertAlmostEqual(gamma_x[0], 0.0, places=1)
+        var = 1 / 12
+        self.assertAlmostEqual(gamma_x[0], 0, places=1)
         self.assertAlmostEqual(gamma_x[len(gamma_x) // 2], var, places=1)
-        self.assertAlmostEqual(gamma_y[0], 0.0, places=1)
+        self.assertAlmostEqual(gamma_y[0], 0, places=1)
         self.assertAlmostEqual(gamma_y[len(gamma_y) // 2], var, places=1)
 
     def test_uncorrelated_3d(self):
-        x = np.linspace(0.0, 100.0, 30)
-        y = np.linspace(0.0, 100.0, 30)
-        z = np.linspace(0.0, 100.0, 30)
+        x = np.linspace(0, 100, 30)
+        y = np.linspace(0, 100, 30)
+        z = np.linspace(0, 100, 30)
 
         rng = np.random.RandomState(1479373475)
         field = rng.rand(len(x), len(y), len(z))
@@ -183,14 +183,14 @@ class TestVariogramStructured(unittest.TestCase):
         gamma = gs.vario_estimate_axis(field, "y")
         gamma = gs.vario_estimate_axis(field, "z")
 
-        var = 1.0 / 12.0
-        self.assertAlmostEqual(gamma[0], 0.0, places=2)
+        var = 1 / 12
+        self.assertAlmostEqual(gamma[0], 0, places=2)
         self.assertAlmostEqual(gamma[len(gamma) // 2], var, places=2)
         self.assertAlmostEqual(gamma[-1], var, places=2)
 
     def test_directions_2d(self):
-        x = np.linspace(0.0, 20.0, 100)
-        y = np.linspace(0.0, 15.0, 80)
+        x = np.linspace(0, 20, 100)
+        y = np.linspace(0, 15, 80)
         rng = np.random.RandomState(1479373475)
         x_rand = rng.rand(len(x))
         y_rand = rng.rand(len(y))
@@ -205,17 +205,17 @@ class TestVariogramStructured(unittest.TestCase):
         gamma_y_x = gs.vario_estimate_axis(field_y, direction="x")
         # gamma_y_y = gs.vario_estimate_axis(field_y, direction="y")
 
-        self.assertAlmostEqual(gamma_x_y[1], 0.0)
-        self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_x_y[-1], 0.0)
-        self.assertAlmostEqual(gamma_y_x[1], 0.0)
-        self.assertAlmostEqual(gamma_y_x[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_y_x[-1], 0.0)
+        self.assertAlmostEqual(gamma_x_y[1], 0)
+        self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_x_y[-1], 0)
+        self.assertAlmostEqual(gamma_y_x[1], 0)
+        self.assertAlmostEqual(gamma_y_x[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_y_x[-1], 0)
 
     def test_directions_3d(self):
-        x = np.linspace(0.0, 10.0, 20)
-        y = np.linspace(0.0, 15.0, 25)
-        z = np.linspace(0.0, 20.0, 30)
+        x = np.linspace(0, 10, 20)
+        y = np.linspace(0, 15, 25)
+        z = np.linspace(0, 20, 30)
         rng = np.random.RandomState(1479373475)
         x_rand = rng.rand(len(x))
         y_rand = rng.rand(len(y))
@@ -237,33 +237,33 @@ class TestVariogramStructured(unittest.TestCase):
         gamma_z_y = gs.vario_estimate_axis(field_z, direction="y")
         # gamma_z_z = gs.vario_estimate_axis(field_z, direction="z")
 
-        self.assertAlmostEqual(gamma_x_y[1], 0.0)
-        self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_x_y[-1], 0.0)
-        self.assertAlmostEqual(gamma_x_z[1], 0.0)
-        self.assertAlmostEqual(gamma_x_z[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_x_z[-1], 0.0)
-        self.assertAlmostEqual(gamma_y_x[1], 0.0)
-        self.assertAlmostEqual(gamma_y_x[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_y_x[-1], 0.0)
-        self.assertAlmostEqual(gamma_y_z[1], 0.0)
-        self.assertAlmostEqual(gamma_y_z[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_y_z[-1], 0.0)
-        self.assertAlmostEqual(gamma_z_x[1], 0.0)
-        self.assertAlmostEqual(gamma_z_x[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_z_x[-1], 0.0)
-        self.assertAlmostEqual(gamma_z_y[1], 0.0)
-        self.assertAlmostEqual(gamma_z_y[len(gamma_x_y) // 2], 0.0)
-        self.assertAlmostEqual(gamma_z_y[-1], 0.0)
+        self.assertAlmostEqual(gamma_x_y[1], 0)
+        self.assertAlmostEqual(gamma_x_y[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_x_y[-1], 0)
+        self.assertAlmostEqual(gamma_x_z[1], 0)
+        self.assertAlmostEqual(gamma_x_z[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_x_z[-1], 0)
+        self.assertAlmostEqual(gamma_y_x[1], 0)
+        self.assertAlmostEqual(gamma_y_x[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_y_x[-1], 0)
+        self.assertAlmostEqual(gamma_y_z[1], 0)
+        self.assertAlmostEqual(gamma_y_z[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_y_z[-1], 0)
+        self.assertAlmostEqual(gamma_z_x[1], 0)
+        self.assertAlmostEqual(gamma_z_x[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_z_x[-1], 0)
+        self.assertAlmostEqual(gamma_z_y[1], 0)
+        self.assertAlmostEqual(gamma_z_y[len(gamma_x_y) // 2], 0)
+        self.assertAlmostEqual(gamma_z_y[-1], 0)
 
     def test_exceptions(self):
-        x = np.linspace(0.0, 10.0, 20)
+        x = np.linspace(0, 10, 20)
         # rng = np.random.RandomState(1479373475)
         # x_rand = rng.rand(len(x))
         self.assertRaises(ValueError, gs.vario_estimate_axis, x, "a")
 
     def test_missing(self):
-        x = np.linspace(0.0, 10.0, 10)
+        x = np.linspace(0, 10, 10)
         x_nan = x.copy()
         x_nan[0] = np.nan
         x_mask = np.isnan(x_nan)

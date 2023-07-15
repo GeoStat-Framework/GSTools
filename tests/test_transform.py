@@ -8,13 +8,13 @@ import gstools as gs
 
 class TestTransform(unittest.TestCase):
     def setUp(self):
-        self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4.0)
+        self.cov_model = gs.Gaussian(dim=2, var=1.5, len_scale=4)
         self.mean = 0.3
         self.mode_no = 100
 
         self.seed = 825718662
-        self.x_grid = np.linspace(0.0, 12.0, 48)
-        self.y_grid = np.linspace(0.0, 10.0, 46)
+        self.x_grid = np.linspace(0, 12, 48)
+        self.y_grid = np.linspace(0, 10, 46)
 
         self.methods = [
             "binary",
@@ -68,7 +68,7 @@ class TestTransform(unittest.TestCase):
         srf.transform(
             "discrete", values=values, thresholds="arithmetic", store="f2"
         )
-        np.testing.assert_allclose(np.unique(srf.f2), [-1.0, 0.0, 1.0])
+        np.testing.assert_allclose(np.unique(srf.f2), [-1, 0, 1])
 
         values = [-1, 0, 0.5, 1]
         srf.transform(
@@ -171,7 +171,7 @@ class TestTransform(unittest.TestCase):
             store="f2",
             process=True,
         )
-        np.testing.assert_allclose(np.unique(np.log(srf.f2)), [-1.0, 0.0, 1.0])
+        np.testing.assert_allclose(np.unique(np.log(srf.f2)), [-1, 0, 1])
 
         values = [-1, 0, 0.5, 1]
         srf.transform(

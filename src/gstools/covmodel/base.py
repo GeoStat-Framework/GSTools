@@ -1184,12 +1184,12 @@ class CovModel:
     @property
     def do_rotation(self):
         """:any:`bool`: State if a rotation is performed."""
-        return not np.all(np.isclose(self.angles, 0.0))
+        return not np.all(np.isclose(self.angles, 0))
 
     @property
     def is_isotropic(self):
         """:any:`bool`: State if a model is isotropic."""
-        return np.all(np.isclose(self.anis, 1.0))
+        return np.all(np.isclose(self.anis, 1))
 
     def __eq__(self, other):
         """Compare CovModels."""

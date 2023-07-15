@@ -86,7 +86,7 @@ def set_angles(dim, angles):
         out_angles,
         (0, no_of_angles(dim) - len(out_angles)),
         "constant",
-        constant_values=0.0,
+        constant_values=0,
     )
     return out_angles
 
@@ -250,7 +250,7 @@ def matrix_isotropify(dim, anis):
             Stretching matrix.
     """
     anis = set_anis(dim, anis)
-    return np.diag(np.concatenate(([1.0], 1.0 / anis)))
+    return np.diag(np.concatenate(([1], 1 / anis)))
 
 
 def matrix_anisotropify(dim, anis):
@@ -269,7 +269,7 @@ def matrix_anisotropify(dim, anis):
             Stretching matrix.
     """
     anis = set_anis(dim, anis)
-    return np.diag(np.concatenate(([1.0], anis)))
+    return np.diag(np.concatenate(([1], anis)))
 
 
 def matrix_isometrize(dim, angles, anis):
@@ -668,7 +668,7 @@ def latlon2pos(
 
 
 def pos2latlon(
-    pos, radius=1.0, dtype=np.double, temporal=False, time_scale=1.0
+    pos, radius=1, dtype=np.double, temporal=False, time_scale=1
 ):
     """Convert 3D position tuple from sphere to lat-lon geo coordinates.
 
@@ -697,7 +697,7 @@ def pos2latlon(
     """
     pos = np.asarray(pos, dtype=dtype).reshape((4 if temporal else 3, -1))
     # prevent numerical errors in arcsin
-    lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1.0), -1.0))
+    lat = np.arcsin(np.maximum(np.minimum(pos[2] / radius, 1), -1))
     lon = np.arctan2(pos[1], pos[0])
     latlon = np.rad2deg((lat, lon), dtype=dtype)
     if temporal:

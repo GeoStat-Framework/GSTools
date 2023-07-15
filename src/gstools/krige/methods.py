@@ -92,7 +92,7 @@ class Simple(Krige):
         model,
         cond_pos,
         cond_val,
-        mean=0.0,
+        mean=0,
         normalizer=None,
         trend=None,
         exact=False,

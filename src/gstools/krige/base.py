@@ -449,13 +449,13 @@ class Krige(Field):
         # if mean should not be post-processed, it exists when no drift given
         if not self.has_const_mean and (post_process or self.drift_no > 0):
             return None
-        res = 0.0  # for simple kriging return the given mean
+        res = 0  # for simple kriging return the given mean
         # correctly setting given mean
-        mean = 0.0 if self.mean is None else self.mean
+        mean = 0 if self.mean is None else self.mean
         # for ordinary kriging return the estimated mean
         if self.unbiased:
             # set the right side of the kriging system to the limit of cov.
-            mean_est = np.concatenate((np.full_like(self.cond_val, 0.0), [1]))
+            mean_est = np.concatenate((np.full_like(self.cond_val, 0), [1]))
             # execute the kriging routine with einsum
             res = np.einsum(
                 "i,ij,j", self._krige_cond, self._krige_mat, mean_est

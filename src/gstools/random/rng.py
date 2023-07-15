@@ -39,7 +39,7 @@ class RNG:
         self,
         ln_pdf,
         size=None,
-        sample_around=1.0,
+        sample_around=1,
         nwalkers=50,
         burn_in=20,
         oversampling_factor=10,
@@ -163,14 +163,14 @@ class RNG:
         if dim == 1:
             coord[0] = self.random.choice([-1, 1], size=size)
         elif dim == 2:
-            ang1 = self.random.uniform(0.0, 2 * np.pi, size)
+            ang1 = self.random.uniform(0, 2 * np.pi, size)
             coord[0] = np.cos(ang1)
             coord[1] = np.sin(ang1)
         elif dim == 3:
-            ang1 = self.random.uniform(0.0, 2 * np.pi, size)
-            ang2 = self.random.uniform(-1.0, 1.0, size)
-            coord[0] = np.sqrt(1.0 - ang2**2) * np.cos(ang1)
-            coord[1] = np.sqrt(1.0 - ang2**2) * np.sin(ang1)
+            ang1 = self.random.uniform(0, 2 * np.pi, size)
+            ang2 = self.random.uniform(-1, 1, size)
+            coord[0] = np.sqrt(1 - ang2**2) * np.cos(ang1)
+            coord[1] = np.sqrt(1 - ang2**2) * np.sin(ang1)
             coord[2] = ang2
         else:  # pragma: no cover
             # http://corysimon.github.io/articles/uniformdistn-on-sphere/

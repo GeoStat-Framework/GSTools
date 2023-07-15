@@ -17,12 +17,12 @@ class TestIncomprRandMeth(unittest.TestCase):
         self.cov_model_3d = copy.deepcopy(self.cov_model_2d)
         self.cov_model_3d.dim = 3
         self.seed = 19031977
-        self.x_grid = np.linspace(0.0, 10.0, 9)
-        self.y_grid = np.linspace(-5.0, 5.0, 16)
-        self.z_grid = np.linspace(-6.0, 7.0, 8)
-        self.x_tuple = np.linspace(0.0, 10.0, 10)
-        self.y_tuple = np.linspace(-5.0, 5.0, 10)
-        self.z_tuple = np.linspace(-6.0, 8.0, 10)
+        self.x_grid = np.linspace(0, 10, 9)
+        self.y_grid = np.linspace(-5, 5, 16)
+        self.z_grid = np.linspace(-6, 7, 8)
+        self.x_tuple = np.linspace(0, 10, 10)
+        self.y_tuple = np.linspace(-5, 5, 10)
+        self.z_tuple = np.linspace(-6, 8, 10)
 
         self.rm_2d = IncomprRandMeth(
             self.cov_model_2d, mode_no=100, seed=self.seed

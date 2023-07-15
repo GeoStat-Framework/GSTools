@@ -44,7 +44,7 @@ srf.structured(pos + time)
 
 # account for the skewness and the dry periods
 cutoff = 0.55
-gs.transform.boxcox(srf, lmbda=0.5, shift=-1.0 / cutoff)
+gs.transform.boxcox(srf, lmbda=0.5, shift=-1 / cutoff)
 
 # adjust the amount of precipitation
 amount = 4.0

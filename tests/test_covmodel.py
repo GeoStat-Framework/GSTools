@@ -35,7 +35,7 @@ from gstools.covmodel.tools import (
 class Gau_var(CovModel):
     def variogram(self, r):
         h = np.abs(r) / self.len_rescaled
-        return self.var * (1.0 - np.exp(-(h**2))) + self.nugget
+        return self.var * (1 - np.exp(-(h**2))) + self.nugget
 
 
 class Gau_cov(CovModel):
@@ -60,7 +60,7 @@ class Gau_fix(CovModel):
 
 class Mod_add(CovModel):
     def cor(self, h):
-        return 1.0
+        return 1
 
     def default_opt_arg(self):
         return {"alpha": 1}
@@ -179,7 +179,7 @@ class TestCovModel(unittest.TestCase):
                             if model.has_cdf:
                                 model.spectral_rad_cdf([0, 1])
                             if model.has_ppf:
-                                model.spectral_rad_ppf([0.0, 0.99])
+                                model.spectral_rad_ppf([0, 0.99])
                             model.pykrige_kwargs
                             # check arg bound setting
                             model.set_arg_bounds(
@@ -193,7 +193,7 @@ class TestCovModel(unittest.TestCase):
             for dim in self.dims:
                 model = Model(dim=dim, len_scale=9, len_low=1, rescale=2)
                 self.assertAlmostEqual(model.len_up_rescaled, 5)
-                model.len_low = 0.0
+                model.len_low = 0
                 self.assertAlmostEqual(model.cor(2), model.correlation(9))
                 # also check resetting of var when sill is given lower
                 model.fit_variogram(
@@ -215,7 +215,7 @@ class TestCovModel(unittest.TestCase):
             for dim in self.dims:
                 model = Model(dim=dim)
                 model.fit_variogram(self.gamma_x, self.gamma_y, nugget=False)
-                self.assertAlmostEqual(model.nugget, 0.0)
+                self.assertAlmostEqual(model.nugget, 0)
                 model = Model(dim=dim)
                 # also check resetting of var when sill is given lower
                 model.fit_variogram(self.gamma_x, self.gamma_y, sill=0.9)
@@ -225,7 +225,7 @@ class TestCovModel(unittest.TestCase):
                 model.fit_variogram(
                     self.gamma_x, self.gamma_y, sill=2, nugget=False
                 )
-                self.assertAlmostEqual(model.var, 2.0)
+                self.assertAlmostEqual(model.var, 2)
                 model = Model(dim=dim)
                 model.fit_variogram(
                     self.gamma_x, self.gamma_y, sill=2, nugget=1
@@ -359,13 +359,13 @@ class TestCovModel(unittest.TestCase):
         self.assertRaises(ValueError, Gaussian, dim=0)
         self.assertRaises(ValueError, Gau_fix, latlon=True)
         # check inputs
-        self.assertRaises(ValueError, model_std.percentile_scale, per=-1.0)
-        self.assertRaises(ValueError, Gaussian, anis=-1.0)
+        self.assertRaises(ValueError, model_std.percentile_scale, per=-1)
+        self.assertRaises(ValueError, Gaussian, anis=-1)
         self.assertRaises(ValueError, Gaussian, len_scale=[1, -1])
         self.assertRaises(ValueError, check_arg_in_bounds, model_std, "wrong")
-        self.assertWarns(AttributeWarning, Gaussian, wrong_arg=1.0)
+        self.assertWarns(AttributeWarning, Gaussian, wrong_arg=1)
         with self.assertWarns(AttributeWarning):
-            self.assertRaises(ValueError, Gaussian, len_rescaled=1.0)
+            self.assertRaises(ValueError, Gaussian, len_rescaled=1)
 
         # check correct subclassing
         with self.assertRaises(TypeError):

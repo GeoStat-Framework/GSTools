@@ -70,7 +70,7 @@ class TestKrige(unittest.TestCase):
                 field_1 = field_1.reshape(self.grid_shape[:dim])
                 field_2, __ = simple.structured(self.pos[:dim])
                 self.assertAlmostEqual(
-                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                    np.max(np.abs(field_1 - field_2)), 0, places=2
                 )
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(
@@ -98,7 +98,7 @@ class TestKrige(unittest.TestCase):
                     field_1 = field_1.reshape(self.grid_shape[:dim])
                     field_2, __ = ordinary.structured(self.pos[:dim])
                     self.assertAlmostEqual(
-                        np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                        np.max(np.abs(field_1 - field_2)), 0, places=2
                     )
                     for i, val in enumerate(self.cond_val):
                         self.assertAlmostEqual(
@@ -124,7 +124,7 @@ class TestKrige(unittest.TestCase):
                     field_1 = field_1.reshape(self.grid_shape[:dim])
                     field_2, __ = universal.structured(self.pos[:dim])
                     self.assertAlmostEqual(
-                        np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                        np.max(np.abs(field_1 - field_2)), 0, places=2
                     )
                     for i, val in enumerate(self.cond_val):
                         self.assertAlmostEqual(
@@ -149,7 +149,7 @@ class TestKrige(unittest.TestCase):
                 field_2, __ = detrended.structured(self.pos[:dim])
                 # detrended.plot()
                 self.assertAlmostEqual(
-                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                    np.max(np.abs(field_1 - field_2)), 0, places=2
                 )
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(
@@ -198,7 +198,7 @@ class TestKrige(unittest.TestCase):
                 )
                 # extdrift.plot()
                 self.assertAlmostEqual(
-                    np.max(np.abs(field_1 - field_2)), 0.0, places=2
+                    np.max(np.abs(field_1 - field_2)), 0, places=2
                 )
                 for i, val in enumerate(self.cond_val):
                     self.assertAlmostEqual(

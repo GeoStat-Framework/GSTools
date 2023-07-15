@@ -74,26 +74,26 @@ class Gaussian(CovModel):
 
     def default_rescale(self):
         """Gaussian rescaling factor to result in integral scale."""
-        return np.sqrt(np.pi) / 2.0
+        return np.sqrt(np.pi) / 2
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
-        return (self.len_rescaled / 2.0 / np.sqrt(np.pi)) ** self.dim * np.exp(
-            -((k * self.len_rescaled / 2.0) ** 2)
+        return (self.len_rescaled / 2 / np.sqrt(np.pi)) ** self.dim * np.exp(
+            -((k * self.len_rescaled / 2) ** 2)
         )
 
     def spectral_rad_cdf(self, r):
         """Gaussian radial spectral cdf."""
         r = np.asarray(r, dtype=np.double)
         if self.dim == 1:
-            return sps.erf(r * self.len_rescaled / 2.0)
+            return sps.erf(r * self.len_rescaled / 2)
         if self.dim == 2:
-            return 1.0 - np.exp(-((r * self.len_rescaled / 2.0) ** 2))
+            return 1 - np.exp(-((r * self.len_rescaled / 2) ** 2))
         if self.dim == 3:
             return sps.erf(
-                r * self.len_rescaled / 2.0
+                r * self.len_rescaled / 2
             ) - r * self.len_rescaled / np.sqrt(np.pi) * np.exp(
-                -((r * self.len_rescaled / 2.0) ** 2)
+                -((r * self.len_rescaled / 2) ** 2)
             )
         return None  # pragma: no cover
 
@@ -106,9 +106,9 @@ class Gaussian(CovModel):
         """
         u = np.asarray(u, dtype=np.double)
         if self.dim == 1:
-            return 2.0 / self.len_rescaled * sps.erfinv(u)
+            return 2 / self.len_rescaled * sps.erfinv(u)
         if self.dim == 2:
-            return 2.0 / self.len_rescaled * np.sqrt(-np.log(1.0 - u))
+            return 2 / self.len_rescaled * np.sqrt(-np.log(1 - u))
         return None  # pragma: no cover
 
     def _has_cdf(self):
@@ -118,7 +118,7 @@ class Gaussian(CovModel):
         return self.dim in [1, 2]
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_rescaled * np.sqrt(np.pi) / 2.0
+        return self.len_rescaled * np.sqrt(np.pi) / 2
 
 
 class Exponential(CovModel):
@@ -150,27 +150,27 @@ class Exponential(CovModel):
         k = np.asarray(k, dtype=np.double)
         return (
             self.len_rescaled**self.dim
-            * sps.gamma((self.dim + 1) / 2.0)
-            / (np.pi * (1.0 + (k * self.len_rescaled) ** 2))
-            ** ((self.dim + 1) / 2.0)
+            * sps.gamma((self.dim + 1) / 2)
+            / (np.pi * (1 + (k * self.len_rescaled) ** 2))
+            ** ((self.dim + 1) / 2)
         )
 
     def spectral_rad_cdf(self, r):
         """Exponential radial spectral cdf."""
         r = np.asarray(r, dtype=np.double)
         if self.dim == 1:
-            return np.arctan(r * self.len_rescaled) * 2.0 / np.pi
+            return np.arctan(r * self.len_rescaled) * 2 / np.pi
         if self.dim == 2:
-            return 1.0 - 1.0 / np.sqrt(1.0 + (r * self.len_rescaled) ** 2)
+            return 1 - 1 / np.sqrt(1 + (r * self.len_rescaled) ** 2)
         if self.dim == 3:
             return (
                 (
                     np.arctan(r * self.len_rescaled)
                     - r
                     * self.len_rescaled
-                    / (1.0 + (r * self.len_rescaled) ** 2)
+                    / (1 + (r * self.len_rescaled) ** 2)
                 )
-                * 2.0
+                * 2
                 / np.pi
             )
         return None  # pragma: no cover
@@ -192,7 +192,7 @@ class Exponential(CovModel):
                 out=np.full_like(u, np.inf),
                 where=np.logical_not(np.isclose(u, 0)),
             )
-            return np.sqrt(u_power - 1.0) / self.len_rescaled
+            return np.sqrt(u_power - 1) / self.len_rescaled
         return None  # pragma: no cover
 
     def _has_cdf(self):
@@ -277,7 +277,7 @@ class Stable(CovModel):
         return np.exp(-np.power(h, self.alpha))
 
     def calc_integral_scale(self):  # noqa: D102
-        return self.len_rescaled * sps.gamma(1.0 + 1.0 / self.alpha)
+        return self.len_rescaled * sps.gamma(1 + 1 / self.alpha)
 
 
 class Matern(CovModel):
@@ -347,27 +347,27 @@ class Matern(CovModel):
         """Matérn normalized correlation function."""
         h = np.asarray(np.abs(h), dtype=np.double)
         # for nu > 20 we just use the gaussian model
-        if self.nu > 20.0:
-            return np.exp(-((h / 2.0) ** 2))
+        if self.nu > 20:
+            return np.exp(-((h / 2) ** 2))
         # calculate by log-transformation to prevent numerical errors
-        h_gz = h[h > 0.0]
+        h_gz = h[h > 0]
         res = np.ones_like(h)
-        res[h > 0.0] = np.exp(
-            (1.0 - self.nu) * np.log(2)
+        res[h > 0] = np.exp(
+            (1 - self.nu) * np.log(2)
             - sps.loggamma(self.nu)
             + self.nu * np.log(np.sqrt(self.nu) * h_gz)
         ) * sps.kv(self.nu, np.sqrt(self.nu) * h_gz)
         # if nu >> 1 we get errors for the farfield, there 0 is approached
-        res[np.logical_not(np.isfinite(res))] = 0.0
+        res[np.logical_not(np.isfinite(res))] = 0
         # covariance is positive
-        res = np.maximum(res, 0.0)
+        res = np.maximum(res, 0)
         return res
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
         x = (k * self.len_rescaled) ** 2
         # for nu > 20 we just use an approximation of the gaussian model
-        if self.nu > 20.0:
+        if self.nu > 20:
             return (
                 (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
                 * np.exp(-x)
@@ -375,8 +375,8 @@ class Matern(CovModel):
                 * np.sqrt(1 + x / self.nu) ** (-self.dim)
             )
         return (self.len_rescaled / np.sqrt(np.pi)) ** self.dim * np.exp(
-            -(self.nu + self.dim / 2.0) * np.log(1.0 + x / self.nu)
-            + sps.loggamma(self.nu + self.dim / 2.0)
+            -(self.nu + self.dim / 2) * np.log(1 + x / self.nu)
+            + sps.loggamma(self.nu + self.dim / 2)
             - sps.loggamma(self.nu)
             - self.dim * np.log(np.sqrt(self.nu))
         )
@@ -455,29 +455,29 @@ class Integral(CovModel):
     def cor(self, h):
         """Exponential Integral normalized correlation function."""
         h = np.asarray(h, dtype=np.double)
-        return 0.5 * self.nu * exp_int(1.0 + 0.5 * self.nu, h**2)
+        return 0.5 * self.nu * exp_int(1 + 0.5 * self.nu, h**2)
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
-        x = (k * self.len_rescaled / 2.0) ** 2
+        x = (k * self.len_rescaled / 2) ** 2
         # for nu > 50 we just use an approximation of the gaussian model
-        if self.nu > 50.0:
+        if self.nu > 50:
             return (
                 (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
                 * np.exp(-x)
                 * self.nu
                 / (self.nu + self.dim)
-                * (1.0 + 2 * x / (self.nu + self.dim + 2))
+                * (1 + 2 * x / (self.nu + self.dim + 2))
             )
         return (
             self.nu
             / (x ** (self.nu * 0.5) * 2 * (k * np.sqrt(np.pi)) ** self.dim)
-            * inc_gamma_low((self.nu + self.dim) / 2.0, x)
+            * inc_gamma_low((self.nu + self.dim) / 2, x)
         )
 
     def calc_integral_scale(self):  # noqa: D102
         return (
-            self.len_rescaled * self.nu * np.sqrt(np.pi) / (2 * self.nu + 2.0)
+            self.len_rescaled * self.nu * np.sqrt(np.pi) / (2 * self.nu + 2)
         )
 
 
@@ -549,7 +549,7 @@ class Rational(CovModel):
             * np.sqrt(np.pi * self.alpha)
             * sps.gamma(self.alpha - 0.5)
             / sps.gamma(self.alpha)
-            / 2.0
+            / 2
         )
 
 
@@ -585,8 +585,8 @@ class Cubic(CovModel):
 
     def cor(self, h):
         """Spherical normalized correlation function."""
-        h = np.minimum(np.abs(h, dtype=np.double), 1.0)
-        return 1.0 - 7 * h**2 + 8.75 * h**3 - 3.5 * h**5 + 0.75 * h**7
+        h = np.minimum(np.abs(h, dtype=np.double), 1)
+        return 1 - 7 * h**2 + 8.75 * h**3 - 3.5 * h**5 + 0.75 * h**7
 
 
 class Linear(CovModel):
@@ -662,7 +662,7 @@ class Circular(CovModel):
         h = np.asarray(np.abs(h), dtype=np.double)
         res = np.zeros_like(h)
         # arccos is instable around h=1
-        h_l1 = h < 1.0
+        h_l1 = h < 1
         h_low = h[h_l1]
         res[h_l1] = (
             2 / np.pi * (np.arccos(h_low) - h_low * np.sqrt(1 - h_low**2))
@@ -705,8 +705,8 @@ class Spherical(CovModel):
 
     def cor(self, h):
         """Spherical normalized correlation function."""
-        h = np.minimum(np.abs(h, dtype=np.double), 1.0)
-        return 1.0 - 1.5 * h + 0.5 * h**3
+        h = np.minimum(np.abs(h, dtype=np.double), 1)
+        return 1 - 1.5 * h + 0.5 * h**3
 
     def check_dim(self, dim):
         """Spherical model is only valid in 1D, 2D and 3D."""
@@ -753,8 +753,8 @@ class HyperSpherical(CovModel):
         h = np.asarray(h, dtype=np.double)
         res = np.zeros_like(h)
         h_l1 = h < 1
-        nu = (self.dim - 1.0) / 2.0
-        fac = 1.0 / sps.hyp2f1(0.5, -nu, 1.5, 1)
+        nu = (self.dim - 1) / 2
+        fac = 1 / sps.hyp2f1(0.5, -nu, 1.5, 1)
         res[h_l1] = 1 - h[h_l1] * fac * sps.hyp2f1(0.5, -nu, 1.5, h[h_l1] ** 2)
         return res
 
@@ -836,15 +836,15 @@ class SuperSpherical(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [(self.dim - 1) / 2, 50.0]}
+        return {"nu": [(self.dim - 1) / 2, 50]}
 
     def cor(self, h):
         """Super-Spherical normalized correlation function."""
         h = np.asarray(h, dtype=np.double)
         res = np.zeros_like(h)
         h_l1 = h < 1
-        fac = 1.0 / sps.hyp2f1(0.5, -self.nu, 1.5, 1.0)
-        res[h_l1] = 1.0 - h[h_l1] * fac * sps.hyp2f1(
+        fac = 1 / sps.hyp2f1(0.5, -self.nu, 1.5, 1)
+        res[h_l1] = 1 - h[h_l1] * fac * sps.hyp2f1(
             0.5, -self.nu, 1.5, h[h_l1] ** 2
         )
         return res
@@ -916,7 +916,7 @@ class JBessel(CovModel):
         :class:`dict`
             Boundaries for optional arguments
         """
-        return {"nu": [self.dim / 2 - 1, 50.0]}
+        return {"nu": [self.dim / 2 - 1, 50]}
 
     def check_opt_arg(self):
         """Check the optional arguments.
@@ -940,20 +940,20 @@ class JBessel(CovModel):
         hh = h[h_gz]
         res = np.ones_like(h)
         nu = self.nu
-        res[h_gz] = sps.gamma(nu + 1) * sps.jv(nu, hh) / (hh / 2.0) ** nu
+        res[h_gz] = sps.gamma(nu + 1) * sps.jv(nu, hh) / (hh / 2) ** nu
         return res
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
-        k_ll = k < 1.0 / self.len_rescaled
+        k_ll = k < 1 / self.len_rescaled
         kk = k[k_ll]
         res = np.zeros_like(k)
         # the model is degenerated for nu=d/2-1, so we tweak the spectral pdf
         # and cut of the divisor at nu-(d/2-1)=0.01 (gamma(0.01) about 100)
         res[k_ll] = (
             (self.len_rescaled / np.sqrt(np.pi)) ** self.dim
-            * sps.gamma(self.nu + 1.0)
-            / np.minimum(sps.gamma(self.nu - self.dim / 2 + 1), 100.0)
-            * (1.0 - (kk * self.len_rescaled) ** 2) ** (self.nu - self.dim / 2)
+            * sps.gamma(self.nu + 1)
+            / np.minimum(sps.gamma(self.nu - self.dim / 2 + 1), 100)
+            * (1 - (kk * self.len_rescaled) ** 2) ** (self.nu - self.dim / 2)
         )
         return res

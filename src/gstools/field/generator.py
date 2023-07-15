@@ -210,7 +210,7 @@ class RandMeth(Generator):
         """
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
-        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
     def get_nugget(self, shape):
@@ -232,7 +232,7 @@ class RandMeth(Generator):
                 size=shape
             )
         else:
-            nugget = 0.0
+            nugget = 0
         return nugget
 
     def update(self, model=None, seed=np.nan):
@@ -322,7 +322,7 @@ class RandMeth(Generator):
             rad = self._rng.sample_ln_pdf(
                 ln_pdf=self.model.ln_spectral_rad_pdf,
                 size=self._mode_no,
-                sample_around=1.0 / self.model.len_rescaled,
+                sample_around=1 / self.model.len_rescaled,
             )
         # get fully spatial samples by multiplying sphere samples and radii
         self._cov_sample = rad * sphere_coord
@@ -446,7 +446,7 @@ class IncomprRandMeth(RandMeth):
         self,
         model,
         *,
-        mean_velocity=1.0,
+        mean_velocity=1,
         mode_no=1000,
         seed=None,
         sampling="auto",
@@ -491,7 +491,7 @@ class IncomprRandMeth(RandMeth):
         summed_modes = summate_incompr(
             self._cov_sample, self._z_1, self._z_2, pos
         )
-        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
+        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0
         e1 = self._create_unit_vector(summed_modes.shape)
         return (
             self.mean_u * e1
@@ -523,5 +523,5 @@ class IncomprRandMeth(RandMeth):
         shape[0] = self.model.dim
 
         e1 = np.zeros(shape)
-        e1[axis] = 1.0
+        e1[axis] = 1
         return e1
