@@ -606,7 +606,6 @@ class Fourier(Generator):
         self._modes_truncation = np.array(modes_truncation)
         self._modes_no = np.array(modes_no)
         self._modes = []
-        self._modes_delta = []
         # TODO clean up here
         for d in range(model.dim):
             self._modes.append(
@@ -614,6 +613,7 @@ class Fourier(Generator):
                     -self._modes_truncation[d]/2,
                     self._modes_truncation[d]/2,
                     self._modes_no[d],
+                    endpoint=False,
                 ).T
             )
 
@@ -655,10 +655,6 @@ class Fourier(Generator):
                 for d in range(self._model.dim)
         ]
 
-        self._modes_delta = [
-            self._modes[d][1] - self._modes[d][0] for d in range(self._model.dim)
-        ]
-        self._modes_delta = np.asarray(self._modes_delta)
         self._modes = generate_grid(self._modes)
 
         # pre calc. the spectral density for all wave numbers
@@ -674,9 +670,8 @@ class Fourier(Generator):
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return (
-            np.sqrt(2.0 * self.model.var) *
-            summed_modes *
-            np.sqrt(np.prod(self._modes_delta)) +
+            np.sqrt(2.0 * self.model.var / np.prod(domain_size)) *
+            summed_modes +
             nugget
         )
 
