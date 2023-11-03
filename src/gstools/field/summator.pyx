@@ -1,12 +1,9 @@
-#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
+# cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
 """
 This is the randomization method summator, implemented in cython.
 """
 
 import numpy as np
-
-cimport cython
-
 from cython.parallel import prange
 
 cimport numpy as np
@@ -18,7 +15,7 @@ def summate(
     const double[:] z_1,
     const double[:] z_2,
     const double[:, :] pos
-    ):
+):
     cdef int i, j, d
     cdef double phase
     cdef int dim = pos.shape[0]
@@ -53,7 +50,7 @@ def summate_incompr(
     const double[:] z_1,
     const double[:] z_2,
     const double[:, :] pos
-    ):
+):
     cdef int i, j, d
     cdef double phase
     cdef double k_2
@@ -76,6 +73,7 @@ def summate_incompr(
                 phase += cov_samples[d, j] * pos[d, i]
             for d in range(dim):
                 proj[d] = e1[d] - cov_samples[d, j] * cov_samples[0, j] / k_2
-                summed_modes[d, i] += proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
-
+                summed_modes[d, i] += (
+                    proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
+                )
     return np.asarray(summed_modes)

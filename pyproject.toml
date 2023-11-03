@@ -3,13 +3,13 @@ requires = [
     "setuptools>=64",
     "setuptools_scm>=7",
     "oldest-supported-numpy",
-    "Cython>=0.29.32,<3.0",
+    "Cython>=3.0",
     "extension-helpers>=1",
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 name = "gstools"
 description = "GSTools: A geostatistical toolbox."
 authors = [
@@ -32,11 +32,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: GIS",
     "Topic :: Scientific/Engineering :: Hydrology",
@@ -72,6 +72,12 @@ plotting = [
 ]
 rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]
+lint = [
+    "black",
+    "pylint",
+    "isort[colors]",
+    "cython-lint",
+]
 
 [project.urls]
 Changelog = "https://github.com/GeoStat-Framework/GSTools/blob/main/CHANGELOG.md"
@@ -98,11 +104,11 @@ line_length = 79
 [tool.black]
 line-length = 79
 target-version = [
-    "py37",
     "py38",
     "py39",
     "py310",
     "py311",
+    "py312",
 ]
 
 [tool.coverage]
@@ -154,8 +160,8 @@ target-version = [
 [tool.cibuildwheel]
 # Switch to using build
 build-frontend = "build"
-# Disable building PyPy wheels on all platforms, 32bit for py3.10/11 and musllinux builds, py3.6
-skip = ["cp36-*", "pp*", "cp31*-win32", "cp31*-manylinux_i686", "*-musllinux_*"]
+# Disable building PyPy wheels on all platforms, 32bit for py3.10/11/12, musllinux builds, py3.6/7
+skip = ["cp36-*", "cp37-*", "pp*", "cp31*-win32", "cp31*-manylinux_i686", "*-musllinux_*"]
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
