@@ -2,6 +2,18 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.5.1] - Nifty Neon - 2023-11
+
+### Enhancements
+
+see [#317](https://github.com/GeoStat-Framework/GSTools/pull/317)
+
+- added wheels for Python 3.12
+- dropped support for Python 3.7 (EOL)
+- linted Cython files with cython-lint
+- use Cython 3 to build extensions
+
+
 ## [1.5.0] - Nifty Neon - 2023-06
 
 ### Enhancements
@@ -404,7 +416,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.3.5...v1.4.0
