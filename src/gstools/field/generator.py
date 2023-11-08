@@ -553,9 +553,11 @@ class Fourier(Generator):
         cut-off value of the Fourier modes.
     mode_no : :class:`list`
         number of Fourier modes per dimension.
-    period_len : :class:`list` or :any:`None`, optional
+    period_len : :class:`float` or :class:`list`, optional
         the period length of the field in each dimension as a factor of the
         domain size
+    period_offset : :class:`float` or :class:`list`, optional
+        the period offset by which the field will be shifted
     seed : :class:`int` or :any:`None`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -600,6 +602,7 @@ class Fourier(Generator):
         modes_truncation,
         modes_no,
         period_len=None,
+        period_offset=None,
         seed=None,
         verbose=False,
         **kwargs,
@@ -622,17 +625,24 @@ class Fourier(Generator):
             )
 
         dim = model.dim
-        if period_len is None:
-            period_len = 1.0
-        self.period_len = np.array(period_len, dtype=np.double)
-        self.period_len = np.atleast_1d(self.period_len)[:dim]
-        if len(self.period_len) > dim:
-           raise ValueError(f"Fourier: len(period_len) <= {dim=} not fulfilled")
-        # fill up period_len with period_len[-1], such that len()==dim
-        if len(self.period_len) < dim:
-            self.period_len = np.pad(
-                    self.period_len, (0, dim - len(self.period_len)), "edge"
-            )
+
+        def fill_to_dim(dim, values, dtype, default_value):
+            r = values
+            if values is None:
+                r = default_value
+            r = np.array(r, dtype=dtype)
+            r = np.atleast_1d(r)[:dim]
+            if len(r) > dim:
+               raise ValueError(f"Fourier: len(values) <= {dim=} not fulfilled")
+            # fill up values with values[-1], such that len()==dim
+            if len(r) < dim:
+                r = np.pad(
+                        r, (0, dim - len(r)), "edge"
+                )
+            return r
+
+        self.period_len = fill_to_dim(model.dim, period_len, np.double, 1.0)
+        self.period_offset = fill_to_dim(model.dim, period_offset, np.double, 0.0)
 
         self._verbose = bool(verbose)
         # initialize private attributes
@@ -666,6 +676,7 @@ class Fourier(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
+        pos -= self.period_offset[:, None]
         domain_size = pos.max(axis=1) - pos.min(axis=1)
         self._modes = [
             self._modes[d] / domain_size[d] * self.period_len[d]
