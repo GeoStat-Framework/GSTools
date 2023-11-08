@@ -29,7 +29,11 @@ if config.USE_RUST:  # pragma: no cover
     # pylint: disable=E0401
     from gstools_core import summate, summate_incompr
 else:
-    from gstools.field.summator import summate, summate_incompr, summate_fourier
+    from gstools.field.summator import (
+        summate,
+        summate_incompr,
+        summate_fourier,
+    )
 
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth", "Fourier"]
 
@@ -549,16 +553,15 @@ class Fourier(Generator):
     ----------
     model : :any:`CovModel`
         Covariance model
-    mode_truncation : :class:`list`
-        cut-off value of the Fourier modes.
     mode_no : :class:`list`
-        number of Fourier modes per dimension.
+        Number of Fourier modes per dimension.
+    mode_truncation : :class:`list`
+        Cut-off values of the Fourier modes.
     period_len : :class:`float` or :class:`list`, optional
-        the period length of the field in each dimension as a factor of the
-        domain size
+        Period length of the field in each dim as a factor of the domain size.
     period_offset : :class:`float` or :class:`list`, optional
-        the period offset by which the field will be shifted
-    seed : :class:`int` or :any:`None`, optional
+        The period offset by which the field will be shifted.
+    seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
     verbose : :class:`bool`, optional
@@ -572,21 +575,21 @@ class Fourier(Generator):
     -----
     The Fourier method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like [Hesse2014]_: # TODO
+    The calculation looks like [Hesse2014]_: # TODO check different source
 
     .. math::
        u\left(x\right)=
        \sqrt{2\sigma^{2}}\cdot
-       \sum_{i=1}^{N}\sqrt{E(k_{i}k_{i}}\left(
-       Z_{1,i}\cdot\cos\left(\left\langle k_{i},x\right\rangle \right)+
-       Z_{2,i}\cdot\sin\left(\left\langle k_{i},x\right\rangle \right)
+       \sum_{i=1}^{N}\sqrt{E(k_{i})}\left(
+       Z_{1,i}\cdot\cos\left(2\pi\left\langle k_{i},x\right\rangle \right)+
+       Z_{2,i}\cdot\sin\left(2\pi\left\langle k_{i},x\right\rangle \right)
        \right) \sqrt{\Delta k}
 
     where:
 
         * :math:`N` : fourier mode number
         * :math:`Z_{j,i}` : random samples from a normal distribution
-        * :math:`k_i` : the spectral density of the covariance model
+        * :math:`k_i` : the equidistant spectral density of the covariance model
 
     References
     ----------
@@ -599,8 +602,8 @@ class Fourier(Generator):
     def __init__(
         self,
         model,
-        modes_truncation,
         modes_no,
+        modes_truncation,
         period_len=None,
         period_offset=None,
         seed=None,
@@ -613,18 +616,24 @@ class Fourier(Generator):
         self._modes_truncation = np.array(modes_truncation)
         self._modes_no = np.array(modes_no)
         self._modes = []
-        [self._modes.append(
-            np.linspace(
-                -self._modes_truncation[d]/2,
-                self._modes_truncation[d]/2,
-                self._modes_no[d],
-                endpoint=False,
-            ).T
-        ) for d in range(model.dim)]
+        [
+            self._modes.append(
+                np.linspace(
+                    -self._modes_truncation[d] / 2,
+                    self._modes_truncation[d] / 2,
+                    self._modes_no[d],
+                    endpoint=False,
+                ).T
+            )
+            for d in range(model.dim)
+        ]
 
-
-        self.period_len = fill_to_dim(model.dim, period_len, np.double, 1.0)
-        self.period_offset = fill_to_dim(model.dim, period_offset, np.double, 0.0)
+        self._period_len = self._fill_to_dim(
+            model.dim, period_len, np.double, 1.0
+        )
+        self._period_offset = self._fill_to_dim(
+            model.dim, period_offset, np.double, 0.0
+        )
 
         self._verbose = bool(verbose)
         # initialize private attributes
@@ -657,11 +666,11 @@ class Fourier(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        pos -= self.period_offset[:, None]
+        pos -= self._period_offset[:, None]
         domain_size = pos.max(axis=1) - pos.min(axis=1)
         self._modes = [
-            self._modes[d] / domain_size[d] * self.period_len[d]
-                for d in range(self._model.dim)
+            self._modes[d] / domain_size[d] * self._period_len[d]
+            for d in range(self._model.dim)
         ]
 
         self._modes = generate_grid(self._modes)
@@ -669,7 +678,9 @@ class Fourier(Generator):
         # pre calc. the spectral density for all wave numbers
         # they are handed over to Cython
         k_norm = np.linalg.norm(self._modes, axis=0)
-        self._spectral_density_sqrt = np.sqrt(self._model.spectral_density(k_norm))
+        self._spectral_density_sqrt = np.sqrt(
+            self._model.spectral_density(k_norm)
+        )
         summed_modes = summate_fourier(
             self._spectral_density_sqrt,
             self._modes,
@@ -679,9 +690,8 @@ class Fourier(Generator):
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return (
-            np.sqrt(2.0 * self.model.var / np.prod(domain_size)) *
-            summed_modes +
-            nugget
+            np.sqrt(2.0 * self.model.var / np.prod(domain_size)) * summed_modes
+            + nugget
         )
 
     def get_nugget(self, shape):
@@ -869,6 +879,4 @@ class Fourier(Generator):
 
     def __repr__(self):
         """Return String representation."""
-        return (
-            f"{self.name}(model={self.model}, seed={self.seed})"
-        )
+        return f"{self.name}(model={self.model}, seed={self.seed})"
