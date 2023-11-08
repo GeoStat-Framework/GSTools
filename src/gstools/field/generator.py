@@ -553,6 +553,9 @@ class Fourier(Generator):
         cut-off value of the Fourier modes.
     mode_no : :class:`list`
         number of Fourier modes per dimension.
+    period_len : :class:`list` or :any:`None`, optional
+        the period length of the field in each dimension as a factor of the
+        domain size
     seed : :class:`int` or :any:`None`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -596,6 +599,7 @@ class Fourier(Generator):
         model,
         modes_truncation,
         modes_no,
+        period_len=None,
         seed=None,
         verbose=False,
         **kwargs,
@@ -615,6 +619,19 @@ class Fourier(Generator):
                     self._modes_no[d],
                     endpoint=False,
                 ).T
+            )
+
+        dim = model.dim
+        if period_len is None:
+            period_len = 1.0
+        self.period_len = np.array(period_len, dtype=np.double)
+        self.period_len = np.atleast_1d(self.period_len)[:dim]
+        if len(self.period_len) > dim:
+           raise ValueError(f"Fourier: len(period_len) <= {dim=} not fulfilled")
+        # fill up period_len with period_len[-1], such that len()==dim
+        if len(self.period_len) < dim:
+            self.period_len = np.pad(
+                    self.period_len, (0, dim - len(self.period_len)), "edge"
             )
 
         self._verbose = bool(verbose)
@@ -651,7 +668,7 @@ class Fourier(Generator):
         pos = np.asarray(pos, dtype=np.double)
         domain_size = pos.max(axis=1) - pos.min(axis=1)
         self._modes = [
-            self._modes[d] / domain_size[d]
+            self._modes[d] / domain_size[d] * self.period_len[d]
                 for d in range(self._model.dim)
         ]
 
