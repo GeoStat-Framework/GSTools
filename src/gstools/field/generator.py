@@ -613,18 +613,14 @@ class Fourier(Generator):
         self._modes_truncation = np.array(modes_truncation)
         self._modes_no = np.array(modes_no)
         self._modes = []
-        # TODO clean up here
-        for d in range(model.dim):
-            self._modes.append(
-                np.linspace(
-                    -self._modes_truncation[d]/2,
-                    self._modes_truncation[d]/2,
-                    self._modes_no[d],
-                    endpoint=False,
-                ).T
-            )
-
-        dim = model.dim
+        [self._modes.append(
+            np.linspace(
+                -self._modes_truncation[d]/2,
+                self._modes_truncation[d]/2,
+                self._modes_no[d],
+                endpoint=False,
+            ).T
+        ) for d in range(model.dim)]
 
         def fill_to_dim(dim, values, dtype, default_value):
             r = values
@@ -651,7 +647,6 @@ class Fourier(Generator):
         self._rng = None
         self._z_1 = None
         self._z_2 = None
-        # TODO what to do about cov_samples?
         self._spectral_density_sqrt = None
         self._value_type = "scalar"
         # set model and seed
@@ -813,7 +808,6 @@ class Fourier(Generator):
         """
         return self._seed
 
-    # TODO get setters, getters right
     @seed.setter
     def seed(self, new_seed):
         if new_seed is not self._seed:
