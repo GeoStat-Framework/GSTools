@@ -622,20 +622,6 @@ class Fourier(Generator):
             ).T
         ) for d in range(model.dim)]
 
-        def fill_to_dim(dim, values, dtype, default_value):
-            r = values
-            if values is None:
-                r = default_value
-            r = np.array(r, dtype=dtype)
-            r = np.atleast_1d(r)[:dim]
-            if len(r) > dim:
-               raise ValueError(f"Fourier: len(values) <= {dim=} not fulfilled")
-            # fill up values with values[-1], such that len()==dim
-            if len(r) < dim:
-                r = np.pad(
-                        r, (0, dim - len(r)), "edge"
-                )
-            return r
 
         self.period_len = fill_to_dim(model.dim, period_len, np.double, 1.0)
         self.period_offset = fill_to_dim(model.dim, period_offset, np.double, 0.0)
@@ -797,6 +783,20 @@ class Fourier(Generator):
         self._z_1 = self._rng.random.normal(size=np.prod(self._modes_no))
         self._z_2 = self._rng.random.normal(size=np.prod(self._modes_no))
 
+    def _fill_to_dim(self, dim, values, dtype, default_value):
+        """Fill an array with last element up to len(dim)."""
+        r = values
+        if values is None:
+            r = default_value
+        r = np.array(r, dtype=dtype)
+        r = np.atleast_1d(r)[:dim]
+        if len(r) > dim:
+            raise ValueError(f"Fourier: len(values) <= {dim=} not fulfilled")
+        # fill up values with values[-1], such that len()==dim
+        if len(r) < dim:
+            r = np.pad(r, (0, dim - len(r)), "edge")
+        return r
+
     @property
     def seed(self):
         """:class:`int`: Seed of the master RNG.
@@ -821,6 +821,37 @@ class Fourier(Generator):
     @model.setter
     def model(self, model):
         self.update(model)
+
+    @property
+    def modes_truncation(self):
+        """:class:`list`: Cut-off values of the Fourier modes."""
+        return self._modes_truncation
+
+    @modes_truncation.setter
+    def modes_truncation(self, modes_truncation):
+        self._modes_truncation = modes_truncation
+
+    @property
+    def period_len(self):
+        """:class:`list`: Period length of the field in each dim."""
+        return self._period_len
+
+    @period_len.setter
+    def period_len(self, period_len):
+        self._period_len = self._fill_to_dim(
+            self._model.dim, period_len, np.double, 1.0
+        )
+
+    @property
+    def period_offset(self):
+        """:class:`list`: Period offset of the field in each dim."""
+        return self._period_offset
+
+    @period_offset.setter
+    def period_offset(self, period_offset):
+        self._period_offset = self._fill_to_dim(
+            self._model.dim, period_offset, np.double, 0.0
+        )
 
     @property
     def verbose(self):
