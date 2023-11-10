@@ -76,6 +76,7 @@ def summate_incompr(
                 summed_modes[d, i] += (
                     proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
                 )
+
     return np.asarray(summed_modes)
 
 
