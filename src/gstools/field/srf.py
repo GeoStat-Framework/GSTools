@@ -143,6 +143,11 @@ class SRF(Field):
         field : :class:`numpy.ndarray`
             the SRF
         """
+        if isinstance(self.generator, Fourier) and mesh_type != "structured":
+            raise ValueError(
+                f"SRF: Fourier generator only defined for "
+                'mesh_type == "structured".'
+            )
         name, save = self.get_store_config(store)
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
