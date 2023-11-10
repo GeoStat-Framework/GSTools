@@ -546,8 +546,6 @@ class Fourier(Generator):
         Cut-off values of the Fourier modes.
     period_len : :class:`float` or :class:`list`, optional
         Period length of the field in each dim as a factor of the domain size.
-    period_offset : :class:`float` or :class:`list`, optional
-        The period offset by which the field will be shifted.
     seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -592,7 +590,6 @@ class Fourier(Generator):
         modes_no,
         modes_truncation,
         period_len=None,
-        period_offset=None,
         seed=None,
         verbose=False,
         **kwargs,
@@ -600,8 +597,10 @@ class Fourier(Generator):
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
         # initialize attributes
-        self._modes_truncation = np.array(modes_truncation)
-        self._modes_no = np.array(modes_no)
+        self._modes_truncation = self._fill_to_dim(
+            model.dim, modes_truncation, np.double
+        )
+        self._modes_no = self._fill_to_dim(model.dim, modes_no, int)
         self._modes = []
         [
             self._modes.append(
@@ -618,10 +617,6 @@ class Fourier(Generator):
         self._period_len = self._fill_to_dim(
             model.dim, period_len, np.double, 1.0
         )
-        self._period_offset = self._fill_to_dim(
-            model.dim, period_offset, np.double, 0.0
-        )
-
         self._verbose = bool(verbose)
         # initialize private attributes
         self._model = None
@@ -653,7 +648,6 @@ class Fourier(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        pos -= self._period_offset[:, None]
         domain_size = pos.max(axis=1) - pos.min(axis=1)
         self._modes = [
             self._modes[d] / domain_size[d] * self._period_len[d]
@@ -780,10 +774,12 @@ class Fourier(Generator):
         self._z_1 = self._rng.random.normal(size=np.prod(self._modes_no))
         self._z_2 = self._rng.random.normal(size=np.prod(self._modes_no))
 
-    def _fill_to_dim(self, dim, values, dtype, default_value):
+    def _fill_to_dim(self, dim, values, dtype, default_value=None):
         """Fill an array with last element up to len(dim)."""
         r = values
         if values is None:
+            if default_value is None:
+                raise ValueError(f"Fourier: Value has to be provided")
             r = default_value
         r = np.array(r, dtype=dtype)
         r = np.atleast_1d(r)[:dim]
@@ -837,17 +833,6 @@ class Fourier(Generator):
     def period_len(self, period_len):
         self._period_len = self._fill_to_dim(
             self._model.dim, period_len, np.double, 1.0
-        )
-
-    @property
-    def period_offset(self):
-        """:class:`list`: Period offset of the field in each dim."""
-        return self._period_offset
-
-    @period_offset.setter
-    def period_offset(self, period_offset):
-        self._period_offset = self._fill_to_dim(
-            self._model.dim, period_offset, np.double, 0.0
         )
 
     @property
