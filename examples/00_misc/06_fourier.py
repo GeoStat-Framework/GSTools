@@ -1,6 +1,6 @@
 """
-Generating a Periodic Random Field
-----------------------------------
+Generating a Simple Periodic Random Field
+-----------------------------------------
 
 In this simple example we are going to learn how to generate periodic spatial
 random fields. The Fourier method comes naturally with the property of
