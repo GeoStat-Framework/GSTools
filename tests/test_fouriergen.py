@@ -14,9 +14,9 @@ from gstools.field.generator import Fourier
 class TestFourier(unittest.TestCase):
     def setUp(self):
         self.seed = 19900408
-        self.cov_model_1d = gs.Gaussian(dim=1, var=0.5, len_scale=10.)
-        self.cov_model_2d = gs.Gaussian(dim=2, var=2.0, len_scale=30.)
-        self.cov_model_3d = gs.Gaussian(dim=3, var=2.1, len_scale=21.)
+        self.cov_model_1d = gs.Gaussian(dim=1, var=0.5, len_scale=10.0)
+        self.cov_model_2d = gs.Gaussian(dim=2, var=2.0, len_scale=30.0)
+        self.cov_model_3d = gs.Gaussian(dim=3, var=2.1, len_scale=21.0)
         self.x = np.linspace(0, 80, 11)
         self.y = np.linspace(0, 30, 31)
         self.z = np.linspace(0, 91, 13)
@@ -64,7 +64,9 @@ class TestFourier(unittest.TestCase):
 
     def test_periodicity(self):
         field = self.srf_2d((self.x, self.y), mesh_type="structured")
-        self.assertAlmostEqual(field[0, len(self.y)//2], field[-1, len(self.y)//2])
+        self.assertAlmostEqual(
+            field[0, len(self.y) // 2], field[-1, len(self.y) // 2]
+        )
 
     def test_assertions(self):
         # unstructured grids not supported
