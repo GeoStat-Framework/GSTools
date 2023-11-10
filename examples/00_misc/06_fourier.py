@@ -32,7 +32,7 @@ srf = gs.SRF(
 )
 
 # Now, we can finally calculate the field with the given parameters.
-srf((x, y), mesh_type='structured')
+srf((x, y), mesh_type="structured")
 
 # GSTools has a few simple visualization methods built in.
 srf.plot()

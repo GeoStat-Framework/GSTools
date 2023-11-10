@@ -27,7 +27,7 @@ srf = gs.SRF(
     seed=1681903,
 )
 # and computing it
-srf((x, y), mesh_type='structured')
+srf((x, y), mesh_type="structured")
 
 # With the field generated, we can now apply transformations
 # starting with a discretization of the field into 4 different values
@@ -37,5 +37,7 @@ srf.plot("transform_discrete")
 
 # This is already a nice result, but we want to pronounce the peaks of the
 # field. We can do this by applying a log-normal transformation on top
-srf.transform("lognormal", field="transform_discrete", store="transform_lognormal")
+srf.transform(
+    "lognormal", field="transform_discrete", store="transform_lognormal"
+)
 srf.plot("transform_lognormal")
