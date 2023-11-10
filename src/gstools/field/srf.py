@@ -13,7 +13,12 @@ The following classes are provided
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.field.generator import Generator, IncomprRandMeth, RandMeth, Fourier
+from gstools.field.generator import (
+    Generator,
+    IncomprRandMeth,
+    RandMeth,
+    Fourier,
+)
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
