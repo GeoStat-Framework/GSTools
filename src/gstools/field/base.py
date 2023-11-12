@@ -577,7 +577,7 @@ class Field:
             self._pos, self._field_shape = format_struct_pos_dim(pos, self.dim)
         # prepend dimension if we have a vector field
         if self.value_type == "vector":
-            self._field_shape = (self.dim,) + self._field_shape
+            self._field_shape = (self.generator.vec_dim,) + self._field_shape
             if self.latlon:
                 raise ValueError("Field: Vector fields not allowed for latlon")
 
