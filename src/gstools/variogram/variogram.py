@@ -53,6 +53,8 @@ def _set_estimator(estimator):
     """Translate the verbose Python estimator identifier to single char."""
     if estimator.lower() == "matheron":
         cython_estimator = "m"
+    elif estimator.lower() == "madogram":
+        cython_estimator = "f"
     elif estimator.lower() == "cressie":
         cython_estimator = "c"
     else:
@@ -157,6 +159,7 @@ def vario_estimate(
 
             * "matheron": the standard method of moments of Matheron
             * "cressie": an estimator more robust to outliers
+            * "madogram": an esitmator for Madogram
 
         Default: "matheron"
     latlon : :class:`bool`, optional

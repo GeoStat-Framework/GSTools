@@ -96,6 +96,9 @@ cdef inline double estimator_matheron(const double f_diff) nogil:
 cdef inline double estimator_cressie(const double f_diff) nogil:
     return sqrt(fabs(f_diff))
 
+cdef inline double estimator_madogram(const double f_diff) nogil:
+    return fabs(f_diff)
+
 ctypedef double (*_estimator_func)(const double) nogil
 
 cdef inline void normalization_matheron(
@@ -151,6 +154,8 @@ cdef _estimator_func choose_estimator_func(str estimator_type):
     cdef _estimator_func estimator_func
     if estimator_type == 'm':
         estimator_func = estimator_matheron
+    elif estimator_type == 'f':
+        estimator_func = estimator_madogram
     else:  # estimator_type == 'c'
         estimator_func = estimator_cressie
     return estimator_func
