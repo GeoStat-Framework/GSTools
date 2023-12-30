@@ -98,6 +98,8 @@ For the development version, you can do almost the same:
     export GSTOOLS_BUILD_PARALLEL=1
     pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
 
+The number of parallel threads can be set with the global variable `config.NUM_THREADS`.
+
 **Using experimental GSTools-Core for even more speed**
 
 You can install the optional dependency `GSTools-Core <https://github.com/GeoStat-Framework/GSTools-Core>`_,

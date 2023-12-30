@@ -14,7 +14,8 @@ def summate(
     const double[:, :] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:, :] pos
+    const double[:, :] pos,
+    const int num_threads=1,
 ):
     cdef int i, j, d
     cdef double phase
@@ -25,7 +26,7 @@ def summate(
 
     cdef double[:] summed_modes = np.zeros(X_len, dtype=float)
 
-    for i in prange(X_len, nogil=True):
+    for i in prange(X_len, nogil=True, num_threads=num_threads):
         for j in range(N):
             phase = 0.
             for d in range(dim):
@@ -49,7 +50,8 @@ def summate_incompr(
     const double[:, :] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:, :] pos
+    const double[:, :] pos,
+    const int num_threads=1,
 ):
     cdef int i, j, d
     cdef double phase

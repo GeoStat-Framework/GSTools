@@ -12,7 +12,8 @@ cimport numpy as np
 def calc_field_krige_and_variance(
     const double[:, :] krig_mat,
     const double[:, :] krig_vecs,
-    const double[:] cond
+    const double[:] cond,
+    const int num_threads=1,
 ):
 
     cdef int mat_i = krig_mat.shape[0]
@@ -26,7 +27,7 @@ def calc_field_krige_and_variance(
 
     # error = krig_vecs * krig_mat * krig_vecs
     # field = cond * krig_mat * krig_vecs
-    for k in prange(res_i, nogil=True):
+    for k in prange(res_i, nogil=True, num_threads=num_threads):
         for i in range(mat_i):
             krig_fac = 0.0
             for j in range(mat_i):
@@ -40,7 +41,8 @@ def calc_field_krige_and_variance(
 def calc_field_krige(
     const double[:, :] krig_mat,
     const double[:, :] krig_vecs,
-    const double[:] cond
+    const double[:] cond,
+    const int num_threads=1,
 ):
 
     cdef int mat_i = krig_mat.shape[0]
@@ -52,7 +54,7 @@ def calc_field_krige(
     cdef int i, j, k
 
     # field = cond * krig_mat * krig_vecs
-    for k in prange(res_i, nogil=True):
+    for k in prange(res_i, nogil=True, num_threads=num_threads):
         for i in range(mat_i):
             krig_fac = 0.0
             for j in range(mat_i):
