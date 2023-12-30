@@ -386,7 +386,7 @@ def vario_estimate(
             bandwidth,
             separate_dirs=_separate_dirs_test(direction, angles_tol),
             estimator_type=cython_estimator,
-            num_threads=config.num_threads,
+            num_threads=config.NUM_THREADS,
         )
         if dir_no == 1:
             estimates, counts = estimates[0], counts[0]
