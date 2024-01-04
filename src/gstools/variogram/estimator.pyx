@@ -9,7 +9,7 @@ from cython.parallel import parallel, prange
 
 try:
     cimport openmp
-except:
+except:  # no-cython-lint
     ...
 
 cimport numpy as np
@@ -21,7 +21,7 @@ def set_num_threads(num_threads):
     if num_threads is None:
         try:
             num_threads_c = openmp.omp_get_num_procs()
-        except:
+        except:  # no-cython-lint
             ...
     else:
         num_threads_c = num_threads
