@@ -4,7 +4,7 @@ GStools subpackage providing global variables.
 .. currentmodule:: gstools.config
 
 """
-NUM_THREADS = 1
+NUM_THREADS = None
 
 # pylint: disable=W0611
 try:  # pragma: no cover

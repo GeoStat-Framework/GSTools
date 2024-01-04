@@ -6,9 +6,25 @@ This is the variogram estimater, implemented in cython.
 
 import numpy as np
 from cython.parallel import parallel, prange
+try:
+    cimport openmp
+except:
+    ...
 
 cimport numpy as np
 from libc.math cimport M_PI, acos, atan2, cos, fabs, isnan, pow, sin, sqrt
+
+
+def set_num_threads(num_threads):
+    cdef int num_threads_c = 1
+    if num_threads is None:
+        try:
+            num_threads_c = openmp.omp_get_num_procs()
+        except:
+            ...
+    else:
+        num_threads_c = num_threads
+    return num_threads_c
 
 
 cdef inline double dist_euclid(
@@ -209,7 +225,9 @@ def directional(
     cdef int i, j, k, m, d
     cdef double dist
 
-    for i in prange(i_max, nogil=True, num_threads=num_threads):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    for i in prange(i_max, nogil=True, num_threads=num_threads_c):
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = dist_euclid(dim, pos, j, k)
@@ -273,7 +291,9 @@ def unstructured(
     cdef int i, j, k, m
     cdef double dist
 
-    for i in prange(i_max, nogil=True, num_threads=num_threads):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    for i in prange(i_max, nogil=True, num_threads=num_threads_c):
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(dim, pos, j, k)
@@ -307,7 +327,9 @@ def structured(
     cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
-    with nogil, parallel(num_threads=num_threads):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    with nogil, parallel(num_threads=num_threads_c):
         for i in range(i_max):
             for j in range(j_max):
                 for k in prange(1, k_max-i):
@@ -337,7 +359,9 @@ def ma_structured(
     cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
-    with nogil, parallel(num_threads=num_threads):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    with nogil, parallel(num_threads=num_threads_c):
         for i in range(i_max):
             for j in range(j_max):
                 for k in prange(1, k_max-i):

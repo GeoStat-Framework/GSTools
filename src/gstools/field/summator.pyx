@@ -4,10 +4,26 @@ This is the randomization method summator, implemented in cython.
 """
 
 import numpy as np
-from cython.parallel import prange
+from cython.parallel import parallel, prange
+try:
+    cimport openmp
+except:
+    ...
 
 cimport numpy as np
 from libc.math cimport cos, sin
+
+
+def set_num_threads(num_threads):
+    cdef int num_threads_c = 1
+    if num_threads is None:
+        try:
+            num_threads_c = openmp.omp_get_num_procs()
+        except:
+            ...
+    else:
+        num_threads_c = num_threads
+    return num_threads_c
 
 
 def summate(
@@ -15,7 +31,7 @@ def summate(
     const double[:] z_1,
     const double[:] z_2,
     const double[:, :] pos,
-    const int num_threads=1,
+    num_threads=None,
 ):
     cdef int i, j, d
     cdef double phase
@@ -26,7 +42,9 @@ def summate(
 
     cdef double[:] summed_modes = np.zeros(X_len, dtype=float)
 
-    for i in prange(X_len, nogil=True, num_threads=num_threads):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    for i in prange(X_len, nogil=True, num_threads=num_threads_c):
         for j in range(N):
             phase = 0.
             for d in range(dim):
@@ -51,7 +69,7 @@ def summate_incompr(
     const double[:] z_1,
     const double[:] z_2,
     const double[:, :] pos,
-    const int num_threads=1,
+    num_threads=None,
 ):
     cdef int i, j, d
     cdef double phase
