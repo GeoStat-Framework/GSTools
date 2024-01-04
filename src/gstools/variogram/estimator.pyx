@@ -6,6 +6,7 @@ This is the variogram estimater, implemented in cython.
 
 import numpy as np
 from cython.parallel import parallel, prange
+
 try:
     cimport openmp
 except:
