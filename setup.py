@@ -27,8 +27,7 @@ else:
     print("## GSTools setup: OpenMP not wanted by the user.")
 
 # setup - do not include package data to ignore .pyx files in wheels
-setup(ext_modules=cythonize(
-    CY_MODULES,
-    compile_time_env={"OPENMP": open_mp}),
+setup(
+    ext_modules=cythonize(CY_MODULES, compile_time_env={"OPENMP": open_mp}),
     include_package_data=False,
 )
