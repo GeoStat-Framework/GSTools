@@ -198,7 +198,7 @@ def directional(
     const double bandwidth=-1.0,  # negative values to turn of bandwidth search
     const bint separate_dirs=False,  # whether the direction bands don't overlap
     str estimator_type='m',
-    const int num_threads=1,
+    num_threads=None,
 ):
     if pos.shape[1] != f.shape[1]:
         raise ValueError(f'len(pos) = {pos.shape[1]} != len(f) = {f.shape[1])}')
@@ -259,7 +259,7 @@ def unstructured(
     const double[:, :] pos,
     str estimator_type='m',
     str distance_type='e',
-    const int num_threads=1,
+    num_threads=None,
 ):
     cdef int dim = pos.shape[0]
     cdef _dist_func distance
@@ -313,7 +313,7 @@ def unstructured(
 def structured(
     const double[:, :] f,
     str estimator_type='m',
-    const int num_threads=1,
+    num_threads=None,
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
@@ -345,7 +345,7 @@ def ma_structured(
     const double[:, :] f,
     const bint[:, :] mask,
     str estimator_type='m',
-    const int num_threads=1,
+    num_threads=None,
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
