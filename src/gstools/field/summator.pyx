@@ -6,10 +6,8 @@ This is the randomization method summator, implemented in cython.
 import numpy as np
 from cython.parallel import prange
 
-try:
+IF OPENMP:
     cimport openmp
-except:  # no-cython-lint
-    ...
 
 cimport numpy as np
 from libc.math cimport cos, sin
@@ -18,9 +16,10 @@ from libc.math cimport cos, sin
 def set_num_threads(num_threads):
     cdef int num_threads_c = 1
     if num_threads is None:
-        try:
+        # OPENMP set during setup
+        IF OPENMP:
             num_threads_c = openmp.omp_get_num_procs()
-        except:  # no-cython-lint
+        ELSE:
             ...
     else:
         num_threads_c = num_threads
