@@ -124,8 +124,8 @@ or by manually installing the package
 
 GSTools-Core will automatically use all your cores in parallel, without having
 to use OpenMP or a local C compiler.
-In case you want to restrict the number of threads used, you can set the
-environment variable ``RAYON_NUM_THREADS`` to the desired amount.
+In case you want to restrict the number of threads used, you can use the
+global variable `config.NUM_THREADS` to the desired number.
 
 
 Citation
