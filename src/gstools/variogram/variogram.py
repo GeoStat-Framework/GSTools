@@ -374,6 +374,7 @@ def vario_estimate(
             pos,
             estimator_type=cython_estimator,
             distance_type=distance_type,
+            num_threads=config.NUM_THREADS,
         )
     else:
         estimates, counts = directional(
@@ -385,6 +386,7 @@ def vario_estimate(
             bandwidth,
             separate_dirs=_separate_dirs_test(direction, angles_tol),
             estimator_type=cython_estimator,
+            num_threads=config.NUM_THREADS,
         )
         if dir_no == 1:
             estimates, counts = estimates[0], counts[0]
@@ -485,8 +487,10 @@ def vario_estimate_axis(
     cython_estimator = _set_estimator(estimator)
 
     if masked:
-        return ma_structured(field, mask, cython_estimator)
-    return structured(field, cython_estimator)
+        return ma_structured(
+            field, mask, cython_estimator, num_threads=config.NUM_THREADS
+        )
+    return structured(field, cython_estimator, num_threads=config.NUM_THREADS)
 
 
 # for backward compatibility

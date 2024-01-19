@@ -7,8 +7,24 @@ This is the variogram estimater, implemented in cython.
 import numpy as np
 from cython.parallel import parallel, prange
 
+IF OPENMP:
+    cimport openmp
+
 cimport numpy as np
 from libc.math cimport M_PI, acos, atan2, cos, fabs, isnan, pow, sin, sqrt
+
+
+def set_num_threads(num_threads):
+    cdef int num_threads_c = 1
+    if num_threads is None:
+        # OPENMP set during setup
+        IF OPENMP:
+            num_threads_c = openmp.omp_get_num_procs()
+        ELSE:
+            ...
+    else:
+        num_threads_c = num_threads
+    return num_threads_c
 
 
 cdef inline double dist_euclid(
@@ -181,6 +197,7 @@ def directional(
     const double bandwidth=-1.0,  # negative values to turn of bandwidth search
     const bint separate_dirs=False,  # whether the direction bands don't overlap
     str estimator_type='m',
+    num_threads=None,
 ):
     if pos.shape[1] != f.shape[1]:
         raise ValueError(f'len(pos) = {pos.shape[1]} != len(f) = {f.shape[1])}')
@@ -208,7 +225,9 @@ def directional(
     cdef int i, j, k, m, d
     cdef double dist
 
-    for i in prange(i_max, nogil=True):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    for i in prange(i_max, nogil=True, num_threads=num_threads_c):
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = dist_euclid(dim, pos, j, k)
@@ -239,6 +258,7 @@ def unstructured(
     const double[:, :] pos,
     str estimator_type='m',
     str distance_type='e',
+    num_threads=None,
 ):
     cdef int dim = pos.shape[0]
     cdef _dist_func distance
@@ -271,7 +291,9 @@ def unstructured(
     cdef int i, j, k, m
     cdef double dist
 
-    for i in prange(i_max, nogil=True):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    for i in prange(i_max, nogil=True, num_threads=num_threads_c):
         for j in range(j_max):
             for k in range(j+1, k_max):
                 dist = distance(dim, pos, j, k)
@@ -287,35 +309,10 @@ def unstructured(
     return np.asarray(variogram), np.asarray(counts)
 
 
-def structured(const double[:, :] f, str estimator_type='m'):
-    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
-    cdef _normalization_func normalization_func = (
-        choose_estimator_normalization(estimator_type)
-    )
-
-    cdef int i_max = f.shape[0] - 1
-    cdef int j_max = f.shape[1]
-    cdef int k_max = i_max + 1
-
-    cdef double[:] variogram = np.zeros(k_max)
-    cdef long[:] counts = np.zeros(k_max, dtype=long)
-    cdef int i, j, k
-
-    with nogil, parallel():
-        for i in range(i_max):
-            for j in range(j_max):
-                for k in prange(1, k_max-i):
-                    counts[k] += 1
-                    variogram[k] += estimator_func(f[i, j] - f[i+k, j])
-
-    normalization_func(variogram, counts)
-    return np.asarray(variogram)
-
-
-def ma_structured(
+def structured(
     const double[:, :] f,
-    const bint[:, :] mask,
     str estimator_type='m',
+    num_threads=None,
 ):
     cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
     cdef _normalization_func normalization_func = (
@@ -330,7 +327,41 @@ def ma_structured(
     cdef long[:] counts = np.zeros(k_max, dtype=long)
     cdef int i, j, k
 
-    with nogil, parallel():
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    with nogil, parallel(num_threads=num_threads_c):
+        for i in range(i_max):
+            for j in range(j_max):
+                for k in prange(1, k_max-i):
+                    counts[k] += 1
+                    variogram[k] += estimator_func(f[i, j] - f[i+k, j])
+
+    normalization_func(variogram, counts)
+    return np.asarray(variogram)
+
+
+def ma_structured(
+    const double[:, :] f,
+    const bint[:, :] mask,
+    str estimator_type='m',
+    num_threads=None,
+):
+    cdef _estimator_func estimator_func = choose_estimator_func(estimator_type)
+    cdef _normalization_func normalization_func = (
+        choose_estimator_normalization(estimator_type)
+    )
+
+    cdef int i_max = f.shape[0] - 1
+    cdef int j_max = f.shape[1]
+    cdef int k_max = i_max + 1
+
+    cdef double[:] variogram = np.zeros(k_max)
+    cdef long[:] counts = np.zeros(k_max, dtype=long)
+    cdef int i, j, k
+
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    with nogil, parallel(num_threads=num_threads_c):
         for i in range(i_max):
             for j in range(j_max):
                 for k in prange(1, k_max-i):

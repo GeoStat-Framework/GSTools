@@ -209,7 +209,9 @@ class RandMeth(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        summed_modes = summate(self._cov_sample, self._z_1, self._z_2, pos)
+        summed_modes = summate(
+            self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
+        )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return np.sqrt(self.model.var / self._mode_no) * summed_modes + nugget
 
@@ -489,7 +491,11 @@ class IncomprRandMeth(RandMeth):
         """
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate_incompr(
-            self._cov_sample, self._z_1, self._z_2, pos
+            self._cov_sample,
+            self._z_1,
+            self._z_2,
+            pos,
+            config.NUM_THREADS,
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         e1 = self._create_unit_vector(summed_modes.shape)
