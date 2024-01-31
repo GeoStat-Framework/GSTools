@@ -159,7 +159,7 @@ def vario_estimate(
 
             * "matheron": the standard method of moments of Matheron
             * "cressie": an estimator more robust to outliers
-            * "madogram": an esitmator for Madogram
+            * "madogram": an estimator for Madogram
 
         Default: "matheron"
     latlon : :class:`bool`, optional
