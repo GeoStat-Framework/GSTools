@@ -110,6 +110,15 @@ def vario_estimate(
     with :math:`r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
     being the bins.
 
+    Or if the estimator "f-madogram" was chosen:
+    .. math::
+       \gamma(r_k) = \frac{1}{2 N(r_k)} \sum_{i=1}^{N(r_k)} |z(\mathbf x_i) -
+       z(\mathbf x_i')| \; ,
+
+   with :math: `r_k \leq \| \mathbf x_i - \mathbf x_i' \| < r_{k+1}`
+   being the bins.
+   The F-madogram estimator is prefered for extreme values [Cooley2006]_. Also see [Neves2011]_.
+
     Or if the estimator "cressie" was chosen:
 
     .. math::
