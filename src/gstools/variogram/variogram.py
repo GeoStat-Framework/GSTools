@@ -54,7 +54,7 @@ def _set_estimator(estimator):
     if estimator.lower() == "matheron":
         cython_estimator = "m"
     elif estimator.lower() == "madogram":
-        cython_estimator = "f"
+        cython_estimator = "a"
     elif estimator.lower() == "cressie":
         cython_estimator = "c"
     else:
