@@ -6,15 +6,32 @@ This is the randomization method summator, implemented in cython.
 import numpy as np
 from cython.parallel import prange
 
+IF OPENMP:
+    cimport openmp
+
 cimport numpy as np
 from libc.math cimport pi, cos, sin, sqrt
+
+
+def set_num_threads(num_threads):
+    cdef int num_threads_c = 1
+    if num_threads is None:
+        # OPENMP set during setup
+        IF OPENMP:
+            num_threads_c = openmp.omp_get_num_procs()
+        ELSE:
+            ...
+    else:
+        num_threads_c = num_threads
+    return num_threads_c
 
 
 def summate(
     const double[:, :] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:, :] pos
+    const double[:, :] pos,
+    num_threads=None,
 ):
     cdef int i, j, d
     cdef double phase
@@ -25,7 +42,9 @@ def summate(
 
     cdef double[:] summed_modes = np.zeros(X_len, dtype=float)
 
-    for i in prange(X_len, nogil=True):
+    cdef int num_threads_c = set_num_threads(num_threads)
+
+    for i in prange(X_len, nogil=True, num_threads=num_threads_c):
         for j in range(N):
             phase = 0.
             for d in range(dim):
@@ -49,7 +68,8 @@ def summate_incompr(
     const double[:, :] cov_samples,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:, :] pos
+    const double[:, :] pos,
+    num_threads=None,
 ):
     cdef int i, j, d
     cdef double phase

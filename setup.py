@@ -17,11 +17,17 @@ CY_MODULES = [
     for ext in ["field.summator", "variogram.estimator", "krige.krigesum"]
 ]
 # you can set GSTOOLS_BUILD_PARALLEL=0 or GSTOOLS_BUILD_PARALLEL=1
+open_mp = False
 if int(os.getenv("GSTOOLS_BUILD_PARALLEL", "0")):
     added = [add_openmp_flags_if_available(mod) for mod in CY_MODULES]
-    print(f"## GSTools setup: OpenMP used: {any(added)}")
+    if any(added):
+        open_mp = True
+    print(f"## GSTools setup: OpenMP used: {open_mp}")
 else:
     print("## GSTools setup: OpenMP not wanted by the user.")
 
 # setup - do not include package data to ignore .pyx files in wheels
-setup(ext_modules=cythonize(CY_MODULES), include_package_data=False)
+setup(
+    ext_modules=cythonize(CY_MODULES, compile_time_env={"OPENMP": open_mp}),
+    include_package_data=False,
+)
