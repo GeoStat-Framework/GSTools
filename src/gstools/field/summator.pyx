@@ -96,7 +96,6 @@ def summate_incompr(
                 summed_modes[d, i] += (
                     proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
                 )
-
     return np.asarray(summed_modes)
 
 
@@ -105,7 +104,9 @@ def summate_fourier(
     const double[:, :] modes,
     const double[:] z_1,
     const double[:] z_2,
-    const double[:, :] pos
+    const double[:, :] pos,
+    const double phase_factor,
+    const double spec_factor,
     ):
     cdef int i, j, d
     cdef double phase
@@ -122,7 +123,8 @@ def summate_fourier(
             for d in range(dim):
                 phase += modes[d, j] * pos[d, i]
             # OpenMP doesn't like *= after +=... seems to be a compiler specific thing
-            phase = phase * 2. * pi
-            summed_modes[i] += spectral_density_sqrt[j] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
+            # phase = phase * 2. * pi
+            phase = phase * phase_factor
+            summed_modes[i] += spec_factor * spectral_density_sqrt[j] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
 
     return np.asarray(summed_modes)

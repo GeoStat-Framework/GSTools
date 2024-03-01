@@ -635,7 +635,7 @@ class Fourier(Generator):
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, pos, add_nugget=True):
+    def __call__(self, pos, add_nugget=True, phase_factor=2.*np.pi, spec_factor=1., var_factor=1.,):
         """Calculate the modes for the Fourier method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -674,10 +674,12 @@ class Fourier(Generator):
             self._z_1,
             self._z_2,
             pos,
+            phase_factor,
+            spec_factor,
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
         return (
-            np.sqrt(2.0 * self.model.var / np.prod(domain_size)) * summed_modes
+            np.sqrt(var_factor * 2.0 * self.model.var / np.prod(domain_size)) * summed_modes
             + nugget
         )
 
