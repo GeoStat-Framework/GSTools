@@ -10,7 +10,7 @@ IF OPENMP:
     cimport openmp
 
 cimport numpy as np
-from libc.math cimport cos, sin
+from libc.math cimport pi, cos, sin, sqrt
 
 
 def set_num_threads(num_threads):
@@ -96,4 +96,35 @@ def summate_incompr(
                 summed_modes[d, i] += (
                     proj[d] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
                 )
+    return np.asarray(summed_modes)
+
+
+def summate_fourier(
+    const double[:] spectral_density_sqrt,
+    const double[:, :] modes,
+    const double[:] z_1,
+    const double[:] z_2,
+    const double[:, :] pos,
+    const double phase_factor,
+    const double spec_factor,
+    ):
+    cdef int i, j, d
+    cdef double phase
+    cdef int dim = pos.shape[0]
+
+    cdef int X_len = pos.shape[1]
+    cdef int N = modes.shape[1]
+
+    cdef double[:] summed_modes = np.zeros(X_len, dtype=float)
+
+    for i in prange(X_len, nogil=True):
+        for j in range(N):
+            phase = 0.
+            for d in range(dim):
+                phase += modes[d, j] * pos[d, i]
+            # OpenMP doesn't like *= after +=... seems to be a compiler specific thing
+            # phase = phase * 2. * pi
+            phase = phase * phase_factor
+            summed_modes[i] += spec_factor * spectral_density_sqrt[j] * (z_1[j] * cos(phase) + z_2[j] * sin(phase))
+
     return np.asarray(summed_modes)
