@@ -2,14 +2,14 @@
 requires = [
     "setuptools>=64",
     "setuptools_scm>=7",
-    "numpy==2.0.0b1",
+    "numpy>=2.0.0rc1",
     "Cython>=3.0",
     "extension-helpers>=1",
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 name = "gstools"
 description = "GSTools: A geostatistical toolbox."
 authors = [
@@ -48,7 +48,7 @@ dependencies = [
     "emcee>=3.0.0",
     "hankel>=1.0.0",
     "meshio>=5.1.0",
-    "numpy==2.0.0b1",
+    "numpy>=1.19.3",
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
@@ -161,7 +161,7 @@ target-version = [
 # Switch to using build
 build-frontend = "build"
 # Disable building PyPy wheels on all platforms, 32bit for py3.10/11/12, musllinux builds, py3.6/7
-skip = ["cp36-*", "cp37-*", "pp*", "cp31*-win32", "cp31*-manylinux_i686", "*-musllinux_*"]
+skip = ["cp36-*", "cp37-*", "cp38-*", "pp*", "*-win32", "*-manylinux_i686", "*-musllinux_*"]
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
