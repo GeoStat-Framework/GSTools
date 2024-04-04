@@ -48,7 +48,7 @@ dependencies = [
     "emcee>=3.0.0",
     "hankel>=1.0.0",
     "meshio>=5.1.0",
-    "numpy>=1.19.3",
+    "numpy>=2.0.0rc1",
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
