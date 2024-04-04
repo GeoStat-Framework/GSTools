@@ -73,7 +73,7 @@ plotting = [
 rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]
 lint = [
-    "black",
+    "black>=23,<24",
     "pylint",
     "isort[colors]",
     "cython-lint",
