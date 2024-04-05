@@ -383,7 +383,7 @@ def generate_st_grid(pos, time, mesh_type="unstructured"):
     if mesh_type != "unstructured":
         pos = generate_grid(pos)
     else:
-        pos = np.array(pos, dtype=np.double, ndmin=2, copy=False)
+        pos = np.atleast_2d(np.asarray(pos, dtype=np.double))
     out = [np.repeat(p.reshape(-1), np.size(time)) for p in pos]
     out.append(np.tile(time, np.size(pos[0])))
     return np.asarray(out, dtype=np.double)
@@ -552,7 +552,7 @@ def format_unstruct_pos_shape(pos, shape, check_stacked_shape=False):
     # now we try to be smart
     pre_len = len(np.atleast_1d(pos))
     # care about 1D: pos can be given as 1D array here -> convert to 2D array
-    pos = np.array(pos, dtype=np.double, ndmin=2, copy=False)
+    pos = np.atleast_2d(np.asarray(pos, dtype=np.double))
     post_len = len(pos)
     # first array dimension should be spatial dimension (1D is special case)
     dim = post_len if pre_len == post_len else 1
@@ -606,7 +606,7 @@ def ang2dir(angles, dtype=np.double, dim=None):
         the array of direction vectors
     """
     pre_dim = np.asanyarray(angles).ndim
-    angles = np.array(angles, ndmin=2, dtype=dtype, copy=False)
+    angles = np.atleast_2d(np.asarray(angles, dtype=dtype))
     if len(angles.shape) > 2:
         raise ValueError(f"Can't interpret angles array {angles}")
     dim = angles.shape[1] + 1 if dim is None else dim
