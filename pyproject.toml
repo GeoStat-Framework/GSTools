@@ -45,7 +45,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "emcee>=3.0.0",
+    "emcee @ git+https://github.com/MuellerSeb/emcee.git@patch-np2",
     "hankel>=1.0.0",
     "meshio>=5.1.0",
     "numpy>=2.0.0rc1",
