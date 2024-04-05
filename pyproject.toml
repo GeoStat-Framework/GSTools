@@ -61,9 +61,9 @@ doc = [
     "numpydoc>=1.1",
     "pykrige>=1.5,<2",
     "pyvista>=0.29",
-    "sphinx>=4",
+    "sphinx>=7",
     "sphinx-gallery>=0.8",
-    "sphinx-rtd-theme>=1,<1.1",
+    "sphinx-rtd-theme>=1,<2",
     "sphinxcontrib-youtube>=1.1",
 ]
 plotting = [
@@ -104,7 +104,6 @@ line_length = 79
 [tool.black]
 line-length = 79
 target-version = [
-    "py38",
     "py39",
     "py310",
     "py311",
