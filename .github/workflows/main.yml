@@ -80,30 +80,37 @@ jobs:
           path: ./dist/*.whl
 
   build_sdist:
-    name: sdist on ${{ matrix.os }} with py ${{ matrix.python-version }}
+    name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }} and numpy ${{ matrix.ver.np }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-
+        ver: [{py: '3.8', np: '1' }, {py: '3.9', np: '1'}, {py: '3.10', np: '1'}, {py: '3.11', np: '1'}, {py: '3.12', np: '1'}, {py: '3.12', np: '2'}]
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: '0'
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.ver.py }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.ver.py }}
 
       - name: Install dependencies
-        env:
-          GSTOOLS_BUILD_PARALLEL: 1
         run: |
           python -m pip install --upgrade pip
           pip install build coveralls>=3.0.0
+
+      - name: bleeding edge
+        if: matrix.ver.np == '2'
+        run: |
+          python -m pip install "numpy>=2.0.0rc1" git+https://github.com/dfm/emcee.git
+
+      - name: Install GSTools
+        env:
+          GSTOOLS_BUILD_PARALLEL: 1
+        run: |
           pip install -v --editable .[test]
 
       - name: Run tests
@@ -119,7 +126,7 @@ jobs:
           python -m build --sdist --outdir dist .
 
       - uses: actions/upload-artifact@v2
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
+        if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.9'
         with:
           path: dist/*.tar.gz
 
