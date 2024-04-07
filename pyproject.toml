@@ -61,7 +61,7 @@ doc = [
     "meshzoo>=0.7",
     "numpydoc>=1.1",
     "pykrige>=1.5,<2",
-    "pyvista>=0.29",
+    "pyvista>=0.40",
     "sphinx>=7",
     "sphinx-gallery>=0.8",
     "sphinx-rtd-theme>=1,<2",
@@ -69,7 +69,7 @@ doc = [
 ]
 plotting = [
     "matplotlib>=3",
-    "pyvista>=0.29",
+    "pyvista>=0.40",
 ]
 rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]

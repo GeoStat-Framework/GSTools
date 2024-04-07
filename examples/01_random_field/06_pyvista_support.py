@@ -22,7 +22,7 @@ import gstools as gs
 # axes each with a length of 2 (whatever unit).
 
 dim, spacing = (50, 50, 50), (2, 2, 2)
-grid = pv.UniformGrid(dim, spacing)
+grid = pv.ImageData(dim, spacing)
 
 ###############################################################################
 # Now we set up the SRF class as always. We'll use an anisotropic model.
