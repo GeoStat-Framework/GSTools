@@ -21,8 +21,8 @@ import gstools as gs
 # We create a structured grid with PyVista containing 50 segments on all three
 # axes each with a length of 2 (whatever unit).
 
-dim, spacing = (50, 50, 50), (2, 2, 2)
-grid = pv.ImageData(dim, spacing)
+dims, spacing = (50, 50, 50), (2, 2, 2)
+grid = pv.ImageData(dimensions=dims, spacing=spacing)
 
 ###############################################################################
 # Now we set up the SRF class as always. We'll use an anisotropic model.
