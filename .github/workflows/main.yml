@@ -86,7 +86,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        ver: [{py: '3.8', np: '1' }, {py: '3.9', np: '1'}, {py: '3.10', np: '1'}, {py: '3.11', np: '1'}, {py: '3.12', np: '1'}, {py: '3.12', np: '2'}]
+        # https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
+        ver:
+          - {py: '3.8', np: '==1.19.3' }
+          - {py: '3.9', np: '==1.19.3'}
+          - {py: '3.10', np: '==1.21.6'}
+          - {py: '3.11', np: '==1.23.2'}
+          - {py: '3.12', np: '==1.26.2'}
+          - {py: '3.12', np: '>=2.0.0rc1'}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -100,12 +107,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build coveralls>=3.0.0 oldest-supported-numpy
+          pip install build "coveralls>=3.0.0" "numpy${{ matrix.ver.np }}"
 
       - name: bleeding edge
-        if: matrix.ver.np == '2'
+        if: matrix.ver.np == '>=2.0.0rc1'
         run: |
-          python -m pip install "numpy>=2.0.0rc1" git+https://github.com/dfm/emcee.git
+          python -m pip install git+https://github.com/dfm/emcee.git
 
       - name: Install GSTools
         env:
