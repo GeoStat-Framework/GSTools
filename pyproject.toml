@@ -53,7 +53,6 @@ dependencies = [
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
-g
 [project.optional-dependencies]
 doc = [
     "m2r2>=0.2.8",
