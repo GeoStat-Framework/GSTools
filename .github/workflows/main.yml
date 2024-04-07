@@ -80,7 +80,7 @@ jobs:
           path: ./dist/*.whl
 
   build_sdist:
-    name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }}, numpy${{ matrix.ver.np }}, scipy${{ matrix.ver.sp }}
+    name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }} numpy${{ matrix.ver.np }} scipy${{ matrix.ver.sp }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
