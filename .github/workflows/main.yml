@@ -109,8 +109,10 @@ jobs:
           python -m pip install --upgrade pip
 
       - name: Install dependencies
+        env:
+          NP_VER: ${{ matrix.ver.np }}
         run: |
-          python -m pip install build coveralls>=3.0.0 numpy${{ matrix.ver.np }}
+          python -m pip install build coveralls>=3.0.0 numpy${NP_VER}
 
       - name: bleeding edge
         if: matrix.ver.np == '>=2.0.0rc1'
