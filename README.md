@@ -345,7 +345,7 @@ in memory for immediate 3D plotting in Python.
 
 ## Requirements:
 
-- [NumPy >= 1.14.5](https://www.numpy.org)
+- [NumPy >= 1.20.0](https://www.numpy.org)
 - [SciPy >= 1.1.0](https://www.scipy.org/scipylib)
 - [hankel >= 1.0.0](https://github.com/steven-murray/hankel)
 - [emcee >= 3.0.0](https://github.com/dfm/emcee)
@@ -366,7 +366,7 @@ You can contact us via <info@geostat-framework.org>.
 
 ## License
 
-[LGPLv3][license_link] © 2018-2021
+[LGPLv3][license_link] © 2018-2024
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_link]: https://docs.conda.io/en/latest/miniconda.html
