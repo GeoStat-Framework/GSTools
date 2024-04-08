@@ -3,7 +3,7 @@ requires = [
     "setuptools>=64",
     "setuptools_scm>=7",
     "numpy>=2.0.0rc1,<2.3; python_version >= '3.9'",
-    "numpy==1.19.3; python_version < '3.9'",
+    "oldest-supported-numpy; python_version < '3.9'",
     "Cython>=3.0.10,<3.1.0",
     "extension-helpers>=1",
 ]
@@ -53,6 +53,7 @@ dependencies = [
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
+
 [project.optional-dependencies]
 doc = [
     "m2r2>=0.2.8",
@@ -104,6 +105,7 @@ line_length = 79
 [tool.black]
 line-length = 79
 target-version = [
+    "py38",
     "py39",
     "py310",
     "py311",
