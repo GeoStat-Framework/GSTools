@@ -13,6 +13,7 @@ The following classes are provided
    Modulus
    Manly
 """
+
 # pylint: disable=E1101
 import numpy as np
 

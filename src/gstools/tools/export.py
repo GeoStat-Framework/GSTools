@@ -13,6 +13,7 @@ The following functions are provided
    to_vtk_structured
    to_vtk_unstructured
 """
+
 # pylint: disable=C0103, E1101
 import numpy as np
 from pyevtk.hl import gridToVTK, pointsToVTK

@@ -8,6 +8,7 @@ The following classes are provided
 .. autosummary::
    CovModel
 """
+
 # pylint: disable=C0103, R0201, E1101, C0302, W0613
 import copy
 

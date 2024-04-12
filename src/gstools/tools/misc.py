@@ -10,6 +10,7 @@ The following functions are provided
    list_format
    eval_func
 """
+
 # pylint: disable=C0103, C0415
 import numpy as np
 

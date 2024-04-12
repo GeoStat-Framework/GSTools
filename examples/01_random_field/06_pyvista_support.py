@@ -12,6 +12,7 @@ makes 3D plotting simple and is built for large/complex data geometries.
 The :any:`Field.mesh` method enables easy field creation on PyVista meshes
 used by the :any:`SRF` or :any:`Krige` class.
 """
+
 # sphinx_gallery_thumbnail_path = 'pics/GS_pyvista_cut.png'
 import pyvista as pv
 

@@ -9,6 +9,7 @@ The following classes and functions are provided
    apply_mean_norm_trend
    remove_trend_norm_mean
 """
+
 import numpy as np
 
 from gstools.normalizer.base import Normalizer

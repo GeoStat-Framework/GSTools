@@ -8,6 +8,7 @@ The following classes are provided
 .. autosummary::
    Normalizer
 """
+
 # pylint: disable=R0201
 import warnings
 

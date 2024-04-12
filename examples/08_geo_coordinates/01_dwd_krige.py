@@ -15,6 +15,7 @@ borderline with `cartopy <https://github.com/SciTools/cartopy>`_.
 In order to keep the number of dependecies low, the calls of both functions
 shown beneath are commented out.
 """
+
 # sphinx_gallery_thumbnail_number = 2
 import matplotlib.pyplot as plt
 import numpy as np

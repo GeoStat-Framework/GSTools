@@ -8,6 +8,7 @@ The following classes are provided
 .. autosummary::
    Krige
 """
+
 # pylint: disable=C0103, W0221, E1102, R0201, C0412
 import collections
 

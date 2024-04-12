@@ -5,6 +5,7 @@ Multi-field variogram estimation
 In this example, we demonstrate how to estimate a variogram from multiple
 fields on the same point-set that should have the same statistical properties.
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 

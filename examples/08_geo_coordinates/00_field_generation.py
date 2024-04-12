@@ -16,6 +16,7 @@ A third option is a length scale in degrees (:any:`DEGREE_SCALE`).
 To generate the field, we simply pass ``(lat, lon)`` as the position tuple
 to the :any:`SRF` class.
 """
+
 import numpy as np
 
 import gstools as gs

@@ -4,6 +4,7 @@ Creating an Ensemble of conditioned 2D Fields
 
 Let's create an ensemble of conditioned random fields in 2D.
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 

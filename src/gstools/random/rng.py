@@ -8,6 +8,7 @@ The following classes are provided
 .. autosummary::
    RNG
 """
+
 # pylint: disable=E1101
 import emcee as mc
 import numpy as np

@@ -8,6 +8,7 @@ The following classes and functions are provided
 .. autosummary::
    fit_variogram
 """
+
 # pylint: disable=C0103, W0632
 import numpy as np
 from scipy.optimize import curve_fit
@@ -308,9 +309,11 @@ def _pre_init_guess(model, init_guess, mean_x=1.0, mean_y=1.0):
     for opt in model.opt_arg:
         init_guess.setdefault(
             opt,
-            default_arg_from_bounds(bnd[opt])
-            if default
-            else getattr(model, opt),
+            (
+                default_arg_from_bounds(bnd[opt])
+                if default
+                else getattr(model, opt)
+            ),
         )
     # convert all init guesses to float (except "anis")
     for arg in model.iso_arg:

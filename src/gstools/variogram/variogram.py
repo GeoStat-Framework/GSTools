@@ -9,6 +9,7 @@ The following functions are provided
    vario_estimate
    vario_estimate_axis
 """
+
 # pylint: disable=C0412
 import numpy as np
 
