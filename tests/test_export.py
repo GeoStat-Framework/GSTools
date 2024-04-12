@@ -1,5 +1,4 @@
-"""Test the PyVista/VTK export methods
-"""
+"""Test the PyVista/VTK export methods"""
 
 import os
 import shutil
