@@ -12,7 +12,6 @@ IF OPENMP:
 
 cimport numpy as np
 from libc.math cimport M_PI, acos, atan2, cos, fabs, isnan, pow, sin, sqrt
-from libc.stdint cimport int64_t
 
 
 def set_num_threads(num_threads):
@@ -117,7 +116,7 @@ ctypedef double (*_estimator_func)(const double) nogil
 
 cdef inline void normalization_matheron(
     double[:] variogram,
-    int64_t[:] counts,
+    np.int64_t[:] counts,
 ):
     cdef int i
     for i in range(variogram.shape[0]):
@@ -126,10 +125,10 @@ cdef inline void normalization_matheron(
 
 cdef inline void normalization_cressie(
     double[:] variogram,
-    int64_t[:] counts,
+    np.int64_t[:] counts,
 ):
     cdef int i
-    cdef int64_t cnt
+    cdef np.int64_t cnt
     for i in range(variogram.shape[0]):
         # avoid division by zero
         cnt = max(counts[i], 1)
@@ -140,12 +139,12 @@ cdef inline void normalization_cressie(
 
 ctypedef void (*_normalization_func)(
     double[:],
-    int64_t[:],
+    np.int64_t[:],
 )
 
 cdef inline void normalization_matheron_vec(
     double[:, :] variogram,
-    int64_t[:, :] counts,
+    np.int64_t[:, :] counts,
 ):
     cdef int d
     for d in range(variogram.shape[0]):
@@ -153,7 +152,7 @@ cdef inline void normalization_matheron_vec(
 
 cdef inline void normalization_cressie_vec(
     double[:, :] variogram,
-    int64_t[:, :] counts,
+    np.int64_t[:, :] counts,
 ):
     cdef int d
     for d in range(variogram.shape[0]):
@@ -161,7 +160,7 @@ cdef inline void normalization_cressie_vec(
 
 ctypedef void (*_normalization_func_vec)(
     double[:, :],
-    int64_t[:, :],
+    np.int64_t[:, :],
 )
 
 cdef _estimator_func choose_estimator_func(str estimator_type):
@@ -222,7 +221,7 @@ def directional(
     cdef int f_max = f.shape[0]
 
     cdef double[:, :] variogram = np.zeros((d_max, len(bin_edges)-1))
-    cdef int64_t[:, :] counts = np.zeros((d_max, len(bin_edges)-1), dtype=np.int64)
+    cdef np.int64_t[:, :] counts = np.zeros((d_max, len(bin_edges)-1), dtype=np.int64)
     cdef int i, j, k, m, d
     cdef double dist
 
@@ -288,7 +287,7 @@ def unstructured(
     cdef int f_max = f.shape[0]
 
     cdef double[:] variogram = np.zeros(len(bin_edges)-1)
-    cdef int64_t[:] counts = np.zeros(len(bin_edges)-1, dtype=np.int64)
+    cdef np.int64_t[:] counts = np.zeros(len(bin_edges)-1, dtype=np.int64)
     cdef int i, j, k, m
     cdef double dist
 
@@ -325,7 +324,7 @@ def structured(
     cdef int k_max = i_max + 1
 
     cdef double[:] variogram = np.zeros(k_max)
-    cdef int64_t[:] counts = np.zeros(k_max, dtype=np.int64)
+    cdef np.int64_t[:] counts = np.zeros(k_max, dtype=np.int64)
     cdef int i, j, k
 
     cdef int num_threads_c = set_num_threads(num_threads)
@@ -357,7 +356,7 @@ def ma_structured(
     cdef int k_max = i_max + 1
 
     cdef double[:] variogram = np.zeros(k_max)
-    cdef int64_t[:] counts = np.zeros(k_max, dtype=np.int64)
+    cdef np.int64_t[:] counts = np.zeros(k_max, dtype=np.int64)
     cdef int i, j, k
 
     cdef int num_threads_c = set_num_threads(num_threads)
