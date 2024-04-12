@@ -16,8 +16,6 @@ jobs:
   source_check:
     name: source check
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
 
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +35,10 @@ jobs:
       - name: black check
         run: |
           python -m black --check --diff --color .
+
+      - name: black preview
+        run: |
+          python -m black --preview --diff --color .
 
       - name: isort check
         run: |
