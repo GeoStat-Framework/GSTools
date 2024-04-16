@@ -465,16 +465,25 @@ class Integral(CovModel):
         if self.nu > 50.0:
             return (
                 (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+                * (self.nu / (self.nu + self.dim))
                 * np.exp(-x)
-                * self.nu
-                / (self.nu + self.dim)
                 * (1.0 + 2 * x / (self.nu + self.dim + 2))
             )
-        return (
+        # separate calculation at origin
+        res = np.empty_like(k)
+        x_gz = np.logical_not(np.isclose(x, 0))
+        x0 = x[x_gz]
+        k0 = k[x_gz]
+        # limit at k=0
+        res[np.logical_not(x_gz)] = (
+            0.5 * self.len_rescaled / np.sqrt(np.pi)
+        ) ** self.dim * (self.nu / (self.nu + self.dim))
+        res[x_gz] = (
             self.nu
-            / (x ** (self.nu * 0.5) * 2 * (k * np.sqrt(np.pi)) ** self.dim)
-            * inc_gamma_low((self.nu + self.dim) / 2.0, x)
+            / (x0 ** (self.nu * 0.5) * 2 * (k0 * np.sqrt(np.pi)) ** self.dim)
+            * inc_gamma_low((self.nu + self.dim) / 2.0, x0)
         )
+        return res
 
     def calc_integral_scale(self):  # noqa: D102
         return (
