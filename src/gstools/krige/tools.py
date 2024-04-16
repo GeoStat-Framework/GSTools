@@ -9,6 +9,7 @@ The following classes and functions are provided
    set_condition
    get_drift_functions
 """
+
 # pylint: disable=C0103
 from itertools import combinations_with_replacement
 

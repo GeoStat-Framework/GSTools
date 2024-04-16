@@ -1,6 +1,7 @@
 """
 This is the unittest of CovModel class.
 """
+
 import unittest
 
 import numpy as np

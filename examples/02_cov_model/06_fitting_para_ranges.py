@@ -6,6 +6,7 @@ The model class comes with a routine to fit the model-parameters to given
 variogram data. In the following we will use the self defined stable model
 from a previous example.
 """
+
 import numpy as np
 
 import gstools as gs

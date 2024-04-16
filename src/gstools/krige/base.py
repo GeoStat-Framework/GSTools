@@ -8,6 +8,7 @@ The following classes are provided
 .. autosummary::
    Krige
 """
+
 # pylint: disable=C0103, W0221, E1102, R0201, C0412
 import collections
 
@@ -383,9 +384,7 @@ class Krige(Field):
             the drift values at the given positions
         """
         if ext_drift is not None:
-            ext_drift = np.array(
-                ext_drift, dtype=np.double, ndmin=2, copy=False
-            )
+            ext_drift = np.atleast_2d(np.asarray(ext_drift, dtype=np.double))
             if ext_drift.size == 0:  # treat empty array as no ext_drift
                 return np.array([])
             if set_cond:

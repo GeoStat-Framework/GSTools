@@ -12,6 +12,7 @@ The following classes are provided
    ExtDrift
    Detrended
 """
+
 # pylint: disable=C0103
 from gstools.krige.base import Krige
 

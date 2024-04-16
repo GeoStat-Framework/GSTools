@@ -14,6 +14,7 @@ of the target variable.
 
 In this example we will use ordinary kriging.
 """
+
 import numpy as np
 
 import gstools as gs

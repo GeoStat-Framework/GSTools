@@ -9,6 +9,7 @@ If thresholds are given, arbitrary values can be applied to the field.
 
 See :any:`transform.discrete`
 """
+
 import numpy as np
 
 import gstools as gs

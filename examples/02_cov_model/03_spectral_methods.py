@@ -23,6 +23,7 @@ Depending on the spectrum, the spectral-density is defined by:
 
 You can access these methods by:
 """
+
 import gstools as gs
 
 model = gs.Gaussian(dim=3, var=2.0, len_scale=10)

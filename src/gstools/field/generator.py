@@ -12,6 +12,7 @@ The following classes are provided
    RandMeth
    IncomprRandMeth
 """
+
 # pylint: disable=C0103, W0222, C0412, W0231
 import warnings
 from abc import ABC, abstractmethod

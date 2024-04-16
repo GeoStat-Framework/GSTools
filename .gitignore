@@ -117,6 +117,7 @@ src/gstools/_version.py
 # generated docs
 docs/source/examples/
 docs/source/api/
+docs/source/sg_execution_times.rst
 
 # other settings
 .vscode/

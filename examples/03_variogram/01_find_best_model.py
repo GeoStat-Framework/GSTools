@@ -2,6 +2,7 @@
 Finding the best fitting variogram model
 ----------------------------------------
 """
+
 import numpy as np
 from matplotlib import pyplot as plt
 
