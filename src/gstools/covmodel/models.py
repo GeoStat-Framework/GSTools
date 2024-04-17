@@ -460,29 +460,20 @@ class Integral(CovModel):
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
-        x = (k * self.len_rescaled / 2.0) ** 2
+        fac = (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
+        lim = fac * self.nu / (self.nu + self.dim)
         # for nu > 50 we just use an approximation of the gaussian model
         if self.nu > 50.0:
-            return (
-                (0.5 * self.len_rescaled / np.sqrt(np.pi)) ** self.dim
-                * (self.nu / (self.nu + self.dim))
-                * np.exp(-x)
-                * (1.0 + 2 * x / (self.nu + self.dim + 2))
-            )
+            x = (k * self.len_rescaled / 2) ** 2
+            return lim * np.exp(-x) * (1 + 2 * x / (self.nu + self.dim + 2))
         # separate calculation at origin
+        s = (self.nu + self.dim) / 2
         res = np.empty_like(k)
-        x_gz = np.logical_not(np.isclose(x, 0))
-        x0 = x[x_gz]
-        k0 = k[x_gz]
-        # limit at k=0
-        res[np.logical_not(x_gz)] = (
-            0.5 * self.len_rescaled / np.sqrt(np.pi)
-        ) ** self.dim * (self.nu / (self.nu + self.dim))
-        res[x_gz] = (
-            self.nu
-            / (x0 ** (self.nu * 0.5) * 2 * (k0 * np.sqrt(np.pi)) ** self.dim)
-            * inc_gamma_low((self.nu + self.dim) / 2.0, x0)
-        )
+        k_gz = np.logical_not(np.isclose(k, 0))
+        x = (k[k_gz] * self.len_rescaled / 2) ** 2
+        # limit at k=0 (inc_gamma_low(s, x) / x**s -> 1/s for x -> 0)
+        res[np.logical_not(k_gz)] = lim
+        res[k_gz] = 0.5 * self.nu * fac / x**s * inc_gamma_low(s, x)
         return res
 
     def calc_integral_scale(self):  # noqa: D102
