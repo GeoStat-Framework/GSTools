@@ -86,7 +86,7 @@ class RNG:
             self.random.rand(nwalkers).reshape((nwalkers, 1)) * sample_around
         )
         # initialize the sampler
-        sampler = mc.EnsembleSampler(nwalkers, 1, ln_pdf)
+        sampler = mc.EnsembleSampler(nwalkers, 1, ln_pdf, vectorize=True)
         # burn in phase with saving of last position
         initial_state = State(init_guess, copy=True)
         initial_state.random_state = self.random.get_state()
