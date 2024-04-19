@@ -8,6 +8,7 @@ The following classes are provided
 .. autosummary::
    Field
 """
+
 # pylint: disable=C0103, C0415
 from collections.abc import Iterable
 from copy import copy
@@ -362,7 +363,7 @@ class Field:
         ----------
         method : :class:`str`
             Method to use.
-            See :any:`gstools.transform` for available transformations.
+            See :py:mod:`gstools.transform` for available transformations.
         field : :class:`str`, optional
             Name of field to be transformed. The default is "field".
         store : :class:`str` or :class:`bool`, optional

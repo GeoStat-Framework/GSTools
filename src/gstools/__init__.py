@@ -129,6 +129,7 @@ Misc
    DEGREE_SCALE
    RADIAN_SCALE
 """
+
 # Hooray!
 from gstools import (
     config,

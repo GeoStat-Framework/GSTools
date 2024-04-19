@@ -15,6 +15,7 @@ to store the field.
 
 If you don't specify `field` and `store` everything happens inplace.
 """
+
 # sphinx_gallery_thumbnail_number = 1
 import gstools as gs
 

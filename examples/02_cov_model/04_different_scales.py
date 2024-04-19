@@ -16,6 +16,7 @@ of a covariance model is calculated by:
 
 You can access it by:
 """
+
 import gstools as gs
 
 model = gs.Stable(dim=3, var=2.0, len_scale=10)

@@ -2,6 +2,25 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [Unreleased] - ?
+
+### Enhancements
+
+- added global variable `config.NUM_THREADS` to select number of threads for parallel computation ([#336](https://github.com/GeoStat-Framework/GSTools/pull/336))
+- prepare numpy 2 support ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
+  - numpy 2.0.0rc1 for building extensions (for Python 3.9 and above)
+  - check multiple numpy and scipy versions in CI
+  - fixed minimal versions for numpy
+  - use `np.asarray` everywhere with `np.atleast_(n)d`
+  - fix long/longlong integer issue in cython on windows by always using 64bit integers
+
+### Bugfixes
+- build docs with latest sphinx version ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
+
+### Changes
+- require pyvista 0.40 at least ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
+
+
 ## [1.5.1] - Nifty Neon - 2023-11
 
 ### Enhancements

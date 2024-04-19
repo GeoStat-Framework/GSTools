@@ -7,6 +7,7 @@ GSTools provides simple exporting routines to convert generated fields to
 
 These can be viewed for example with `Paraview <https://www.paraview.org/>`__.
 """
+
 # sphinx_gallery_thumbnail_path = 'pics/paraview.png'
 import gstools as gs
 

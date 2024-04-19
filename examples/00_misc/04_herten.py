@@ -30,6 +30,7 @@ You don't have to execute the ``download_herten`` and ``generate_transmissivity`
 functions, since the only produce the ``herten_transmissivity.gz``
 and ``grid_dim_origin_spacing.txt``, which are already present.
 """
+
 import os
 
 import matplotlib.pyplot as plt

@@ -2,8 +2,9 @@
 requires = [
     "setuptools>=64",
     "setuptools_scm>=7",
-    "oldest-supported-numpy",
-    "Cython>=3.0",
+    "numpy>=2.0.0rc1,<2.3; python_version >= '3.9'",
+    "oldest-supported-numpy; python_version < '3.9'",
+    "Cython>=3.0.10,<3.1.0",
     "extension-helpers>=1",
 ]
 build-backend = "setuptools.build_meta"
@@ -48,7 +49,7 @@ dependencies = [
     "emcee>=3.0.0",
     "hankel>=1.0.0",
     "meshio>=5.1.0",
-    "numpy>=1.14.5",
+    "numpy>=1.20.0",
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
@@ -60,20 +61,20 @@ doc = [
     "meshzoo>=0.7",
     "numpydoc>=1.1",
     "pykrige>=1.5,<2",
-    "pyvista>=0.29",
-    "sphinx>=4",
+    "pyvista>=0.40",
+    "sphinx>=7",
     "sphinx-gallery>=0.8",
-    "sphinx-rtd-theme>=1,<1.1",
+    "sphinx-rtd-theme>=2",
     "sphinxcontrib-youtube>=1.1",
 ]
 plotting = [
     "matplotlib>=3",
-    "pyvista>=0.29",
+    "pyvista>=0.40",
 ]
 rust = ["gstools_core>=0.2.0,<1"]
 test = ["pytest-cov>=3"]
 lint = [
-    "black",
+    "black>=24",
     "pylint",
     "isort[colors]",
     "cython-lint",
@@ -161,11 +162,9 @@ target-version = [
 # Switch to using build
 build-frontend = "build"
 # Disable building PyPy wheels on all platforms, 32bit for py3.10/11/12, musllinux builds, py3.6/7
-skip = ["cp36-*", "cp37-*", "pp*", "cp31*-win32", "cp31*-manylinux_i686", "*-musllinux_*"]
+skip = ["cp36-*", "cp37-*", "pp*", "*-win32", "*-manylinux_i686", "*-musllinux_*"]
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
 # Skip trying to test arm64 builds on Intel Macs
 test-skip = "*-macosx_arm64 *-macosx_universal2:arm64"
-# no wheels for linux-32bit anymore for numpy>=1.22
-environment = "PIP_PREFER_BINARY=1"

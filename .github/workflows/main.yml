@@ -16,16 +16,14 @@ jobs:
   source_check:
     name: source check
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.9
 
@@ -37,6 +35,10 @@ jobs:
       - name: black check
         run: |
           python -m black --check --diff --color .
+
+      - name: black preview
+        run: |
+          python -m black --preview --diff --color .
 
       - name: isort check
         run: |
@@ -58,60 +60,68 @@ jobs:
       matrix:
         cfg:
         - { os: ubuntu-latest, arch: x86_64 }
-        - { os: ubuntu-latest, arch: i686 }
         - { os: windows-latest, arch: AMD64 }
-        - { os: windows-latest, arch: x86 }
         - { os: macos-latest, arch: x86_64 }
         - { os: macos-latest, arch: arm64 }
         - { os: macos-latest, arch: universal2 }
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_ARCHS: ${{ matrix.cfg.arch }}
         with:
           output-dir: dist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./dist/*.whl
 
   build_sdist:
-    name: sdist on ${{ matrix.os }} with py ${{ matrix.python-version }}
+    name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }} numpy${{ matrix.ver.np }} scipy${{ matrix.ver.sp }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-
+        # https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
+        ver:
+          - {py: '3.8', np: '==1.20.0', sp: '==1.5.4'}
+          - {py: '3.9', np: '==1.20.0', sp: '==1.5.4'}
+          - {py: '3.10', np: '==1.21.6', sp: '==1.7.2'}
+          - {py: '3.11', np: '==1.23.2', sp: '==1.9.2'}
+          - {py: '3.12', np: '==1.26.2', sp: '==1.11.2'}
+          - {py: '3.12', np: '>=2.0.0rc1', sp: '>=1.13.0'}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: Set up Python ${{ matrix.ver.py }}
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.ver.py }}
 
       - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build "coveralls>=3.0.0"
+
+      - name: Install GSTools
         env:
           GSTOOLS_BUILD_PARALLEL: 1
         run: |
-          python -m pip install --upgrade pip
-          pip install build coveralls>=3.0.0
           pip install -v --editable .[test]
 
       - name: Run tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          pip install "numpy${{ matrix.ver.np }}" "scipy${{ matrix.ver.sp }}"
           python -m pytest --cov gstools --cov-report term-missing -v tests/
           python -m coveralls --service=github
 
@@ -120,8 +130,8 @@ jobs:
           # PEP 517 package builder from pypa
           python -m build --sdist --outdir dist .
 
-      - uses: actions/upload-artifact@v2
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.9'
+      - uses: actions/upload-artifact@v3
+        if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.9'
         with:
           path: dist/*.tar.gz
 
@@ -130,7 +140,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist

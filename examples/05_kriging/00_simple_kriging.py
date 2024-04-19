@@ -27,6 +27,7 @@ Here we use simple kriging in 1D (for plotting reasons) with 5 given observation
 The mean of the field has to be given beforehand.
 
 """
+
 import numpy as np
 
 from gstools import Gaussian, krige

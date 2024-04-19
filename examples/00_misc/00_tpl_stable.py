@@ -40,6 +40,7 @@ For :math:`\ell_{\mathrm{low}}=0` this results in:
    \sigma^2_{\ell_{\mathrm{up}}} &=
    C\cdot\frac{\ell_{\mathrm{up}}^{2H}}{2H}
 """
+
 import numpy as np
 
 import gstools as gs

@@ -20,6 +20,7 @@ The following classes are provided
    SuperSpherical
    JBessel
 """
+
 # pylint: disable=C0103, E1101, R0201
 import warnings
 

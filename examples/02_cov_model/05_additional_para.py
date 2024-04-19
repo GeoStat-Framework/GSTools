@@ -10,6 +10,7 @@ by setting the exponent as an additional parameter:
 
 This leads to the so called **stable** covariance model and we can define it by
 """
+
 import numpy as np
 
 import gstools as gs

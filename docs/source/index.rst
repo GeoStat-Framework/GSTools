@@ -414,7 +414,7 @@ in memory for immediate 3D plotting in Python.
 Requirements
 ============
 
-- `Numpy >= 1.14.5 <http://www.numpy.org>`_
+- `NumPy >= 1.20.0 <http://www.numpy.org>`_
 - `SciPy >= 1.1.0 <http://www.scipy.org>`_
 - `hankel >= 1.0.0 <https://github.com/steven-murray/hankel>`_
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_

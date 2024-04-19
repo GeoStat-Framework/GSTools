@@ -11,6 +11,7 @@ you can pass a GSTools covariance model to the kriging routines of PyKrige.
 To demonstrate the general workflow, we compare ordinary kriging of PyKrige
 with the corresponding GSTools routine in 2D:
 """
+
 import numpy as np
 from matplotlib import pyplot as plt
 from pykrige.ok import OrdinaryKriging

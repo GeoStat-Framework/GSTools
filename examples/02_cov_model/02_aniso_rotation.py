@@ -6,6 +6,7 @@ The internally used (semi-) variogram
 represents the isotropic case for the model.
 Nevertheless, you can provide anisotropy ratios by:
 """
+
 import gstools as gs
 
 model = gs.Gaussian(dim=3, var=2.0, len_scale=10, anis=0.5)

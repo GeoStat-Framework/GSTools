@@ -27,6 +27,7 @@ Example
 Here we use ordinary kriging in 1D (for plotting reasons) with 5 given observations/conditions.
 The estimated mean can be accessed by ``krig.mean``.
 """
+
 import numpy as np
 
 from gstools import Gaussian, krige

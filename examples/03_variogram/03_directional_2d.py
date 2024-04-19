@@ -7,6 +7,7 @@ setting the direction angles in 2D.
 
 Afterwards we will fit a model to this estimated variogram and show the result.
 """
+
 import numpy as np
 from matplotlib import pyplot as plt
 
