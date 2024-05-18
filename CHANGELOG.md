@@ -18,9 +18,12 @@ All notable changes to **GSTools** will be documented in this file.
 ### Bugfixes
 - build docs with latest sphinx version ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
 - fixed zero division error in spectral density of Integral model ([#347](https://github.com/GeoStat-Framework/GSTools/pull/347))
+- minor pylint fixes for used-before-assignment issues ([#350](https://github.com/GeoStat-Framework/GSTools/pull/350))
 
 ### Changes
 - require pyvista 0.40 at least ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
+- require matplotlib 3.7 at least ([#350](https://github.com/GeoStat-Framework/GSTools/pull/350))
+- remove universal2 wheels for macos (we already provide separate intel and arm64 wheels) ([#350](https://github.com/GeoStat-Framework/GSTools/pull/350))
 
 
 ## [1.5.1] - Nifty Neon - 2023-11
