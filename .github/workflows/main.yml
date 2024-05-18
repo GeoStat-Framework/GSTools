@@ -53,8 +53,8 @@ jobs:
           cython-lint src/gstools/
 
   build_wheels:
-    name: wheels for ${{ matrix.cfg.os }}
-    runs-on: ${{ matrix.cfg.os }}
+    name: wheels for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
