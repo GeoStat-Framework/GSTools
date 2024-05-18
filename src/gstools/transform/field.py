@@ -262,8 +262,7 @@ def binary(
     """
     if not process and divide is None:
         _check_for_default_normal(fld)
-    if divide is None:
-        mean = 0.0 if process and not keep_mean else fld.mean
+    mean = 0.0 if process and not keep_mean else fld.mean
     divide = mean if divide is None else divide
     upper = mean + np.sqrt(fld.model.sill) if upper is None else upper
     lower = mean - np.sqrt(fld.model.sill) if lower is None else lower

@@ -291,6 +291,7 @@ def plot_nd(
             s.vline.set_data(2 * [s.valinit], [-0.1, 1.1])
             s.reset()
         im.set_extent(ax_extents[p])
+        asp = 1.0  # init value
         if aspect == "quad":
             asp = ax_rngs[planes[p][0]] / ax_rngs[planes[p][1]]
         if aspect is not None:
