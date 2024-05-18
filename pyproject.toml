@@ -166,5 +166,3 @@ skip = ["cp36-*", "cp37-*", "pp*", "*-win32", "*-manylinux_i686", "*-musllinux_*
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
-# Skip trying to test arm64 builds on Intel Macs
-test-skip = "*-macosx_arm64 *-macosx_universal2:arm64"
