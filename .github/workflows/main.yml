@@ -87,7 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest-large, macos-latest]
         # https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
         ver:
           - {py: '3.8', np: '==1.20.0', sp: '==1.5.4'}
@@ -96,6 +96,13 @@ jobs:
           - {py: '3.11', np: '==1.23.2', sp: '==1.9.2'}
           - {py: '3.12', np: '==1.26.2', sp: '==1.11.2'}
           - {py: '3.12', np: '>=2.0.0rc1', sp: '>=1.13.0'}
+        exclude:
+          - os: macos-latest
+            ver: {py: '3.8', np: '==1.20.0', sp: '==1.5.4'}
+          - os: macos-latest
+            ver: {py: '3.9', np: '==1.20.0', sp: '==1.5.4'}
+          - os: macos-latest
+            ver: {py: '3.10', np: '==1.21.6', sp: '==1.7.2'}
     steps:
       - uses: actions/checkout@v4
         with:
