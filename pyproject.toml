@@ -57,7 +57,7 @@ dependencies = [
 [project.optional-dependencies]
 doc = [
     "m2r2>=0.2.8",
-    "matplotlib>=3",
+    "matplotlib>=3.7",
     "meshzoo>=0.7",
     "numpydoc>=1.1",
     "pykrige>=1.5,<2",
@@ -68,7 +68,7 @@ doc = [
     "sphinxcontrib-youtube>=1.1",
 ]
 plotting = [
-    "matplotlib>=3",
+    "matplotlib>=3.7",
     "pyvista>=0.40",
 ]
 rust = ["gstools_core>=0.2.0,<1"]
@@ -166,5 +166,3 @@ skip = ["cp36-*", "cp37-*", "pp*", "*-win32", "*-manylinux_i686", "*-musllinux_*
 # Run the package tests using `pytest`
 test-extras = "test"
 test-command = "pytest -v {package}/tests"
-# Skip trying to test arm64 builds on Intel Macs
-test-skip = "*-macosx_arm64 *-macosx_universal2:arm64"

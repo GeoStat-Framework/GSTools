@@ -214,6 +214,7 @@ def fit_variogram(
 def _pre_para(model, para_select, sill, anis):
     """Preprocess selected parameters."""
     var_last = False
+    var_tmp = 0.0  # init value
     for par in para_select:
         if par not in model.arg_bounds:
             raise ValueError(f"fit: unknown parameter in selection: {par}")
@@ -464,6 +465,7 @@ def _post_fitting(model, para, popt, anis, is_dir_vario):
     fit_para = {}
     para_skip = 0
     opt_skip = 0
+    var_tmp = 0.0  # init value
     for par in DEFAULT_PARA:
         if para[par]:
             if par == "var":  # set variance last

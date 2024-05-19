@@ -10,7 +10,7 @@ The following classes and functions are provided
    plot_vec_field
 """
 
-# pylint: disable=C0103, W0613, E1101
+# pylint: disable=C0103, W0613, E1101, E0606
 import numpy as np
 from scipy import interpolate as inter
 from scipy.spatial import ConvexHull
@@ -232,13 +232,6 @@ def plot_nd(
         )
         rax.set_title("  Plane", loc="left")
         radio = RadioButtons(rax, plane_names, activecolor="grey")
-        # make radio buttons circular
-        rpos = rax.get_position().get_points()
-        fh, fw = fig.get_figheight(), fig.get_figwidth()
-        rscale = (rpos[:, 1].ptp() / rpos[:, 0].ptp()) * (fh / fw)
-        for circ in radio.circles:
-            circ.set_radius(0.06)
-            circ.height /= rscale
     elif mesh_type == "unstructured" and convex_hull:
         # show convex hull in 2D
         hull = ConvexHull(pos.T)
@@ -291,6 +284,7 @@ def plot_nd(
             s.vline.set_data(2 * [s.valinit], [-0.1, 1.1])
             s.reset()
         im.set_extent(ax_extents[p])
+        asp = 1.0  # init value
         if aspect == "quad":
             asp = ax_rngs[planes[p][0]] / ax_rngs[planes[p][1]]
         if aspect is not None:
