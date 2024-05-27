@@ -14,57 +14,56 @@ from gstools.field.generator import Fourier
 class TestFourier(unittest.TestCase):
     def setUp(self):
         self.seed = 19900408
-        self.cov_model_1d = gs.Gaussian(dim=1, var=0.5, len_scale=10.)
-        self.cov_model_2d = gs.Gaussian(dim=2, var=2.0, len_scale=30.)
-        self.cov_model_3d = gs.Gaussian(dim=3, var=2.1, len_scale=21.)
-        self.x = np.linspace(0, 80, 11)
-        self.y = np.linspace(0, 30, 31)
-        self.z = np.linspace(0, 91, 13)
+        self.cov_model_1d = gs.Gaussian(dim=1, var=0.5, len_scale=10.0)
+        self.cov_model_2d = gs.Gaussian(dim=2, var=2.0, len_scale=30.0)
+        self.cov_model_3d = gs.Gaussian(dim=3, var=2.1, len_scale=21.0)
+        L = [80, 30, 91]
+        self.x = np.linspace(0, L[0], 11)
+        self.y = np.linspace(0, L[1], 31)
+        self.z = np.linspace(0, L[2], 13)
 
-        self.modes_no_1d = 20
-        self.trunc_1d = 8
-        self.modes_no_2d = [16, 7]
-        self.trunc_2d = [16, 7]
-        self.modes_no_3d = [16, 7, 11]
-        self.trunc_3d = [16, 7, 12]
+        dk = [2 * np.pi / l for l in L]
+
+        self.modes_1d = [np.arange(0, 2, dk[0])]
+        self.modes_2d = self.modes_1d + [np.arange(0, 2, dk[1])]
+        self.modes_3d = self.modes_2d + [np.arange(0, 2, dk[2])]
 
         self.srf_1d = gs.SRF(
             self.cov_model_1d,
             generator="Fourier",
-            modes_no=self.modes_no_1d,
-            modes_truncation=self.trunc_1d,
+            modes=self.modes_1d,
             seed=self.seed,
         )
         self.srf_2d = gs.SRF(
             self.cov_model_2d,
             generator="Fourier",
-            modes_no=self.modes_no_2d,
-            modes_truncation=self.trunc_2d,
+            modes=self.modes_2d,
             seed=self.seed,
         )
         self.srf_3d = gs.SRF(
             self.cov_model_3d,
             generator="Fourier",
-            modes_no=self.modes_no_3d,
-            modes_truncation=self.trunc_3d,
+            modes=self.modes_3d,
             seed=self.seed,
         )
 
     def test_1d(self):
         field = self.srf_1d((self.x,), mesh_type="structured")
-        self.assertAlmostEqual(field[0], 0.9009981010688789)
+        self.assertAlmostEqual(field[0], 0.40939882638496783)
 
     def test_2d(self):
         field = self.srf_2d((self.x, self.y), mesh_type="structured")
-        self.assertAlmostEqual(field[0, 0], 1.1085370190533947)
+        self.assertAlmostEqual(field[0, 0], 0.8176311251780369)
 
     def test_3d(self):
         field = self.srf_3d((self.x, self.y, self.z), mesh_type="structured")
-        self.assertAlmostEqual(field[0, 0, 0], 1.7648407965681794)
+        self.assertAlmostEqual(field[0, 0, 0], -1.2636015063084773)
 
     def test_periodicity(self):
         field = self.srf_2d((self.x, self.y), mesh_type="structured")
-        self.assertAlmostEqual(field[0, len(self.y)//2], field[-1, len(self.y)//2])
+        self.assertAlmostEqual(
+            field[0, len(self.y) // 2], field[-1, len(self.y) // 2]
+        )
 
     def test_assertions(self):
         # unstructured grids not supported

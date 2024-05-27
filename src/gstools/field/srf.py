@@ -15,10 +15,10 @@ import numpy as np
 
 from gstools.field.base import Field
 from gstools.field.generator import (
+    Fourier,
     Generator,
     IncomprRandMeth,
     RandMeth,
-    Fourier,
 )
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
@@ -116,9 +116,6 @@ class SRF(Field):
         mesh_type="unstructured",
         post_process=True,
         store=True,
-        phase_factor=2.*np.pi,
-        spec_factor=1.,
-        var_factor=1.,
     ):
         """Generate the spatial random field.
 
@@ -163,18 +160,7 @@ class SRF(Field):
         # get isometrized positions and the resulting field-shape
         iso_pos, shape = self.pre_pos(pos, mesh_type)
         # generate the field
-        try:
-            field = np.reshape(
-                self.generator(
-                    iso_pos,
-                    phase_factor=phase_factor,
-                    spec_factor=spec_factor,
-                    var_factor=var_factor
-                ),
-                shape,
-            )
-        except TypeError:
-            field = np.reshape(self.generator(iso_pos, ), shape)
+        field = np.reshape(self.generator(iso_pos), shape)
         # upscaled variance
         if not np.isscalar(point_volumes) or not np.isclose(point_volumes, 0):
             scaled_var = self.upscaling_func(self.model, point_volumes)

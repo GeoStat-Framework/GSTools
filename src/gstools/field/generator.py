@@ -32,8 +32,8 @@ if config.USE_RUST:  # pragma: no cover
 else:
     from gstools.field.summator import (
         summate,
-        summate_incompr,
         summate_fourier,
+        summate_incompr,
     )
 
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth", "Fourier"]
@@ -551,8 +551,6 @@ class Fourier(Generator):
         Number of Fourier modes per dimension.
     mode_truncation : :class:`list`
         Cut-off values of the Fourier modes.
-    period_len : :class:`float` or :class:`list`, optional
-        Period length of the field in each dim as a factor of the domain size.
     seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -594,9 +592,7 @@ class Fourier(Generator):
     def __init__(
         self,
         model,
-        modes_no,
-        modes_truncation,
-        period_len=None,
+        modes,
         seed=None,
         verbose=False,
         **kwargs,
@@ -604,26 +600,12 @@ class Fourier(Generator):
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
         # initialize attributes
-        self._modes_truncation = self._fill_to_dim(
-            model.dim, modes_truncation, np.double
+        self._modes = generate_grid(modes)
+        self._modes_no = [len(m) for m in modes]
+        self._delta_k = np.array(
+            [modes[d][1] - modes[d][0] for d in range(model.dim)]
         )
-        self._modes_no = self._fill_to_dim(model.dim, modes_no, int)
-        self._modes = []
-        [
-            self._modes.append(
-                np.linspace(
-                    -self._modes_truncation[d] / 2,
-                    self._modes_truncation[d] / 2,
-                    self._modes_no[d],
-                    endpoint=False,
-                ).T
-            )
-            for d in range(model.dim)
-        ]
 
-        self._period_len = self._fill_to_dim(
-            model.dim, period_len, np.double, 1.0
-        )
         self._verbose = bool(verbose)
         # initialize private attributes
         self._model = None
@@ -631,12 +613,12 @@ class Fourier(Generator):
         self._rng = None
         self._z_1 = None
         self._z_2 = None
-        self._spectral_density_sqrt = None
+        self._spectrum_factor = None
         self._value_type = "scalar"
         # set model and seed
         self.update(model, seed)
 
-    def __call__(self, pos, add_nugget=True, phase_factor=2.*np.pi, spec_factor=1., var_factor=1.,):
+    def __call__(self, pos, add_nugget=True):
         """Calculate the modes for the Fourier method.
 
         This method  calls the `summate_*` Cython methods, which are the
@@ -655,34 +637,17 @@ class Fourier(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        domain_size = pos.max(axis=1) - pos.min(axis=1)
-        self._modes = [
-            self._modes[d] / domain_size[d] * self._period_len[d]
-            for d in range(self._model.dim)
-        ]
 
-        self._modes = generate_grid(self._modes)
-
-        # pre calc. the spectral density for all wave numbers
-        # they are handed over to Cython
-        k_norm = np.linalg.norm(self._modes, axis=0)
-        self._spectral_density_sqrt = np.sqrt(
-            self._model.spectral_density(k_norm)
-        )
         summed_modes = summate_fourier(
-            self._spectral_density_sqrt,
+            self._spectrum_factor,
             self._modes,
             self._z_1,
             self._z_2,
             pos,
-            phase_factor,
-            spec_factor,
+            config.NUM_THREADS,
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
-        return (
-            np.sqrt(var_factor * 2.0 * self.model.var / np.prod(domain_size)) * summed_modes
-            + nugget
-        )
+        return summed_modes + nugget
 
     def get_nugget(self, shape):
         """
@@ -782,6 +747,12 @@ class Fourier(Generator):
         # normal distributed samples for randmeth
         self._z_1 = self._rng.random.normal(size=np.prod(self._modes_no))
         self._z_2 = self._rng.random.normal(size=np.prod(self._modes_no))
+        # pre calc. the spectrum for all wave numbers they are handed over to
+        # Cython, which doesn't have access to the CovModel
+        k_norm = np.linalg.norm(self._modes, axis=0)
+        self._spectrum_factor = np.sqrt(
+            2.0 * self._model.spectrum(k_norm) * np.prod(self._delta_k)
+        )
 
     def _fill_to_dim(self, dim, values, dtype, default_value=None):
         """Fill an array with last element up to len(dim)."""
@@ -823,26 +794,6 @@ class Fourier(Generator):
     @model.setter
     def model(self, model):
         self.update(model)
-
-    @property
-    def modes_truncation(self):
-        """:class:`list`: Cut-off values of the Fourier modes."""
-        return self._modes_truncation
-
-    @modes_truncation.setter
-    def modes_truncation(self, modes_truncation):
-        self._modes_truncation = modes_truncation
-
-    @property
-    def period_len(self):
-        """:class:`list`: Period length of the field in each dim."""
-        return self._period_len
-
-    @period_len.setter
-    def period_len(self, period_len):
-        self._period_len = self._fill_to_dim(
-            self._model.dim, period_len, np.double, 1.0
-        )
 
     @property
     def verbose(self):
