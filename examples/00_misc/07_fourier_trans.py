@@ -10,23 +10,24 @@ import numpy as np
 import gstools as gs
 
 # We start off by defining the spatial grid.
-x = np.linspace(0, 500, 300)
-y = np.linspace(0, 500, 200)
+L = np.array((500, 500))
+x = np.linspace(0, L[0], 300)
+y = np.linspace(0, L[1], 200)
 
 # Instead of using a Gaussian covariance model, we will use the much rougher
 # exponential model and we will introduce an anisotropy by using two different
 # length scales in the x- and y-axes
 model = gs.Exponential(dim=2, var=2, len_scale=[30, 20])
 
-# Very similar as before, setting up the spatial random field
+# Same as before, we set up the spatial random field
 srf = gs.SRF(
     model,
     generator="Fourier",
-    modes_no=[30, 20],
-    modes_truncation=[30, 20],
+    mode_rel_cutoff=0.999,
+    period=L,
     seed=1681903,
 )
-# and computing it
+# and compute it on our spatial domain
 srf((x, y), mesh_type='structured')
 
 # With the field generated, we can now apply transformations
