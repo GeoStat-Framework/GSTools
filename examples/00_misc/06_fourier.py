@@ -8,6 +8,7 @@ periodicity, so we'll use it to create the random field.
 """
 
 import numpy as np
+
 import gstools as gs
 
 # We start off by defining the spatial grid.

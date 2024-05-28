@@ -7,6 +7,7 @@ spatial random fields with a transformation applied, resulting in a level set.
 """
 
 import numpy as np
+
 import gstools as gs
 
 # We start off by defining the spatial grid.
