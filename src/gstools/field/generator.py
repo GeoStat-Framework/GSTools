@@ -642,7 +642,6 @@ class Fourier(Generator):
             )
             self._period = 2.0 * np.pi / self._delta_k
 
-
         # initialize attributes
         self._modes = generate_grid(modes)
         self._modes_no = [len(m) for m in modes]
