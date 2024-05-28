@@ -35,7 +35,7 @@ srf = gs.SRF(
 )
 
 # Now, we can calculate the field with the given parameters.
-srf((x, y), mesh_type='structured')
+srf((x, y), mesh_type="structured")
 
 # GSTools has a few simple visualization methods built in.
 srf.plot()
@@ -44,7 +44,7 @@ srf.plot()
 # GSTools. Therefore, we set the cutoff values to absolut values in Fourier
 # space. But always check, if you cover enough of the spectral density to not
 # run into numerical problems.
-modes_cutoff = [1., 1.]
+modes_cutoff = [1.0, 1.0]
 
 # Next, we have to compute the numerical step size in Fourier space. This choice
 # influences the periodicity, which we want to set to the domain size by
