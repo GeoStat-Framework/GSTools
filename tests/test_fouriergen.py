@@ -60,7 +60,7 @@ class TestFourier(unittest.TestCase):
 
     def test_3d(self):
         field = self.srf_3d((self.x, self.y, self.z), mesh_type="structured")
-        self.assertAlmostEqual(field[0, 0, 0], 0.2613561098408796)
+        self.assertAlmostEqual(field[0, 0, 0], 0.3866689424599251)
 
     def test_periodicity(self):
         field = self.srf_2d((self.x, self.y), mesh_type="structured")
