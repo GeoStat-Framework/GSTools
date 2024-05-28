@@ -22,14 +22,13 @@ class TestFourier(unittest.TestCase):
         self.y = np.linspace(0, L[1], 31)
         self.z = np.linspace(0, L[2], 13)
 
-        cutoff_rel=0.999
+        cutoff_rel = 0.999
         cutoff_abs = 1
         dk = [2 * np.pi / l for l in L]
 
         self.modes_1d = [np.arange(0, cutoff_abs, dk[0])]
         self.modes_2d = self.modes_1d + [np.arange(0, cutoff_abs, dk[1])]
         self.modes_3d = self.modes_2d + [np.arange(0, cutoff_abs, dk[2])]
-
 
         self.srf_1d = gs.SRF(
             self.cov_model_1d,
