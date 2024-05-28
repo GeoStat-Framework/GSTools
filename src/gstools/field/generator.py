@@ -19,6 +19,7 @@ import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
 
+from scipy.optimize import least_squares
 import numpy as np
 
 from gstools import config
@@ -547,10 +548,15 @@ class Fourier(Generator):
     ----------
     model : :any:`CovModel`
         Covariance model
-    mode_no : :class:`list`
-        Number of Fourier modes per dimension.
-    mode_truncation : :class:`list`
-        Cut-off values of the Fourier modes.
+    mode_rel_cutoff : :class:`float`, optional
+        The cutoff value, relative to the spectral density's maximum, e.g. a
+        value of 0.99 means that the function falls to 1% of its max. value
+        before it is cut off.
+    period : :class:`list`, optional
+        The spatial periodicity of the field, is often the domain size.
+    modes : :class:`list`, optional
+        Externally calculated modes, if handed over, `mode_rel_cutoff` and
+        `period` are ignored.
     seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -565,15 +571,14 @@ class Fourier(Generator):
     -----
     The Fourier method is used to generate isotropic
     spatial random fields characterized by a given covariance model.
-    The calculation looks like [Hesse2014]_: # TODO check different source
+    The calculation looks like [Hesse2014]_:
 
     .. math::
        u\left(x\right)=
-       \sqrt{2\sigma^{2}}\cdot
-       \sum_{i=1}^{N}\sqrt{E(k_{i})}\left(
-       Z_{1,i}\cdot\cos\left(2\pi\left\langle k_{i},x\right\rangle \right)+
-       Z_{2,i}\cdot\sin\left(2\pi\left\langle k_{i},x\right\rangle \right)
-       \right) \sqrt{\Delta k}
+       \sum_{i=1}^{N}\sqrt{2S(k_{i})\Delta k}\left(
+       Z_{1,i}\cdot\cos\left(\left\langle k_{i},x\right\rangle \right)+
+       Z_{2,i}\cdot\sin\left(\left\langle k_{i},x\right\rangle \right)
+       \right)
 
     where:
 
@@ -592,19 +597,55 @@ class Fourier(Generator):
     def __init__(
         self,
         model,
-        modes,
+        mode_rel_cutoff=None,
+        period=None,
+        modes=None,
         seed=None,
         verbose=False,
         **kwargs,
     ):
+        # TODO update docstrings
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
+        if (
+            mode_rel_cutoff is not None
+            and period is not None
+            and modes is not None
+        ):
+            warnings.warn(
+                "gstools.Fourier: mode_rel_cutoff & period are ignored, as "
+                "modes is provided."
+            )
+        if mode_rel_cutoff is None and period is None and modes is None:
+            raise ValueError("Fourier: No mode information provided.")
+
+        dim = model.dim
+        if (
+            modes is None
+            and period is not None
+            and mode_rel_cutoff is not None
+        ):
+            if len(period) != dim:
+                raise ValueError("Fourier: Dimension mismatch.")
+            self._mode_rel_cutoff = mode_rel_cutoff
+            self._period = np.array(period)
+            self._delta_k = 2.0 * np.pi / self._period
+            modes_cutoff = self.calc_modes_cutoff(model, self._mode_rel_cutoff)
+            self._modes_cutoff = self._fill_to_dim(dim, modes_cutoff)
+            modes = [
+                np.arange(0.0, self._modes_cutoff[d], self._delta_k[d])
+                for d in range(dim)
+            ]
+        elif modes is not None:
+            self._delta_k = np.array(
+                [modes[d][1] - modes[d][0] for d in range(dim)]
+            )
+            self._period = 2.0 * np.pi / self._delta_k
+
+
         # initialize attributes
         self._modes = generate_grid(modes)
         self._modes_no = [len(m) for m in modes]
-        self._delta_k = np.array(
-            [modes[d][1] - modes[d][0] for d in range(model.dim)]
-        )
 
         self._verbose = bool(verbose)
         # initialize private attributes
@@ -710,19 +751,19 @@ class Fourier(Generator):
                 isinstance(self._model, CovModel)
                 and self._z_1 is not None
                 and self._z_2 is not None
-                and self._spectral_density_sqrt is not None
+                and self._spectrum_factor is not None
             ):
                 if self.verbose:
-                    print("RandMeth.update: Nothing will be done...")
+                    print("Fourier.update: Nothing will be done...")
             else:
                 raise ValueError(
-                    "gstools.field.generator.RandMeth: "
+                    "gstools.field.generator.Fourier: "
                     "neither 'model' nor 'seed' given!"
                 )
         # wrong model type
         else:
             raise ValueError(
-                "gstools.field.generator.RandMeth: 'model' is not an "
+                "gstools.field.generator.Fourier: 'model' is not an "
                 "instance of 'gstools.CovModel'"
             )
 
@@ -754,7 +795,7 @@ class Fourier(Generator):
             2.0 * self._model.spectrum(k_norm) * np.prod(self._delta_k)
         )
 
-    def _fill_to_dim(self, dim, values, dtype, default_value=None):
+    def _fill_to_dim(self, dim, values, dtype=float, default_value=None):
         """Fill an array with last element up to len(dim)."""
         r = values
         if values is None:
@@ -769,6 +810,39 @@ class Fourier(Generator):
         if len(r) < dim:
             r = np.pad(r, (0, dim - len(r)), "edge")
         return r
+
+    def calc_modes_cutoff(self, model, mode_rel_cutoff):
+        """Find the cutoff value so that `mode_rel_cutoff`% of the spectrum is kept.
+
+        This helper function uses a least squares algorithm to determine the
+        cutoff value so that `mode_rel_cutoff`% of the spectrum is kept.
+
+        Parameters
+        ----------
+        model : :any:`CovModel`
+            Covariance model
+        mode_rel_cutoff : :class:`float`
+
+        Returns
+        -------
+        :class:`float`
+            the cutoff value
+        """
+        norm = model.spectral_density(0)
+        # the first len_scale is a good enough first guess
+        try:
+            len_scale = model.len_scale[0]
+        except IndexError:
+            len_scale = model.len_scale
+        k_cutoff0 = np.sqrt(1.0 / len_scale)
+        mode_rel_cutoff_r = 1.0 - mode_rel_cutoff
+        res = least_squares(
+            lambda k, mode_rel_cutoff_r: model.spectral_density(k)
+            - mode_rel_cutoff_r * norm,
+            k_cutoff0,
+            args=(mode_rel_cutoff_r,),
+        )
+        return res.x[0]
 
     @property
     def seed(self):
