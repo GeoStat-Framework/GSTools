@@ -30,6 +30,7 @@ from gstools.tools.geometric import generate_grid
 if config.USE_RUST:  # pragma: no cover
     # pylint: disable=E0401
     from gstools_core import summate, summate_incompr
+
     from gstools.field.summator import summate_fourier
 else:
     from gstools.field.summator import (
