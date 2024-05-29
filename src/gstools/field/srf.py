@@ -151,7 +151,7 @@ class SRF(Field):
         """
         if isinstance(self.generator, Fourier) and mesh_type != "structured":
             raise ValueError(
-                f"SRF: Fourier generator only defined for "
+                "SRF: Fourier generator only defined for "
                 'mesh_type == "structured".'
             )
         name, save = self.get_store_config(store)

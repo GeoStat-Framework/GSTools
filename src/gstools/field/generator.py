@@ -30,6 +30,7 @@ from gstools.tools.geometric import generate_grid
 if config.USE_RUST:  # pragma: no cover
     # pylint: disable=E0401
     from gstools_core import summate, summate_incompr
+    from gstools.field.summator import summate_fourier
 else:
     from gstools.field.summator import (
         summate,
@@ -604,7 +605,6 @@ class Fourier(Generator):
         verbose=False,
         **kwargs,
     ):
-        # TODO update docstrings
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
         if (
@@ -794,12 +794,14 @@ class Fourier(Generator):
             2.0 * self._model.spectrum(k_norm) * np.prod(self._delta_k)
         )
 
-    def _fill_to_dim(self, dim, values, dtype=float, default_value=None):
+    def _fill_to_dim(
+        self, dim, values, dtype=float, default_value=None
+    ):  # pylint: disable=R6301
         """Fill an array with last element up to len(dim)."""
         r = values
         if values is None:
             if default_value is None:
-                raise ValueError(f"Fourier: Value has to be provided")
+                raise ValueError("Fourier: Value has to be provided")
             r = default_value
         r = np.array(r, dtype=dtype)
         r = np.atleast_1d(r)[:dim]
@@ -810,7 +812,9 @@ class Fourier(Generator):
             r = np.pad(r, (0, dim - len(r)), "edge")
         return r
 
-    def calc_modes_cutoff(self, model, mode_rel_cutoff):
+    def calc_modes_cutoff(
+        self, model, mode_rel_cutoff
+    ):  # pylint: disable=R6301
         """Find the cutoff value so that `mode_rel_cutoff`% of the spectrum is kept.
 
         This helper function uses a least squares algorithm to determine the
