@@ -106,7 +106,7 @@ def summate_fourier(
     const double[:] z_2,
     const double[:, :] pos,
     num_threads=None,
-    ):
+):
     cdef int i, j, d
     cdef double phase
     cdef int dim = pos.shape[0]
