@@ -52,7 +52,7 @@ modes_cutoff = [1.0, 1.0]
 modes_delta = 2 * np.pi / L
 
 # Now, we calculate the modes with
-modes = [np.arange(0, modes_cutoff[d], modes_delta[d]) for d in 2]
+modes = [np.arange(0, modes_cutoff[d], modes_delta[d]) for d in range(2)]
 
 # And we can create a new instance of the SRF class with our own modes.
 srf_modes = gs.SRF(
