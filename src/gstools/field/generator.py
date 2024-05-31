@@ -792,7 +792,7 @@ class Fourier(Generator):
         # Cython, which doesn't have access to the CovModel
         k_norm = np.linalg.norm(self._modes, axis=0)
         self._spectrum_factor = np.sqrt(
-            2.0 * self._model.spectrum(k_norm) * np.prod(self._delta_k)
+            4.0 * self._model.spectrum(k_norm) * np.prod(self._delta_k)
         )
 
     def _fill_to_dim(
