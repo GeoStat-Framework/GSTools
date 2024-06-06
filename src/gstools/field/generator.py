@@ -1,4 +1,4 @@
-"""
+"""gene
 GStools subpackage providing generators for spatial random fields.
 
 .. currentmodule:: gstools.field.generator
@@ -634,7 +634,7 @@ class Fourier(Generator):
             modes_cutoff = self.calc_modes_cutoff(model, self._mode_rel_cutoff)
             self._modes_cutoff = self._fill_to_dim(dim, modes_cutoff)
             modes = [
-                np.arange(0.0, self._modes_cutoff[d], self._delta_k[d])
+                np.arange(-self._modes_cutoff[d], self._modes_cutoff[d], self._delta_k[d])
                 for d in range(dim)
             ]
         elif modes is not None:
@@ -792,7 +792,7 @@ class Fourier(Generator):
         # Cython, which doesn't have access to the CovModel
         k_norm = np.linalg.norm(self._modes, axis=0)
         self._spectrum_factor = np.sqrt(
-            4.0 * self._model.spectrum(k_norm) * np.prod(self._delta_k)
+            self._model.spectrum(k_norm) * np.prod(self._delta_k)
         )
 
     def _fill_to_dim(
