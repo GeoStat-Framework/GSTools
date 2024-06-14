@@ -65,7 +65,7 @@ class CondSRF(Field):
     def __call__(
         self,
         pos=None,
-        seed=np.nan,
+        seed=...,
         mesh_type="unstructured",
         post_process=True,
         store=True,
@@ -81,8 +81,10 @@ class CondSRF(Field):
         pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
-        seed : :class:`int`, optional
-            seed for RNG for resetting. Default: keep seed from generator
+        seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
+            the seed of the random number generator.
+            If :any:`None`, a random seed is used. If :any:`Ellipsis`,
+            the current seed will be kept. Default: :any:`Ellipsis`
         mesh_type : :class:`str`
             'structured' / 'unstructured'
         post_process : :class:`bool`, optional

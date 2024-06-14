@@ -104,7 +104,7 @@ class SRF(Field):
     def __call__(
         self,
         pos=None,
-        seed=np.nan,
+        seed=...,
         point_volumes=0.0,
         mesh_type="unstructured",
         post_process=True,
@@ -119,8 +119,10 @@ class SRF(Field):
         pos : :class:`list`, optional
             the position tuple, containing main direction and transversal
             directions
-        seed : :class:`int`, optional
-            seed for RNG for resetting. Default: keep seed from generator
+        seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
+            the seed of the random number generator.
+            If :any:`None`, a random seed is used. If :any:`Ellipsis`,
+            the current seed will be kept. Default: :any:`Ellipsis`
         point_volumes : :class:`float` or :class:`numpy.ndarray`
             If your evaluation points for the field are coming from a mesh,
             they are probably representing a certain element volume.

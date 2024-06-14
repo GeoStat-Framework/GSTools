@@ -258,7 +258,7 @@ class Krige(Field):
             ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
             # iterate chunks
             for i in range(chunk_no):
-                # get chunk slice for actual chunk
+                # get chunk slice for current chunk
                 chunk_slice = (
                     i * chunk_size,
                     min(pnt_cnt, (i + 1) * chunk_size),

@@ -53,7 +53,7 @@ class Generator(ABC):
         pass
 
     @abstractmethod
-    def update(self, model=None, seed=np.nan):
+    def update(self, model=None, seed=...):
         """Update the model and the seed.
 
         If model and seed are not different, nothing will be done.
@@ -62,10 +62,10 @@ class Generator(ABC):
         ----------
         model : :any:`CovModel` or :any:`None`, optional
             covariance model. Default: :any:`None`
-        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
+        seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
-            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
-            the actual seed will be kept. Default: :any:`numpy.nan`
+            If :any:`None`, a random seed is used. If :any:`Ellipsis`,
+            the current seed will be kept. Default: :any:`Ellipsis`
         """
 
     @abstractmethod
@@ -238,7 +238,7 @@ class RandMeth(Generator):
             nugget = 0.0
         return nugget
 
-    def update(self, model=None, seed=np.nan):
+    def update(self, model=None, seed=...):
         """Update the model and the seed.
 
         If model and seed are not different, nothing will be done.
@@ -247,24 +247,21 @@ class RandMeth(Generator):
         ----------
         model : :any:`CovModel` or :any:`None`, optional
             covariance model. Default: :any:`None`
-        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
+        seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
-            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
-            the actual seed will be kept. Default: :any:`numpy.nan`
+            If :any:`None`, a random seed is used. If :any:`Ellipsis`,
+            the current seed will be kept. Default: :any:`Ellipsis`
         """
         # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
                 self._model = dcp(model)
-                if seed is None or not np.isnan(seed):
-                    self.reset_seed(seed)
-                else:
-                    self.reset_seed(self._seed)
+                self.reset_seed(self._seed if seed is Ellipsis else seed)
             # just update the seed, if its a new one
-            elif seed is None or not np.isnan(seed):
+            elif seed is not Ellipsis:
                 self.seed = seed
         # or just update the seed, when no model is given
-        elif model is None and (seed is None or not np.isnan(seed)):
+        elif model is None and seed is not Ellipsis:
             if isinstance(self._model, CovModel):
                 self.seed = seed
             else:
@@ -272,8 +269,8 @@ class RandMeth(Generator):
                     "gstools.field.generator.RandMeth: no 'model' given"
                 )
         # if the user tries to trick us, we beat him!
-        elif model is None and np.isnan(seed):
-            if not (
+        elif model is None and seed is Ellipsis:
+            if (
                 isinstance(self._model, CovModel)
                 and self._z_1 is not None
                 and self._z_2 is not None
@@ -290,22 +287,22 @@ class RandMeth(Generator):
                 "instance of 'gstools.CovModel'"
             )
 
-    def reset_seed(self, seed=np.nan):
+    def reset_seed(self, seed=...):
         """
         Recalculate the random amplitudes and wave numbers with the given seed.
 
         Parameters
         ----------
-        seed : :class:`int` or :any:`None` or :any:`numpy.nan`, optional
+        seed : :class:`int` or :any:`None` or :any:`Ellipsis`, optional
             the seed of the random number generator.
-            If :any:`None`, a random seed is used. If :any:`numpy.nan`,
-            the actual seed will be kept. Default: :any:`numpy.nan`
+            If :any:`None`, a random seed is used. If :any:`Ellipsis`,
+            the current seed will be kept. Default: :any:`Ellipsis`
 
         Notes
         -----
         Even if the given seed is the present one, modes will be recalculated.
         """
-        if seed is None or not np.isnan(seed):
+        if seed is not Ellipsis:
             self._seed = seed
         self._rng = RNG(self._seed)
         # normal distributed samples for randmeth
@@ -354,7 +351,7 @@ class RandMeth(Generator):
 
     @seed.setter
     def seed(self, new_seed):
-        if new_seed is not self._seed:
+        if new_seed != self._seed:
             self.reset_seed(new_seed)
 
     @property
