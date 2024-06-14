@@ -21,16 +21,12 @@ y = np.linspace(0, L[1], 128)
 model = gs.Gaussian(dim=2, var=1, len_scale=200)
 
 # Next, we hand the cov. model to the spatial random field class
-# and set the generator to `Fourier`. We will let the class figure out the
-# modes internally, by handing over `period` and `mode_rel_cutoff` which is the cutoff
-# value of the spectral density, relative to the maximum spectral density at
-# the origin. Simply put, we will use `mode_rel_cutoff`% of the spectral
-# density for the calculations. The argument `period` is set to the domain
-# size.
+# and set the generator to `Fourier`. The `mode_no` argument sets the number of
+# Fourier modes per dimension. The argument `period` is set to the domain size.
 srf = gs.SRF(
     model,
     generator="Fourier",
-    mode_rel_cutoff=0.99,
+    mode_no=[32, 32],
     period=L,
     seed=1681903,
 )
@@ -40,24 +36,3 @@ srf((x, y), mesh_type="structured")
 
 # GSTools has a few simple visualization methods built in.
 srf.plot()
-
-# Alternatively, we could calculate the modes ourselves and hand them over to
-# GSTools. Therefore, we set the cutoff values to absolut values in Fourier
-# space. But always check, if you cover enough of the spectral density to not
-# run into numerical problems.
-modes_cutoff = [1.0, 1.0]
-
-# Next, we have to compute the numerical step size in Fourier space. This choice
-# influences the periodicity, which we want to set to the domain size by
-modes_delta = 2 * np.pi / L
-
-# Now, we calculate the modes with
-modes = [np.arange(0, modes_cutoff[d], modes_delta[d]) for d in range(2)]
-
-# And we can create a new instance of the SRF class with our own modes.
-srf_modes = gs.SRF(
-    model,
-    generator="Fourier",
-    modes=modes,
-    seed=494754,
-)

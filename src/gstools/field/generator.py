@@ -599,49 +599,35 @@ class Fourier(Generator):
     def __init__(
         self,
         model,
-        mode_rel_cutoff=None,
-        period=None,
-        modes=None,
+        mode_no,
+        period,
         seed=None,
         verbose=False,
         **kwargs,
     ):
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
-        if (
-            mode_rel_cutoff is not None
-            and period is not None
-            and modes is not None
-        ):
-            warnings.warn(
-                "gstools.Fourier: mode_rel_cutoff & period are ignored, as "
-                "modes is provided."
-            )
-        if mode_rel_cutoff is None and period is None and modes is None:
-            raise ValueError("Fourier: No mode information provided.")
-
         dim = model.dim
-        if (
-            modes is None
-            and period is not None
-            and mode_rel_cutoff is not None
-        ):
-            if len(period) != dim:
-                raise ValueError("Fourier: Dimension mismatch.")
-            self._mode_rel_cutoff = mode_rel_cutoff
-            self._period = np.array(period)
-            self._delta_k = 2.0 * np.pi / self._period
-            modes_cutoff = self.calc_modes_cutoff(model, self._mode_rel_cutoff)
-            self._modes_cutoff = self._fill_to_dim(dim, modes_cutoff)
-            modes = [
-                np.arange(-self._modes_cutoff[d], self._modes_cutoff[d], self._delta_k[d])
-                for d in range(dim)
-            ]
-        elif modes is not None:
-            self._delta_k = np.array(
-                [modes[d][1] - modes[d][0] for d in range(dim)]
+        if len(mode_no) != dim:
+            raise ValueError(
+                "Fourier: Dimension mismatch in argument mode_no."
             )
-            self._period = 2.0 * np.pi / self._delta_k
+        if len(period) != dim:
+            raise ValueError("Fourier: Dimension mismatch in argument period.")
+        if (np.asarray([m % 2 for m in mode_no]) != 0).any():
+            raise ValueError("Fourier: Odd mode_no not supported.")
+
+        self._period = np.array(period)
+        self._delta_k = 2.0 * np.pi / self._period
+        anis = np.insert(model.anis.copy(), 0, 1.0)
+        modes = [
+            np.arange(
+                -mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
+                mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
+                self._delta_k[d],
+            )
+            for d in range(dim)
+        ]
 
         # initialize attributes
         self._modes = generate_grid(modes)
@@ -813,41 +799,6 @@ class Fourier(Generator):
             r = np.pad(r, (0, dim - len(r)), "edge")
         return r
 
-    def calc_modes_cutoff(
-        self, model, mode_rel_cutoff
-    ):  # pylint: disable=R6301
-        """Find the cutoff value so that `mode_rel_cutoff`% of the spectrum is kept.
-
-        This helper function uses a least squares algorithm to determine the
-        cutoff value so that `mode_rel_cutoff`% of the spectrum is kept.
-
-        Parameters
-        ----------
-        model : :any:`CovModel`
-            Covariance model
-        mode_rel_cutoff : :class:`float`
-
-        Returns
-        -------
-        :class:`float`
-            the cutoff value
-        """
-        norm = model.spectral_density(0)
-        # the first len_scale is a good enough first guess
-        try:
-            len_scale = model.len_scale[0]
-        except IndexError:
-            len_scale = model.len_scale
-        k_cutoff0 = np.sqrt(1.0 / len_scale)
-        mode_rel_cutoff_r = 1.0 - mode_rel_cutoff
-        res = least_squares(
-            lambda k, mode_rel_cutoff_r: model.spectral_density(k)
-            - mode_rel_cutoff_r * norm,
-            k_cutoff0,
-            args=(mode_rel_cutoff_r,),
-        )
-        return res.x[0]
-
     @property
     def seed(self):
         """:class:`int`: Seed of the master RNG.
@@ -872,6 +823,16 @@ class Fourier(Generator):
     @model.setter
     def model(self, model):
         self.update(model)
+
+    @property
+    def modes(self):
+        """:class:`numpy.ndarray`: Modes on which the spectrum is calculated."""
+        return self._modes
+
+    @property
+    def period(self):
+        """:class:`numpy.ndarray`: Period length of the spatial random field."""
+        return self._period
 
     @property
     def verbose(self):

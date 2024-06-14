@@ -2,13 +2,11 @@
 This is the unittest of the Fourier class.
 """
 
-import copy
 import unittest
 
 import numpy as np
 
 import gstools as gs
-from gstools.field.generator import Fourier
 
 
 class TestFourier(unittest.TestCase):
@@ -17,55 +15,69 @@ class TestFourier(unittest.TestCase):
         self.cov_model_1d = gs.Gaussian(dim=1, var=0.5, len_scale=10.0)
         self.cov_model_2d = gs.Gaussian(dim=2, var=2.0, len_scale=30.0)
         self.cov_model_3d = gs.Gaussian(dim=3, var=2.1, len_scale=21.0)
-        L = [80, 30, 91]
-        self.x = np.linspace(0, L[0], 11)
-        self.y = np.linspace(0, L[1], 31)
-        self.z = np.linspace(0, L[2], 13)
+        self.L = [80, 30, 91]
+        self.x = np.linspace(0, self.L[0], 11)
+        self.y = np.linspace(0, self.L[1], 31)
+        self.z = np.linspace(0, self.L[2], 13)
 
-        cutoff_rel = 0.999
-        cutoff_abs = 1
-        dk = [2 * np.pi / l for l in L]
-
-        self.modes_1d = [np.arange(0, cutoff_abs, dk[0])]
-        self.modes_2d = self.modes_1d + [np.arange(0, cutoff_abs, dk[1])]
-        self.modes_3d = self.modes_2d + [np.arange(0, cutoff_abs, dk[2])]
+        self.mode_no = [12, 6, 14]
 
         self.srf_1d = gs.SRF(
             self.cov_model_1d,
             generator="Fourier",
-            modes=self.modes_1d,
+            mode_no=[self.mode_no[0]],
+            period=[self.L[0]],
             seed=self.seed,
         )
         self.srf_2d = gs.SRF(
             self.cov_model_2d,
             generator="Fourier",
-            modes=self.modes_2d,
+            mode_no=self.mode_no[:2],
+            period=self.L[:2],
             seed=self.seed,
         )
         self.srf_3d = gs.SRF(
             self.cov_model_3d,
             generator="Fourier",
-            mode_rel_cutoff=cutoff_rel,
-            period=L,
+            mode_no=self.mode_no,
+            period=self.L,
             seed=self.seed,
         )
 
     def test_1d(self):
         field = self.srf_1d((self.x,), mesh_type="structured")
-        self.assertAlmostEqual(field[0], 0.40939877176695477)
+        self.assertAlmostEqual(field[0], 0.6236929351309081)
 
     def test_2d(self):
         field = self.srf_2d((self.x, self.y), mesh_type="structured")
-        self.assertAlmostEqual(field[0, 0], 1.6338790313270515)
+        self.assertAlmostEqual(field[0, 0], -0.1431996611581266)
 
     def test_3d(self):
         field = self.srf_3d((self.x, self.y, self.z), mesh_type="structured")
-        self.assertAlmostEqual(field[0, 0, 0], 0.3866689424599251)
+        self.assertAlmostEqual(field[0, 0, 0], -1.0433325279452803)
 
-    def test_periodicity(self):
+    def test_periodicity_1d(self):
+        field = self.srf_1d((self.x,), mesh_type="structured")
+        self.assertAlmostEqual(field[0], field[-1])
+
+    def test_periodicity_2d(self):
         field = self.srf_2d((self.x, self.y), mesh_type="structured")
         self.assertAlmostEqual(
             field[0, len(self.y) // 2], field[-1, len(self.y) // 2]
+        )
+        self.assertAlmostEqual(
+            field[len(self.x) // 2, 0], field[len(self.x) // 2, -1]
+        )
+
+    def test_periodicity_3d(self):
+        field = self.srf_3d((self.x, self.y, self.z), mesh_type="structured")
+        self.assertAlmostEqual(
+            field[0, len(self.y) // 2, 0], field[-1, len(self.y) // 2, 0]
+        )
+        self.assertAlmostEqual(field[0, 0, 0], field[0, -1, 0])
+        self.assertAlmostEqual(
+            field[len(self.x) // 2, len(self.y) // 2, 0],
+            field[len(self.x) // 2, len(self.y) // 2, -1],
         )
 
     def test_assertions(self):
@@ -74,5 +86,12 @@ class TestFourier(unittest.TestCase):
         self.assertRaises(
             ValueError, self.srf_2d, (self.x, self.y), mesh_type="unstructured"
         )
-        with self.assertRaises(ValueError):
-            gs.SRF(self.cov_model_2d, generator="Fourier")
+        self.assertRaises(
+            ValueError,
+            gs.SRF,
+            self.cov_model_2d,
+            generator="Fourier",
+            mode_no=[13, 50],
+            period=self.L[:2],
+            seed=self.seed,
+        )
