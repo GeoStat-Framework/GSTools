@@ -20,7 +20,6 @@ from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
 
 import numpy as np
-from scipy.optimize import least_squares
 
 from gstools import config
 from gstools.covmodel.base import CovModel
