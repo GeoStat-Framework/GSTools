@@ -549,15 +549,10 @@ class Fourier(Generator):
     ----------
     model : :any:`CovModel`
         Covariance model
-    mode_rel_cutoff : :class:`float`, optional
-        The cutoff value, relative to the spectral density's maximum, e.g. a
-        value of 0.99 means that the function falls to 1% of its max. value
-        before it is cut off.
+    mode_no : :class:`list`
+        Number of Fourier modes per dimension.
     period : :class:`list`, optional
         The spatial periodicity of the field, is often the domain size.
-    modes : :class:`list`, optional
-        Externally calculated modes, if handed over, `mode_rel_cutoff` and
-        `period` are ignored.
     seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -606,34 +601,13 @@ class Fourier(Generator):
     ):
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
-        dim = model.dim
-        if len(mode_no) != dim:
-            raise ValueError(
-                "Fourier: Dimension mismatch in argument mode_no."
-            )
-        if len(period) != dim:
-            raise ValueError("Fourier: Dimension mismatch in argument period.")
-        if (np.asarray([m % 2 for m in mode_no]) != 0).any():
-            raise ValueError("Fourier: Odd mode_no not supported.")
-
-        self._period = np.array(period)
-        self._delta_k = 2.0 * np.pi / self._period
-        anis = np.insert(model.anis.copy(), 0, 1.0)
-        modes = [
-            np.arange(
-                -mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
-                mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
-                self._delta_k[d],
-            )
-            for d in range(dim)
-        ]
-
-        # initialize attributes
-        self._modes = generate_grid(modes)
-        self._modes_no = [len(m) for m in modes]
 
         self._verbose = bool(verbose)
         # initialize private attributes
+        self._modes = None
+        self._mode_no = None
+        self._period = None
+        self._delta_k = None
         self._model = None
         self._seed = None
         self._rng = None
@@ -642,13 +616,13 @@ class Fourier(Generator):
         self._spectrum_factor = None
         self._value_type = "scalar"
         # set model and seed
-        self.update(model, seed)
+        self.update(model, seed, mode_no, period)
 
     def __call__(self, pos, add_nugget=True):
         """Calculate the modes for the Fourier method.
 
-        This method  calls the `summate_*` Cython methods, which are the
-        heart of the randomization method.
+        This method  calls the `summate_fourier` Cython method, which is the
+        heart of the Fourier method.
 
         Parameters
         ----------
@@ -697,7 +671,7 @@ class Fourier(Generator):
             nugget = 0.0
         return nugget
 
-    def update(self, model=None, seed=np.nan):
+    def update(self, model=None, seed=np.nan, mode_no=None, period=None):
         """Update the model and the seed.
 
         If model and seed are not different, nothing will be done.
@@ -710,7 +684,30 @@ class Fourier(Generator):
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`numpy.nan`,
             the actual seed will be kept. Default: :any:`numpy.nan`
+        mode_no : :class:`list` or :any:`None`, optional
+            Number of Fourier modes per dimension.
+        period : :class:`list` or :any:`None, optional
+            The spatial periodicity of the field, is often the domain size.
         """
+        tmp_model = model if model is not None else self._model
+        if period is not None:
+            if len(period) != tmp_model.dim:
+                raise ValueError(
+                    "Fourier: Dimension mismatch in argument period."
+                )
+            self._period = np.array(period)
+            self._delta_k = 2.0 * np.pi / self._period
+            if mode_no is None:
+                self._set_modes(self._mode_no, tmp_model)
+        if mode_no is not None:
+            if len(mode_no) != tmp_model.dim:
+                raise ValueError(
+                    "Fourier: Dimension mismatch in argument mode_no."
+                )
+            if (np.asarray([m % 2 for m in mode_no]) != 0).any():
+                raise ValueError("Fourier: Odd mode_no not supported.")
+            self._set_modes(mode_no, tmp_model)
+
         # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
@@ -730,7 +727,13 @@ class Fourier(Generator):
                 raise ValueError(
                     "gstools.field.generator.RandMeth: no 'model' given"
                 )
-        # if the user tries to trick us, we beat him!
+        # but also update when mode mesh was modified
+        elif mode_no is not None or period is not None:
+            if seed is None or not np.isnan(seed):
+                self.reset_seed(seed)
+            else:
+                self.reset_seed(self._seed)
+        # if the user tries to trick us, we beat them!
         elif model is None and np.isnan(seed):
             if (
                 isinstance(self._model, CovModel)
@@ -771,8 +774,8 @@ class Fourier(Generator):
             self._seed = seed
         self._rng = RNG(self._seed)
         # normal distributed samples for randmeth
-        self._z_1 = self._rng.random.normal(size=np.prod(self._modes_no))
-        self._z_2 = self._rng.random.normal(size=np.prod(self._modes_no))
+        self._z_1 = self._rng.random.normal(size=np.prod(self._mode_no))
+        self._z_2 = self._rng.random.normal(size=np.prod(self._mode_no))
         # pre calc. the spectrum for all wave numbers they are handed over to
         # Cython, which doesn't have access to the CovModel
         k_norm = np.linalg.norm(self._modes, axis=0)
@@ -797,6 +800,33 @@ class Fourier(Generator):
         if len(r) < dim:
             r = np.pad(r, (0, dim - len(r)), "edge")
         return r
+
+    def _set_modes(self, mode_no, model):
+        """Calculate the mode mesh.
+
+        Parameters
+        ----------
+        mode_no : :class:`list`
+            Number of Fourier modes per dimension.
+        model : :any:`CovModel` or :any:`None`, optional
+            covariance model. Default: :any:`None`
+
+        Notes
+        -----
+        `self._reset_seed` *has* to be called after this method!
+        """
+        anis = np.insert(model.anis.copy(), 0, 1.0)
+        modes = [
+            np.arange(
+                -mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
+                mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
+                self._delta_k[d],
+            )
+            for d in range(model.dim)
+        ]
+        # initialize attributes
+        self._modes = generate_grid(modes)
+        self._mode_no = [len(m) for m in modes]
 
     @property
     def seed(self):
@@ -829,9 +859,22 @@ class Fourier(Generator):
         return self._modes
 
     @property
+    def mode_no(self):
+        """:class:`numpy.ndarray`: Number of modes per dimension."""
+        return self._mode_no
+
+    @mode_no.setter
+    def mode_no(self, mode_no):
+        self.update(mode_no=mode_no)
+
+    @property
     def period(self):
         """:class:`numpy.ndarray`: Period length of the spatial random field."""
         return self._period
+
+    @period.setter
+    def period(self, period):
+        self.update(period=period)
 
     @property
     def verbose(self):
