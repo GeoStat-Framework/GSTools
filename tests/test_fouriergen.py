@@ -80,6 +80,20 @@ class TestFourier(unittest.TestCase):
             field[len(self.x) // 2, len(self.y) // 2, -1],
         )
 
+    def test_setters(self):
+        new_period = [5, 10]
+        self.srf_2d.generator.period = new_period
+        np.testing.assert_almost_equal(
+            self.srf_2d.generator.period,
+            np.array(new_period),
+        )
+        new_mode_no = [6, 6]
+        self.srf_2d.generator.mode_no = new_mode_no
+        np.testing.assert_almost_equal(
+            self.srf_2d.generator.mode_no,
+            np.array(new_mode_no),
+        )
+
     def test_assertions(self):
         # unstructured grids not supported
         self.assertRaises(ValueError, self.srf_2d, (self.x, self.y))
