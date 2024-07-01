@@ -279,7 +279,7 @@ class RandMeth(Generator):
                 raise ValueError(
                     "gstools.field.generator.RandMeth: no 'model' given"
                 )
-        # if the user tries to trick us, we beat him!
+        # if the user tries to trick us, we beat them!
         elif model is None and np.isnan(seed):
             if not (
                 isinstance(self._model, CovModel)
