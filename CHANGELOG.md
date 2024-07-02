@@ -2,13 +2,14 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
-## [Unreleased] - ?
+## [1.5.2] - Nifty Neon - 2024-05
 
 ### Enhancements
 
 - added global variable `config.NUM_THREADS` to select number of threads for parallel computation ([#336](https://github.com/GeoStat-Framework/GSTools/pull/336))
+- speed up sampling with emcee by setting `vectorize=True` in `EnsembleSampler` ([#346](https://github.com/GeoStat-Framework/GSTools/pull/346))
 - prepare numpy 2 support ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
-  - numpy 2.0.0rc1 for building extensions (for Python 3.9 and above)
+  - at least numpy 2.0.0rc1 for building extensions (for Python 3.9 and above)
   - check multiple numpy and scipy versions in CI
   - fixed minimal versions for numpy
   - use `np.asarray` everywhere with `np.atleast_(n)d`
@@ -16,9 +17,13 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Bugfixes
 - build docs with latest sphinx version ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
+- fixed zero division error in spectral density of Integral model ([#347](https://github.com/GeoStat-Framework/GSTools/pull/347))
+- minor pylint fixes for used-before-assignment issues ([#350](https://github.com/GeoStat-Framework/GSTools/pull/350))
 
 ### Changes
 - require pyvista 0.40 at least ([#340](https://github.com/GeoStat-Framework/GSTools/pull/340))
+- require matplotlib 3.7 at least ([#350](https://github.com/GeoStat-Framework/GSTools/pull/350))
+- remove universal2 wheels for macos (we already provide separate intel and arm64 wheels) ([#350](https://github.com/GeoStat-Framework/GSTools/pull/350))
 
 
 ## [1.5.1] - Nifty Neon - 2023-11
@@ -435,7 +440,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.0...v1.4.1

@@ -337,6 +337,7 @@ class Krige(Field):
         # determine the chunk size
         chunk_size = len(pos[0]) if chunk_slice[1] is None else chunk_slice[1]
         chunk_size -= chunk_slice[0]
+        chunk_pos = None  # init value
         res = np.empty((self.krige_size, chunk_size), dtype=np.double)
         if only_mean:
             # set points to limit of the covariance to only get the mean
