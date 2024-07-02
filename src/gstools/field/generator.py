@@ -543,7 +543,7 @@ class IncomprRandMeth(RandMeth):
 
 
 class Fourier(Generator):
-    r"""Fourier method for calculating isotropic random fields.
+    r"""Fourier method for calculating periodic, isotropic random fields.
 
     Parameters
     ----------
@@ -565,9 +565,9 @@ class Fourier(Generator):
 
     Notes
     -----
-    The Fourier method is used to generate isotropic
-    spatial random fields characterized by a given covariance model.
-    The calculation looks like [Hesse2014]_:
+    The Fourier method is used to generate periodic isotropic spatial random
+    fields characterized by a given covariance model.
+    The calculation looks like:
 
     .. math::
        u\left(x\right)=
@@ -578,16 +578,9 @@ class Fourier(Generator):
 
     where:
 
-        * :math:`N` : fourier mode number
+        * :math:`S` : spectrum of the covariance model
         * :math:`Z_{j,i}` : random samples from a normal distribution
-        * :math:`k_i` : the equidistant spectral density of the covariance model
-
-    References
-    ----------
-    .. [Hesse2014] Heße, F., Prykhodko, V., Schlüter, S., and Attinger, S.,
-           "Generating random fields with a truncated power-law variogram:
-           A comparison of several numerical methods",
-           Environmental Modelling & Software, 55, 32-48., (2014)
+        * :math:`k_i` : the equidistant Fourier grid
     """
 
     def __init__(
