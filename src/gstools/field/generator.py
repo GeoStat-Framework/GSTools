@@ -1,4 +1,4 @@
-"""gene
+"""
 GStools subpackage providing generators for spatial random fields.
 
 .. currentmodule:: gstools.field.generator
