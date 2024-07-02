@@ -556,9 +556,6 @@ class Fourier(Generator):
     seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
-    verbose : :class:`bool`, optional
-        Be chatty during the generation.
-        Default: :any:`False`
 
     **kwargs
         Placeholder for keyword-args
@@ -589,13 +586,11 @@ class Fourier(Generator):
         mode_no,
         period,
         seed=None,
-        verbose=False,
         **kwargs,
     ):
         if kwargs:
             warnings.warn("gstools.Fourier: **kwargs are ignored")
 
-        self._verbose = bool(verbose)
         # initialize private attributes
         self._modes = None
         self._mode_no = None
@@ -734,9 +729,6 @@ class Fourier(Generator):
                 and self._z_2 is not None
                 and self._spectrum_factor is not None
             ):
-                if self.verbose:
-                    print("Fourier.update: Nothing will be done...")
-            else:
                 raise ValueError(
                     "gstools.field.generator.Fourier: "
                     "neither 'model' nor 'seed' given!"
@@ -868,15 +860,6 @@ class Fourier(Generator):
     @period.setter
     def period(self, period):
         self.update(period=period)
-
-    @property
-    def verbose(self):
-        """:class:`bool`: Verbosity of the generator."""
-        return self._verbose
-
-    @verbose.setter
-    def verbose(self, verbose):
-        self._verbose = bool(verbose)
 
     @property
     def value_type(self):
