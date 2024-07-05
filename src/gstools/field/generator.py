@@ -24,11 +24,15 @@ from gstools import config
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
 
-if config.USE_RUST:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import summate, summate_incompr
-else:
-    from gstools.field.summator import summate, summate_incompr
+    from gstools_core import (
+        summate as summate_gsc,
+        summate_incompr as summate_incompr_gsc,
+    )
+
+from gstools.field.summator import summate as summate_c
+from gstools.field.summator import summate_incompr as summate_incompr_c
 
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth"]
 
@@ -194,8 +198,8 @@ class RandMeth(Generator):
     def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
-        This method  calls the `summate_*` Cython methods, which are the
-        heart of the randomization method.
+        This method  calls the `summate_*` Rust or Cython methods, which are
+        the heart of the randomization method.
 
         Parameters
         ----------
@@ -209,6 +213,10 @@ class RandMeth(Generator):
         :class:`numpy.ndarray`
             the random modes
         """
+        if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+            summate = summate_gsc
+        else:
+            summate = summate_c
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate(
             self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
@@ -473,7 +481,7 @@ class IncomprRandMeth(RandMeth):
     def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
-        This method  calls the `summate_incompr_*` Cython methods,
+        This method  calls the `summate_incompr_*` Rust or Cython methods,
         which are the heart of the randomization method.
         In this class the method contains a projector to
         ensure the incompressibility of the vector field.
@@ -490,6 +498,10 @@ class IncomprRandMeth(RandMeth):
         :class:`numpy.ndarray`
             the random modes
         """
+        if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+            summate_incompr = summate_incompr_gsc
+        else:
+            summate_incompr = summate_incompr_c
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate_incompr(
             self._cov_sample,

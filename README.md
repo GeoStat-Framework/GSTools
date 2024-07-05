@@ -71,6 +71,9 @@ running. Install the package by typing the following command in a command termin
 
 To install the latest development version via pip, see the
 [documentation][doc_install_link].
+One thing to point out is that this way, the non-parallel version of GSTools
+is installed. In case you want the parallel version, follow these easy
+[steps][doc_install_link].
 
 
 ## Citation

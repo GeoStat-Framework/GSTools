@@ -23,14 +23,17 @@ from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
 
-if config.USE_RUST:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import calc_field_krige, calc_field_krige_and_variance
-else:
-    from gstools.krige.krigesum import (
-        calc_field_krige,
-        calc_field_krige_and_variance,
+    from gstools_core import (
+        calc_field_krige as calc_field_krige_gsc,
+        calc_field_krige_and_variance as calc_field_krige_and_variance_gsc,
     )
+
+from gstools.krige.krigesum import calc_field_krige as calc_field_krige_c
+from gstools.krige.krigesum import (
+    calc_field_krige_and_variance as calc_field_krige_and_variance_c,
+)
 
 __all__ = ["Krige"]
 
@@ -237,6 +240,16 @@ class Krige(Field):
             the kriging error variance
             (if return_var is True and only_mean is False)
         """
+        if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+            self._calc_field_krige = calc_field_krige_gsc
+            self._calc_field_krige_and_variance = (
+                calc_field_krige_and_variance_gsc
+            )
+        else:
+            self._calc_field_krige = calc_field_krige_c
+            self._calc_field_krige_and_variance = (
+                calc_field_krige_and_variance_c
+            )
         return_var &= not only_mean  # don't return variance when calc. mean
         fld_cnt = 2 if return_var else 1
         default = self.default_field_names[2] if only_mean else None
@@ -284,11 +297,13 @@ class Krige(Field):
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
         if return_var:  # estimate error variance
-            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
-                self._krige_mat, k_vec, self._krige_cond
+            field[c_slice], krige_var[c_slice] = (
+                self._calc_field_krige_and_variance(
+                    self._krige_mat, k_vec, self._krige_cond
+                )
             )
         else:  # solely calculate the interpolated field
-            field[c_slice] = calc_field_krige(
+            field[c_slice] = self._calc_field_krige(
                 self._krige_mat, k_vec, self._krige_cond
             )
 

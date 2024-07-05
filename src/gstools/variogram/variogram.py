@@ -24,19 +24,17 @@ from gstools.tools.geometric import (
 )
 from gstools.variogram.binning import standard_bins
 
-if config.USE_RUST:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import variogram_directional as directional
-    from gstools_core import variogram_ma_structured as ma_structured
-    from gstools_core import variogram_structured as structured
-    from gstools_core import variogram_unstructured as unstructured
-else:
-    from gstools.variogram.estimator import (
-        directional,
-        ma_structured,
-        structured,
-        unstructured,
-    )
+    from gstools_core import variogram_directional as directional_gsc
+    from gstools_core import variogram_ma_structured as ma_structured_gsc
+    from gstools_core import variogram_structured as structured_gsc
+    from gstools_core import variogram_unstructured as unstructured_gsc
+
+from gstools.variogram.estimator import directional as directional_c
+from gstools.variogram.estimator import ma_structured as ma_structured_c
+from gstools.variogram.estimator import structured as structured_c
+from gstools.variogram.estimator import unstructured as unstructured_c
 
 __all__ = [
     "vario_estimate",
@@ -366,6 +364,12 @@ def vario_estimate(
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        unstructured = unstructured_gsc
+        directional = directional_gsc
+    else:
+        unstructured = unstructured_c
+        directional = directional_c
     if dir_no == 0:
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
@@ -471,7 +475,7 @@ def vario_estimate_axis(
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
         mask = np.ma.getmaskarray(field)
-        if not config.USE_RUST:
+        if not config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
             mask = np.asarray(mask, dtype=np.int32)
     else:
         field = np.atleast_1d(np.asarray(field, dtype=np.double))
@@ -487,6 +491,12 @@ def vario_estimate_axis(
 
     cython_estimator = _set_estimator(estimator)
 
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        ma_structured = ma_structured_gsc
+        structured = structured_gsc
+    else:
+        ma_structured = ma_structured_c
+        structured = structured_c
     if masked:
         return ma_structured(
             field, mask, cython_estimator, num_threads=config.NUM_THREADS
