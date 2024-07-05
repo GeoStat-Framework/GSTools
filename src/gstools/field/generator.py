@@ -22,17 +22,14 @@ import numpy as np
 
 from gstools import config
 from gstools.covmodel.base import CovModel
-from gstools.random.rng import RNG
-
-if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
-    # pylint: disable=E0401
-    from gstools_core import (
-        summate as summate_gsc,
-        summate_incompr as summate_incompr_gsc,
-    )
-
 from gstools.field.summator import summate as summate_c
 from gstools.field.summator import summate_incompr as summate_incompr_c
+from gstools.random.rng import RNG
+
+if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
+    # pylint: disable=E0401
+    from gstools_core import summate as summate_gsc
+    from gstools_core import summate_incompr as summate_incompr_gsc
 
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth"]
 
@@ -213,8 +210,10 @@ class RandMeth(Generator):
         :class:`numpy.ndarray`
             the random modes
         """
-        if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-            summate = summate_gsc
+        if (
+            config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+        ):  # pylint: disable=W0212
+            summate = summate_gsc  # pylint: disable=E0606
         else:
             summate = summate_c
         pos = np.asarray(pos, dtype=np.double)
@@ -499,7 +498,7 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-            summate_incompr = summate_incompr_gsc
+            summate_incompr = summate_incompr_gsc  # pylint: disable=E0606
         else:
             summate_incompr = summate_incompr_c
         pos = np.asarray(pos, dtype=np.double)

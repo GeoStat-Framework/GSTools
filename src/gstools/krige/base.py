@@ -18,22 +18,23 @@ from scipy.spatial.distance import cdist
 
 from gstools import config
 from gstools.field.base import Field
+from gstools.krige.krigesum import calc_field_krige as calc_field_krige_c
+from gstools.krige.krigesum import (
+    calc_field_krige_and_variance as calc_field_krige_and_variance_c,
+)
 from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
 
-if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
     # pylint: disable=E0401
     from gstools_core import (
-        calc_field_krige as calc_field_krige_gsc,
-        calc_field_krige_and_variance as calc_field_krige_and_variance_gsc,
+        calc_field_krige as calc_field_krige_gsc,  # pylint: disable=E0606
     )
-
-from gstools.krige.krigesum import calc_field_krige as calc_field_krige_c
-from gstools.krige.krigesum import (
-    calc_field_krige_and_variance as calc_field_krige_and_variance_c,
-)
+    from gstools_core import (
+        calc_field_krige_and_variance as calc_field_krige_and_variance_gsc,  # pylint: disable=E0606
+    )
 
 __all__ = ["Krige"]
 
@@ -240,14 +241,20 @@ class Krige(Field):
             the kriging error variance
             (if return_var is True and only_mean is False)
         """
-        if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-            self._calc_field_krige = calc_field_krige_gsc
-            self._calc_field_krige_and_variance = (
-                calc_field_krige_and_variance_gsc
+        if (
+            config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+        ):  # pylint: disable=W0212
+            self._calc_field_krige = (
+                calc_field_krige_gsc  # pylint: disable=E0606, W0201
+            )
+            self._calc_field_krige_and_variance = (  # pylint: disable=W0201
+                calc_field_krige_and_variance_gsc  # pylint: disable=E0606
             )
         else:
-            self._calc_field_krige = calc_field_krige_c
-            self._calc_field_krige_and_variance = (
+            self._calc_field_krige = (
+                calc_field_krige_c  # pylint: disable=W0201
+            )
+            self._calc_field_krige_and_variance = (  # pylint: disable=W0201
                 calc_field_krige_and_variance_c
             )
         return_var &= not only_mean  # don't return variance when calc. mean

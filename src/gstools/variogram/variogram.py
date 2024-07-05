@@ -23,18 +23,17 @@ from gstools.tools.geometric import (
     generate_grid,
 )
 from gstools.variogram.binning import standard_bins
+from gstools.variogram.estimator import directional as directional_c
+from gstools.variogram.estimator import ma_structured as ma_structured_c
+from gstools.variogram.estimator import structured as structured_c
+from gstools.variogram.estimator import unstructured as unstructured_c
 
-if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
     # pylint: disable=E0401
     from gstools_core import variogram_directional as directional_gsc
     from gstools_core import variogram_ma_structured as ma_structured_gsc
     from gstools_core import variogram_structured as structured_gsc
     from gstools_core import variogram_unstructured as unstructured_gsc
-
-from gstools.variogram.estimator import directional as directional_c
-from gstools.variogram.estimator import ma_structured as ma_structured_c
-from gstools.variogram.estimator import structured as structured_c
-from gstools.variogram.estimator import unstructured as unstructured_c
 
 __all__ = [
     "vario_estimate",
@@ -364,9 +363,11 @@ def vario_estimate(
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        unstructured = unstructured_gsc
-        directional = directional_gsc
+    if (
+        config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+    ):  # pylint: disable=W0212
+        unstructured = unstructured_gsc  # pylint: disable=E0606
+        directional = directional_gsc  # pylint: disable=E0606
     else:
         unstructured = unstructured_c
         directional = directional_c
@@ -475,7 +476,9 @@ def vario_estimate_axis(
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
         mask = np.ma.getmaskarray(field)
-        if not config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        if (
+            not config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+        ):  # pylint: disable=W0212
             mask = np.asarray(mask, dtype=np.int32)
     else:
         field = np.atleast_1d(np.asarray(field, dtype=np.double))
@@ -491,9 +494,11 @@ def vario_estimate_axis(
 
     cython_estimator = _set_estimator(estimator)
 
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        ma_structured = ma_structured_gsc
-        structured = structured_gsc
+    if (
+        config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+    ):  # pylint: disable=W0212
+        ma_structured = ma_structured_gsc  # pylint: disable=E0606
+        structured = structured_gsc  # pylint: disable=E0606
     else:
         ma_structured = ma_structured_c
         structured = structured_c
