@@ -244,15 +244,15 @@ class Krige(Field):
         if (
             config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
         ):  # pylint: disable=W0212
-            self._calc_field_krige = (
-                calc_field_krige_gsc  # pylint: disable=E0606, W0201
+            self._calc_field_krige = (  # pylint: disable=W0201
+                calc_field_krige_gsc  # pylint: disable=E0606
             )
             self._calc_field_krige_and_variance = (  # pylint: disable=W0201
                 calc_field_krige_and_variance_gsc  # pylint: disable=E0606
             )
         else:
-            self._calc_field_krige = (
-                calc_field_krige_c  # pylint: disable=W0201
+            self._calc_field_krige = (  # pylint: disable=W0201
+                calc_field_krige_c
             )
             self._calc_field_krige_and_variance = (  # pylint: disable=W0201
                 calc_field_krige_and_variance_c

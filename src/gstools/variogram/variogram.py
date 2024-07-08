@@ -364,7 +364,8 @@ def vario_estimate(
     cython_estimator = _set_estimator(estimator)
     # run
     if (
-        config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
     ):  # pylint: disable=W0212
         unstructured = unstructured_gsc  # pylint: disable=E0606
         directional = directional_gsc  # pylint: disable=E0606
@@ -477,7 +478,8 @@ def vario_estimate_axis(
             field.mask = np.logical_or(field.mask, missing_mask)
         mask = np.ma.getmaskarray(field)
         if (
-            not config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+            not config.USE_GSTOOLS_CORE
+            and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
         ):  # pylint: disable=W0212
             mask = np.asarray(mask, dtype=np.int32)
     else:
@@ -495,7 +497,8 @@ def vario_estimate_axis(
     cython_estimator = _set_estimator(estimator)
 
     if (
-        config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
     ):  # pylint: disable=W0212
         ma_structured = ma_structured_gsc  # pylint: disable=E0606
         structured = structured_gsc  # pylint: disable=E0606

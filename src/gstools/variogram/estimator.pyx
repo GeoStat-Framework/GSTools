@@ -345,7 +345,7 @@ def structured(
 
 def ma_structured(
     const double[:, :] f,
-    uint8[:, :] mask, # numpy's bools are 8bit vars
+    uint8[:, :] mask,  # numpy's bools are 8bit vars
     str estimator_type='m',
     num_threads=None,
 ):
