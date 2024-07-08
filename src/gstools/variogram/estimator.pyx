@@ -13,6 +13,9 @@ if OPENMP:
 cimport numpy as np
 from libc.math cimport M_PI, acos, atan2, cos, fabs, isnan, pow, sin, sqrt
 
+# numpy's "bool"
+ctypedef unsigned char uint8
+
 
 def set_num_threads(num_threads):
     cdef int num_threads_c = 1
@@ -342,7 +345,7 @@ def structured(
 
 def ma_structured(
     const double[:, :] f,
-    const bint[:, :] mask,
+    uint8[:, :] mask, # numpy's bools are 8bit vars
     str estimator_type='m',
     num_threads=None,
 ):
@@ -365,7 +368,7 @@ def ma_structured(
         for i in range(i_max):
             for j in range(j_max):
                 for k in prange(1, k_max-i):
-                    if not mask[i, j] and not mask[i+k, j]:
+                    if mask[i, j] == 0 and mask[i+k, j] == 0:
                         counts[k] += 1
                         variogram[k] += estimator_func(f[i, j] - f[i+k, j])
 
