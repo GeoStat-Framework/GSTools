@@ -81,12 +81,14 @@ If something went wrong during installation, try the :code:`-I` `flag from pip <
 
 We provide two possibilities to run GSTools in parallel, often causing a
 massive improvement in runtime. In either case, the number of parallel
-threads can be set with the global variable `config.NUM_THREADS`.
+threads can be set with the global variable `config.NUM_THREADS`. If not set,
+all cores are used.
+When using conda, the parallel version of GSTools is installed per default.
 
 ***Parallelizing Cython***
 
-To enable the OpenMP support in Cython, you have to provide a C compiler and
-OpenMP. Parallel support is controlled by an environment variable
+To enable the OpenMP support in Cython when using pip, you have to provide a C
+compiler and OpenMP. Parallel support is controlled by an environment variable
 ``GSTOOLS_BUILD_PARALLEL``, that can be ``0`` or ``1`` (interpreted as ``0``
 if not present). GSTools then needs to be installed from source:
 
