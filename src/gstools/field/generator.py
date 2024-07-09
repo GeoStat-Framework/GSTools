@@ -704,7 +704,7 @@ class Fourier(Generator):
                 self.seed = seed
             else:
                 raise ValueError(
-                    "gstools.field.generator.RandMeth: no 'model' given"
+                    "gstools.field.generator.Fourier: no 'model' given"
                 )
         # but also update when mode mesh was modified
         elif mode_no is not None or period is not None:
