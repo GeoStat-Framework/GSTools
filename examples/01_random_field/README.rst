@@ -11,6 +11,12 @@ semi-variogram. This is done by using the so-called randomization method.
 The spatial random field is represented by a stochastic Fourier integral
 and its discretised modes are evaluated at random frequencies.
 
+In case you want to generate spatial random fields with periodic boundaries,
+you can use the so-called Fourier method. See the corresponding examples for
+how to do that. The spatial random field is represented by a stochastic
+Fourier integral and its discretised modes are evaluated at equidistant
+frequencies.
+
 GSTools supports arbitrary and non-isotropic covariance models.
 
 Examples
