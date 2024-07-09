@@ -676,16 +676,18 @@ class Fourier(Generator):
             Number of Fourier modes per dimension.
         """
         tmp_model = model if model is not None else self._model
+        dim = tmp_model
         if period is not None:
-            self._period = self._fill_to_dim(period, tmp_model.dim)
-            self._delta_k = 2.0 * np.pi / self._period
+            self._period = self._fill_to_dim(period, dim)
+            anis = np.insert(tmp_model.anis.copy(), 0, 1.0)
+            self._delta_k = 2.0 * np.pi / self._period * anis
             if mode_no is None:
-                self._set_modes(self._mode_no, tmp_model)
+                self._set_modes(self._mode_no, dim)
         if mode_no is not None:
-            mode_no = self._fill_to_dim(mode_no, tmp_model.dim)
+            mode_no = self._fill_to_dim(mode_no, dim)
             if (np.asarray([m % 2 for m in mode_no]) != 0).any():
                 raise ValueError("Fourier: Odd mode_no not supported.")
-            self._set_modes(mode_no, tmp_model)
+            self._set_modes(mode_no, dim)
 
         # check if a new model is given
         if isinstance(model, CovModel):
@@ -777,28 +779,27 @@ class Fourier(Generator):
             r = np.pad(r, (0, dim - len(r)), "edge")
         return r
 
-    def _set_modes(self, mode_no, model):
+    def _set_modes(self, mode_no, dim):
         """Calculate the mode mesh.
 
         Parameters
         ----------
         mode_no : :class:`list`
             Number of Fourier modes per dimension.
-        model : :any:`CovModel` or :any:`None`, optional
-            covariance model. Default: :any:`None`
+        dim : :class:`int`
+            dimension of the model.
 
         Notes
         -----
         `self._reset_seed` *has* to be called after this method!
         """
-        anis = np.insert(model.anis.copy(), 0, 1.0)
         modes = [
             np.arange(
-                -mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
-                mode_no[d] / 2.0 * self._delta_k[d] / anis[d],
+                -mode_no[d] / 2.0 * self._delta_k[d],
+                mode_no[d] / 2.0 * self._delta_k[d],
                 self._delta_k[d],
             )
-            for d in range(model.dim)
+            for d in range(dim)
         ]
         # initialize attributes
         self._modes = generate_grid(modes)
