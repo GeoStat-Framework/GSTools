@@ -676,7 +676,7 @@ class Fourier(Generator):
             Number of Fourier modes per dimension.
         """
         tmp_model = model if model is not None else self._model
-        dim = tmp_model
+        dim = tmp_model.dim
         if period is not None:
             self._period = self._fill_to_dim(period, dim)
             anis = np.insert(tmp_model.anis.copy(), 0, 1.0)
