@@ -547,10 +547,10 @@ class Fourier(Generator):
     ----------
     model : :any:`CovModel`
         Covariance model
-    mode_no : :class:`list`
-        Number of Fourier modes per dimension.
-    period : :class:`list`, optional
+    period : :class:`list` or :class:`float`
         The spatial periodicity of the field, is often the domain size.
+    mode_no : :class:`list` or :class:`float`, optional
+        Number of Fourier modes per dimension.
     seed : :class:`int`, optional
         The seed of the random number generator.
         If "None", a random seed is used. Default: :any:`None`
@@ -581,8 +581,8 @@ class Fourier(Generator):
     def __init__(
         self,
         model,
-        mode_no,
         period,
+        mode_no=32,
         seed=None,
         **kwargs,
     ):
@@ -591,8 +591,8 @@ class Fourier(Generator):
 
         # initialize private attributes
         self._modes = None
-        self._mode_no = None
         self._period = None
+        self._mode_no = None
         self._delta_k = None
         self._model = None
         self._seed = None
@@ -602,7 +602,7 @@ class Fourier(Generator):
         self._spectrum_factor = None
         self._value_type = "scalar"
         # set model and seed
-        self.update(model, seed, mode_no, period)
+        self.update(model, seed, period, mode_no)
 
     def __call__(self, pos, add_nugget=True):
         """Calculate the modes for the Fourier method.
@@ -657,7 +657,7 @@ class Fourier(Generator):
             nugget = 0.0
         return nugget
 
-    def update(self, model=None, seed=np.nan, mode_no=None, period=None):
+    def update(self, model=None, seed=np.nan, period=None, mode_no=None):
         """Update the model and the seed.
 
         If model and seed are not different, nothing will be done.
@@ -670,26 +670,19 @@ class Fourier(Generator):
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`numpy.nan`,
             the actual seed will be kept. Default: :any:`numpy.nan`
-        mode_no : :class:`list` or :any:`None`, optional
-            Number of Fourier modes per dimension.
         period : :class:`list` or :any:`None, optional
             The spatial periodicity of the field, is often the domain size.
+        mode_no : :class:`list` or :any:`None`, optional
+            Number of Fourier modes per dimension.
         """
         tmp_model = model if model is not None else self._model
         if period is not None:
-            if len(period) != tmp_model.dim:
-                raise ValueError(
-                    "Fourier: Dimension mismatch in argument period."
-                )
-            self._period = np.array(period)
+            self._period = self._fill_to_dim(period, tmp_model.dim)
             self._delta_k = 2.0 * np.pi / self._period
             if mode_no is None:
                 self._set_modes(self._mode_no, tmp_model)
         if mode_no is not None:
-            if len(mode_no) != tmp_model.dim:
-                raise ValueError(
-                    "Fourier: Dimension mismatch in argument mode_no."
-                )
+            mode_no = self._fill_to_dim(mode_no, tmp_model.dim)
             if (np.asarray([m % 2 for m in mode_no]) != 0).any():
                 raise ValueError("Fourier: Odd mode_no not supported.")
             self._set_modes(mode_no, tmp_model)
@@ -767,10 +760,10 @@ class Fourier(Generator):
         )
 
     def _fill_to_dim(
-        self, dim, values, dtype=float, default_value=None
+        self, values, dim, dtype=float, default_value=None
     ):  # pylint: disable=R6301
         """Fill an array with last element up to len(dim)."""
-        r = values
+        r = np.atleast_1d(values)
         if values is None:
             if default_value is None:
                 raise ValueError("Fourier: Value has to be provided")
