@@ -10,29 +10,33 @@ import numpy as np
 
 import gstools as gs
 
-# We start off by defining the spatial grid.
-L = np.array((500, 500))
-x = np.linspace(0, L[0], 300)
-y = np.linspace(0, L[1], 200)
+# We start off by defining the spatial grid. As in the previous example, we do
+# not want to include the endpoints.
+L = np.array((500, 400))
+x = np.linspace(0, L[0], 300, endpoint=False)
+y = np.linspace(0, L[1], 200, endpoint=False)
 
 # Instead of using a Gaussian covariance model, we will use the much rougher
 # exponential model and we will introduce an anisotropy by using two different
-# length scales in the x- and y-axes
-model = gs.Exponential(dim=2, var=2, len_scale=[30, 20])
+# length scales in the x- and y-directions
+model = gs.Exponential(dim=2, var=2, len_scale=[80, 20])
 
-# Same as before, we set up the spatial random field
+# Same as before, we set up the spatial random field. But this time, we will
+#  use a periodicity which is equal to the domain size in x-direction, but
+# half the domain size in y-direction. And we will use different `mode_no` for
+# the different dimensions.
 srf = gs.SRF(
     model,
     generator="Fourier",
-    mode_no=[32, 32],
-    period=L,
+    period=[L[0], L[1]/2],
+    mode_no=[30, 20],
     seed=1681903,
 )
 # and compute it on our spatial domain
 srf((x, y), mesh_type="structured")
 
-# With the field generated, we can now apply transformations
-# starting with a discretization of the field into 4 different values
+# With the field generated, we can now apply transformations starting with a
+# discretization of the field into 4 different values
 thresholds = np.linspace(np.min(srf.field), np.max(srf.field), 4)
 srf.transform("discrete", store="transform_discrete", values=thresholds)
 srf.plot("transform_discrete")

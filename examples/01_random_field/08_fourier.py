@@ -11,23 +11,29 @@ import numpy as np
 
 import gstools as gs
 
-# We start off by defining the spatial grid.
-L = np.array((500, 500))
-x = np.linspace(0, L[0], 256)
-y = np.linspace(0, L[1], 128)
+# We start off by defining the spatial grid. For the sake of simplicity, we
+# use a square domain. We set the optional argument `endpoint` to `False`, to
+# not make the domain in each dimension one grid cell larger than the
+# periodicity.
+L = 500.0
+x = np.linspace(0, L, 256, endpoint=False)
+y = np.linspace(0, L, 128, endpoint=False)
 
-# And by setting up a Gaussian covariance model with a correlation length
-# scale which is roughly half the size of the grid.
+Now, we create a Gaussian covariance model with a correlation length which is
+# roughly half the size of the grid.
 model = gs.Gaussian(dim=2, var=1, len_scale=200)
 
-# Next, we hand the cov. model to the spatial random field class
-# and set the generator to `Fourier`. The `mode_no` argument sets the number of
-# Fourier modes per dimension. The argument `period` is set to the domain size.
+# Next, we hand the cov. model to the spatial random field class `SRF`
+# and set the generator to `"Fourier"`. The argument `period` is set to the
+# domain size. If only a single number is given, the same periodicity is
+# applied in each dimension, as shown in this example. The `mode_no` argument
+# sets the number of Fourier modes. If only an integer is given, that number
+# of modes is used for all dimensions.
 srf = gs.SRF(
     model,
     generator="Fourier",
-    mode_no=[32, 32],
     period=L,
+    mode_no=32,
     seed=1681903,
 )
 
