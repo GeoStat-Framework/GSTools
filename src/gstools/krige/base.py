@@ -43,6 +43,58 @@ P_INV = {"pinv": spl.pinv, "pinvh": spl.pinvh}
 """dict: Standard pseudo-inverse routines"""
 
 
+def calc_field_krige(
+    krig_mat, krig_vecs, cond, num_threads=config.NUM_THREADS
+):
+    """
+    A wrapper function for calling the krige algorithm.
+
+    See :any:`Krige` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        calc_field_krige_fct = (  # pylint: disable=W0201
+            calc_field_krige_gsc  # pylint: disable=E0606
+        )
+    else:
+        calc_field_krige_fct = calc_field_krige_c  # pylint: disable=W0201
+    return calc_field_krige_fct(krig_mat, krig_vecs, cond, num_threads)
+
+
+def calc_field_krige_and_variance(
+    krig_mat, krig_vecs, cond, num_threads=config.NUM_THREADS
+):
+    """
+    A wrapper function for calling the krige algorithm.
+
+    See :any:`Krige` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        calc_field_krige_and_variance_fct = (  # pylint: disable=W0201
+            calc_field_krige_and_variance_gsc  # pylint: disable=E0606
+        )
+    else:
+        calc_field_krige_and_variance_fct = (  # pylint: disable=W0201
+            calc_field_krige_and_variance_c
+        )
+    return calc_field_krige_and_variance_fct(
+        krig_mat, krig_vecs, cond, num_threads
+    )
+
+
 class Krige(Field):
     """
     A Swiss Army knife for kriging.
@@ -241,22 +293,6 @@ class Krige(Field):
             the kriging error variance
             (if return_var is True and only_mean is False)
         """
-        if (
-            config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
-        ):  # pylint: disable=W0212
-            self._calc_field_krige = (  # pylint: disable=W0201
-                calc_field_krige_gsc  # pylint: disable=E0606
-            )
-            self._calc_field_krige_and_variance = (  # pylint: disable=W0201
-                calc_field_krige_and_variance_gsc  # pylint: disable=E0606
-            )
-        else:
-            self._calc_field_krige = (  # pylint: disable=W0201
-                calc_field_krige_c
-            )
-            self._calc_field_krige_and_variance = (  # pylint: disable=W0201
-                calc_field_krige_and_variance_c
-            )
         return_var &= not only_mean  # don't return variance when calc. mean
         fld_cnt = 2 if return_var else 1
         default = self.default_field_names[2] if only_mean else None
@@ -304,13 +340,11 @@ class Krige(Field):
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
         if return_var:  # estimate error variance
-            field[c_slice], krige_var[c_slice] = (
-                self._calc_field_krige_and_variance(
-                    self._krige_mat, k_vec, self._krige_cond
-                )
+            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
+                self._krige_mat, k_vec, self._krige_cond
             )
         else:  # solely calculate the interpolated field
-            field[c_slice] = self._calc_field_krige(
+            field[c_slice] = calc_field_krige(
                 self._krige_mat, k_vec, self._krige_cond
             )
 

@@ -47,6 +47,129 @@ AXIS = ["x", "y", "z"]
 AXIS_DIR = {"x": 0, "y": 1, "z": 2}
 
 
+def directional(
+    field,
+    bin_edges,
+    pos,
+    direction,
+    angles_tol=np.pi / 8.0,
+    bandwidth=-1.0,
+    separate_dirs=False,
+    estimator_type="m",
+    num_threads=config.NUM_THREADS,
+):
+    """
+    A wrapper function for calling the directional variogram algorithms.
+
+    See :any:`vario_estimate` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        directional_fct = directional_gsc  # pylint: disable=E0606
+    else:
+        directional_fct = directional_c
+    return directional_fct(
+        field,
+        bin_edges,
+        pos,
+        direction,
+        angles_tol,
+        bandwidth,
+        separate_dirs,
+        estimator_type,
+        num_threads,
+    )
+
+
+def unstructured(
+    field,
+    bin_edges,
+    pos,
+    estimator_type="m",
+    distance_type="e",
+    num_threads=config.NUM_THREADS,
+):
+    """
+    A wrapper function for calling the unstructured variogram algorithms.
+
+    See :any:`vario_estimate` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        unstructured_fct = unstructured_gsc  # pylint: disable=E0606
+    else:
+        unstructured_fct = unstructured_c
+    return unstructured_fct(
+        field,
+        bin_edges,
+        pos,
+        estimator_type,
+        distance_type,
+        num_threads,
+    )
+
+
+def structured(
+    field,
+    estimator_type="m",
+    num_threads=config.NUM_THREADS,
+):
+    """
+    A wrapper function for calling the structured variogram algorithms.
+
+    See :any:`vario_estimate` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        structured_fct = structured_gsc  # pylint: disable=E0606
+    else:
+        structured_fct = structured_c
+    return structured_fct(field, estimator_type, num_threads)
+
+
+def ma_structured(
+    field,
+    mask,
+    estimator_type="m",
+    num_threads=config.NUM_THREADS,
+):
+    """
+    A wrapper function for calling the masked struct. variogram algorithms.
+
+    See :any:`vario_estimate` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        ma_structured_fct = ma_structured_gsc  # pylint: disable=E0606
+    else:
+        ma_structured_fct = ma_structured_c
+    return ma_structured_fct(field, mask, estimator_type, num_threads)
+
+
 def _set_estimator(estimator):
     """Translate the verbose Python estimator identifier to single char."""
     if estimator.lower() == "matheron":
@@ -363,15 +486,6 @@ def vario_estimate(
     # select variogram estimator
     cython_estimator = _set_estimator(estimator)
     # run
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        unstructured = unstructured_gsc  # pylint: disable=E0606
-        directional = directional_gsc  # pylint: disable=E0606
-    else:
-        unstructured = unstructured_c
-        directional = directional_c
     if dir_no == 0:
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
@@ -496,15 +610,6 @@ def vario_estimate_axis(
 
     cython_estimator = _set_estimator(estimator)
 
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        ma_structured = ma_structured_gsc  # pylint: disable=E0606
-        structured = structured_gsc  # pylint: disable=E0606
-    else:
-        ma_structured = ma_structured_c
-        structured = structured_c
     if masked:
         return ma_structured(
             field, mask, cython_estimator, num_threads=config.NUM_THREADS

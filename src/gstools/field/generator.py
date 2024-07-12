@@ -37,6 +37,48 @@ __all__ = ["Generator", "RandMeth", "IncomprRandMeth"]
 SAMPLING = ["auto", "inversion", "mcmc"]
 
 
+def summate(cov_samples, z_1, z_2, pos, num_threads=config.NUM_THREADS):
+    """
+    A wrapper function for calling the randomization algorithm.
+
+    See :any:`Generator` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        summate_fct = summate_gsc  # pylint: disable=E0606
+    else:
+        summate_fct = summate_c
+    return summate_fct(cov_samples, z_1, z_2, pos, num_threads)
+
+
+def summate_incompr(
+    cov_samples, z_1, z_2, pos, num_threads=config.NUM_THREADS
+):
+    """
+    A wrapper function for calling the incompressible randomization algorithm.
+
+    See :any:`Generator` for more details.
+
+    Notes
+    -----
+    Most of the time, this should not be called directly.
+    """
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        summate_incompr_fct = summate_incompr_gsc  # pylint: disable=E0606
+    else:
+        summate_incompr_fct = summate_incompr_c
+    return summate_incompr_fct(cov_samples, z_1, z_2, pos, num_threads)
+
+
 class Generator(ABC):
     """
     Abstract generator class.
@@ -210,12 +252,6 @@ class RandMeth(Generator):
         :class:`numpy.ndarray`
             the random modes
         """
-        if (
-            config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL
-        ):  # pylint: disable=W0212
-            summate = summate_gsc  # pylint: disable=E0606
-        else:
-            summate = summate_c
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate(
             self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
@@ -497,10 +533,6 @@ class IncomprRandMeth(RandMeth):
         :class:`numpy.ndarray`
             the random modes
         """
-        if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-            summate_incompr = summate_incompr_gsc  # pylint: disable=E0606
-        else:
-            summate_incompr = summate_incompr_c
         pos = np.asarray(pos, dtype=np.double)
         summed_modes = summate_incompr(
             self._cov_sample,
