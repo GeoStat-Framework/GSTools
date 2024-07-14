@@ -43,18 +43,8 @@ P_INV = {"pinv": spl.pinv, "pinvh": spl.pinvh}
 """dict: Standard pseudo-inverse routines"""
 
 
-def calc_field_krige(
-    krig_mat, krig_vecs, cond, num_threads=config.NUM_THREADS
-):
-    """
-    A wrapper function for calling the krige algorithm.
-
-    See :any:`Krige` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+def _calc_field_krige(krig_mat, krig_vecs, cond, num_threads=None):
+    """A wrapper function for calling the krige algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -67,18 +57,10 @@ def calc_field_krige(
     return calc_field_krige_fct(krig_mat, krig_vecs, cond, num_threads)
 
 
-def calc_field_krige_and_variance(
-    krig_mat, krig_vecs, cond, num_threads=config.NUM_THREADS
+def _calc_field_krige_and_variance(
+    krig_mat, krig_vecs, cond, num_threads=None
 ):
-    """
-    A wrapper function for calling the krige algorithm.
-
-    See :any:`Krige` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+    """A wrapper function for calling the krige algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -340,11 +322,13 @@ class Krige(Field):
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
         if return_var:  # estimate error variance
-            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
-                self._krige_mat, k_vec, self._krige_cond
+            field[c_slice], krige_var[c_slice] = (
+                _calc_field_krige_and_variance(
+                    self._krige_mat, k_vec, self._krige_cond
+                )
             )
         else:  # solely calculate the interpolated field
-            field[c_slice] = calc_field_krige(
+            field[c_slice] = _calc_field_krige(
                 self._krige_mat, k_vec, self._krige_cond
             )
 

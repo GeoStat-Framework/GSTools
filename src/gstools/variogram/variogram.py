@@ -47,7 +47,7 @@ AXIS = ["x", "y", "z"]
 AXIS_DIR = {"x": 0, "y": 1, "z": 2}
 
 
-def directional(
+def _directional(
     field,
     bin_edges,
     pos,
@@ -56,17 +56,9 @@ def directional(
     bandwidth=-1.0,
     separate_dirs=False,
     estimator_type="m",
-    num_threads=config.NUM_THREADS,
+    num_threads=None,
 ):
-    """
-    A wrapper function for calling the directional variogram algorithms.
-
-    See :any:`vario_estimate` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+    """A wrapper function for calling the directional variogram algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -87,23 +79,15 @@ def directional(
     )
 
 
-def unstructured(
+def _unstructured(
     field,
     bin_edges,
     pos,
     estimator_type="m",
     distance_type="e",
-    num_threads=config.NUM_THREADS,
+    num_threads=None,
 ):
-    """
-    A wrapper function for calling the unstructured variogram algorithms.
-
-    See :any:`vario_estimate` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+    """A wrapper function for calling the unstructured variogram algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -121,20 +105,12 @@ def unstructured(
     )
 
 
-def structured(
+def _structured(
     field,
     estimator_type="m",
-    num_threads=config.NUM_THREADS,
+    num_threads=None,
 ):
-    """
-    A wrapper function for calling the structured variogram algorithms.
-
-    See :any:`vario_estimate` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+    """A wrapper function for calling the structured variogram algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -145,21 +121,13 @@ def structured(
     return structured_fct(field, estimator_type, num_threads)
 
 
-def ma_structured(
+def _ma_structured(
     field,
     mask,
     estimator_type="m",
-    num_threads=config.NUM_THREADS,
+    num_threads=None,
 ):
-    """
-    A wrapper function for calling the masked struct. variogram algorithms.
-
-    See :any:`vario_estimate` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+    """A wrapper function for calling the masked struct. variogram algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -489,7 +457,7 @@ def vario_estimate(
     if dir_no == 0:
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
-        estimates, counts = unstructured(
+        estimates, counts = _unstructured(
             field,
             bin_edges,
             pos,
@@ -498,7 +466,7 @@ def vario_estimate(
             num_threads=config.NUM_THREADS,
         )
     else:
-        estimates, counts = directional(
+        estimates, counts = _directional(
             field,
             bin_edges,
             pos,
@@ -611,10 +579,10 @@ def vario_estimate_axis(
     cython_estimator = _set_estimator(estimator)
 
     if masked:
-        return ma_structured(
+        return _ma_structured(
             field, mask, cython_estimator, num_threads=config.NUM_THREADS
         )
-    return structured(field, cython_estimator, num_threads=config.NUM_THREADS)
+    return _structured(field, cython_estimator, num_threads=config.NUM_THREADS)
 
 
 # for backward compatibility

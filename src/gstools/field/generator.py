@@ -37,16 +37,8 @@ __all__ = ["Generator", "RandMeth", "IncomprRandMeth"]
 SAMPLING = ["auto", "inversion", "mcmc"]
 
 
-def summate(cov_samples, z_1, z_2, pos, num_threads=config.NUM_THREADS):
-    """
-    A wrapper function for calling the randomization algorithm.
-
-    See :any:`Generator` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
+def _summate(cov_samples, z_1, z_2, pos, num_threads=None):
+    """A wrapper function for calling the randomization algorithms."""
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -57,18 +49,15 @@ def summate(cov_samples, z_1, z_2, pos, num_threads=config.NUM_THREADS):
     return summate_fct(cov_samples, z_1, z_2, pos, num_threads)
 
 
-def summate_incompr(
-    cov_samples, z_1, z_2, pos, num_threads=config.NUM_THREADS
+def _summate_incompr(
+    cov_samples,
+    z_1,
+    z_2,
+    pos,
+    num_threads=None,
 ):
-    """
-    A wrapper function for calling the incompressible randomization algorithm.
+    """A wrapper function for calling the incompr. randomization algorithms."""
 
-    See :any:`Generator` for more details.
-
-    Notes
-    -----
-    Most of the time, this should not be called directly.
-    """
     if (
         config.USE_GSTOOLS_CORE
         and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
@@ -253,7 +242,7 @@ class RandMeth(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        summed_modes = summate(
+        summed_modes = _summate(
             self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
@@ -534,7 +523,7 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        summed_modes = summate_incompr(
+        summed_modes = _summate_incompr(
             self._cov_sample,
             self._z_1,
             self._z_2,
