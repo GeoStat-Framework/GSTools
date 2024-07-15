@@ -6,7 +6,7 @@ This is a summator for the kriging routines
 import numpy as np
 from cython.parallel import prange
 
-IF OPENMP:
+if OPENMP:
     cimport openmp
 
 cimport numpy as np
@@ -16,9 +16,9 @@ def set_num_threads(num_threads):
     cdef int num_threads_c = 1
     if num_threads is None:
         # OPENMP set during setup
-        IF OPENMP:
+        if OPENMP:
             num_threads_c = openmp.omp_get_num_procs()
-        ELSE:
+        else:
             ...
     else:
         num_threads_c = num_threads
@@ -60,7 +60,7 @@ def calc_field_krige(
     const double[:, :] krig_mat,
     const double[:, :] krig_vecs,
     const double[:] cond,
-    const int num_threads=1,
+    num_threads=None,
 ):
 
     cdef int mat_i = krig_mat.shape[0]
