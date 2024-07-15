@@ -24,7 +24,7 @@ Purpose
 
 GeoStatTools provides geostatistical tools for various purposes:
 
-- random field generation
+- random field generation, including periodic boundaries
 - simple, ordinary, universal and external drift kriging
 - conditioned field generation
 - incompressible random vector field generation

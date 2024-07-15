@@ -14,7 +14,12 @@ The following classes are provided
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.field.generator import Generator, IncomprRandMeth, RandMeth
+from gstools.field.generator import (
+    Fourier,
+    Generator,
+    IncomprRandMeth,
+    RandMeth,
+)
 from gstools.field.upscaling import var_coarse_graining, var_no_scaling
 
 __all__ = ["SRF"]
@@ -24,6 +29,7 @@ GENERATOR = {
     "IncomprRandMeth": IncomprRandMeth,
     "VectorField": IncomprRandMeth,
     "VelocityField": IncomprRandMeth,
+    "Fourier": Fourier,
 }
 """dict: Standard generators for spatial random fields."""
 
@@ -75,6 +81,7 @@ class SRF(Field):
               See: :any:`IncomprRandMeth`
             * "VectorField" : an alias for "IncomprRandMeth"
             * "VelocityField" : an alias for "IncomprRandMeth"
+            * "Fourier" : the periodic Fourier method
 
         Default: "RandMeth"
     **generator_kwargs
