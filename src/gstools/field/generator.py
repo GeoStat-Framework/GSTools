@@ -23,23 +23,67 @@ import numpy as np
 
 from gstools import config
 from gstools.covmodel.base import CovModel
+from gstools.field.summator import summate as summate_c
+from gstools.field.summator import summate_fourier as summate_fourier_c
+from gstools.field.summator import summate_incompr as summate_incompr_c
 from gstools.random.rng import RNG
 from gstools.tools.geometric import generate_grid
 
-if config.USE_RUST:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import summate, summate_fourier, summate_incompr
-else:
-    from gstools.field.summator import (
-        summate,
-        summate_fourier,
-        summate_incompr,
-    )
+    from gstools_core import summate as summate_gsc
+    from gstools_core import summate_fourier as summate_fourier_gsc
+    from gstools_core import summate_incompr as summate_incompr_gsc
 
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth", "Fourier"]
 
 
 SAMPLING = ["auto", "inversion", "mcmc"]
+
+
+def _summate(cov_samples, z_1, z_2, pos, num_threads=None):
+    """A wrapper function for calling the randomization algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        summate_fct = summate_gsc  # pylint: disable=E0606
+    else:
+        summate_fct = summate_c
+    return summate_fct(cov_samples, z_1, z_2, pos, num_threads)
+
+
+def _summate_incompr(
+    cov_samples,
+    z_1,
+    z_2,
+    pos,
+    num_threads=None,
+):
+    """A wrapper function for calling the incompr. randomization algorithms."""
+
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        summate_incompr_fct = summate_incompr_gsc  # pylint: disable=E0606
+    else:
+        summate_incompr_fct = summate_incompr_c
+    return summate_incompr_fct(cov_samples, z_1, z_2, pos, num_threads)
+
+
+def _summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads=None):
+    """A wrapper function for calling the Fourier algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        summate_fourier_fct = summate_fourier_gsc  # pylint: disable=E0606
+    else:
+        summate_fourier_fct = summate_fourier_c
+    return summate_fourier_fct(
+        spectrum_factor, modes, z_1, z_2, pos, num_threads
+    )
 
 
 class Generator(ABC):
@@ -200,8 +244,8 @@ class RandMeth(Generator):
     def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
-        This method  calls the `summate_*` Cython methods, which are the
-        heart of the randomization method.
+        This method  calls the `summate_*` Rust or Cython methods, which are
+        the heart of the randomization method.
 
         Parameters
         ----------
@@ -216,7 +260,7 @@ class RandMeth(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        summed_modes = summate(
+        summed_modes = _summate(
             self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
@@ -479,7 +523,7 @@ class IncomprRandMeth(RandMeth):
     def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
-        This method  calls the `summate_incompr_*` Cython methods,
+        This method  calls the `summate_incompr_*` Rust or Cython methods,
         which are the heart of the randomization method.
         In this class the method contains a projector to
         ensure the incompressibility of the vector field.
@@ -497,7 +541,7 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-        summed_modes = summate_incompr(
+        summed_modes = _summate_incompr(
             self._cov_sample,
             self._z_1,
             self._z_2,
@@ -624,7 +668,7 @@ class Fourier(Generator):
         """
         pos = np.asarray(pos, dtype=np.double)
 
-        summed_modes = summate_fourier(
+        summed_modes = _summate_fourier(
             self._spectrum_factor,
             self._modes,
             self._z_1,

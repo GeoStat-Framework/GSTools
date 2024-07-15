@@ -23,20 +23,17 @@ from gstools.tools.geometric import (
     generate_grid,
 )
 from gstools.variogram.binning import standard_bins
+from gstools.variogram.estimator import directional as directional_c
+from gstools.variogram.estimator import ma_structured as ma_structured_c
+from gstools.variogram.estimator import structured as structured_c
+from gstools.variogram.estimator import unstructured as unstructured_c
 
-if config.USE_RUST:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import variogram_directional as directional
-    from gstools_core import variogram_ma_structured as ma_structured
-    from gstools_core import variogram_structured as structured
-    from gstools_core import variogram_unstructured as unstructured
-else:
-    from gstools.variogram.estimator import (
-        directional,
-        ma_structured,
-        structured,
-        unstructured,
-    )
+    from gstools_core import variogram_directional as directional_gsc
+    from gstools_core import variogram_ma_structured as ma_structured_gsc
+    from gstools_core import variogram_structured as structured_gsc
+    from gstools_core import variogram_unstructured as unstructured_gsc
 
 __all__ = [
     "vario_estimate",
@@ -48,6 +45,97 @@ __all__ = [
 
 AXIS = ["x", "y", "z"]
 AXIS_DIR = {"x": 0, "y": 1, "z": 2}
+
+
+def _directional(
+    field,
+    bin_edges,
+    pos,
+    direction,
+    angles_tol=np.pi / 8.0,
+    bandwidth=-1.0,
+    separate_dirs=False,
+    estimator_type="m",
+    num_threads=None,
+):
+    """A wrapper function for calling the directional variogram algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        directional_fct = directional_gsc  # pylint: disable=E0606
+    else:
+        directional_fct = directional_c
+    return directional_fct(
+        field,
+        bin_edges,
+        pos,
+        direction,
+        angles_tol,
+        bandwidth,
+        separate_dirs,
+        estimator_type,
+        num_threads,
+    )
+
+
+def _unstructured(
+    field,
+    bin_edges,
+    pos,
+    estimator_type="m",
+    distance_type="e",
+    num_threads=None,
+):
+    """A wrapper function for calling the unstructured variogram algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        unstructured_fct = unstructured_gsc  # pylint: disable=E0606
+    else:
+        unstructured_fct = unstructured_c
+    return unstructured_fct(
+        field,
+        bin_edges,
+        pos,
+        estimator_type,
+        distance_type,
+        num_threads,
+    )
+
+
+def _structured(
+    field,
+    estimator_type="m",
+    num_threads=None,
+):
+    """A wrapper function for calling the structured variogram algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        structured_fct = structured_gsc  # pylint: disable=E0606
+    else:
+        structured_fct = structured_c
+    return structured_fct(field, estimator_type, num_threads)
+
+
+def _ma_structured(
+    field,
+    mask,
+    estimator_type="m",
+    num_threads=None,
+):
+    """A wrapper function for calling the masked struct. variogram algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        ma_structured_fct = ma_structured_gsc  # pylint: disable=E0606
+    else:
+        ma_structured_fct = ma_structured_c
+    return ma_structured_fct(field, mask, estimator_type, num_threads)
 
 
 def _set_estimator(estimator):
@@ -369,7 +457,7 @@ def vario_estimate(
     if dir_no == 0:
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
-        estimates, counts = unstructured(
+        estimates, counts = _unstructured(
             field,
             bin_edges,
             pos,
@@ -378,7 +466,7 @@ def vario_estimate(
             num_threads=config.NUM_THREADS,
         )
     else:
-        estimates, counts = directional(
+        estimates, counts = _directional(
             field,
             bin_edges,
             pos,
@@ -471,8 +559,6 @@ def vario_estimate_axis(
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
         mask = np.ma.getmaskarray(field)
-        if not config.USE_RUST:
-            mask = np.asarray(mask, dtype=np.int32)
     else:
         field = np.atleast_1d(np.asarray(field, dtype=np.double))
         missing_mask = None  # free space
@@ -488,10 +574,10 @@ def vario_estimate_axis(
     cython_estimator = _set_estimator(estimator)
 
     if masked:
-        return ma_structured(
+        return _ma_structured(
             field, mask, cython_estimator, num_threads=config.NUM_THREADS
         )
-    return structured(field, cython_estimator, num_threads=config.NUM_THREADS)
+    return _structured(field, cython_estimator, num_threads=config.NUM_THREADS)
 
 
 # for backward compatibility

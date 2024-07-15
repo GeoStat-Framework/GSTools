@@ -6,7 +6,7 @@ This is the randomization method summator, implemented in cython.
 import numpy as np
 from cython.parallel import prange
 
-IF OPENMP:
+if OPENMP:
     cimport openmp
 
 cimport numpy as np
@@ -17,9 +17,9 @@ def set_num_threads(num_threads):
     cdef int num_threads_c = 1
     if num_threads is None:
         # OPENMP set during setup
-        IF OPENMP:
+        if OPENMP:
             num_threads_c = openmp.omp_get_num_procs()
-        ELSE:
+        else:
             ...
     else:
         num_threads_c = num_threads

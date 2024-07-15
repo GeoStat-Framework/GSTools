@@ -18,18 +18,22 @@ from scipy.spatial.distance import cdist
 
 from gstools import config
 from gstools.field.base import Field
+from gstools.krige.krigesum import calc_field_krige as calc_field_krige_c
+from gstools.krige.krigesum import (
+    calc_field_krige_and_variance as calc_field_krige_and_variance_c,
+)
 from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
 
-if config.USE_RUST:  # pragma: no cover
+if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
     # pylint: disable=E0401
-    from gstools_core import calc_field_krige, calc_field_krige_and_variance
-else:
-    from gstools.krige.krigesum import (
-        calc_field_krige,
-        calc_field_krige_and_variance,
+    from gstools_core import (
+        calc_field_krige as calc_field_krige_gsc,  # pylint: disable=E0606
+    )
+    from gstools_core import (
+        calc_field_krige_and_variance as calc_field_krige_and_variance_gsc,  # pylint: disable=E0606
     )
 
 __all__ = ["Krige"]
@@ -37,6 +41,40 @@ __all__ = ["Krige"]
 
 P_INV = {"pinv": spl.pinv, "pinvh": spl.pinvh}
 """dict: Standard pseudo-inverse routines"""
+
+
+def _calc_field_krige(krig_mat, krig_vecs, cond, num_threads=None):
+    """A wrapper function for calling the krige algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):  # pylint: disable=W0212
+        calc_field_krige_fct = (  # pylint: disable=W0201
+            calc_field_krige_gsc  # pylint: disable=E0606
+        )
+    else:
+        calc_field_krige_fct = calc_field_krige_c  # pylint: disable=W0201
+    return calc_field_krige_fct(krig_mat, krig_vecs, cond, num_threads)
+
+
+def _calc_field_krige_and_variance(
+    krig_mat, krig_vecs, cond, num_threads=None
+):
+    """A wrapper function for calling the krige algorithms."""
+    if (
+        config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+    ):
+        calc_field_krige_and_variance_fct = (  # pylint: disable=W0201
+            calc_field_krige_and_variance_gsc  # pylint: disable=E0606
+        )
+    else:
+        calc_field_krige_and_variance_fct = (  # pylint: disable=W0201
+            calc_field_krige_and_variance_c
+        )
+    return calc_field_krige_and_variance_fct(
+        krig_mat, krig_vecs, cond, num_threads
+    )
 
 
 class Krige(Field):
@@ -284,11 +322,13 @@ class Krige(Field):
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
         if return_var:  # estimate error variance
-            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
-                self._krige_mat, k_vec, self._krige_cond
+            field[c_slice], krige_var[c_slice] = (
+                _calc_field_krige_and_variance(
+                    self._krige_mat, k_vec, self._krige_cond
+                )
             )
         else:  # solely calculate the interpolated field
-            field[c_slice] = calc_field_krige(
+            field[c_slice] = _calc_field_krige(
                 self._krige_mat, k_vec, self._krige_cond
             )
 

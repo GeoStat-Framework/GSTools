@@ -11,6 +11,8 @@ NUM_THREADS = None
 try:  # pragma: no cover
     import gstools_core
 
-    USE_RUST = True
+    _GSTOOLS_CORE_AVAIL = True
+    USE_GSTOOLS_CORE = True
 except ImportError:
-    USE_RUST = False
+    _GSTOOLS_CORE_AVAIL = False
+    USE_GSTOOLS_CORE = False
