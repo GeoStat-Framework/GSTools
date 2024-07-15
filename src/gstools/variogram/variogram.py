@@ -559,11 +559,6 @@ def vario_estimate_axis(
         if missing:
             field.mask = np.logical_or(field.mask, missing_mask)
         mask = np.ma.getmaskarray(field)
-        if (
-            not config.USE_GSTOOLS_CORE
-            and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-        ):  # pylint: disable=W0212
-            mask = np.asarray(mask, dtype=np.int32)
     else:
         field = np.atleast_1d(np.asarray(field, dtype=np.double))
         missing_mask = None  # free space
