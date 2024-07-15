@@ -28,7 +28,7 @@ model = gs.Exponential(dim=2, var=2, len_scale=[80, 20])
 srf = gs.SRF(
     model,
     generator="Fourier",
-    period=[L[0], L[1]/2],
+    period=[L[0], L[1] / 2],
     mode_no=[30, 20],
     seed=1681903,
 )

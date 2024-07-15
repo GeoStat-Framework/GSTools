@@ -19,7 +19,7 @@ L = 500.0
 x = np.linspace(0, L, 256, endpoint=False)
 y = np.linspace(0, L, 128, endpoint=False)
 
-Now, we create a Gaussian covariance model with a correlation length which is
+# Now, we create a Gaussian covariance model with a correlation length which is
 # roughly half the size of the grid.
 model = gs.Gaussian(dim=2, var=1, len_scale=200)
 
