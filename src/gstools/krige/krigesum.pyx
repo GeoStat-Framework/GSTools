@@ -60,7 +60,7 @@ def calc_field_krige(
     const double[:, :] krig_mat,
     const double[:, :] krig_vecs,
     const double[:] cond,
-    const int num_threads=1,
+    const int num_threads=None,
 ):
 
     cdef int mat_i = krig_mat.shape[0]
