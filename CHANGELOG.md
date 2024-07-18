@@ -16,6 +16,9 @@ All notable changes to **GSTools** will be documented in this file.
   - improve documentation regarding parallelization
 - fix deprecated license identifier, now Zenodo releases work again ([#356](https://github.com/GeoStat-Framework/GSTools/pull/356))
 
+### Changes
+- require gstools-core v1.0.0 at least ([#361](https://github.com/GeoStat-Framework/GSTools/pull/361))
+
 ## [1.5.2] - Nifty Neon - 2024-05
 
 ### Enhancements
