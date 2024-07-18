@@ -48,9 +48,9 @@ jobs:
         run: |
           python -m pylint src/gstools/
 
-      #- name: cython-lint check
-        #run: |
-          #cython-lint src/gstools/
+      - name: cython-lint check
+        run: |
+          cython-lint src/gstools/
 
   build_wheels:
     name: wheels for ${{ matrix.os }}
