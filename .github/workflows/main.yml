@@ -56,6 +56,8 @@ jobs:
       - name: coveralls check
         run: |
           python -m coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build_wheels:
     name: wheels for ${{ matrix.os }}
@@ -123,8 +125,6 @@ jobs:
           pip install -v --editable .[test]
 
       - name: Run tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pip install "numpy${{ matrix.ver.np }}" "scipy${{ matrix.ver.sp }}"
           python -m pytest --cov gstools --cov-report term-missing -v tests/
