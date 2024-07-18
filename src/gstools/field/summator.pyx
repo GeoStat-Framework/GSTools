@@ -10,7 +10,7 @@ if OPENMP:
     cimport openmp
 
 cimport numpy as np
-from libc.math cimport cos, pi, sin, sqrt
+from libc.math cimport cos, sin
 
 
 def set_num_threads(num_threads):

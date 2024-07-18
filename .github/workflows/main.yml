@@ -30,7 +30,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -v --editable .[lint]
+          pip install -v --editable '.[lint,test]'
+          pip install "coveralls>=3.0.0"
 
       - name: black check
         run: |
@@ -48,9 +49,16 @@ jobs:
         run: |
           python -m pylint src/gstools/
 
-      #- name: cython-lint check
-        #run: |
-          #cython-lint src/gstools/
+      - name: cython-lint check
+        run: |
+          cython-lint src/gstools/
+
+      - name: coveralls check
+        run: |
+          python -m pytest --cov gstools --cov-report term-missing -v tests/
+          python -m coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build_wheels:
     name: wheels for ${{ matrix.os }}
@@ -110,7 +118,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build "coveralls>=3.0.0"
+          pip install build
 
       - name: Install GSTools
         env:
@@ -119,12 +127,9 @@ jobs:
           pip install -v --editable .[test]
 
       - name: Run tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pip install "numpy${{ matrix.ver.np }}" "scipy${{ matrix.ver.sp }}"
-          python -m pytest --cov gstools --cov-report term-missing -v tests/
-          python -m coveralls --service=github
+          python -m pytest -v tests/
 
       - name: Build sdist
         run: |
