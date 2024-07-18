@@ -71,7 +71,7 @@ plotting = [
     "matplotlib>=3.7",
     "pyvista>=0.40",
 ]
-rust = ["gstools_core>=0.2.0,<1"]
+rust = ["gstools_core>=1.0.0"]
 test = ["pytest-cov>=3"]
 lint = [
     "black>=24",

@@ -2,6 +2,23 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.6.0] - Periodic Peach - 2024-07
+
+### Enhancements
+- add a new spatial random field generator called `Fourier` ([#302](https://github.com/GeoStat-Framework/GSTools/pull/302))
+  - create periodic spatial random fields with `Fourier`, by setting the period length with the keyword `periodic`
+  - add examples to showcase how to use the new generator
+
+### Bugfixes
+- fix some Cython issues ([#354](https://github.com/GeoStat-Framework/GSTools/pull/354))
+  - update deprecated conditional compilation for OpenMP support
+  - fix changing between Cython and Rust backends
+  - improve documentation regarding parallelization
+- fix deprecated license identifier, now Zenodo releases work again ([#356](https://github.com/GeoStat-Framework/GSTools/pull/356))
+
+### Changes
+- require gstools-core v1.0.0 at least ([#361](https://github.com/GeoStat-Framework/GSTools/pull/361))
+
 ## [1.5.2] - Nifty Neon - 2024-05
 
 ### Enhancements
@@ -440,7 +457,8 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.4.1...v1.5.0
