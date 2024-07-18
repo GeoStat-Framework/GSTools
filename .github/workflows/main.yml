@@ -31,7 +31,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -v --editable .[lint]
-          pip install build "coveralls>=3.0.0"
+          pip install "coveralls>=3.0.0"
 
       - name: black check
         run: |
@@ -117,6 +117,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install build
 
       - name: Install GSTools
         env:
