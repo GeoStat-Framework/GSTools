@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -v --editable .[lint]
+          pip install -v --editable .[lint, test]
           pip install "coveralls>=3.0.0"
 
       - name: black check
@@ -55,6 +55,7 @@ jobs:
 
       - name: coveralls check
         run: |
+          python -m pytest --cov gstools --cov-report term-missing -v tests/
           python -m coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -128,7 +129,7 @@ jobs:
       - name: Run tests
         run: |
           pip install "numpy${{ matrix.ver.np }}" "scipy${{ matrix.ver.sp }}"
-          python -m pytest --cov gstools --cov-report term-missing -v tests/
+          python -m pytest -v tests/
 
       - name: Build sdist
         run: |
