@@ -2,6 +2,20 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.6.0] - Periodic Peach - 2024-07
+
+### Enhancements
+- add a new spatial random field generator called `Fourier` ([#302](https://github.com/GeoStat-Framework/GSTools/pull/302))
+  - create periodic spatial random fields with `Fourier`, by setting the period length with the keyword `periodic`
+  - add examples to showcase how to use the new generator
+
+### Bugfixes
+- fix some Cython issues ([#354](https://github.com/GeoStat-Framework/GSTools/pull/354))
+  - update deprecated conditional compilation for OpenMP support
+  - fix changing between Cython and Rust backends
+  - improve documentation regarding parallelization
+- fix deprecated license identifier, now Zenodo releases work again ([#356](https://github.com/GeoStat-Framework/GSTools/pull/356))
+
 ## [1.5.2] - Nifty Neon - 2024-05
 
 ### Enhancements
