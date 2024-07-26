@@ -297,11 +297,14 @@ def check_bounds(bounds):
                 * "oo" : open - open
                 * "oc" : open - close
                 * "co" : close - open
-                * "cc" : close - close
+                * "cc" : close - close (default)
     """
+    typ = bounds[2] if len(bounds) == 3 else "cc"
     if len(bounds) not in (2, 3):
         return False
-    if bounds[1] <= bounds[0]:
+    if (typ == "cc" and bounds[1] < bounds[0]) or (
+        typ != "cc" and bounds[1] <= bounds[0]
+    ):
         return False
     if len(bounds) == 3 and bounds[2] not in ("oo", "oc", "co", "cc"):
         return False
