@@ -68,7 +68,10 @@ def plot_vario_spatial(
 ):  # pragma: no cover
     """Plot spatial variogram of a given CovModel."""
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(-x_max, x_max) + x_min
     pos = [x_s] * model.dim
     shp = tuple(len(p) for p in pos)
@@ -83,7 +86,10 @@ def plot_cov_spatial(
 ):  # pragma: no cover
     """Plot spatial covariance of a given CovModel."""
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(-x_max, x_max) + x_min
     pos = [x_s] * model.dim
     shp = tuple(len(p) for p in pos)
@@ -98,7 +104,10 @@ def plot_cor_spatial(
 ):  # pragma: no cover
     """Plot spatial correlation of a given CovModel."""
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(-x_max, x_max) + x_min
     pos = [x_s] * model.dim
     shp = tuple(len(p) for p in pos)
@@ -114,7 +123,10 @@ def plot_variogram(
     """Plot variogram of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} variogram")
     ax.plot(x_s, model.variogram(x_s), **kwargs)
@@ -129,7 +141,10 @@ def plot_covariance(
     """Plot covariance of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} covariance")
     ax.plot(x_s, model.covariance(x_s), **kwargs)
@@ -144,7 +159,10 @@ def plot_correlation(
     """Plot correlation function of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} correlation")
     ax.plot(x_s, model.correlation(x_s), **kwargs)
@@ -159,7 +177,10 @@ def plot_vario_yadrenko(
     """Plot Yadrenko variogram of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = min(3 * model.len_scale, model.geo_scale * np.pi)
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = min(3 * model.len_scale, model.geo_scale * np.pi)
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} Yadrenko variogram")
     ax.plot(x_s, model.vario_yadrenko(x_s), **kwargs)
@@ -174,7 +195,10 @@ def plot_cov_yadrenko(
     """Plot Yadrenko covariance of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = min(3 * model.len_scale, model.geo_scale * np.pi)
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = min(3 * model.len_scale, model.geo_scale * np.pi)
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} Yadrenko covariance")
     ax.plot(x_s, model.cov_yadrenko(x_s), **kwargs)
@@ -189,7 +213,10 @@ def plot_cor_yadrenko(
     """Plot Yadrenko correlation function of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = min(3 * model.len_scale, model.geo_scale * np.pi)
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = min(3 * model.len_scale, model.geo_scale * np.pi)
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} Yadrenko correlation")
     ax.plot(x_s, model.cor_yadrenko(x_s), **kwargs)
@@ -204,7 +231,10 @@ def plot_vario_axis(
     """Plot variogram of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} variogram on axis {axis}")
     ax.plot(x_s, model.vario_axis(x_s, axis), **kwargs)
@@ -219,7 +249,10 @@ def plot_cov_axis(
     """Plot variogram of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} covariance on axis {axis}")
     ax.plot(x_s, model.cov_axis(x_s, axis), **kwargs)
@@ -234,7 +267,10 @@ def plot_cor_axis(
     """Plot variogram of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 * model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 * model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} correlation on axis {axis}")
     ax.plot(x_s, model.cor_axis(x_s, axis), **kwargs)
@@ -249,7 +285,10 @@ def plot_spectrum(
     """Plot spectrum of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 / model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} {model.dim}D spectrum")
     ax.plot(x_s, model.spectrum(x_s), **kwargs)
@@ -264,7 +303,10 @@ def plot_spectral_density(
     """Plot spectral density of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 / model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} {model.dim}D spectral-density")
     ax.plot(x_s, model.spectral_density(x_s), **kwargs)
@@ -279,7 +321,10 @@ def plot_spectral_rad_pdf(
     """Plot radial spectral pdf of a given CovModel."""
     fig, ax = get_fig_ax(fig, ax)
     if x_max is None:
-        x_max = 3 / model.len_scale
+        if np.isclose(model.len_scale, 0):
+            x_max = 1.0
+        else:
+            x_max = 3 / model.len_scale
     x_s = np.linspace(x_min, x_max)
     kwargs.setdefault("label", f"{model.name} {model.dim}D spectral-rad-pdf")
     ax.plot(x_s, model.spectral_rad_pdf(x_s), **kwargs)
