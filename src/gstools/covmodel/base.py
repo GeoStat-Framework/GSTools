@@ -208,6 +208,8 @@ class CovModel:
         self._nugget = float(nugget)
 
         # set anisotropy and len_scale, disable anisotropy for latlon models
+        if integral_scale is not None:
+            len_scale = integral_scale
         self._len_scale, self._anis = set_len_anis(
             self.dim, len_scale, anis, self.latlon
         )
@@ -221,7 +223,6 @@ class CovModel:
             self.var = var
         else:
             self._var = float(var_raw)
-        self._integral_scale = None
         self.integral_scale = integral_scale
         # set var again, if int_scale affects var_factor
         if var_raw is None:
@@ -486,8 +487,7 @@ class CovModel:
 
     def calc_integral_scale(self):
         """Calculate the integral scale of the isotrope model."""
-        self._integral_scale = integral(self.correlation, 0, np.inf)[0]
-        return self._integral_scale
+        return integral(self.correlation, 0, np.inf)[0]
 
     def percentile_scale(self, per=0.9):
         """Calculate the percentile scale of the isotrope model.
@@ -1043,8 +1043,7 @@ class CovModel:
         ValueError
             If integral scale is not setable.
         """
-        self._integral_scale = self.calc_integral_scale()
-        return self._integral_scale
+        return self.calc_integral_scale()
 
     @integral_scale.setter
     def integral_scale(self, integral_scale):
@@ -1054,7 +1053,7 @@ class CovModel:
             integral_scale = self.len_scale
             # reset len_scale
             self.len_scale = 1.0
-            int_tmp = self.calc_integral_scale()
+            int_tmp = self.integral_scale
             self.len_scale = integral_scale / int_tmp
             if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
                 raise ValueError(
