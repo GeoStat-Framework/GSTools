@@ -458,6 +458,8 @@ def set_arg_bounds(model, check_args=True, **kwargs):
     # if variance needs to be resetted, do this at last
     var_bnds = []
     for arg, bounds in kwargs.items():
+        if model._fix and arg in model.fixed:
+            raise ValueError(f"Can't set bounds for fixed argument '{arg}'")
         if not check_bounds(bounds):
             raise ValueError(
                 f"Given bounds for '{arg}' are not valid, got: {bounds}"
@@ -468,11 +470,11 @@ def set_arg_bounds(model, check_args=True, **kwargs):
             var_bnds = bounds
             continue
         elif arg == "len_scale":
-            model.len_scale_bounds = bounds
+            model._len_scale_bounds = bounds
         elif arg == "nugget":
-            model.nugget_bounds = bounds
+            model._nugget_bounds = bounds
         elif arg == "anis":
-            model.anis_bounds = bounds
+            model._anis_bounds = bounds
         else:
             raise ValueError(f"set_arg_bounds: unknown argument '{arg}'")
         if check_args and check_arg_in_bounds(model, arg) > 0:
@@ -483,7 +485,7 @@ def set_arg_bounds(model, check_args=True, **kwargs):
                 setattr(model, arg, def_arg)
     # set var last like always
     if var_bnds:
-        model.var_bounds = var_bnds
+        model._var_bounds = var_bnds
         if check_args and check_arg_in_bounds(model, "var") > 0:
             model.var = default_arg_from_bounds(var_bnds)
 

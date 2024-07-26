@@ -165,10 +165,14 @@ def fit_variogram(
 
     The fitted parameters will be instantly set in the model.
     """
+    for para in model.fixed:
+        para_select[para] = False
     # preprocess selected parameters
     para, sill, constrain_sill, anis = _pre_para(
         model, para_select, sill, anis
     )
+    if not any(para.values()):
+        raise ValueError("fit: no parameters selected for fitting.")
     # check curve_fit kwargs
     curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
     # check method

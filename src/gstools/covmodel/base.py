@@ -139,6 +139,8 @@ class CovModel:
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
         Default: :any:`None`
+    fixed: :class:`set` or :any:`None`, optional
+        Names of fixed arguments. Default: :any:`None`
     **opt_arg
         Optional arguments are covered by these keyword arguments.
         If present, they are described in the section `Other Parameters`.
@@ -161,6 +163,7 @@ class CovModel:
         spatial_dim=None,
         var_raw=None,
         hankel_kw=None,
+        fixed=None,
         **opt_arg,
     ):
         # assert, that we use a subclass
@@ -169,6 +172,16 @@ class CovModel:
         if not hasattr(self, "variogram"):
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
+        # indicate that arguments are fixed (True after __init__)
+        self._fix = False
+        # force input values
+        forced = self.force_values()
+        var = forced.get("var", var)
+        len_scale = forced.get("len_scale", len_scale)
+        nugget = forced.get("nugget", nugget)
+        integral_scale = forced.get("integral_scale", integral_scale)
+        for opt in opt_arg:
+            opt_arg[opt] = forced.get(opt, opt_arg[opt])
         # prepare dim setting
         self._dim = None
         self._hankel_kw = None
@@ -197,6 +210,16 @@ class CovModel:
 
         # optional arguments for the variogram-model
         set_opt_args(self, opt_arg)
+
+        # check fixed
+        fixed = set(fixed) if fixed is not None else set()
+        fixed = fixed | self.always_fixed()
+        valid_fixed = set(self.iso_arg)  # | set(["anis"])
+        if not fixed <= valid_fixed:
+            raise ValueError(
+                f"CovModel: unknown names in 'fixed': {fixed - valid_fixed}"
+            )
+        self._fixed = fixed
 
         # set standard boundaries for variance, len_scale, nugget and opt_arg
         bounds = self.default_arg_bounds()
@@ -234,6 +257,11 @@ class CovModel:
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
+        # set fixed bounds after checking original bounds
+        for arg in self.fixed:
+            val = getattr(self, arg)
+            self.set_arg_bounds(check_args=False, **{arg: (val, val, "cc")})
+        self._fix = True
         # precision for printing
         self._prec = 3
 
@@ -437,6 +465,14 @@ class CovModel:
         return kwargs
 
     # methods for optional/default arguments (can be overridden)
+
+    def always_fixed(self):
+        """Provide set of fixed arguments."""
+        return set()
+
+    def force_values(self):
+        """:class:`dict`: Forced values for arguments."""
+        return {}
 
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
@@ -796,6 +832,11 @@ class CovModel:
     # bounds properties
 
     @property
+    def fixed(self):
+        """:class:`set`: Set with names of fixed arguments."""
+        return self._fixed
+
+    @property
     def var_bounds(self):
         """:class:`list`: Bounds for the variance.
 
@@ -809,11 +850,7 @@ class CovModel:
 
     @var_bounds.setter
     def var_bounds(self, bounds):
-        if not check_bounds(bounds):
-            raise ValueError(
-                f"Given bounds for 'var' are not valid, got: {bounds}"
-            )
-        self._var_bounds = bounds
+        self.set_arg_bounds(var=bounds)
 
     @property
     def len_scale_bounds(self):
@@ -829,11 +866,7 @@ class CovModel:
 
     @len_scale_bounds.setter
     def len_scale_bounds(self, bounds):
-        if not check_bounds(bounds):
-            raise ValueError(
-                f"Given bounds for 'len_scale' are not valid, got: {bounds}"
-            )
-        self._len_scale_bounds = bounds
+        self.set_arg_bounds(len_scale=bounds)
 
     @property
     def nugget_bounds(self):
@@ -849,11 +882,7 @@ class CovModel:
 
     @nugget_bounds.setter
     def nugget_bounds(self, bounds):
-        if not check_bounds(bounds):
-            raise ValueError(
-                f"Given bounds for 'nugget' are not valid, got: {bounds}"
-            )
-        self._nugget_bounds = bounds
+        self.set_arg_bounds(nugget=bounds)
 
     @property
     def anis_bounds(self):
@@ -869,11 +898,7 @@ class CovModel:
 
     @anis_bounds.setter
     def anis_bounds(self, bounds):
-        if not check_bounds(bounds):
-            raise ValueError(
-                f"Given bounds for 'anis' are not valid, got: {bounds}"
-            )
-        self._anis_bounds = bounds
+        self.set_arg_bounds(anis=bounds)
 
     @property
     def opt_arg_bounds(self):
