@@ -174,14 +174,6 @@ class CovModel:
 
         # indicate that arguments are fixed (True after __init__)
         self._init = False
-        # force input values
-        forced = self.force_values()
-        var = forced.get("var", var)
-        len_scale = forced.get("len_scale", len_scale)
-        nugget = forced.get("nugget", nugget)
-        integral_scale = forced.get("integral_scale", integral_scale)
-        for opt in opt_arg:
-            opt_arg[opt] = forced.get(opt, opt_arg[opt])
         # prepare dim setting
         self._dim = None
         self._hankel_kw = None
@@ -471,10 +463,6 @@ class CovModel:
     def always_fixed(self):
         """Provide set of fixed arguments."""
         return set()
-
-    def force_values(self):
-        """:class:`dict`: Forced values for arguments."""
-        return {}
 
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
