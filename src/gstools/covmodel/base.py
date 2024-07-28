@@ -173,7 +173,7 @@ class CovModel:
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
         # indicate that arguments are fixed (True after __init__)
-        self._fix = False
+        self._init = False
         # force input values
         forced = self.force_values()
         var = forced.get("var", var)
@@ -187,6 +187,7 @@ class CovModel:
         self._hankel_kw = None
         self._sft = None
         # prepare parameters (they are checked in dim setting)
+        self._fixed = None
         self._rescale = None
         self._len_scale = None
         self._anis = None
@@ -246,7 +247,8 @@ class CovModel:
             self.var = var
         else:
             self._var = float(var_raw)
-        self.integral_scale = integral_scale
+        if integral_scale is not None:
+            self.integral_scale = integral_scale
         # set var again, if int_scale affects var_factor
         if var_raw is None:
             self._var = None
@@ -261,7 +263,7 @@ class CovModel:
         for arg in self.fixed:
             val = getattr(self, arg)
             self.set_arg_bounds(check_args=False, **{arg: (val, val, "cc")})
-        self._fix = True
+        self._init = True
         # precision for printing
         self._prec = 3
 
@@ -801,8 +803,8 @@ class CovModel:
         Given as a dictionary.
         """
         res = {
-            "var": (0.0, np.inf, "oo"),
-            "len_scale": (0.0, np.inf, "oo"),
+            "var": (0.0, np.inf, "co"),
+            "len_scale": (0.0, np.inf, "co"),
             "nugget": (0.0, np.inf, "co"),
             "anis": (0.0, np.inf, "oo"),
         }
@@ -1014,10 +1016,7 @@ class CovModel:
         self._len_scale, anis = set_len_anis(
             self.dim, len_scale, self.anis, self.latlon
         )
-        if self.latlon:
-            self._anis = np.array((self.dim - 1) * [1], dtype=np.double)
-        else:
-            self._anis = anis
+        self._anis = anis
         self.check_arg_bounds()
 
     @property
@@ -1033,7 +1032,7 @@ class CovModel:
     @property
     def len_rescaled(self):
         """:class:`float`: The rescaled main length scale of the model."""
-        return self._len_scale / self._rescale
+        return self.len_scale / self.rescale
 
     @property
     def anis(self):
@@ -1072,19 +1071,17 @@ class CovModel:
 
     @integral_scale.setter
     def integral_scale(self, integral_scale):
-        if integral_scale is not None:
-            # format int-scale right
-            self.len_scale = integral_scale
-            integral_scale = self.len_scale
-            # reset len_scale
-            self.len_scale = 1.0
-            int_tmp = self.integral_scale
-            self.len_scale = integral_scale / int_tmp
-            if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
-                raise ValueError(
-                    f"{self.name}: Integral scale could not be set correctly! "
-                    "Please just provide a 'len_scale'!"
-                )
+        int_scale, anis = set_len_anis(
+            self.dim, integral_scale, self.anis, self.latlon
+        )
+        old_scale = self.integral_scale
+        self.anis = anis
+        self.len_scale = self.len_scale * int_scale / old_scale
+        if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
+            raise ValueError(
+                f"{self.name}: Integral scale could not be set correctly! "
+                "Please just provide a 'len_scale'!"
+            )
 
     @property
     def hankel_kw(self):
@@ -1139,7 +1136,7 @@ class CovModel:
     @property
     def arg(self):
         """:class:`list` of :class:`str`: Names of all arguments."""
-        return ["var", "len_scale", "nugget", "anis", "angles"] + self._opt_arg
+        return ["var", "len_scale", "nugget", "anis", "angles"] + self.opt_arg
 
     @property
     def arg_list(self):
@@ -1152,7 +1149,7 @@ class CovModel:
     @property
     def iso_arg(self):
         """:class:`list` of :class:`str`: Names of isotropic arguments."""
-        return ["var", "len_scale", "nugget"] + self._opt_arg
+        return ["var", "len_scale", "nugget"] + self.opt_arg
 
     @property
     def iso_arg_list(self):
@@ -1180,7 +1177,7 @@ class CovModel:
         """
         res = np.zeros(self.dim, dtype=np.double)
         res[0] = self.len_scale
-        for i in range(1, self._dim):
+        for i in range(1, self.dim):
             res[i] = self.len_scale * self.anis[i - 1]
         return res
 
@@ -1226,7 +1223,7 @@ class CovModel:
         """Set an attribute."""
         super().__setattr__(name, value)
         # if an optional variogram argument was given, check bounds
-        if hasattr(self, "_opt_arg") and name in self._opt_arg:
+        if getattr(self, "_init", False) and name in self.opt_arg:
             self.check_arg_bounds()
 
     def __repr__(self):
