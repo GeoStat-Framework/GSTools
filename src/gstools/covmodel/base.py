@@ -21,7 +21,6 @@ from gstools.covmodel.fit import fit_variogram
 from gstools.covmodel.tools import (
     _init_subclass,
     check_arg_bounds,
-    check_bounds,
     compare,
     default_arg_from_bounds,
     model_repr,
