@@ -458,7 +458,7 @@ def set_arg_bounds(model, check_args=True, **kwargs):
     # if variance needs to be resetted, do this at last
     var_bnds = []
     for arg, bounds in kwargs.items():
-        if model._fix and arg in model.fixed:
+        if model._init and arg in model.fixed:
             raise ValueError(f"Can't set bounds for fixed argument '{arg}'")
         if not check_bounds(bounds):
             raise ValueError(
@@ -598,6 +598,7 @@ def compare(this, that):
     equal &= np.all(np.isclose(this.anis, that.anis))
     equal &= np.all(np.isclose(this.angles, that.angles))
     equal &= np.isclose(this.rescale, that.rescale)
+    equal &= np.isclose(this.geo_scale, that.geo_scale)
     equal &= this.latlon == that.latlon
     equal &= this.temporal == that.temporal
     for opt in this.opt_arg:
@@ -614,39 +615,24 @@ def model_repr(model):  # pragma: no cover
     model : :any:`CovModel`
         The covariance model in use.
     """
-    m = model
-    p = model._prec
-    opt_str = ""
+    m, p = model, model._prec
+    ani_str, ang_str, o_str, r_str = "", "", "", ""
     t_str = ", temporal=True" if m.temporal else ""
+    d_str = f"latlon={m.latlon}" if m.latlon else f"dim={m.spatial_dim}"
+    p_str = f", var={m.var:.{p}}, len_scale={m.len_scale:.{p}}"
+    p_str += "" if np.isclose(m.nugget, 0) else f", nugget={m.nugget:.{p}}"
     if not np.isclose(m.rescale, m.default_rescale()):
-        opt_str += f", rescale={m.rescale:.{p}}"
+        o_str += f", rescale={m.rescale:.{p}}"
     for opt in m.opt_arg:
-        opt_str += f", {opt}={getattr(m, opt):.{p}}"
+        o_str += f", {opt}={getattr(m, opt):.{p}}"
     if m.latlon:
-        ani_str = (
-            ""
-            if m.is_isotropic or not m.temporal
-            else f", anis={m.anis[-1]:.{p}}"
-        )
-        r_str = (
-            ""
-            if np.isclose(m.geo_scale, 1)
-            else f", geo_scale={m.geo_scale:.{p}}"
-        )
-        repr_str = (
-            f"{m.name}(latlon={m.latlon}{t_str}, var={m.var:.{p}}, "
-            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
-            f"{ani_str}{r_str}{opt_str})"
-        )
+        if not m.is_isotropic and m.temporal:
+            ani_str = f", anis={m.anis[-1]:.{p}}"
+        if not np.isclose(m.geo_scale, 1):
+            r_str = f", geo_scale={m.geo_scale:.{p}}"
     else:
-        # only print anis and angles if model is anisotropic or rotated
-        ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
-        ang_str = (
-            f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
-        )
-        repr_str = (
-            f"{m.name}(dim={m.spatial_dim}{t_str}, var={m.var:.{p}}, "
-            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
-            f"{ani_str}{ang_str}{opt_str})"
-        )
-    return repr_str
+        if not m.is_isotropic:
+            ani_str = f", anis={list_format(m.anis, p)}"
+        if m.do_rotation:
+            ang_str = f", angles={list_format(m.angles, p)}"
+    return f"{m.name}({d_str}{t_str}{p_str}{ani_str}{ang_str}{r_str}{o_str})"
