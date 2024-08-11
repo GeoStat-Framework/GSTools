@@ -126,12 +126,6 @@ class CovModel:
         If given, the model dimension will be determined from this spatial dimension
         and the possible temporal dimension if temporal is ture.
         Default: None
-    var_raw : :class:`float` or :any:`None`, optional
-        raw variance of the model which will be multiplied with
-        :any:`CovModel.var_factor` to result in the actual variance.
-        If given, ``var`` will be ignored.
-        (This is just for models that override :any:`CovModel.var_factor`)
-        Default: :any:`None`
     hankel_kw: :class:`dict` or :any:`None`, optional
         Modify the init-arguments of
         :any:`hankel.SymmetricFourierTransform`
@@ -160,7 +154,6 @@ class CovModel:
         geo_scale=RADIAN_SCALE,
         temporal=False,
         spatial_dim=None,
-        var_raw=None,
         hankel_kw=None,
         fixed=None,
         **opt_arg,
@@ -232,20 +225,12 @@ class CovModel:
             self.dim, angles, self.latlon, self.temporal
         )
 
-        # set var at last, because of the var_factor (to be right initialized)
-        if var_raw is None:
-            self._var = None
-            self.var = var
-        else:
-            self._var = float(var_raw)
+        self._var = None
+        self.var = var
+
         if integral_scale is not None:
             self.integral_scale = integral_scale
-        # set var again, if int_scale affects var_factor
-        if var_raw is None:
-            self._var = None
-            self.var = var
-        else:
-            self._var = float(var_raw)
+
         # final check for parameter bounds
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
@@ -499,10 +484,6 @@ class CovModel:
     def fix_dim(self):
         """Set a fix dimension for the model."""
         return None
-
-    def var_factor(self):
-        """Factor for the variance."""
-        return 1.0
 
     def default_rescale(self):
         """Provide default rescaling factor."""
@@ -963,24 +944,11 @@ class CovModel:
     @property
     def var(self):
         """:class:`float`: The variance of the model."""
-        return self._var * self.var_factor()
+        return self._var
 
     @var.setter
     def var(self, var):
-        self._var = float(var) / self.var_factor()
-        self.check_arg_bounds()
-
-    @property
-    def var_raw(self):
-        """:class:`float`: The raw variance of the model without factor.
-
-        (See. CovModel.var_factor)
-        """
-        return self._var
-
-    @var_raw.setter
-    def var_raw(self, var_raw):
-        self._var = float(var_raw)
+        self._var = float(var)
         self.check_arg_bounds()
 
     @property

@@ -592,7 +592,6 @@ def compare(this, that):
     equal = True
     equal &= this.name == that.name
     equal &= np.isclose(this.var, that.var)
-    equal &= np.isclose(this.var_raw, that.var_raw)  # ?! needless?
     equal &= np.isclose(this.nugget, that.nugget)
     equal &= np.isclose(this.len_scale, that.len_scale)
     equal &= np.all(np.isclose(this.anis, that.anis))

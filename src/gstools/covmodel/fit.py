@@ -19,6 +19,7 @@ from gstools.tools.geometric import great_circle_to_chordal, set_anis
 __all__ = ["fit_variogram"]
 
 
+# this should be: set(mod.iso_arg) - set(mod.opt_arg)
 DEFAULT_PARA = ["var", "len_scale", "nugget"]
 
 
@@ -217,21 +218,13 @@ def fit_variogram(
 
 def _pre_para(model, para_select, sill, anis):
     """Preprocess selected parameters."""
-    var_last = False
-    var_tmp = 0.0  # init value
     for par in para_select:
         if par not in model.arg_bounds:
             raise ValueError(f"fit: unknown parameter in selection: {par}")
         if not isinstance(para_select[par], bool):
-            if par == "var":
-                var_last = True
-                var_tmp = float(para_select[par])
-            else:
-                setattr(model, par, float(para_select[par]))
+            setattr(model, par, float(para_select[par]))
             para_select[par] = False
-    # set variance last due to possible recalculations
-    if var_last:
-        model.var = var_tmp
+
     # remove those that were set to True
     para_select = {k: v for k, v in para_select.items() if not v}
     # handling the sill
@@ -426,9 +419,9 @@ def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
         para_skip = 0
         opt_skip = 0
         if para["var"]:
-            var_tmp = args[para_skip]
+            model.var = args[para_skip]
             if constrain_sill:
-                nugget_tmp = sill - var_tmp
+                nugget_tmp = sill - model.var
                 # punishment, if resulting nugget out of range for fixed sill
                 if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
                     return np.full_like(x, np.inf)
@@ -445,12 +438,6 @@ def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
             if para[opt]:
                 setattr(model, opt, args[para_skip + opt_skip])
                 opt_skip += 1
-        # set var at last because of var_factor (other parameter needed)
-        if para["var"]:
-            model.var = var_tmp
-        # needs to be reset for TPL models when len_scale was changed
-        else:
-            model.var = var_save
         if is_dir_vario:
             if anis:
                 model.anis = args[1 - model.dim :]
@@ -469,13 +456,9 @@ def _post_fitting(model, para, popt, anis, is_dir_vario):
     fit_para = {}
     para_skip = 0
     opt_skip = 0
-    var_tmp = 0.0  # init value
     for par in DEFAULT_PARA:
         if para[par]:
-            if par == "var":  # set variance last
-                var_tmp = popt[para_skip]
-            else:
-                setattr(model, par, popt[para_skip])
+            setattr(model, par, popt[para_skip])
             fit_para[par] = popt[para_skip]
             para_skip += 1
         else:
@@ -491,9 +474,6 @@ def _post_fitting(model, para, popt, anis, is_dir_vario):
         if anis:
             model.anis = popt[1 - model.dim :]
         fit_para["anis"] = model.anis
-    # set var at last because of var_factor (other parameter needed)
-    if para["var"]:
-        model.var = var_tmp
     return fit_para
 
 
