@@ -132,8 +132,6 @@ class CovModel:
         used for the spectrum calculation. Use with caution (Better: Don't!).
         ``None`` is equivalent to ``{"a": -1, "b": 1, "N": 1000, "h": 0.001}``.
         Default: :any:`None`
-    fixed: :class:`set` or :any:`None`, optional
-        Names of fixed arguments. Default: :any:`None`
     **opt_arg
         Optional arguments are covered by these keyword arguments.
         If present, they are described in the section `Other Parameters`.
@@ -155,7 +153,6 @@ class CovModel:
         temporal=False,
         spatial_dim=None,
         hankel_kw=None,
-        fixed=None,
         **opt_arg,
     ):
         # assert, that we use a subclass
@@ -164,14 +161,13 @@ class CovModel:
         if not hasattr(self, "variogram"):
             raise TypeError("Don't instantiate 'CovModel' directly!")
 
-        # indicate that arguments are fixed (True after __init__)
+        # indicator for initialization status (True after __init__)
         self._init = False
         # prepare dim setting
         self._dim = None
         self._hankel_kw = None
         self._sft = None
         # prepare parameters (they are checked in dim setting)
-        self._fixed = None
         self._rescale = None
         self._len_scale = None
         self._anis = None
@@ -196,16 +192,6 @@ class CovModel:
         # optional arguments for the variogram-model
         set_opt_args(self, opt_arg)
 
-        # check fixed
-        fixed = set(fixed) if fixed is not None else set()
-        fixed = fixed | self.always_fixed()
-        valid_fixed = set(self.iso_arg)  # | set(["anis"])
-        if not fixed <= valid_fixed:
-            raise ValueError(
-                f"CovModel: unknown names in 'fixed': {fixed - valid_fixed}"
-            )
-        self._fixed = fixed
-
         # set standard boundaries for variance, len_scale, nugget and opt_arg
         bounds = self.default_arg_bounds()
         bounds.update(self.default_opt_arg_bounds())
@@ -213,6 +199,7 @@ class CovModel:
 
         # set parameters
         self.rescale = rescale
+        self._var = float(var)
         self._nugget = float(nugget)
 
         # set anisotropy and len_scale, disable anisotropy for latlon models
@@ -225,9 +212,6 @@ class CovModel:
             self.dim, angles, self.latlon, self.temporal
         )
 
-        self._var = None
-        self.var = var
-
         if integral_scale is not None:
             self.integral_scale = integral_scale
 
@@ -235,13 +219,10 @@ class CovModel:
         self.check_arg_bounds()
         # additional checks for the optional arguments (provided by user)
         self.check_opt_arg()
-        # set fixed bounds after checking original bounds
-        for arg in self.fixed:
-            val = getattr(self, arg)
-            self.set_arg_bounds(check_args=False, **{arg: (val, val, "cc")})
-        self._init = True
         # precision for printing
         self._prec = 3
+        # initialized
+        self._init = True
 
     # one of these functions needs to be overridden
     def __init_subclass__(cls):
@@ -443,10 +424,6 @@ class CovModel:
         return kwargs
 
     # methods for optional/default arguments (can be overridden)
-
-    def always_fixed(self):
-        """Provide set of fixed arguments."""
-        return set()
 
     def default_opt_arg(self):
         """Provide default optional arguments by the user.
@@ -800,11 +777,6 @@ class CovModel:
         return check_arg_bounds(self)
 
     # bounds properties
-
-    @property
-    def fixed(self):
-        """:class:`set`: Set with names of fixed arguments."""
-        return self._fixed
 
     @property
     def var_bounds(self):

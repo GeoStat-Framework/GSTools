@@ -458,8 +458,6 @@ def set_arg_bounds(model, check_args=True, **kwargs):
     # if variance needs to be resetted, do this at last
     var_bnds = []
     for arg, bounds in kwargs.items():
-        if model._init and arg in model.fixed:
-            raise ValueError(f"Can't set bounds for fixed argument '{arg}'")
         if not check_bounds(bounds):
             raise ValueError(
                 f"Given bounds for '{arg}' are not valid, got: {bounds}"

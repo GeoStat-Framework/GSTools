@@ -166,8 +166,6 @@ def fit_variogram(
 
     The fitted parameters will be instantly set in the model.
     """
-    for para in model.fixed:
-        para_select[para] = False
     # preprocess selected parameters
     para, sill, constrain_sill, anis = _pre_para(
         model, para_select, sill, anis
