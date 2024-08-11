@@ -201,15 +201,9 @@ class TestCovModel(unittest.TestCase):
                     self.gamma_x, self.gamma_y, sill=1.1, nugget=False
                 )
                 self.assertAlmostEqual(model.var, 1.1, delta=1e-5)
-                # check var_raw handling
-                model = Model(var_raw=1, len_low=0, integral_scale=10)
-                var_save = model.var
-                model.var_raw = 1.1
-                self.assertAlmostEqual(model.var, var_save * 1.1)
-                self.assertAlmostEqual(model.integral_scale, 10)
                 # integral scale is not setable when len_low is not 0
                 with self.assertRaises(ValueError):
-                    Model(var_raw=1, len_low=5, integral_scale=10)
+                    Model(len_low=5, integral_scale=10)
 
     def test_fitting(self):
         for Model in self.std_cov_models:
