@@ -1004,7 +1004,7 @@ class CovModel:
         old_scale = self.integral_scale
         self.anis = anis
         self.len_scale = self.len_scale * int_scale / old_scale
-        if not np.isclose(self.integral_scale, integral_scale, rtol=1e-3):
+        if not np.isclose(self.integral_scale, int_scale, rtol=1e-3):
             raise ValueError(
                 f"{self.name}: Integral scale could not be set correctly! "
                 "Please just provide a 'len_scale'!"
