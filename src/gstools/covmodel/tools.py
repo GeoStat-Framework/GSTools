@@ -455,18 +455,14 @@ def set_arg_bounds(model, check_args=True, **kwargs):
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
     """
-    # if variance needs to be resetted, do this at last
-    var_bnds = []
     for arg, bounds in kwargs.items():
         if not check_bounds(bounds):
-            raise ValueError(
-                f"Given bounds for '{arg}' are not valid, got: {bounds}"
-            )
+            msg = f"Given bounds for '{arg}' are not valid, got: {bounds}"
+            raise ValueError(msg)
         if arg in model.opt_arg:
             model._opt_arg_bounds[arg] = bounds
         elif arg == "var":
-            var_bnds = bounds
-            continue
+            model._var_bounds = bounds
         elif arg == "len_scale":
             model._len_scale_bounds = bounds
         elif arg == "nugget":
@@ -481,11 +477,6 @@ def set_arg_bounds(model, check_args=True, **kwargs):
                 setattr(model, arg, [def_arg] * (model.dim - 1))
             else:
                 setattr(model, arg, def_arg)
-    # set var last like always
-    if var_bnds:
-        model._var_bounds = var_bnds
-        if check_args and check_arg_in_bounds(model, "var") > 0:
-            model.var = default_arg_from_bounds(var_bnds)
 
 
 def check_arg_bounds(model):
