@@ -169,7 +169,7 @@ def fit_variogram(
     if not any(para.values()):
         raise ValueError("fit: no parameters selected for fitting.")
     # check curve_fit kwargs
-    curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
+    curve_fit_kwargs = curve_fit_kwargs or {}
     # check method
     if method not in ["trf", "dogbox"]:
         raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")
@@ -212,13 +212,13 @@ def fit_variogram(
 
 def _pre_para(model, para_select, sill, anis):
     """Preprocess selected parameters."""
+    # if values given, set them in the model, afterwards all entries are bool
     for par in para_select:
         if par not in model.arg_bounds:
             raise ValueError(f"fit: unknown parameter in selection: {par}")
         if not isinstance(para_select[par], bool):
             setattr(model, par, float(para_select[par]))
             para_select[par] = False
-
     # remove those that were set to True
     para_select = {k: v for k, v in para_select.items() if not v}
     # handling the sill
