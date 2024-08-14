@@ -6,6 +6,7 @@ GStools subpackage providing tools for the covariance-model.
 The following classes and functions are provided
 
 .. autosummary::
+   RatioError
    AttributeWarning
    rad_fac
    set_opt_args
@@ -34,6 +35,7 @@ from gstools.tools.geometric import no_of_angles, set_angles, set_anis
 from gstools.tools.misc import list_format
 
 __all__ = [
+    "RatioError",
     "AttributeWarning",
     "rad_fac",
     "set_opt_args",
@@ -50,6 +52,10 @@ __all__ = [
     "compare",
     "model_repr",
 ]
+
+
+class RatioError(Exception):
+    """Error for invalid ratios in SumModel."""
 
 
 class AttributeWarning(UserWarning):
@@ -311,7 +317,7 @@ def check_bounds(bounds):
     return True
 
 
-def check_arg_in_bounds(model, arg, val=None):
+def check_arg_in_bounds(model, arg, val=None, error=False):
     """Check if given argument value is in bounds of the given model."""
     if arg not in model.arg_bounds:
         raise ValueError(f"check bounds: unknown argument: {arg}")
@@ -320,6 +326,7 @@ def check_arg_in_bounds(model, arg, val=None):
     val = np.asarray(val)
     error_case = 0
     if len(bnd) == 2:
+        bnd = list(bnd)
         bnd.append("cc")  # use closed intervals by default
     if bnd[2][0] == "c":
         if np.any(val < bnd[0]):
@@ -333,6 +340,15 @@ def check_arg_in_bounds(model, arg, val=None):
     else:
         if np.any(val >= bnd[1]):
             error_case = 4
+    if error:
+        if error_case == 1:
+            raise ValueError(f"{arg} needs to be >= {bnd[0]}, got: {val}")
+        if error_case == 2:
+            raise ValueError(f"{arg} needs to be > {bnd[0]}, got: {val}")
+        if error_case == 3:
+            raise ValueError(f"{arg} needs to be <= {bnd[1]}, got: {val}")
+        if error_case == 4:
+            raise ValueError(f"{arg} needs to be < {bnd[1]}, got: {val}")
     return error_case
 
 
@@ -497,17 +513,7 @@ def check_arg_bounds(model):
     for arg in model.arg_bounds:
         if not model.arg_bounds[arg]:
             continue  # no bounds given during init (called from self.dim)
-        bnd = list(model.arg_bounds[arg])
-        val = getattr(model, arg)
-        error_case = check_arg_in_bounds(model, arg)
-        if error_case == 1:
-            raise ValueError(f"{arg} needs to be >= {bnd[0]}, got: {val}")
-        if error_case == 2:
-            raise ValueError(f"{arg} needs to be > {bnd[0]}, got: {val}")
-        if error_case == 3:
-            raise ValueError(f"{arg} needs to be <= {bnd[1]}, got: {val}")
-        if error_case == 4:
-            raise ValueError(f"{arg} needs to be < {bnd[1]}, got: {val}")
+        check_arg_in_bounds(model, arg, error=True)
 
 
 def set_dim(model, dim):
