@@ -6,7 +6,6 @@ GStools subpackage providing tools for the covariance-model.
 The following classes and functions are provided
 
 .. autosummary::
-   RatioError
    AttributeWarning
    rad_fac
    set_opt_args
@@ -52,10 +51,6 @@ __all__ = [
     "compare",
     "model_repr",
 ]
-
-
-class RatioError(Exception):
-    """Error for invalid ratios in SumModel."""
 
 
 class AttributeWarning(UserWarning):
