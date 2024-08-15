@@ -1163,6 +1163,14 @@ class CovModel:
         if getattr(self, "_init", False) and name in self.opt_arg:
             self.check_arg_bounds()
 
+    def __add__(self, other):
+        """Add two covariance models and return a SumModel."""
+        return SumModel(self, other)
+
+    def __radd__(self, other):
+        """Add two covariance models and return a SumModel."""
+        return SumModel(self, other)
+
     def __repr__(self):
         """Return String representation."""
         return model_repr(self)
