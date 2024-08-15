@@ -147,6 +147,8 @@ class CovModel:
         If present, they are described in the section `Other Parameters`.
     """
 
+    _add_doc = True
+
     def __init__(
         self,
         dim=3,
@@ -242,7 +244,8 @@ class CovModel:
         # modify the docstrings: class docstring gets attributes added
         if cls.__doc__ is None:
             cls.__doc__ = "User defined GSTools Covariance-Model."
-        cls.__doc__ += CovModel.__doc__[45:]
+        if cls._add_doc:
+            cls.__doc__ += CovModel.__doc__[45:]
         # overridden functions get standard doc if no new doc was created
         ign = ["__", "variogram", "covariance", "cor"]
         for att, attr_cls in cls.__dict__.items():
@@ -1259,6 +1262,8 @@ class SumModel(CovModel):
         Also covers ``var_<i>`` and ``length_scale_<i>``.
     """
 
+    _add_doc = False
+
     def __init__(self, *models, **kwargs):
         self._init = False
         self._models = []
@@ -1355,18 +1360,6 @@ class SumModel(CovModel):
             self.len_scale = len_set
         # check for consistency
         self.check()
-
-    def __init_subclass__(cls):
-        """Initialize gstools sum-model."""
-        _init_subclass(cls)
-        # overridden functions get standard doc if no new doc was created
-        ign = ["__", "variogram", "covariance", "cor"]
-        for att, attr_cls in cls.__dict__.items():
-            if any(att.startswith(i) for i in ign) or att not in dir(CovModel):
-                continue
-            attr_doc = getattr(CovModel, att).__doc__
-            if attr_cls.__doc__ is None:
-                attr_cls.__doc__ = attr_doc
 
     def __iter__(self):
         return iter(self.models)
