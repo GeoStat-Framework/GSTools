@@ -511,8 +511,6 @@ def check_arg_bounds(model):
     """
     # check var, len_scale, nugget and optional-arguments
     for arg in model.arg_bounds:
-        if not model.arg_bounds[arg]:
-            continue  # no bounds given during init (called from self.dim)
         check_arg_in_bounds(model, arg, error=True)
 
 
@@ -557,16 +555,15 @@ def set_dim(model, dim):
     model._dim = int(dim)
     # create fourier transform just once (recreate for dim change)
     model._sft = SFT(ndim=model.dim, **model.hankel_kw)
-    # recalculate dimension related parameters
-    if model._anis is not None:
-        model._len_scale, model._anis = set_len_anis(
-            model.dim, model._len_scale, model._anis
+    # recalculate dimension related parameters (if model initialized)
+    if model._init:
+        model.len_scale, model.anis = set_len_anis(
+            model.dim, model.len_scale, model.anis
         )
-    if model._angles is not None:
-        model._angles = set_model_angles(
-            model.dim, model._angles, model.latlon, model.temporal
+        model.angles = set_model_angles(
+            model.dim, model.angles, model.latlon, model.temporal
         )
-    model.check_arg_bounds()
+        model.check_arg_bounds()
 
 
 def compare(this, that):
