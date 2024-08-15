@@ -1356,6 +1356,18 @@ class SumModel(CovModel):
         # check for consistency
         self.check()
 
+    def __init_subclass__(cls):
+        """Initialize gstools sum-model."""
+        _init_subclass(cls)
+        # overridden functions get standard doc if no new doc was created
+        ign = ["__", "variogram", "covariance", "cor"]
+        for att, attr_cls in cls.__dict__.items():
+            if any(att.startswith(i) for i in ign) or att not in dir(CovModel):
+                continue
+            attr_doc = getattr(CovModel, att).__doc__
+            if attr_cls.__doc__ is None:
+                attr_cls.__doc__ = attr_doc
+
     def __iter__(self):
         return iter(self.models)
 
