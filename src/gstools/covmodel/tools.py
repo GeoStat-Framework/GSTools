@@ -34,7 +34,6 @@ from gstools.tools.geometric import no_of_angles, set_angles, set_anis
 from gstools.tools.misc import list_format
 
 __all__ = [
-    "RatioError",
     "AttributeWarning",
     "rad_fac",
     "set_opt_args",

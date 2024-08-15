@@ -17,6 +17,7 @@ The following classes and functions are provided
    sum_model_repr
 """
 
+# pylint: disable=W0212
 import numpy as np
 
 from gstools.covmodel.tools import check_arg_in_bounds
@@ -89,10 +90,10 @@ def sum_default_arg_bounds(summod):
     """Default boundaries for arguments as dict."""
     var_bnds = [mod.var_bounds for mod in summod.models]
     len_bnds = [mod.len_scale_bounds for mod in summod.models]
-    var_lo = sum([bnd[0] for bnd in var_bnds], start=0.0)
-    var_hi = sum([bnd[1] for bnd in var_bnds], start=0.0)
-    len_lo = min([bnd[0] for bnd in len_bnds], default=0.0)
-    len_hi = max([bnd[1] for bnd in len_bnds], default=0.0)
+    var_lo = sum((bnd[0] for bnd in var_bnds), start=0.0)
+    var_hi = sum((bnd[1] for bnd in var_bnds), start=0.0)
+    len_lo = min((bnd[0] for bnd in len_bnds), default=0.0)
+    len_hi = max((bnd[1] for bnd in len_bnds), default=0.0)
     res = {
         "var": (var_lo, var_hi),
         "len_scale": (len_lo, len_hi),

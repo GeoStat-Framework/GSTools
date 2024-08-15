@@ -9,7 +9,7 @@ The following classes are provided
    CovModel
 """
 
-# pylint: disable=C0103, R0201, E1101, C0302, W0613
+# pylint: disable=C0103, R0201, E1101, C0302, W0613, W0231
 import copy
 
 import numpy as np
@@ -1480,11 +1480,11 @@ class SumModel(CovModel):
         return [mod.var for mod in self.models]
 
     @vars.setter
-    def vars(self, vars):
-        if len(vars) != len(self):
+    def vars(self, variances):
+        if len(variances) != len(self):
             msg = "SumModel: number of given variances not matching"
             raise ValueError(msg)
-        for mod, var in zip(self.models, vars):
+        for mod, var in zip(self.models, variances):
             mod.var = var
         check_arg_in_bounds(self, "var", error=True)
         check_arg_in_bounds(self, "len_scale", error=True)
@@ -1555,6 +1555,7 @@ class SumModel(CovModel):
 
     @property
     def ratios(self):
+        """:class:`numpy.ndarray`: Variance ratios of the sub-models."""
         var = self.var
         if np.isclose(var, 0) and len(self) > 0:
             return np.full(len(self), 1 / len(self))
@@ -1593,6 +1594,7 @@ class SumModel(CovModel):
         )
 
     def correlation(self, r):
+        """SumModel correlation function."""
         return sum(
             (
                 mod.correlation(r) * rat
