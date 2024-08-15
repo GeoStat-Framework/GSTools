@@ -736,7 +736,7 @@ class Fourier(Generator):
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`numpy.nan`,
             the actual seed will be kept. Default: :any:`numpy.nan`
-        period : :class:`list` or :any:`None, optional
+        period : :class:`list` or :any:`None`, optional
             The spatial periodicity of the field, is often the domain size.
         mode_no : :class:`list` or :any:`None`, optional
             Number of Fourier modes per dimension.
