@@ -6,6 +6,7 @@ GStools subpackage providing different covariance models.
 The following classes are provided
 
 .. autosummary::
+   Nugget
    Gaussian
    Exponential
    Matern
@@ -27,11 +28,12 @@ import warnings
 import numpy as np
 from scipy import special as sps
 
-from gstools.covmodel.base import CovModel
+from gstools.covmodel.base import CovModel, SumModel
 from gstools.covmodel.tools import AttributeWarning
 from gstools.tools.special import exp_int, inc_gamma_low
 
 __all__ = [
+    "Nugget",
     "Gaussian",
     "Exponential",
     "Matern",
@@ -46,6 +48,69 @@ __all__ = [
     "SuperSpherical",
     "JBessel",
 ]
+
+
+class Nugget(SumModel):
+    r"""Pure nugget model.
+
+    Parameters
+    ----------
+    dim : :class:`int`, optional
+        dimension of the model.
+        Includes the temporal dimension if temporal is true.
+        To specify only the spatial dimension in that case, use `spatial_dim`.
+        Default: ``3``
+    nugget : :class:`float`, optional
+        nugget of the model. Default: ``0.0``
+    anis : :class:`float` or :class:`list`, optional
+        anisotropy ratios in the transversal directions [e_y, e_z].
+
+            * e_y = l_y / l_x
+            * e_z = l_z / l_x
+
+        If only one value is given in 3D, e_y will be set to 1.
+        This value will be ignored, if multiple len_scales are given.
+        Default: ``1.0``
+    angles : :class:`float` or :class:`list`, optional
+        angles of rotation (given in rad):
+
+            * in 2D: given as rotation around z-axis
+            * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
+
+         Default: ``0.0``
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude. When using this, the model will internally
+        use the associated 'Yadrenko' model to represent a valid model.
+        This means, the spatial distance :math:`r` will be replaced by
+        :math:`2\sin(\alpha/2)`, where :math:`\alpha` is the great-circle
+        distance, which is equal to the spatial distance of two points in 3D.
+        As a consequence, `dim` will be set to `3` and anisotropy will be
+        disabled. `geo_scale` can be set to e.g. earth's radius,
+        to have a meaningful `len_scale` parameter.
+        Default: False
+    geo_scale : :class:`float`, optional
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful length scale unit.
+        By default, len_scale is assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have len_scale in km or
+        :any:`DEGREE_SCALE` to have len_scale in degrees.
+        Default: :any:`RADIAN_SCALE`
+    temporal : :class:`bool`, optional
+        Create a metric spatio-temporal covariance model.
+        Setting this to true will increase `dim` and `field_dim` by 1.
+        `spatial_dim` will be `field_dim - 1`.
+        The time-dimension is appended, meaning the pos tuple is (x,y,z,...,t).
+        Default: False
+    spatial_dim : :class:`int`, optional
+        spatial dimension of the model.
+        If given, the model dimension will be determined from this spatial dimension
+        and the possible temporal dimension if temporal is ture.
+        Default: None
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class Gaussian(CovModel):
