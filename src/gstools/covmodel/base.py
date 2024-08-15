@@ -18,9 +18,19 @@ from scipy.integrate import quad as integral
 
 from gstools.covmodel import plot
 from gstools.covmodel.fit import fit_variogram
+from gstools.covmodel.sum_tools import (
+    default_mod_kwargs,
+    sum_check,
+    sum_default_arg_bounds,
+    sum_default_opt_arg_bounds,
+    sum_model_repr,
+    sum_set_norm_len_ratios,
+    sum_set_norm_var_ratios,
+)
 from gstools.covmodel.tools import (
     _init_subclass,
     check_arg_bounds,
+    check_arg_in_bounds,
     compare,
     default_arg_from_bounds,
     model_repr,
@@ -1156,3 +1166,496 @@ class CovModel:
     def __repr__(self):
         """Return String representation."""
         return model_repr(self)
+
+
+class SumModel(CovModel):
+    r"""Class for sums of covariance models.
+
+    Parameters
+    ----------
+    *models
+        tuple of :any:`CovModel` instances of subclasses to sum.
+    dim : :class:`int`, optional
+        dimension of the model.
+        Includes the temporal dimension if temporal is true.
+        To specify only the spatial dimension in that case, use `spatial_dim`.
+        Default: ``3``
+    vars : :class:`list` of :class:`float`, optional
+        variances of the models. Will reset present variances.
+    len_scales : :class:`list` of :class:`float`, optional
+        length scale of the models. Will reset present length scales.
+    nugget : :class:`float`, optional
+        nugget of the sum-model. All summed models will a nugget of zero.
+        Default: ``0.0``
+    anis : :class:`float` or :class:`list`, optional
+        anisotropy ratios in the transversal directions [e_y, e_z].
+
+            * e_y = l_y / l_x
+            * e_z = l_z / l_x
+
+        If only one value is given in 3D, e_y will be set to 1.
+        This value will be ignored, if multiple len_scales are given.
+        Default: ``1.0``
+    angles : :class:`float` or :class:`list`, optional
+        angles of rotation (given in rad):
+
+            * in 2D: given as rotation around z-axis
+            * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
+
+         Default: ``0.0``
+    integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
+        If given, ``len_scale`` will be ignored and recalculated,
+        so that the integral scale of the model matches the given one.
+        Default: :any:`None`
+    rescale : :class:`float` or :any:`None`, optional
+        Optional rescaling factor to divide the length scale with.
+        This could be used for unit conversion or rescaling the length scale
+        to coincide with e.g. the integral scale.
+        Will be set by each model individually.
+        Default: :any:`None`
+    latlon : :class:`bool`, optional
+        Whether the model is describing 2D fields on earths surface described
+        by latitude and longitude. When using this, the model will internally
+        use the associated 'Yadrenko' model to represent a valid model.
+        This means, the spatial distance :math:`r` will be replaced by
+        :math:`2\sin(\alpha/2)`, where :math:`\alpha` is the great-circle
+        distance, which is equal to the spatial distance of two points in 3D.
+        As a consequence, `dim` will be set to `3` and anisotropy will be
+        disabled. `geo_scale` can be set to e.g. earth's radius,
+        to have a meaningful `len_scale` parameter.
+        Default: False
+    geo_scale : :class:`float`, optional
+        Geographic unit scaling in case of latlon coordinates to get a
+        meaningful length scale unit.
+        By default, len_scale is assumed to be in radians with latlon=True.
+        Can be set to :any:`KM_SCALE` to have len_scale in km or
+        :any:`DEGREE_SCALE` to have len_scale in degrees.
+        Default: :any:`RADIAN_SCALE`
+    temporal : :class:`bool`, optional
+        Create a metric spatio-temporal covariance model.
+        Setting this to true will increase `dim` and `field_dim` by 1.
+        `spatial_dim` will be `field_dim - 1`.
+        The time-dimension is appended, meaning the pos tuple is (x,y,z,...,t).
+        Default: False
+    spatial_dim : :class:`int`, optional
+        spatial dimension of the model.
+        If given, the model dimension will be determined from this spatial dimension
+        and the possible temporal dimension if temporal is ture.
+        Default: None
+    var : :class:`float`, optional
+        Total variance of the sum-model. Will evenly scale present variances.
+    len_scale : :class:`float` or :class:`list`, optional
+        Total length scale of the sum-model. Will evenly scale present length scales.
+    **opt_arg
+        Optional arguments of the sub-models will have and added index of the sub-model.
+        Also covers ``var_<i>`` and ``length_scale_<i>``.
+    """
+
+    def __init__(self, *models, **kwargs):
+        self._init = False
+        self._models = []
+        add_nug = 0.0
+        for mod in models:
+            if isinstance(mod, type) and issubclass(mod, SumModel):
+                continue  # treat un-init sum-model as nugget model with 0 nugget
+            if isinstance(mod, SumModel):
+                self._models += mod.models
+                add_nug += mod.nugget
+            elif isinstance(mod, CovModel):
+                self._models.append(mod)
+            elif isinstance(mod, type) and issubclass(mod, CovModel):
+                self._models.append(mod(**default_mod_kwargs(kwargs)))
+            else:
+                msg = "SumModel: models need to be instances or subclasses of CovModel."
+                raise ValueError(msg)
+        # handle parameters when only Nugget models given
+        if models and not self.models:
+            for mod in models:
+                if not isinstance(mod, type):
+                    kwargs.setdefault("dim", mod.dim)
+                    kwargs.setdefault("latlon", mod.latlon)
+                    kwargs.setdefault("temporal", mod.temporal)
+                    kwargs.setdefault("geo_scale", mod.geo_scale)
+                    kwargs.setdefault("anis", mod.anis)
+                    kwargs.setdefault("angles", mod.angles)
+                    break
+        # pop entries that can't be re-set
+        self._latlon = bool(
+            kwargs.pop(
+                "latlon", self.models[0].latlon if self.models else False
+            )
+        )
+        self._temporal = bool(
+            kwargs.pop(
+                "temporal", self.models[0].temporal if self.models else False
+            )
+        )
+        self._geo_scale = float(
+            kwargs.pop(
+                "geo_scale",
+                self.models[0].geo_scale if self.models else RADIAN_SCALE,
+            )
+        )
+        var_set = kwargs.pop("var", None)
+        len_set = kwargs.pop("len_scale", None)
+        # convert nugget
+        self._nugget = float(
+            kwargs.pop(
+                "nugget",
+                sum((mod.nugget for mod in self.models), 0.0) + add_nug,
+            )
+        )
+        for mod in self.models:
+            mod._nugget = 0.0
+        # prepare dim setting
+        if "spatial_dim" in kwargs:
+            spatial_dim = kwargs.pop("spatial_dim")
+            if spatial_dim is not None:
+                kwargs["dim"] = spatial_dim + int(self.temporal)
+        self._dim = None
+        self._hankel_kw = {}
+        self._sft = None
+        self.dim = kwargs.get("dim", self.models[0].dim if self.models else 3)
+        # prepare parameters (they are checked in dim setting)
+        self._rescale = 1.0
+        anis = kwargs.get("anis", self.models[0].anis if self.models else 1)
+        angles = kwargs.get(
+            "angles", self.models[0].angles if self.models else 0
+        )
+        _, self._anis = set_len_anis(self.dim, 1.0, anis, self.latlon)
+        self._angles = set_model_angles(
+            self.dim, angles, self.latlon, self.temporal
+        )
+        # prepare parameters boundaries
+        self._var_bounds = None
+        self._len_scale_bounds = None
+        self._nugget_bounds = None
+        self._anis_bounds = None
+        self._opt_arg_bounds = {}
+        bounds = self.default_arg_bounds()
+        bounds.update(self.default_opt_arg_bounds())
+        self.set_arg_bounds(check_args=False, **bounds)
+        # opt arg determining
+        self._prec = 3
+        self._init = True
+        # set remaining args
+        for arg, val in kwargs.items():
+            setattr(self, arg, val)
+        if var_set is not None:
+            self.var = var_set
+        if len_set is not None:
+            self.len_scale = len_set
+        # check for consistency
+        self.check()
+
+    def __iter__(self):
+        return iter(self.models)
+
+    def __len__(self):
+        return len(self.models)
+
+    def __contains__(self, item):
+        return item in self.models
+
+    def __getitem__(self, key):
+        return self.models[key]
+
+    def check(self):
+        """Check consistency of contained models."""
+        sum_check(self)
+
+    def default_arg_bounds(self):
+        """Default boundaries for arguments as dict."""
+        return sum_default_arg_bounds(self)
+
+    def default_opt_arg_bounds(self):
+        """Defaults boundaries for optional arguments as dict."""
+        return sum_default_opt_arg_bounds(self)
+
+    def set_norm_var_ratios(self, ratios, skip=None, var=None):
+        """
+        Set variances of contained models by normalized ratios in [0, 1].
+
+        Ratios are given as normalized ratios in [0, 1] as relative ratio of
+        variance to remaining difference to total variance of the Sum-Model.
+
+        Parameters
+        ----------
+        ratios : iterable
+            Ratios to set. Should have a length of len(models) - len(exclude) - 1
+        skip : iterable, optional
+            Model indices to skip. Should have compatible lenth, by default None
+        var : float, optional
+            Desired variance, by default current variance
+
+        Raises
+        ------
+        ValueError
+            If number of ratios is not matching.
+        """
+        sum_set_norm_var_ratios(self, ratios, skip, var)
+
+    def set_norm_len_ratios(self, ratios, skip=None, len_scale=None):
+        """
+        Set length scales of contained models by normalized ratios in [0, 1].
+
+        Ratios are given as normalized ratios in [0, 1] as relative ratio of
+        len_scale * var / total_var to remaining difference to
+        total len_scale of the Sum-Model.
+
+        Parameters
+        ----------
+        ratios : iterable
+            Ratios to set. Should have a length of len(models) - len(exclude) - 1
+        skip : iterable, optional
+            Model indices to skip. Should have compatible lenth, by default None
+        len_scale : float, optional
+            Desired len_scale, by default current len_scale
+
+        Raises
+        ------
+        ValueError
+            If number of ratios is not matching.
+        """
+        sum_set_norm_len_ratios(self, ratios, skip, len_scale)
+
+    @property
+    def hankel_kw(self):
+        """:class:`dict`: :any:`hankel.SymmetricFourierTransform` kwargs."""
+        return self._hankel_kw
+
+    @property
+    def models(self):
+        """:class:`tuple`: The summed models."""
+        return self._models
+
+    @property
+    def geo_scale(self):
+        """:class:`float`: Geographic scaling for geographical coords."""
+        return self._geo_scale
+
+    @geo_scale.setter
+    def geo_scale(self, geo_scale):
+        self._geo_scale = abs(float(geo_scale))
+        for mod in self.models:
+            mod.geo_scale = geo_scale
+
+    @property
+    def dim(self):
+        """:class:`int`: The dimension of the model."""
+        return self._dim
+
+    @dim.setter
+    def dim(self, dim):
+        set_dim(self, dim)
+        for mod in self.models:
+            mod.dim = dim
+
+    @property
+    def var(self):
+        """:class:`float`: The variance of the model."""
+        return sum((var for var in self.vars), 0.0)
+
+    @var.setter
+    def var(self, var):
+        for mod, rat in zip(self.models, self.ratios):
+            mod.var = rat * var
+        if not self.models and not np.isclose(var, 0):
+            msg = f"{self.name}: variance needs to be 0."
+            raise ValueError(msg)
+        check_arg_in_bounds(self, "var", error=True)
+        check_arg_in_bounds(self, "len_scale", error=True)
+
+    @property
+    def vars(self):
+        """:class:`list`: The variances of the models."""
+        return [mod.var for mod in self.models]
+
+    @vars.setter
+    def vars(self, vars):
+        if len(vars) != len(self):
+            msg = "SumModel: number of given variances not matching"
+            raise ValueError(msg)
+        for mod, var in zip(self.models, vars):
+            mod.var = var
+        check_arg_in_bounds(self, "var", error=True)
+        check_arg_in_bounds(self, "len_scale", error=True)
+
+    @property
+    def len_scale(self):
+        """:class:`float`: The main length scale of the model."""
+        return sum(
+            (
+                mod.len_scale * rat
+                for mod, rat in zip(self.models, self.ratios)
+            ),
+            0.0,
+        )
+
+    @len_scale.setter
+    def len_scale(self, len_scale):
+        len_scale, anis = set_len_anis(
+            self.dim, len_scale, self.anis, self.latlon
+        )
+        old_scale = self.len_scale
+        self.anis = anis
+        for mod in self.models:
+            mod.len_scale = mod.len_scale * len_scale / old_scale
+        if not self.models and not np.isclose(len_scale, 0):
+            msg = f"{self.name}: length scale needs to be 0."
+            raise ValueError(msg)
+        check_arg_in_bounds(self, "len_scale", error=True)
+
+    @property
+    def len_scales(self):
+        """:class:`list`: The main length scales of the models."""
+        return [mod.len_scale for mod in self.models]
+
+    @len_scales.setter
+    def len_scales(self, len_scales):
+        if len(len_scales) != len(self):
+            msg = "SumModel: number of given length scales not matching"
+            raise ValueError(msg)
+        for mod, len_scale in zip(self.models, len_scales):
+            mod.len_scale = len_scale
+        check_arg_in_bounds(self, "len_scale", error=True)
+
+    @property
+    def anis(self):
+        """:class:`numpy.ndarray`: The anisotropy factors of the model."""
+        return self._anis
+
+    @anis.setter
+    def anis(self, anis):
+        _, self._anis = set_len_anis(self.dim, 1.0, anis, self.latlon)
+        for mod in self.models:
+            mod.anis = anis
+        check_arg_in_bounds(self, "anis", error=True)
+
+    @property
+    def angles(self):
+        """:class:`numpy.ndarray`: Rotation angles (in rad) of the model."""
+        return self._angles
+
+    @angles.setter
+    def angles(self, angles):
+        self._angles = set_model_angles(
+            self.dim, angles, self.latlon, self.temporal
+        )
+        for mod in self.models:
+            mod.angles = angles
+
+    @property
+    def ratios(self):
+        var = self.var
+        if np.isclose(var, 0) and len(self) > 0:
+            return np.full(len(self), 1 / len(self))
+        return np.array([mod.var / var for mod in self.models])
+
+    @ratios.setter
+    def ratios(self, ratios):
+        if len(ratios) != len(self):
+            msg = "SumModel.ratios: wrong number of given ratios."
+            raise ValueError(msg)
+        if ratios and not np.isclose(np.sum(ratios), 1):
+            msg = "SumModel.ratios: given ratios do not sum to 1."
+            raise ValueError(msg)
+        var = self.var
+        for mod, rat in zip(self.models, ratios):
+            mod.var = var * rat
+        check_arg_in_bounds(self, "var", error=True)
+        check_arg_in_bounds(self, "len_scale", error=True)
+
+    def calc_integral_scale(self):
+        return sum(
+            (
+                mod.integral_scale * rat
+                for mod, rat in zip(self.models, self.ratios)
+            ),
+            0.0,
+        )
+
+    def spectral_density(self, k):
+        return sum(
+            (
+                mod.spectral_density(k) * rat
+                for mod, rat in zip(self.models, self.ratios)
+            ),
+            np.zeros_like(k, dtype=np.double),
+        )
+
+    def correlation(self, r):
+        return sum(
+            (
+                mod.correlation(r) * rat
+                for mod, rat in zip(self.models, self.ratios)
+            ),
+            np.zeros_like(r, dtype=np.double),
+        )
+
+    @property
+    def opt_arg(self):
+        """:class:`list` of :class:`str`: Names of the optional arguments."""
+        return sum(
+            [
+                [f"{opt}_{i}" for opt in mod.opt_arg]
+                for i, mod in enumerate(self.models)
+            ],
+            [],
+        )
+
+    @property
+    def sub_arg(self):
+        """:class:`list` of :class:`str`: Names of the sub-arguments for var and len_scale."""
+        return sum(
+            [
+                [f"{o}_{i}" for o in ["var", "len_scale"]]
+                for i, mod in enumerate(self.models)
+            ],
+            [],
+        )
+
+    def __setattr__(self, name, value):
+        """Set an attribute."""
+        sub_arg = False
+        if getattr(self, "_init", False):
+            for i, mod in enumerate(self.models):
+                if name == f"var_{i}":
+                    mod.var = value
+                    sub_arg = True
+                if name == f"len_scale_{i}":
+                    mod.len_scale = value
+                    sub_arg = True
+                if name == f"integral_scale_{i}":
+                    mod.integral_scale = value
+                    sub_arg = True
+                for opt in mod.opt_arg:
+                    if name == f"{opt}_{i}":
+                        setattr(mod, opt, value)
+                        sub_arg = True
+                if sub_arg:
+                    break
+        if sub_arg:
+            self.check_arg_bounds()
+        else:
+            super().__setattr__(name, value)
+
+    def __getattr__(self, name):
+        """Get an attribute."""
+        # __getattr__ is only called when an attribute is not found in the usual places
+        if name != "_init" and getattr(self, "_init", False):
+            for i, mod in enumerate(self.models):
+                if name == f"var_{i}":
+                    return mod.var
+                if name == f"len_scale_{i}":
+                    return mod.len_scale
+                if name == f"integral_scale_{i}":
+                    return mod.integral_scale
+                for opt in mod.opt_arg:
+                    if name == f"{opt}_{i}":
+                        return getattr(mod, opt)
+        raise AttributeError(f"'{self.name}' object has no attribute '{name}'")
+
+    def __repr__(self):
+        """Return String representation."""
+        return sum_model_repr(self)
