@@ -1193,6 +1193,7 @@ class SumModel(CovModel):
     An empty sum represents a pure Nugget model.
     Resetting the total variance or the total length scale will evenly
     scale the variances or length scales of the sub models.
+    Sum models will have a constant rescale factor of one.
 
     Parameters
     ----------
@@ -1234,12 +1235,6 @@ class SumModel(CovModel):
     integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
         If given, ``len_scale`` will be ignored and recalculated,
         so that the integral scale of the model matches the given one.
-        Default: :any:`None`
-    rescale : :class:`float` or :any:`None`, optional
-        Optional rescaling factor to divide the length scale with.
-        This could be used for unit conversion or rescaling the length scale
-        to coincide with e.g. the integral scale.
-        Will be set by each model individually.
         Default: :any:`None`
     latlon : :class:`bool`, optional
         Whether the model is describing 2D fields on earths surface described
@@ -1364,7 +1359,6 @@ class SumModel(CovModel):
         self._sft = None
         self.dim = kwargs.get("dim", self.models[0].dim if self.models else 3)
         # prepare parameters (they are checked in dim setting)
-        self._rescale = 1.0
         anis = kwargs.get("anis", self.models[0].anis if self.models else 1)
         angles = kwargs.get(
             "angles", self.models[0].angles if self.models else 0
@@ -1476,6 +1470,11 @@ class SumModel(CovModel):
     def models(self):
         """:class:`tuple`: The summed models."""
         return self._models
+
+    @property
+    def rescale(self):
+        """:class:`float`: SumModel has a constant rescale factor of one."""
+        return 1.0
 
     @property
     def geo_scale(self):
