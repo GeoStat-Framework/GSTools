@@ -19,6 +19,7 @@ Class to construct user defined covariance models
    :toctree:
 
    CovModel
+   SumModel
 
 Covariance Models
 ^^^^^^^^^^^^^^^^^
@@ -27,6 +28,7 @@ Standard Covariance Models
 .. autosummary::
    :toctree:
 
+   Nugget
    Gaussian
    Exponential
    Matern
@@ -53,7 +55,7 @@ Truncated Power Law Covariance Models
    TPLSimple
 """
 
-from gstools.covmodel.base import CovModel
+from gstools.covmodel.base import CovModel, SumModel
 from gstools.covmodel.models import (
     Circular,
     Cubic,
@@ -64,6 +66,7 @@ from gstools.covmodel.models import (
     JBessel,
     Linear,
     Matern,
+    Nugget,
     Rational,
     Spherical,
     Stable,
@@ -78,6 +81,8 @@ from gstools.covmodel.tpl_models import (
 
 __all__ = [
     "CovModel",
+    "SumModel",
+    "Nugget",
     "Gaussian",
     "Exponential",
     "Matern",

@@ -19,9 +19,6 @@ from gstools.tools.geometric import great_circle_to_chordal, set_anis
 __all__ = ["fit_variogram"]
 
 
-DEFAULT_PARA = ["var", "len_scale", "nugget"]
-
-
 def fit_variogram(
     model,
     x_data,
@@ -169,8 +166,10 @@ def fit_variogram(
     para, sill, constrain_sill, anis = _pre_para(
         model, para_select, sill, anis
     )
+    if not any(para.values()):
+        raise ValueError("fit: no parameters selected for fitting.")
     # check curve_fit kwargs
-    curve_fit_kwargs = {} if curve_fit_kwargs is None else curve_fit_kwargs
+    curve_fit_kwargs = curve_fit_kwargs or {}
     # check method
     if method not in ["trf", "dogbox"]:
         raise ValueError("fit: method needs to be either 'trf' or 'dogbox'")
@@ -213,21 +212,13 @@ def fit_variogram(
 
 def _pre_para(model, para_select, sill, anis):
     """Preprocess selected parameters."""
-    var_last = False
-    var_tmp = 0.0  # init value
+    # if values given, set them in the model, afterwards all entries are bool
     for par in para_select:
         if par not in model.arg_bounds:
             raise ValueError(f"fit: unknown parameter in selection: {par}")
         if not isinstance(para_select[par], bool):
-            if par == "var":
-                var_last = True
-                var_tmp = float(para_select[par])
-            else:
-                setattr(model, par, float(para_select[par]))
+            setattr(model, par, float(para_select[par]))
             para_select[par] = False
-    # set variance last due to possible recalculations
-    if var_last:
-        model.var = var_tmp
     # remove those that were set to True
     para_select = {k: v for k, v in para_select.items() if not v}
     # handling the sill
@@ -268,8 +259,7 @@ def _pre_para(model, para_select, sill, anis):
     else:
         constrain_sill = False
     # select all parameters to be fitted
-    para = {par: True for par in DEFAULT_PARA}
-    para.update({opt: True for opt in model.opt_arg})
+    para = {par: True for par in model.iso_arg}
     # now deselect unwanted parameters
     para.update(para_select)
     # check if anisotropy should be fitted or set
@@ -368,7 +358,7 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
     low_bounds = []
     top_bounds = []
     init_guess_list = []
-    for par in DEFAULT_PARA:
+    for par in model.iso_arg:
         if para[par]:
             low_bounds.append(model.arg_bounds[par][0])
             if par == "var" and constrain_sill:  # var <= sill in this case
@@ -379,16 +369,6 @@ def _init_curve_fit_para(model, para, init_guess, constrain_sill, sill, anis):
                 _init_guess(
                     bounds=[low_bounds[-1], top_bounds[-1]],
                     default=init_guess[par],
-                )
-            )
-    for opt in model.opt_arg:
-        if para[opt]:
-            low_bounds.append(model.arg_bounds[opt][0])
-            top_bounds.append(model.arg_bounds[opt][1])
-            init_guess_list.append(
-                _init_guess(
-                    bounds=[low_bounds[-1], top_bounds[-1]],
-                    default=init_guess[opt],
                 )
             )
     if anis:
@@ -413,40 +393,23 @@ def _init_guess(bounds, default):
 
 def _get_curve(model, para, constrain_sill, sill, anis, is_dir_vario):
     """Create the curve for scipys curve_fit."""
-    var_save = model.var
 
     # we need arg1, otherwise curve_fit throws an error (bug?!)
     def curve(x, arg1, *args):
         """Adapted Variogram function."""
         args = (arg1,) + args
         para_skip = 0
-        opt_skip = 0
-        if para["var"]:
-            var_tmp = args[para_skip]
-            if constrain_sill:
-                nugget_tmp = sill - var_tmp
-                # punishment, if resulting nugget out of range for fixed sill
-                if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
-                    return np.full_like(x, np.inf)
-                # nugget estimation deselected in this case
-                model.nugget = nugget_tmp
-            para_skip += 1
-        if para["len_scale"]:
-            model.len_scale = args[para_skip]
-            para_skip += 1
-        if para["nugget"]:
-            model.nugget = args[para_skip]
-            para_skip += 1
-        for opt in model.opt_arg:
-            if para[opt]:
-                setattr(model, opt, args[para_skip + opt_skip])
-                opt_skip += 1
-        # set var at last because of var_factor (other parameter needed)
-        if para["var"]:
-            model.var = var_tmp
-        # needs to be reset for TPL models when len_scale was changed
-        else:
-            model.var = var_save
+        for par in model.iso_arg:
+            if para[par]:
+                setattr(model, par, args[para_skip])
+                para_skip += 1
+        if constrain_sill:
+            nugget_tmp = sill - model.var
+            # punishment, if resulting nugget out of range for fixed sill
+            if check_arg_in_bounds(model, "nugget", nugget_tmp) > 0:
+                return np.full_like(x, np.inf)
+            # nugget estimation deselected in this case
+            model.nugget = nugget_tmp
         if is_dir_vario:
             if anis:
                 model.anis = args[1 - model.dim :]
@@ -464,32 +427,17 @@ def _post_fitting(model, para, popt, anis, is_dir_vario):
     """Postprocess fitting results and application to model."""
     fit_para = {}
     para_skip = 0
-    opt_skip = 0
-    var_tmp = 0.0  # init value
-    for par in DEFAULT_PARA:
+    for par in model.iso_arg:
         if para[par]:
-            if par == "var":  # set variance last
-                var_tmp = popt[para_skip]
-            else:
-                setattr(model, par, popt[para_skip])
+            setattr(model, par, popt[para_skip])
             fit_para[par] = popt[para_skip]
             para_skip += 1
         else:
             fit_para[par] = getattr(model, par)
-    for opt in model.opt_arg:
-        if para[opt]:
-            setattr(model, opt, popt[para_skip + opt_skip])
-            fit_para[opt] = popt[para_skip + opt_skip]
-            opt_skip += 1
-        else:
-            fit_para[opt] = getattr(model, opt)
     if is_dir_vario:
         if anis:
             model.anis = popt[1 - model.dim :]
         fit_para["anis"] = model.anis
-    # set var at last because of var_factor (other parameter needed)
-    if para["var"]:
-        model.var = var_tmp
     return fit_para
 
 
