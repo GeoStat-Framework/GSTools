@@ -1182,15 +1182,32 @@ class CovModel:
 class SumModel(CovModel):
     r"""Class for sums of covariance models.
 
+    This class represents sums of covariance models. The nugget of
+    each contained model will be set to zero and the sum model will
+    have its own nugget.
+    The variance of the sum model is the sum of the sub model variances
+    and the length scale of the sum model is the variance-weighted sum
+    of the length scales of the sub models. This is motivated by the fact,
+    that the integral scale of the sum model is equal to the variance-weighted
+    sum of the integral scales of the sub models.
+    An empty sum represents a pure Nugget model.
+    Resetting the total variance or the total length scale will evenly
+    scale the variances or length scales of the sub models.
+
     Parameters
     ----------
     *models
         tuple of :any:`CovModel` instances of subclasses to sum.
+        All models will get a nugget of zero and the nugget will
+        be set in the SumModel directly.
+        Models need to have matching temporal setting,
+        latlon setting, anis, angles and geo_scale.
+        The model dimension will be specified by the first given model.
     dim : :class:`int`, optional
         dimension of the model.
         Includes the temporal dimension if temporal is true.
         To specify only the spatial dimension in that case, use `spatial_dim`.
-        Default: ``3``
+        Default: ``3`` or dimension of the first given model (if instance).
     vars : :class:`list` of :class:`float`, optional
         variances of the models. Will reset present variances.
     len_scales : :class:`list` of :class:`float`, optional
@@ -1206,14 +1223,14 @@ class SumModel(CovModel):
 
         If only one value is given in 3D, e_y will be set to 1.
         This value will be ignored, if multiple len_scales are given.
-        Default: ``1.0``
+        Default: ``1.0`` or anis of the first given model (if instance).
     angles : :class:`float` or :class:`list`, optional
         angles of rotation (given in rad):
 
             * in 2D: given as rotation around z-axis
             * in 3D: given by yaw, pitch, and roll (known as Tait–Bryan angles)
 
-         Default: ``0.0``
+         Default: ``0.0`` or angles of the first given model (if instance).
     integral_scale : :class:`float` or :class:`list` or :any:`None`, optional
         If given, ``len_scale`` will be ignored and recalculated,
         so that the integral scale of the model matches the given one.
@@ -1234,20 +1251,20 @@ class SumModel(CovModel):
         As a consequence, `dim` will be set to `3` and anisotropy will be
         disabled. `geo_scale` can be set to e.g. earth's radius,
         to have a meaningful `len_scale` parameter.
-        Default: False
+        Default: False or latlon config of the first given model (if instance).
     geo_scale : :class:`float`, optional
         Geographic unit scaling in case of latlon coordinates to get a
         meaningful length scale unit.
         By default, len_scale is assumed to be in radians with latlon=True.
         Can be set to :any:`KM_SCALE` to have len_scale in km or
         :any:`DEGREE_SCALE` to have len_scale in degrees.
-        Default: :any:`RADIAN_SCALE`
+        Default: :any:`RADIAN_SCALE` or geo_scale of the first given model (if instance).
     temporal : :class:`bool`, optional
         Create a metric spatio-temporal covariance model.
         Setting this to true will increase `dim` and `field_dim` by 1.
         `spatial_dim` will be `field_dim - 1`.
         The time-dimension is appended, meaning the pos tuple is (x,y,z,...,t).
-        Default: False
+        Default: False or temporal config of the first given model (if instance).
     spatial_dim : :class:`int`, optional
         spatial dimension of the model.
         If given, the model dimension will be determined from this spatial dimension
@@ -1259,7 +1276,8 @@ class SumModel(CovModel):
         Total length scale of the sum-model. Will evenly scale present length scales.
     **opt_arg
         Optional arguments of the sub-models will have and added index of the sub-model.
-        Also covers ``var_<i>`` and ``length_scale_<i>``.
+        Also covers ``var_<i>`` and ``length_scale_<i>`` but they should preferably be
+        set by ``vars`` and ``length_scales``.
     """
 
     _add_doc = False
@@ -1268,15 +1286,31 @@ class SumModel(CovModel):
         self._init = False
         self._models = []
         add_nug = 0.0
+        to_init = None
+        imsg = (
+            "SumModel: either all models are CovModel instances or subclasses."
+        )
         for mod in models:
             if isinstance(mod, type) and issubclass(mod, SumModel):
+                if to_init is not None and not to_init:
+                    raise ValueError(imsg)
+                to_init = True
                 continue  # treat un-init sum-model as nugget model with 0 nugget
             if isinstance(mod, SumModel):
+                if to_init is not None and to_init:
+                    raise ValueError(imsg)
+                to_init = False
                 self._models += mod.models
                 add_nug += mod.nugget
             elif isinstance(mod, CovModel):
+                if to_init is not None and to_init:
+                    raise ValueError(imsg)
+                to_init = False
                 self._models.append(mod)
             elif isinstance(mod, type) and issubclass(mod, CovModel):
+                if to_init is not None and not to_init:
+                    raise ValueError(imsg)
+                to_init = True
                 self._models.append(mod(**default_mod_kwargs(kwargs)))
             else:
                 msg = "SumModel: models need to be instances or subclasses of CovModel."
@@ -1315,7 +1349,7 @@ class SumModel(CovModel):
         self._nugget = float(
             kwargs.pop(
                 "nugget",
-                sum((mod.nugget for mod in self.models), 0.0) + add_nug,
+                sum((mod.nugget for mod in self.models), 0) + add_nug,
             )
         )
         for mod in self.models:
@@ -1339,7 +1373,7 @@ class SumModel(CovModel):
         self._angles = set_model_angles(
             self.dim, angles, self.latlon, self.temporal
         )
-        # prepare parameters boundaries
+        # prepare parameter boundaries
         self._var_bounds = None
         self._len_scale_bounds = None
         self._nugget_bounds = None
@@ -1348,17 +1382,18 @@ class SumModel(CovModel):
         bounds = self.default_arg_bounds()
         bounds.update(self.default_opt_arg_bounds())
         self.set_arg_bounds(check_args=False, **bounds)
-        # opt arg determining
+        # finalize init
         self._prec = 3
         self._init = True
         # set remaining args
         for arg, val in kwargs.items():
             setattr(self, arg, val)
+        # reset total variance and length scale last
         if var_set is not None:
             self.var = var_set
         if len_set is not None:
             self.len_scale = len_set
-        # check for consistency
+        # check consistency of sub models
         self.check()
 
     def __iter__(self):
