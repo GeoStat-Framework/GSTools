@@ -18,6 +18,9 @@ class PGS:
     def __init__(self, dim, fields, facies, mesh_type="unstructured"):
         # TODO check that dimensions, domain size, ... are the same for all
         # fields
+        for d in range(1, dim):
+            if not fields[0].shape == fields[d].shape:
+                raise ValueError("PGS: Not all fields have the same shape.")
         self._dim = dim
         self._Zs = fields
         self._L = facies
