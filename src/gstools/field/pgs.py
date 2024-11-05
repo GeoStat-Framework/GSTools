@@ -55,6 +55,5 @@ class PGS:
 
     @property
     def P(self):
-        """:class:`str`: Plurigaussian field
-        """
+        """:class:`str`: Plurigaussian field"""
         return self._P
