@@ -15,7 +15,7 @@ import numpy as np
 
 
 class PGS:
-    def __init__(self, dim, fields, facies, mesh_type="unstructured"):
+    def __init__(self, dim, fields, facies):
         # TODO check that dimensions, domain size, ... are the same for all
         # fields
         for d in range(1, dim):
@@ -27,7 +27,6 @@ class PGS:
         self._P = self.calc_pgs()
 
     def calc_pgs(self):
-        # TODO so far, this only works with struct fields
         try:
             mapping = np.stack(self._Zs, axis=1)
         except np.exceptions.AxisError:
