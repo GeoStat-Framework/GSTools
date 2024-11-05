@@ -44,7 +44,7 @@ class PGS:
                 np.linspace(
                     np.floor(self._Zs[d].min()),
                     np.ceil(self._Zs[d].max()),
-                    self._Zs[d].shape[d],
+                    self._L.shape[d],
                 )
             )
 
@@ -52,7 +52,7 @@ class PGS:
         for d in range(self._dim):
             P_dig.append(np.digitize(mapping[:, d], pos_l[d]))
 
-        return self._L[*P_dig].reshape(self._Zs[0].shape)
+        return self._L[*P_dig]
 
     @property
     def P(self):
