@@ -15,6 +15,33 @@ import numpy as np
 
 
 class PGS:
+    """A simple class to generate plurigaussian field simulations (PGS).
+
+    See [Ricketts2023]_ for more details.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        dimension of the field
+    fields : :class:`list` or :class:`numpy.ndarray`
+        For `dim > 1` a list of spatial random fields (SRFs), with
+        `len(fields) == dim`. For `dim == 1`, the SRF can be directly given,
+        instead of a list. This class supports structured and unstructured meshes.
+        All fields must have the same shapes.
+    facies : :class:`numpy.ndarray`
+        A `dim` dimensional structured field, whose values are mapped to the PGS.
+        It does not have to have the same shape as the `fields`, as the indices are
+        automatically scaled.
+
+    References
+    ----------
+    .. [Ricketts2023] Ricketts, E.J., Freeman, B.L., Cleall, P.J. et al.
+        A Statistical Finite Element Method Integrating a Plurigaussian Random
+        Field Generator for Multi-scale Modelling of Solute Transport in
+        Concrete. Transp Porous Med 148, 95–121 (2023)
+        https://doi.org/10.1007/s11242-023-01930-8
+    """
+
     def __init__(self, dim, fields, facies):
         # TODO check that dimensions, domain size, ... are the same for all
         # fields
@@ -27,6 +54,15 @@ class PGS:
         self._P = self.calc_pgs()
 
     def calc_pgs(self):
+        """Generate the plurigaussian field.
+
+        The PGS is saved as `self.P` and is also returned.
+
+        Returns
+        -------
+        pgs : :class:`numpy.ndarray`
+            the plurigaussian field
+        """
         try:
             mapping = np.stack(self._Zs, axis=1)
         except np.exceptions.AxisError:
@@ -55,5 +91,5 @@ class PGS:
 
     @property
     def P(self):
-        """:class:`str`: Plurigaussian field"""
+        """:class:`numpy.ndarray`: The plurigaussian field"""
         return self._P
