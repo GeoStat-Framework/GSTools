@@ -77,8 +77,8 @@ class PGS:
         for d in range(self._dim):
             pos_l.append(
                 np.linspace(
-                    np.floor(self._Zs[d].min()),
-                    np.ceil(self._Zs[d].max()),
+                    np.floor(self._Zs[d].min()) - 1,
+                    np.ceil(self._Zs[d].max()) + 1,
                     self._L.shape[d],
                 )
             )
