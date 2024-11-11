@@ -298,6 +298,7 @@ sphinx_gallery_conf = {
         "../../examples/08_geo_coordinates/",
         "../../examples/09_spatio_temporal/",
         "../../examples/10_normalizer/",
+        "../../examples/11_plurigaussian/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -312,6 +313,7 @@ sphinx_gallery_conf = {
         "examples/08_geo_coordinates/",
         "examples/09_spatio_temporal/",
         "examples/10_normalizer/",
+        "examples/11_plurigaussian/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",
