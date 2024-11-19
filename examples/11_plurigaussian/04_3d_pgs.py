@@ -63,7 +63,7 @@ grid = pv.ImageData(dimensions=N)
 # grid.point_data['L'] = np.meshgrid(L, indexing="ij")[0]
 # grid.plot(show_edges=True)
 
-grid.point_data['PGS'] = pgs.P.reshape(-1)
+grid.point_data["PGS"] = pgs.P.reshape(-1)
 grid.contour(isosurfaces=8).plot()
 
 ###############################################################################
