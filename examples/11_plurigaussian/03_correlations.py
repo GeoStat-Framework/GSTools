@@ -8,8 +8,9 @@ field with a much rougher exponential field. This example should feel
 familiar, if you had a look at the previous examples.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 dim = 2

@@ -11,8 +11,9 @@ necessary libraries and define a few variables, like the number of grid
 cells in each dimension.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 dim = 2

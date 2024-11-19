@@ -8,8 +8,9 @@ categories with the field `L`. For simplicity, we will
 start very similarly to the very first example.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 dim = 2

@@ -7,8 +7,9 @@ and how to influence them with the categorical field.
 First of all, we will set everything up very similar to the first example.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 dim = 2

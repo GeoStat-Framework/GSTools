@@ -6,8 +6,9 @@ Let's create a 3d PGS! This will mostly feel very familiar, but the plotting
 will be a bit more involved.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 dim = 3
