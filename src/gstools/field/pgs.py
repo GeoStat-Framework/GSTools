@@ -70,6 +70,11 @@ class PGS:
         pgs : :class:`numpy.ndarray`
             the plurigaussian field
         """
+        # very clunky way of supporting both np 1.x and 2.x exceptions
+        try:
+            np.AxisError = np.exceptions.AxisError
+        except:
+            ...
         try:
             mapping = np.stack(self._Zs, axis=1)
         except np.AxisError:
