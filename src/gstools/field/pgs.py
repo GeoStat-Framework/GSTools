@@ -94,7 +94,8 @@ class PGS:
         for d in range(self._dim):
             P_dig.append(np.digitize(mapping[:, d], pos_l[d]))
 
-        return self._L[*P_dig]
+        # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
+        return self._L[(*P_dig,)]
 
     @property
     def P(self):
