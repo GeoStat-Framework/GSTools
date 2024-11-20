@@ -70,7 +70,16 @@ class PGS:
         pgs : :class:`numpy.ndarray`
             the plurigaussian field
         """
-        mapping = np.stack(self._Zs, axis=1)
+        try:
+            mapping = np.stack(self._Zs, axis=1)
+        except np.AxisError:
+            # if dim==1, `fields` is prob. a raw field & not a 1-tuple or
+            # equivalent
+            if self._dim == 1:
+                self._Zs = [self._Zs]
+                mapping = np.stack(self._Zs, axis=1)
+            else:
+                raise
         pos_l = []
         for d in range(self._dim):
             pos_l.append(
