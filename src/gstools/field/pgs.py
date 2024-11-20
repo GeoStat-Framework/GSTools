@@ -73,7 +73,7 @@ class PGS:
         # very clunky way of supporting both np 1.x and 2.x exceptions
         try:
             np.AxisError = np.exceptions.AxisError
-        except:
+        except AttributeError:
             ...
         try:
             mapping = np.stack(self._Zs, axis=1)
