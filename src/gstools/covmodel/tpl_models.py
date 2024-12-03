@@ -32,6 +32,19 @@ class TPLCovModel(CovModel):
     """Truncated-Power-Law Covariance Model base class for super-position."""
 
     @property
+    def intensity(self):
+        """:class:`float`: Intensity of variation."""
+        return self.var / self.intensity_scaling
+
+    @property
+    def intensity_scaling(self):
+        """:class:`float`: Scaling of Intensity to result in variance."""
+        return (
+            self.len_up_rescaled ** (2 * self.hurst)
+            - self.len_low_rescaled ** (2 * self.hurst)
+        ) / (2 * self.hurst)
+
+    @property
     def len_up(self):
         """:class:`float`: Upper length scale truncation of the model.
 
@@ -54,13 +67,6 @@ class TPLCovModel(CovModel):
         * ``len_low_rescaled = len_low / rescale``
         """
         return self.len_low / self.rescale
-
-    def var_factor(self):
-        """Factor for C (intensity of variation) to result in variance."""
-        return (
-            self.len_up_rescaled ** (2 * self.hurst)
-            - self.len_low_rescaled ** (2 * self.hurst)
-        ) / (2 * self.hurst)
 
     def cor(self, h):
         """TPL - normalized correlation function."""
@@ -125,7 +131,7 @@ class TPLGaussian(TPLCovModel):
         * :math:`C>0` :
           scaling factor from the Power-Law (intensity of variation)
           This parameter will be calculated internally by the given variance.
-          You can access C directly by ``model.var_raw``
+          You can access C by ``model.intensity``
         * :math:`0<H<1` : hurst coefficient (``model.hurst``)
         * :math:`\ell_{\mathrm{low}}\geq 0` : lower length scale truncation
           of the model (``model.len_low``)
@@ -258,7 +264,7 @@ class TPLExponential(TPLCovModel):
         * :math:`C>0` :
           scaling factor from the Power-Law (intensity of variation)
           This parameter will be calculated internally by the given variance.
-          You can access C directly by ``model.var_raw``
+          You can access C by ``model.intensity``
         * :math:`0<H<\frac{1}{2}` : hurst coefficient (``model.hurst``)
         * :math:`\ell_{\mathrm{low}}\geq 0` : lower length scale truncation
           of the model (``model.len_low``)
@@ -398,7 +404,7 @@ class TPLStable(TPLCovModel):
         * :math:`C>0` :
           scaling factor from the Power-Law (intensity of variation)
           This parameter will be calculated internally by the given variance.
-          You can access C directly by ``model.var_raw``
+          You can access C by ``model.intensity``
         * :math:`0<H<\frac{\alpha}{2}` : hurst coefficient (``model.hurst``)
         * :math:`\ell_{\mathrm{low}}\geq 0` : lower length scale truncation
           of the model (``model.len_low``)
