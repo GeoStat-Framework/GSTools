@@ -30,7 +30,7 @@ Field Base Class
    Field
 
 Plurigaussian Simulation
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree:
