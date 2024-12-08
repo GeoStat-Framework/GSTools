@@ -43,6 +43,7 @@ GeoStatTools provides geostatistical tools for various purposes:
 - data normalization and transformation
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
+- plurigaussian field simulations (PGS)
 - plotting and exporting routines
 
 
@@ -110,6 +111,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Geographic Coordinates][tut8_link]
 - [Spatio-Temporal Modelling][tut9_link]
 - [Normalizing Data][tut10_link]
+- [Plurigaussian Field Generation (PGS)][tut11_link]
 - [Miscellaneous examples][tut0_link]
 
 The associated python scripts are provided in the `examples` folder.
@@ -321,6 +323,52 @@ yielding
 [kraichnan_link]: https://doi.org/10.1063/1.1692799
 
 
+## Plurigaussian Field Simulation (PGS)
+
+With PGS, more complex categorical (or discrete) fields can be created.
+
+
+### Example
+
+```python
+import gstools as gs
+import numpy as np
+import matplotlib.pyplot as plt
+
+N = [180, 140]
+
+x, y = range(N[0]), range(N[1])
+
+# we need 2 SRFs
+model = gs.Gaussian(dim=2, var=1, len_scale=5)
+srf = gs.SRF(model)
+field1 = srf.structured([x, y], seed=20170519)
+field2 = srf.structured([x, y], seed=19970221)
+
+# with L, we prescribe the categorical data and its relations
+# here, we use 2 categories separated by a rectangle.
+R = [40, 32]
+L = np.zeros(N)
+L[
+    N[0] // 2 - R[0] // 2 : N[0] // 2 + R[0] // 2,
+    N[1] // 2 - R[1] // 2 : N[1] // 2 + R[1] // 2,
+] = 1
+
+pgs = gs.PGS(2, [field1, field2], L)
+
+fig, axs = plt.subplots(1, 2)
+axs[0].imshow(L, cmap="copper")
+axs[1].imshow(pgs.P, cmap="copper")
+plt.tight_layout()
+plt.savefig("2d_pgs.png")
+plt.show()
+```
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/2d_pgs.png" alt="PGS" width="600px"/>
+</p>
+
+
 ## VTK/PyVista Export
 
 After you have created a field, you may want to save it to file, so we provide
@@ -393,6 +441,7 @@ You can contact us via <info@geostat-framework.org>.
 [tut8_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/08_geo_coordinates/index.html
 [tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/09_spatio_temporal/index.html
 [tut10_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/10_normalizer/index.html
+[tut11_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/11_plurigaussian/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/
