@@ -14,6 +14,12 @@ The following classes are provided
 # pylint: disable=C0103
 import numpy as np
 
+# very clunky way of supporting both np 1.x and 2.x exceptions
+try:
+    np.AxisError = np.exceptions.AxisError
+except AttributeError:
+    ...
+
 
 class PGS:
     """A simple class to generate plurigaussian field simulations (PGS).
@@ -70,11 +76,6 @@ class PGS:
         pgs : :class:`numpy.ndarray`
             the plurigaussian field
         """
-        # very clunky way of supporting both np 1.x and 2.x exceptions
-        try:
-            np.AxisError = np.exceptions.AxisError
-        except AttributeError:
-            ...
         try:
             mapping = np.stack(self._Zs, axis=1)
         except np.AxisError:
