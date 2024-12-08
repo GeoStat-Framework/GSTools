@@ -24,9 +24,10 @@ class TestPGS(unittest.TestCase):
         L[4 * n // 5 - m // 2 : 4 * n // 5 + m // 2] = 3
 
         pgs = gs.PGS(1, field, L)
-        self.assertAlmostEqual(pgs.P[n // 2], 1.0)
-        self.assertAlmostEqual(pgs.P[0], 1.0)
-        self.assertAlmostEqual(pgs.P[-1], 2.0)
+        self.assertAlmostEqual(pgs.P[n // 2], 0.0)
+        self.assertAlmostEqual(pgs.P[0], 0.0)
+        self.assertAlmostEqual(pgs.P[-1], 1.0)
+        self.assertAlmostEqual(pgs.P[-20], 3.0)
 
     def test_struct_2d(self):
         n1 = 100
@@ -65,11 +66,11 @@ class TestPGS(unittest.TestCase):
 
         pgs = gs.PGS(2, [field1, field2], L)
 
-        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2], 0.0)
-        self.assertAlmostEqual(pgs.P[0, 0], 0.0)
+        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2], 2.0)
+        self.assertAlmostEqual(pgs.P[0, 0], 1.0)
         self.assertAlmostEqual(pgs.P[-1, -1], 1.0)
         self.assertAlmostEqual(pgs.P[0, -1], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, 0], 4.0)
+        self.assertAlmostEqual(pgs.P[-1, 0], 1.0)
 
     def test_struct_3d(self):
         n1 = 30
@@ -103,19 +104,19 @@ class TestPGS(unittest.TestCase):
 
         pgs = gs.PGS(3, [field1, field2, field3], L)
 
-        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2, n3 // 2], 0.0)
+        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2, n3 // 2], 1.0)
         self.assertAlmostEqual(pgs.P[n1 // 3, n2 // 3, n3 // 3], 1.0)
         self.assertAlmostEqual(
             pgs.P[2 * n1 // 3, 2 * n2 // 3, 2 * n3 // 3], 1.0
         )
         self.assertAlmostEqual(pgs.P[0, 0, 0], 1.0)
         self.assertAlmostEqual(pgs.P[-1, -1, -1], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, 0, 0], 0.0)
+        self.assertAlmostEqual(pgs.P[-1, 0, 0], 1.0)
         self.assertAlmostEqual(pgs.P[0, -1, 0], 1.0)
-        self.assertAlmostEqual(pgs.P[0, 0, -1], 0.0)
+        self.assertAlmostEqual(pgs.P[0, 0, -1], 1.0)
         self.assertAlmostEqual(pgs.P[0, -1, -1], 1.0)
         self.assertAlmostEqual(pgs.P[-1, 0, -1], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, -1, 0], 0.0)
+        self.assertAlmostEqual(pgs.P[-1, -1, 0], 1.0)
 
     def test_struct_4d(self):
         n1 = 20

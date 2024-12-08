@@ -60,7 +60,7 @@ class PGS:
             if not fields[0].shape == fields[d].shape:
                 raise ValueError("PGS: Not all fields have the same shape.")
         self._dim = dim
-        self._Zs = fields
+        self._Zs = np.array(fields)
         self._L = np.array(facies)
         if len(self._L.shape) != dim:
             raise ValueError("PGS: Mismatch between dim. and facies shape.")
@@ -82,16 +82,26 @@ class PGS:
             # if dim==1, `fields` is prob. a raw field & not a 1-tuple or
             # equivalent
             if self._dim == 1:
-                self._Zs = [self._Zs]
+                self._Zs = np.array([self._Zs])
                 mapping = np.stack(self._Zs, axis=1)
             else:
                 raise
         pos_l = []
+        try:
+            # structured grid
+            centroid = self._Zs.mean(axis=tuple(range(1, self._dim + 1)))
+        except np.AxisError:
+            # unstructured grid
+            centroid = self._Zs.mean(axis=1)
         for d in range(self._dim):
+            l = np.floor(self._Zs[d].min()) - 1
+            h = np.ceil(self._Zs[d].max()) + 1
+            m = (h + l) / 2.0
+            dist = max(np.abs(h - m), np.abs(l - m))
             pos_l.append(
                 np.linspace(
-                    np.floor(self._Zs[d].min()) - 1,
-                    np.ceil(self._Zs[d].max()) + 1,
+                    centroid[d] - dist,
+                    centroid[d] + dist,
                     self._L.shape[d],
                 )
             )
