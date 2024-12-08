@@ -30,6 +30,7 @@ field1 = srf1.structured([x, y])
 model2 = gs.Gaussian(dim=dim, var=1, len_scale=[1, 20], angles=np.pi / 4)
 srf2 = gs.SRF(model2, seed=19970221)
 field2 = srf2.structured([x, y])
+field1 += 5.0
 
 ###############################################################################
 # Internally, each field's values are mapped along an axis, which can be nicely
@@ -69,14 +70,25 @@ L[mask] = 1
 # First, we calculate the indices of the L field, which we need for manually
 # plotting L together with the scatter plot. Normally they are computed internally.
 
+l = np.floor(field1.min()) - 1
+h = np.ceil(field1.max()) + 1
+m = (h + l) / 2.0
+dist = max(np.abs(h - m), np.abs(l - m))
+x_mean = field1.mean()
 x_l = np.linspace(
-    np.floor(field1[0].min()) - 1,
-    np.ceil(field1[0].max()) + 1,
+    x_mean - dist,
+    x_mean + dist,
     L.shape[0],
 )
+
+l = np.floor(field1.min()) - 1
+h = np.ceil(field1.max()) + 1
+m = (h + l) / 2.0
+dist = max(np.abs(h - m), np.abs(l - m))
+y_mean = field2.mean()
 y_l = np.linspace(
-    np.floor(field1[1].min()) - 1,
-    np.ceil(field1[1].max()) + 1,
+    y_mean - dist,
+    y_mean + dist,
     L.shape[1],
 )
 
@@ -89,10 +101,14 @@ pgs = gs.PGS(dim, [field1, field2], L)
 # And now to some plotting. Unfortunately, matplotlib likes to mess around with
 # the aspect ratios of the plots, so the left panel is a bit stretched.
 
-fig, axs = plt.subplots(1, 2)
-axs[0].scatter(field1.flatten(), field2.flatten(), s=0.1, color="C0")
-axs[0].pcolormesh(x_l, y_l, L.T, alpha=0.3)
-axs[1].imshow(pgs.P, cmap="copper")
+fig, axs = plt.subplots(2, 2)
+axs[0, 0].imshow(field1, cmap="copper")
+axs[0, 1].imshow(field2, cmap="copper")
+axs[1, 0].scatter(field1.flatten(), field2.flatten(), s=0.1, color="C0")
+axs[1, 0].pcolormesh(x_l, y_l, L.T, alpha=0.3)
+
+axs[1, 1].imshow(pgs.P, cmap="copper")
+plt.show()
 
 ###############################################################################
 # The black areas show the category 0 and the orange areas show category 1. We

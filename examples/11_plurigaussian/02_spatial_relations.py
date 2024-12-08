@@ -87,12 +87,14 @@ for i in range(4):
 pgs = gs.PGS(dim, [field1, field2], L)
 
 ###############################################################################
-# And now the plotting of `L` and the PGS.
+# And now the plotting of the two Gaussian fields, `L`, and the PGS.
 
-fig, axs = plt.subplots(1, 2)
+fig, axs = plt.subplots(2, 2)
 
-axs[0].imshow(L, cmap="copper")
-axs[1].imshow(pgs.P, cmap="copper")
+axs[0, 0].imshow(field1, cmap="copper")
+axs[0, 1].imshow(field2, cmap="copper")
+axs[1, 0].imshow(L, cmap="copper")
+axs[1, 1].imshow(pgs.P, cmap="copper")
 
 ###############################################################################
 # We can see that the two upper light and medium brown rectangles both fill up

@@ -57,9 +57,16 @@ L[
 pgs = gs.PGS(dim, [field1, field2], L)
 
 ###############################################################################
-# Finally, we can plot the PGS, but we will also show the field `L`.
+# Finally, we can plot the PGS, but we will also show the field `L` and the two
+# original Gaussian fields.
 
-fig, axs = plt.subplots(1, 2)
+fig, axs = plt.subplots(2, 2)
 
-axs[0].imshow(L, cmap="copper")
-axs[1].imshow(pgs.P, cmap="copper")
+axs[0, 0].imshow(field1, cmap="copper")
+axs[0, 1].imshow(field2, cmap="copper")
+axs[1, 0].imshow(L, cmap="copper")
+axs[1, 1].imshow(pgs.P, cmap="copper")
+
+# For more information on Plurigaussian fields and how they naturally extend
+# truncated Gaussian fields, we can recommend the book
+# [Plurigaussian Simulations in Geosciences](https://doi.org/10.1007/978-3-642-19607-2)
