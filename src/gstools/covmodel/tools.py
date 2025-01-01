@@ -548,7 +548,8 @@ def set_dim(model, dim):
         )
     model._dim = int(dim)
     # create fourier transform just once (recreate for dim change)
-    model._sft = SFT(ndim=model.dim, **model.hankel_kw)
+    if model.needs_fourier_transform:
+        model._sft = SFT(ndim=model.dim, **model.hankel_kw)
     # recalculate dimension related parameters (if model initialized)
     if model._init:
         model.len_scale, model.anis = set_len_anis(

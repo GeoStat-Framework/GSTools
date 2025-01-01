@@ -7,6 +7,7 @@ The following classes are provided
 
 .. autosummary::
    CovModel
+   SumModel
 """
 
 # pylint: disable=C0103, R0201, E1101, C0302, W0613, W0231
@@ -494,6 +495,13 @@ class CovModel:
         return percentile_scale(self, per)
 
     # spectrum methods (can be overridden for speedup)
+
+    @property
+    def needs_fourier_transform(self):
+        """Whether the model doesn't implement an analytical spectral density."""
+        base_method = getattr(CovModel, "spectral_density")
+        instance_method = getattr(self.__class__, "spectral_density")
+        return base_method == instance_method
 
     def spectrum(self, k):
         r"""
@@ -1030,12 +1038,13 @@ class CovModel:
 
     @hankel_kw.setter
     def hankel_kw(self, hankel_kw):
-        if self._hankel_kw is None or hankel_kw is None:
-            self._hankel_kw = copy.copy(HANKEL_DEFAULT)
-        if hankel_kw is not None:
-            self._hankel_kw.update(hankel_kw)
-        if self.dim is not None:
-            self._sft = SFT(ndim=self.dim, **self.hankel_kw)
+        if self.needs_fourier_transform:
+            if self._hankel_kw is None or hankel_kw is None:
+                self._hankel_kw = copy.copy(HANKEL_DEFAULT)
+            if hankel_kw is not None:
+                self._hankel_kw.update(hankel_kw)
+            if self.dim is not None:
+                self._sft = SFT(ndim=self.dim, **self.hankel_kw)
 
     @property
     def dist_func(self):
@@ -1214,7 +1223,7 @@ class SumModel(CovModel):
     len_scales : :class:`list` of :class:`float`, optional
         length scale of the models. Will reset present length scales.
     nugget : :class:`float`, optional
-        nugget of the sum-model. All summed models will a nugget of zero.
+        nugget of the sum-model. All summed models will have a nugget of zero.
         Default: ``0.0``
     anis : :class:`float` or :class:`list`, optional
         anisotropy ratios in the transversal directions [e_y, e_z].
@@ -1355,7 +1364,7 @@ class SumModel(CovModel):
             if spatial_dim is not None:
                 kwargs["dim"] = spatial_dim + int(self.temporal)
         self._dim = None
-        self._hankel_kw = {}
+        self._hankel_kw = None
         self._sft = None
         self.dim = kwargs.get("dim", self.models[0].dim if self.models else 3)
         # prepare parameters (they are checked in dim setting)
@@ -1460,11 +1469,6 @@ class SumModel(CovModel):
             If number of ratios is not matching.
         """
         sum_set_norm_len_ratios(self, ratios, skip, len_scale)
-
-    @property
-    def hankel_kw(self):
-        """:class:`dict`: :any:`hankel.SymmetricFourierTransform` kwargs."""
-        return self._hankel_kw
 
     @property
     def models(self):
@@ -1622,6 +1626,11 @@ class SumModel(CovModel):
             ),
             0.0,
         )
+
+    @property
+    def needs_fourier_transform(self):
+        """Whether the model doesn't implement an analytical spectral density."""
+        return False
 
     def spectral_density(self, k):
         return sum(
