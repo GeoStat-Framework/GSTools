@@ -20,7 +20,6 @@ The following classes and functions are provided
 # pylint: disable=W0212
 import numpy as np
 
-from gstools.covmodel.tools import check_arg_in_bounds
 from gstools.tools import RADIAN_SCALE
 from gstools.tools.misc import list_format
 
@@ -146,14 +145,14 @@ def sum_set_var_weights(summod, weights, skip=None, var=None):
         msg = "SumModel.set_var_weights: skipped variances to big."
         raise RatioError(msg)
     weights_sum = sum(weights)
-    vars = summod.vars
+    var_list = summod.vars
     j = 0
     for i in ids:
         if i in skip:
             continue
-        vars[i] = var_diff * weights[j] / weights_sum
+        var_list[i] = var_diff * weights[j] / weights_sum
         j += 1
-    summod.vars = vars
+    summod.vars = var_list
 
 
 def sum_set_len_weights(summod, weights, skip=None, len_scale=None):

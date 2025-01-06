@@ -315,7 +315,7 @@ def _check_sum(model, para_select, sum_cfg, bnd):
             if par.startswith("len_scale_"):
                 msg = (
                     "fit: for sum-models you can only fix "
-                    f"'len_scale' or the sub-arguments 'len_scale_<i>', not both."
+                    "'len_scale' or the sub-arguments 'len_scale_<i>', not both."
                 )
                 raise ValueError(msg)
         sum_cfg["fix"].setdefault("len_scale", model.len_scale)
