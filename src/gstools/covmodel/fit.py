@@ -172,12 +172,15 @@ def fit_variogram(
     # prepare variogram data
     # => concatenate directional variograms to have a 1D array for x and y
     x_data, y_data, is_dir_vario = _check_vario(model, x_data, y_data)
+    # only fit anisotropy if a directional variogram was given
+    anis &= is_dir_vario
+    sub_fitting = sum_cfg.get("var_size", 0) + sum_cfg.get("len_size", 0) > 0
+    if not (any(para.values()) or anis or sub_fitting):
+        raise ValueError("fit: no parameters selected for fitting.")
     # prepare init guess dictionary
     init_guess = _pre_init_guess(
         model, init_guess, np.mean(x_data), np.mean(y_data)
     )
-    # only fit anisotropy if a directional variogram was given
-    anis &= is_dir_vario
     # set weights
     _set_weights(model, weights, x_data, curve_fit_kwargs, is_dir_vario)
     # set the lower/upper boundaries for the variogram-parameters
@@ -245,9 +248,6 @@ def _pre_para(model, para_select, sill, anis):
     if not isinstance(anis, bool):
         model.anis = anis
         anis = False
-    sub_fitting = sum_cfg.get("var_size", 0) + sum_cfg.get("len_size", 0) > 0
-    if not (any(para.values()) or anis or sub_fitting):
-        raise ValueError("fit: no parameters selected for fitting.")
     return para, sill, anis, sum_cfg
 
 
