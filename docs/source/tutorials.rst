@@ -31,3 +31,12 @@ explore its whole beauty and power.
 
    .. youtube:: qZBJ-AZXq6Q
       :width: 100%
+
+   |
+
+   Gallery
+   =======
+
+   .. minigallery::
+
+      ../../examples/**/*.py
