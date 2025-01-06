@@ -9,4 +9,5 @@ Contents
    index
    tutorials
    api
+   authors
    changelog

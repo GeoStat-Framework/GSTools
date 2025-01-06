@@ -22,7 +22,7 @@ GSTools Quickstart
 Purpose
 =======
 
-GeoStatTools provides geostatistical tools for various purposes:
+GSTools provides geostatistical tools for various purposes:
 
 - random field generation, including periodic boundaries
 - simple, ordinary, universal and external drift kriging

@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = python3 -msphinx
-SPHINXPROJ    = GeoStatTools
+SPHINXPROJ    = GSTools
 SOURCEDIR     = source
 BUILDDIR      = build
 
