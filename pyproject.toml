@@ -57,7 +57,7 @@ dependencies = [
 
 [project.optional-dependencies]
 doc = [
-    "m2r2>=0.2.8",
+    "myst_parser",
     "matplotlib>=3.7",
     "meshzoo>=0.7",
     "numpydoc>=1.1",
@@ -65,7 +65,7 @@ doc = [
     "pyvista>=0.40",
     "sphinx>=7",
     "sphinx-gallery>=0.8",
-    "sphinx-rtd-theme>=2",
+    "sphinx-rtd-theme>=3",
     "sphinxcontrib-youtube>=1.1",
 ]
 plotting = [

@@ -33,7 +33,7 @@
 
 <img align="right" width="450" src="https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/demonstrator.png" alt="">
 
-GeoStatTools provides geostatistical tools for various purposes:
+GSTools provides geostatistical tools for various purposes:
 - random field generation, including periodic boundaries
 - simple, ordinary, universal and external drift kriging
 - conditioned field generation
