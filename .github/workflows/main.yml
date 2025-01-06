@@ -47,7 +47,7 @@ jobs:
 
       - name: pylint check
         run: |
-          python -m pylint --max-positional-arguments 20 src/gstools/
+          python -m pylint src/gstools/
 
       - name: cython-lint check
         run: |
