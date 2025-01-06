@@ -31,8 +31,8 @@ __all__ = [
     "sum_check",
     "sum_default_arg_bounds",
     "sum_default_opt_arg_bounds",
-    "sum_set_norm_var_ratios",
-    "sum_set_norm_len_ratios",
+    "sum_set_var_weights",
+    "sum_set_len_weights",
     "sum_model_repr",
 ]
 
@@ -113,103 +113,102 @@ def sum_default_opt_arg_bounds(summod):
     return bounds
 
 
-def sum_set_norm_var_ratios(summod, ratios, skip=None, var=None):
+def sum_set_var_weights(summod, weights, skip=None, var=None):
     """
-    Set variances of contained models by normalized ratios in [0, 1].
-
-    Ratios are given as normalized ratios in [0, 1] as relative ratio of
-    variance to remaining difference to total variance of the Sum-Model.
+    Set variances of contained models by weights.
 
     Parameters
     ----------
-    ratios : iterable
-        Ratios to set. Should have a length of len(models) - len(exclude) - 1
+    weights : iterable
+        Weights to set. Should have a length of len(models) - len(skip)
     skip : iterable, optional
-        Model indices to skip. Should have compatible lenth, by default None
+        Model indices to skip. Should have compatible length, by default None
     var : float, optional
         Desired variance, by default current variance
 
     Raises
     ------
     ValueError
-        If number of ratios is not matching.
+        If number of weights is not matching.
     """
-    skip = skip or set()
-    if len(summod) != len(ratios) + len(skip) + 1:
-        msg = "SumModel.set_norm_ratios: number of ratios not matching."
+    skip = set() if skip is None else set(skip)
+    if len(summod) != len(weights) + len(skip):
+        msg = "SumModel.set_var_weights: number of ratios not matching."
         raise ValueError(msg)
     ids = range(len(summod))
     if fail := set(skip) - set(ids):
-        msg = f"SumModel.set_norm_var_ratios: skip ids not valid: {fail}"
+        msg = f"SumModel.set_var_weights: skip ids not valid: {fail}"
         raise ValueError(msg)
     var = summod.var if var is None else float(var)
-    check_arg_in_bounds(summod, "var", var, error=True)
     var_sum = sum(summod.models[i].var for i in skip)
-    if var_sum > var:
-        msg = "SumModel.set_norm_var_ratios: skiped variances to big."
+    var_diff = var - var_sum
+    if var_diff < 0:
+        msg = "SumModel.set_var_weights: skipped variances to big."
         raise RatioError(msg)
+    weights_sum = sum(weights)
+    vars = summod.vars
     j = 0
     for i in ids:
         if i in skip:
             continue
-        var_diff = var - var_sum
-        # last model gets remaining diff
-        var_set = var_diff * ratios[j] if j < len(ratios) else var_diff
-        summod[i].var = var_set
-        var_sum += var_set
+        vars[i] = var_diff * weights[j] / weights_sum
         j += 1
+    summod.vars = vars
 
 
-def sum_set_norm_len_ratios(summod, ratios, skip=None, len_scale=None):
+def sum_set_len_weights(summod, weights, skip=None, len_scale=None):
     """
-    Set length scales of contained models by normalized ratios in [0, 1].
-
-    Ratios are given as normalized ratios in [0, 1] as relative ratio of
-    len_scale * var / total_var to remaining difference to
-    total len_scale of the Sum-Model.
+    Set length scales of contained models by weights.
 
     Parameters
     ----------
-    ratios : iterable
-        Ratios to set. Should have a length of len(models) - len(exclude) - 1
+    weights : iterable
+        Weights to set. Should have a length of len(models) - len(skip)
     skip : iterable, optional
-        Model indices to skip. Should have compatible lenth, by default None
+        Model indices to skip. Should have compatible length, by default None
     len_scale : float, optional
         Desired len_scale, by default current len_scale
 
     Raises
     ------
     ValueError
-        If number of ratios is not matching.
+        If number of weights is not matching.
     """
-    skip = skip or set()
-    if len(summod) != len(ratios) + len(skip) + 1:
-        msg = "SumModel.set_norm_len_ratios: number of ratios not matching."
+    skip = set() if skip is None else set(skip)
+    if len(summod) != len(weights) + len(skip):
+        msg = "SumModel.set_len_weights: number of weights not matching."
         raise ValueError(msg)
     ids = range(len(summod))
     if fail := set(skip) - set(ids):
-        msg = f"SumModel.set_norm_len_ratios: skip ids not valid: {fail}"
+        msg = f"SumModel.set_len_weights: skip ids not valid: {fail}"
         raise ValueError(msg)
     len_scale = summod.len_scale if len_scale is None else float(len_scale)
-    check_arg_in_bounds(summod, "len_scale", len_scale, error=True)
+    # also skip models with no variance (not contributing to total len scale)
+    j = 0
+    wei = []
+    for i in ids:
+        if i in skip:
+            continue
+        if np.isclose(summod.ratios[i], 0):
+            skip.add(i)
+        else:
+            wei.append(weights[j])
+        j += 1
+    weights = wei
     len_sum = sum(summod[i].len_scale * summod.ratios[i] for i in skip)
-    if len_sum > len_scale:
-        msg = "SumModel.set_norm_len_ratios: skiped length scales to big."
+    len_diff = len_scale - len_sum
+    if len_diff < 0:
+        msg = "SumModel.set_len_weights: skipped length scales to big."
         raise RatioError(msg)
+    weights_sum = sum(weights)
+    len_scales = summod.len_scales
     j = 0
     for i in ids:
         if i in skip:
             continue
-        len_diff = len_scale - len_sum
-        # last model gets remaining diff
-        len_set = len_diff * ratios[j] if j < len(ratios) else len_diff
-        summod[i].len_scale = (
-            0.0
-            if np.isclose(summod.ratios[j], 0)
-            else len_set / summod.ratios[j]
-        )
-        len_sum += len_set
+        len_scales[i] = len_diff * weights[j] / weights_sum / summod.ratios[j]
         j += 1
+    summod.len_scales = len_scales
 
 
 def sum_model_repr(summod):  # pragma: no cover
