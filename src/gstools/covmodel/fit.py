@@ -440,7 +440,7 @@ def _pre_init_guess(model, init_guess, mean_x=1.0, mean_y=1.0):
                 f"len_scale_{i}", len_def if default else model.len_scales[i]
             )
             init_guess.setdefault(
-                f"var_{i}", mean_y if default else model.len_scales[i]
+                f"var_{i}", mean_y / model.size if default else model.len_vars[i]
             )
     # convert all init guesses to float (except "anis")
     for arg in model.iso_arg + sub_args:
