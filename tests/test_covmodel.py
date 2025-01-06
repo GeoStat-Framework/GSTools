@@ -239,20 +239,16 @@ class TestCovModel(unittest.TestCase):
 
         # treatment of sill/var/nugget by fitting
         model = Stable()
-        model.fit_variogram(
-            self.gamma_x, self.gamma_y, nugget=False, var=False, sill=2
-        )
-        self.assertAlmostEqual(model.var, 1)
-        self.assertAlmostEqual(model.nugget, 1)
+        with self.assertRaises(ValueError):
+            model.fit_variogram(
+                self.gamma_x, self.gamma_y, nugget=False, var=False, sill=2
+            )
         model.fit_variogram(self.gamma_x, self.gamma_y, var=2, sill=3)
         self.assertAlmostEqual(model.var, 2)
         self.assertAlmostEqual(model.nugget, 1)
         model.var = 3
-        model.fit_variogram(
-            self.gamma_x, self.gamma_y, nugget=False, var=False, sill=2
-        )
-        self.assertAlmostEqual(model.var, 2)
-        self.assertAlmostEqual(model.nugget, 0)
+        with self.assertRaises(ValueError):
+            model.fit_variogram(self.gamma_x, self.gamma_y, var=False, sill=2)
         model.fit_variogram(self.gamma_x, self.gamma_y, weights="inv")
         len_save = model.len_scale
         model.fit_variogram(
