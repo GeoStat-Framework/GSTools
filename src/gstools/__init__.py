@@ -2,7 +2,7 @@
 Purpose
 =======
 
-GeoStatTools is a library providing geostatistical tools
+GSTools is a library providing geostatistical tools
 for random field generation, conditioned field generation,
 kriging and variogram estimation
 based on a list of provided or even user-defined covariance models.
