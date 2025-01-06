@@ -25,8 +25,8 @@ from gstools.covmodel.sum_tools import (
     sum_default_arg_bounds,
     sum_default_opt_arg_bounds,
     sum_model_repr,
-    sum_set_norm_len_ratios,
-    sum_set_norm_var_ratios,
+    sum_set_len_weights,
+    sum_set_var_weights,
 )
 from gstools.covmodel.tools import (
     _init_subclass,
@@ -1403,7 +1403,7 @@ class SumModel(CovModel):
         return iter(self.models)
 
     def __len__(self):
-        return len(self.models)
+        return self.size
 
     def __contains__(self, item):
         return item in self.models
@@ -1423,57 +1423,55 @@ class SumModel(CovModel):
         """Defaults boundaries for optional arguments as dict."""
         return sum_default_opt_arg_bounds(self)
 
-    def set_norm_var_ratios(self, ratios, skip=None, var=None):
+    def set_var_weights(self, weights, skip=None, var=None):
         """
-        Set variances of contained models by normalized ratios in [0, 1].
-
-        Ratios are given as normalized ratios in [0, 1] as relative ratio of
-        variance to remaining difference to total variance of the Sum-Model.
+        Set variances of contained models by weights.
 
         Parameters
         ----------
-        ratios : iterable
-            Ratios to set. Should have a length of len(models) - len(exclude) - 1
+        weights : iterable
+            Weights to set. Should have a length of len(models) - len(skip)
         skip : iterable, optional
-            Model indices to skip. Should have compatible lenth, by default None
+            Model indices to skip. Should have compatible length, by default None
         var : float, optional
             Desired variance, by default current variance
 
         Raises
         ------
         ValueError
-            If number of ratios is not matching.
+            If number of weights is not matching.
         """
-        sum_set_norm_var_ratios(self, ratios, skip, var)
+        sum_set_var_weights(self, weights, skip, var)
 
-    def set_norm_len_ratios(self, ratios, skip=None, len_scale=None):
+    def set_len_weights(self, weights, skip=None, len_scale=None):
         """
-        Set length scales of contained models by normalized ratios in [0, 1].
-
-        Ratios are given as normalized ratios in [0, 1] as relative ratio of
-        len_scale * var / total_var to remaining difference to
-        total len_scale of the Sum-Model.
+        Set length scales of contained models by weights.
 
         Parameters
         ----------
-        ratios : iterable
-            Ratios to set. Should have a length of len(models) - len(exclude) - 1
+        weights : iterable
+            Weights to set. Should have a length of len(models) - len(skip)
         skip : iterable, optional
-            Model indices to skip. Should have compatible lenth, by default None
+            Model indices to skip. Should have compatible length, by default None
         len_scale : float, optional
             Desired len_scale, by default current len_scale
 
         Raises
         ------
         ValueError
-            If number of ratios is not matching.
+            If number of weights is not matching.
         """
-        sum_set_norm_len_ratios(self, ratios, skip, len_scale)
+        sum_set_len_weights(self, weights, skip, len_scale)
 
     @property
     def models(self):
         """:class:`tuple`: The summed models."""
         return self._models
+
+    @property
+    def size(self):
+        """:class:`int`: Number of summed models."""
+        return len(self._models)
 
     @property
     def rescale(self):
@@ -1665,13 +1663,39 @@ class SumModel(CovModel):
     @property
     def sub_arg(self):
         """:class:`list` of :class:`str`: Names of the sub-arguments for var and len_scale."""
-        return sum(
-            [
-                [f"{o}_{i}" for o in ["var", "len_scale"]]
-                for i, mod in enumerate(self.models)
-            ],
-            [],
-        )
+        return [
+            f"{o}_{i}" for o in ["var", "len_scale"] for i in range(self.size)
+        ]
+
+    @property
+    def sub_arg_bounds(self):
+        """:class:`dict`: Names of the sub-arguments for var and len_scale."""
+        return {
+            f"{o}_{i}": mod.arg_bounds[o]
+            for o in ["var", "len_scale"]
+            for (i, mod) in enumerate(self.models)
+        }
+
+    @property
+    def arg_bounds(self):
+        """:class:`dict`: Bounds for all parameters.
+
+        Notes
+        -----
+        Keys are the arg names and values are lists of 2 or 3 values:
+        ``[a, b]`` or ``[a, b, <type>]`` where
+        <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
+        to define if the bounds are open ("o") or closed ("c").
+        """
+        res = {
+            "var": self.var_bounds,
+            "len_scale": self.len_scale_bounds,
+            "nugget": self.nugget_bounds,
+            "anis": self.anis_bounds,
+        }
+        res.update(self.opt_arg_bounds)
+        res.update(self.sub_arg_bounds)
+        return res
 
     def __setattr__(self, name, value):
         """Set an attribute."""
