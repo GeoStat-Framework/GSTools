@@ -322,7 +322,7 @@ sphinx_gallery_conf = {
     # Sort gallery example by file name instead of number of lines (default)
     "within_subsection_order": FileNameSortKey,
     # directory where function granular galleries are stored
-    "backreferences_dir": None,
+    "backreferences_dir": "examples/backreferences",
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
     # "first_notebook_cell": (
