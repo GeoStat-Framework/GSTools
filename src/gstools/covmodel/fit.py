@@ -231,11 +231,9 @@ def _pre_para(model, para_select, sill, anis):
         if not sill_low <= sill <= sill_up:
             raise ValueError("fit: sill out of bounds.")
         if "var" in para_select and "nugget" in para_select:
-            if model.var > sill:
-                model.nugget = model.arg_bounds["nugget"][0]
-                model.var = sill - model.nugget
-            else:
-                model.nugget = sill - model.var
+            if not np.isclose(model.var + model.nugget, sill):
+                msg = "fit: if sill, var and nugget are fixed, var + nugget should match the given sill"
+                raise ValueError(msg)
         elif "var" in para_select:
             if model.var > sill:
                 raise ValueError(

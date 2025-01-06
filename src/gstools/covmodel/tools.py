@@ -469,16 +469,14 @@ def set_arg_bounds(model, check_args=True, **kwargs):
         if not check_bounds(bounds):
             msg = f"Given bounds for '{arg}' are not valid, got: {bounds}"
             raise ValueError(msg)
-        if arg in model.opt_arg:
+        if arg in getattr(model, "sub_arg", []):
+            # var_<i> and len_scale_<i>
+            name, i = _split_sub(arg)
+            setattr(model[i], f"_{name}_bounds", bounds)
+        elif arg in model.opt_arg:
             model._opt_arg_bounds[arg] = bounds
-        elif arg == "var":
-            model._var_bounds = bounds
-        elif arg == "len_scale":
-            model._len_scale_bounds = bounds
-        elif arg == "nugget":
-            model._nugget_bounds = bounds
-        elif arg == "anis":
-            model._anis_bounds = bounds
+        elif arg in model.arg_bounds:
+            setattr(model, f"_{arg}_bounds", bounds)
         else:
             raise ValueError(f"set_arg_bounds: unknown argument '{arg}'")
         if check_args and check_arg_in_bounds(model, arg) > 0:
@@ -487,6 +485,15 @@ def set_arg_bounds(model, check_args=True, **kwargs):
                 setattr(model, arg, [def_arg] * (model.dim - 1))
             else:
                 setattr(model, arg, def_arg)
+
+
+def _split_sub(name):
+    if name.startswith("var_"):
+        return "var", int(name[4:])
+    if name.startswith("len_scale_"):
+        return "len_scale", int(name[10:])
+    msg = f"Unknown sub variable: {name}"
+    raise ValueError(msg)
 
 
 def check_arg_bounds(model):
