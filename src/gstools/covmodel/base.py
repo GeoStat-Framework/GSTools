@@ -1207,7 +1207,7 @@ class SumModel(CovModel):
     Parameters
     ----------
     *models
-        tuple of :any:`CovModel` instances of subclasses to sum.
+        tuple of :any:`CovModel` instances or subclasses to sum.
         All models will get a nugget of zero and the nugget will
         be set in the SumModel directly.
         Models need to have matching temporal setting,
