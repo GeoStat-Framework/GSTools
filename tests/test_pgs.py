@@ -109,9 +109,7 @@ class TestPGS(unittest.TestCase):
 
         self.assertAlmostEqual(P[n1 // 2, n2 // 2, n3 // 2], 1.0)
         self.assertAlmostEqual(P[n1 // 3, n2 // 3, n3 // 3], 1.0)
-        self.assertAlmostEqual(
-            P[2 * n1 // 3, 2 * n2 // 3, 2 * n3 // 3], 1.0
-        )
+        self.assertAlmostEqual(P[2 * n1 // 3, 2 * n2 // 3, 2 * n3 // 3], 1.0)
         self.assertAlmostEqual(P[0, 0, 0], 1.0)
         self.assertAlmostEqual(P[-1, -1, -1], 0.0)
         self.assertAlmostEqual(P[-1, 0, 0], 1.0)
