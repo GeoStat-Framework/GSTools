@@ -43,11 +43,11 @@ plt.scatter(field1.flatten(), field2.flatten(), s=0.1)
 ###############################################################################
 # This mapping always has a multivariate Gaussian distribution and this is also
 # the field on which we define our categorical data `L` and their relations to each
-# other. Before providing further explanations, we will create `L`, which again
+# other. Before providing further explanations, we will create the L-field, which again
 # will have only two categories, but this time we will not prescribe a rectangle,
 # but a circle.
 
-# no. of grid cells of field L
+# no. of grid cells of L-field
 M = [51, 41]
 # we need the indices of L later
 x_L = np.arange(M[0])
@@ -63,52 +63,27 @@ mask = (x_L[:, np.newaxis] - M[0] // 2) ** 2 + (
 L[mask] = 1
 
 ###############################################################################
-# Now, we look at every point in the scatter plot (which shows the field values)
-# shown above and map the categorical values of `L` to the positions (variables
-# `x` and `y` defined above) of these field values. This is probably much easier
-# to understand with a plot.
-# First, we calculate the indices of the L field, which we need for manually
-# plotting L together with the scatter plot. Normally they are computed internally.
+# We can compute the actual PGS now. As a second step, we use a helper function
+# to recalculate the axes on which the L-field is defined. Normally, this is
+# handled internally. But in order to show the scatter plot together with the
+# L-field, we need the axes here.
 
-l = np.floor(field1.min()) - 1
-h = np.ceil(field1.max()) + 1
-m = (h + l) / 2.0
-dist = max(np.abs(h - m), np.abs(l - m))
-x_mean = field1.mean()
-x_l = np.linspace(
-    x_mean - dist,
-    x_mean + dist,
-    L.shape[0],
-)
+pgs = gs.PGS(dim, [field1, field2])
+P = pgs(L)
 
-l = np.floor(field1.min()) - 1
-h = np.ceil(field1.max()) + 1
-m = (h + l) / 2.0
-dist = max(np.abs(h - m), np.abs(l - m))
-y_mean = field2.mean()
-y_l = np.linspace(
-    y_mean - dist,
-    y_mean + dist,
-    L.shape[1],
-)
-
-###############################################################################
-# We also compute the actual PGS now, to also plot that.
-
-pgs = gs.PGS(dim, [field1, field2], L)
+x_l, y_l = pgs.calc_L_axes(L.shape)
 
 ###############################################################################
 # And now to some plotting. Unfortunately, matplotlib likes to mess around with
 # the aspect ratios of the plots, so the left panel is a bit stretched.
 
 fig, axs = plt.subplots(2, 2)
-axs[0, 0].imshow(field1, cmap="copper")
-axs[0, 1].imshow(field2, cmap="copper")
+axs[0, 0].imshow(field1, cmap="copper", origin="lower")
+axs[0, 1].imshow(field2, cmap="copper", origin="lower")
 axs[1, 0].scatter(field1.flatten(), field2.flatten(), s=0.1, color="C0")
-axs[1, 0].pcolormesh(x_l, y_l, L.T, alpha=0.3)
+axs[1, 0].pcolormesh(x_l, y_l, L.T, alpha=0.3, cmap="copper")
 
-axs[1, 1].imshow(pgs.P, cmap="copper")
-plt.show()
+axs[1, 1].imshow(P, cmap="copper", origin="lower")
 
 ###############################################################################
 # The black areas show the category 0 and the orange areas show category 1. We

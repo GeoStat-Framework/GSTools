@@ -31,10 +31,10 @@ srf2 = gs.SRF(model2)
 field2 = srf2.structured([x, y], seed=19970221)
 
 ###############################################################################
-# The `L` field will consist of a circle which contains one category and the
+# The L-field will consist of a circle which contains one category and the
 # surrounding is the second category.
 
-# no. of grid cells of field L
+# no. of grid cells of the L-field
 M = [200, 200]
 
 # radius of circle
@@ -49,19 +49,19 @@ mask = (x_L[:, np.newaxis] - M[0] // 2) ** 2 + (
 L[mask] = 1
 
 ###############################################################################
-# With the two SRFs and `L` ready, we can create the PGS.
-pgs = gs.PGS(dim, [field1, field2], L)
+# With the two SRFs and the L-field ready, we can create the PGS.
+pgs = gs.PGS(dim, [field1, field2])
+P = pgs(L)
 
 ###############################################################################
-# And now the plotting of the two Gaussian fields, `L`, and the PGS.
+# And now the plotting of the two Gaussian fields, the L-field, and the PGS.
 
 fig, axs = plt.subplots(2, 2)
 
-axs[0, 0].imshow(field1, cmap="copper")
-axs[0, 1].imshow(field2, cmap="copper")
-axs[1, 0].imshow(L, cmap="copper")
-axs[1, 1].imshow(pgs.P, cmap="copper")
-plt.show()
+axs[0, 0].imshow(field1, cmap="copper", origin="lower")
+axs[0, 1].imshow(field2, cmap="copper", origin="lower")
+axs[1, 0].imshow(L, cmap="copper", origin="lower")
+axs[1, 1].imshow(P, cmap="copper", origin="lower")
 
 ###############################################################################
 # In this PGS, we can see two different spatial structures combined. We see large

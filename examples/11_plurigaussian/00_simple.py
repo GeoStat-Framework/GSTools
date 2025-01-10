@@ -34,7 +34,7 @@ field1 = srf.structured([x, y], seed=20170519)
 field2 = srf.structured([x, y], seed=19970221)
 
 ###############################################################################
-# Now, we will create the field describing the categorical data. For now, we
+# Now, we will create the L-field describing the categorical data. For now, we
 # will only have two categories and we will address them by the integers 0 and 1.
 # We start off by creating a matrix of 0s from which we will select a rectangle
 # and fill that with 1s.
@@ -52,20 +52,23 @@ L[
 ] = 1
 
 ###############################################################################
-# With the two SRFs and `L` ready, we can create our first PGS.
+# With the two SRFs and the L-field ready, we can create our first PGS. First, we
+# set up an instance of the PGS class and then we are ready to calculate the
+# field by calling the instance and handing over the L-field.
 
-pgs = gs.PGS(dim, [field1, field2], L)
+pgs = gs.PGS(dim, [field1, field2])
+P = pgs(L)
 
 ###############################################################################
-# Finally, we can plot the PGS, but we will also show the field `L` and the two
+# Finally, we can plot the PGS, but we will also show the L-field and the two
 # original Gaussian fields.
 
 fig, axs = plt.subplots(2, 2)
 
-axs[0, 0].imshow(field1, cmap="copper")
-axs[0, 1].imshow(field2, cmap="copper")
-axs[1, 0].imshow(L, cmap="copper")
-axs[1, 1].imshow(pgs.P, cmap="copper")
+axs[0, 0].imshow(field1, cmap="copper", origin="lower")
+axs[0, 1].imshow(field2, cmap="copper", origin="lower")
+axs[1, 0].imshow(L, cmap="copper", origin="lower")
+axs[1, 1].imshow(P, cmap="copper", origin="lower")
 
 # For more information on Plurigaussian fields and how they naturally extend
 # truncated Gaussian fields, we can recommend the book

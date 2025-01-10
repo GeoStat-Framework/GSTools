@@ -23,11 +23,12 @@ class TestPGS(unittest.TestCase):
         L[n // 3 - 2 * m : n // 3 - m // 2] = 2
         L[4 * n // 5 - m // 2 : 4 * n // 5 + m // 2] = 3
 
-        pgs = gs.PGS(1, field, L)
-        self.assertAlmostEqual(pgs.P[n // 2], 0.0)
-        self.assertAlmostEqual(pgs.P[0], 0.0)
-        self.assertAlmostEqual(pgs.P[-1], 1.0)
-        self.assertAlmostEqual(pgs.P[-20], 3.0)
+        pgs = gs.PGS(1, field)
+        P = pgs(L)
+        self.assertAlmostEqual(P[n // 2], 0.0)
+        self.assertAlmostEqual(P[0], 0.0)
+        self.assertAlmostEqual(P[-1], 1.0)
+        self.assertAlmostEqual(P[-20], 3.0)
 
     def test_struct_2d(self):
         n1 = 100
@@ -64,13 +65,14 @@ class TestPGS(unittest.TestCase):
             n2 // 3 - m2 // 2 : n2 // 3 + m2 // 2,
         ] = 4
 
-        pgs = gs.PGS(2, [field1, field2], L)
+        pgs = gs.PGS(2, [field1, field2])
+        P = pgs(L)
 
-        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2], 2.0)
-        self.assertAlmostEqual(pgs.P[0, 0], 1.0)
-        self.assertAlmostEqual(pgs.P[-1, -1], 1.0)
-        self.assertAlmostEqual(pgs.P[0, -1], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, 0], 1.0)
+        self.assertAlmostEqual(P[n1 // 2, n2 // 2], 2.0)
+        self.assertAlmostEqual(P[0, 0], 1.0)
+        self.assertAlmostEqual(P[-1, -1], 1.0)
+        self.assertAlmostEqual(P[0, -1], 0.0)
+        self.assertAlmostEqual(P[-1, 0], 1.0)
 
     def test_struct_3d(self):
         n1 = 30
@@ -102,21 +104,22 @@ class TestPGS(unittest.TestCase):
             n3 // 2 - m3 // 2 : n3 // 2 + m3 // 2,
         ] = 1
 
-        pgs = gs.PGS(3, [field1, field2, field3], L)
+        pgs = gs.PGS(3, [field1, field2, field3])
+        P = pgs(L)
 
-        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2, n3 // 2], 1.0)
-        self.assertAlmostEqual(pgs.P[n1 // 3, n2 // 3, n3 // 3], 1.0)
+        self.assertAlmostEqual(P[n1 // 2, n2 // 2, n3 // 2], 1.0)
+        self.assertAlmostEqual(P[n1 // 3, n2 // 3, n3 // 3], 1.0)
         self.assertAlmostEqual(
-            pgs.P[2 * n1 // 3, 2 * n2 // 3, 2 * n3 // 3], 1.0
+            P[2 * n1 // 3, 2 * n2 // 3, 2 * n3 // 3], 1.0
         )
-        self.assertAlmostEqual(pgs.P[0, 0, 0], 1.0)
-        self.assertAlmostEqual(pgs.P[-1, -1, -1], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, 0, 0], 1.0)
-        self.assertAlmostEqual(pgs.P[0, -1, 0], 1.0)
-        self.assertAlmostEqual(pgs.P[0, 0, -1], 1.0)
-        self.assertAlmostEqual(pgs.P[0, -1, -1], 1.0)
-        self.assertAlmostEqual(pgs.P[-1, 0, -1], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, -1, 0], 1.0)
+        self.assertAlmostEqual(P[0, 0, 0], 1.0)
+        self.assertAlmostEqual(P[-1, -1, -1], 0.0)
+        self.assertAlmostEqual(P[-1, 0, 0], 1.0)
+        self.assertAlmostEqual(P[0, -1, 0], 1.0)
+        self.assertAlmostEqual(P[0, 0, -1], 1.0)
+        self.assertAlmostEqual(P[0, -1, -1], 1.0)
+        self.assertAlmostEqual(P[-1, 0, -1], 0.0)
+        self.assertAlmostEqual(P[-1, -1, 0], 1.0)
 
     def test_struct_4d(self):
         n1 = 20
@@ -155,11 +158,12 @@ class TestPGS(unittest.TestCase):
             n4 // 2 - m4 // 2 : n4 // 2 + m4 // 2,
         ] = 1
 
-        pgs = gs.PGS(4, [field1, field2, field3, field4], L)
+        pgs = gs.PGS(4, [field1, field2, field3, field4])
+        P = pgs(L)
 
-        self.assertAlmostEqual(pgs.P[n1 // 2, n2 // 2, n3 // 2, n4 // 2], 1.0)
-        self.assertAlmostEqual(pgs.P[0, 0, 0, 0], 0.0)
-        self.assertAlmostEqual(pgs.P[-1, -1, -1, -1], 0.0)
+        self.assertAlmostEqual(P[n1 // 2, n2 // 2, n3 // 2, n4 // 2], 1.0)
+        self.assertAlmostEqual(P[0, 0, 0, 0], 0.0)
+        self.assertAlmostEqual(P[-1, -1, -1, -1], 0.0)
 
     def test_unstruct_2d(self):
         n1 = 10
@@ -200,11 +204,12 @@ class TestPGS(unittest.TestCase):
             n2 // 3 - m2 // 2 : n2 // 3 + m2 // 2,
         ] = 4
 
-        pgs = gs.PGS(2, [field1_unstruct, field2_unstruct], L_struct)
+        pgs = gs.PGS(2, [field1_unstruct, field2_unstruct])
+        P = pgs(L_struct)
 
-        self.assertAlmostEqual(pgs.P[0], 4.0)
-        self.assertAlmostEqual(pgs.P[-1], 1.0)
-        self.assertAlmostEqual(pgs.P[n1 * n2 // 2], 1.0)
+        self.assertAlmostEqual(P[0], 4.0)
+        self.assertAlmostEqual(P[-1], 1.0)
+        self.assertAlmostEqual(P[n1 * n2 // 2], 1.0)
 
     def test_assertions(self):
         n = 30
@@ -212,6 +217,7 @@ class TestPGS(unittest.TestCase):
         L_2d = np.empty((n, n))
         field1 = np.empty((n, n))
         field2 = np.empty((n - 1, n - 1))
-        self.assertRaises(ValueError, gs.PGS, 3, [0, 1], None)
-        self.assertRaises(ValueError, gs.PGS, 3, pos, L_2d)
-        self.assertRaises(ValueError, gs.PGS, 2, [field1, field2], L_2d)
+        pgs = gs.PGS(3, pos)
+        self.assertRaises(ValueError, gs.PGS, 3, [0, 1])
+        self.assertRaises(ValueError, pgs, L_2d)
+        self.assertRaises(ValueError, gs.PGS, 2, [field1, field2])

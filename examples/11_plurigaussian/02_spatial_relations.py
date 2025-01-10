@@ -4,7 +4,7 @@ Controlling Spatial Relations
 
 In this example we will try to understand how we can
 influence the spatial relationships of the different
-categories with the field `L`. For simplicity, we will
+categories with the L-field. For simplicity, we will
 start very similarly to the very first example.
 """
 
@@ -29,14 +29,14 @@ field1 = srf.structured([x, y], seed=20170519)
 field2 = srf.structured([x, y], seed=19970221)
 
 ###############################################################################
-# Now, we will prepare the `L` field, which will be a bit more complicated this
+# Now, we will prepare the L-field, which will be a bit more complicated this
 # time. First, we will create a triangle. Next, we will create two rectangles
 # touching each other along one of their edges and both being directly above the
 # triangle, but without touching it directly. Finally, we will create a few
 # very narrow rectangles, which will not touch any other category shapes. The
 # implementation details are not very interesting, and can be skipped.
 
-# no. of grid cells of field L
+# no. of grid cells of L-field
 M = [60, 50]
 
 # size of the rectangles
@@ -83,27 +83,29 @@ for i in range(4):
     )
 
 ###############################################################################
-# With the two SRFs and `L` ready, we can create the PGS.
-pgs = gs.PGS(dim, [field1, field2], L)
+# With the two SRFs and the L-field ready, we can create the PGS.
+pgs = gs.PGS(dim, [field1, field2])
+P = pgs(L)
 
 ###############################################################################
-# And now the plotting of the two Gaussian fields, `L`, and the PGS.
+# And now the plotting of the two Gaussian fields, the L-field, and the PGS.
 
 fig, axs = plt.subplots(2, 2)
 
-axs[0, 0].imshow(field1, cmap="copper")
-axs[0, 1].imshow(field2, cmap="copper")
-axs[1, 0].imshow(L, cmap="copper")
-axs[1, 1].imshow(pgs.P, cmap="copper")
+axs[0, 0].imshow(field1, cmap="copper", origin="lower")
+axs[0, 1].imshow(field2, cmap="copper", origin="lower")
+axs[1, 0].imshow(L, cmap="copper", origin="lower")
+axs[1, 1].imshow(P, cmap="copper", origin="lower")
+plt.show()
 
 ###############################################################################
-# We can see that the two upper light and medium brown rectangles both fill up
+# We can see that the two lower light and medium brown rectangles both fill up
 # large and rather smooth areas of the PGS. And they share very long common
 # borders due to the fact that these categories touch each other along one of
-# their edges. The next large area is the dark brown of the triangle. This
-# category is always very close to the light brown areas, but only sometimes
-# close to the medium brown areas, as they only share small parts in close
-# proximity to each other. Finally, we have the four stripes. They create
+# their edges. The next large area is the dark brown of the upper triangle.
+# This category is always very close to the light brown areas, but only
+# sometimes close to the medium brown areas, as they only share small parts in
+# close proximity to each other. Finally, we have the four stripes. They create
 # distorted stripes in the PGS. The lighter they get, the less area they fill.
 # This is due to the fact that their area is not only relatively small, but
-# also because they are increasingly further away from the center of `L`.
+# also because they are increasingly further away from the center of L.

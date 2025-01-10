@@ -22,7 +22,7 @@ except AttributeError:
 
 
 class PGS:
-    """A simple class to generate plurigaussian field simulations (PGS).
+    """A class to generate plurigaussian field simulations (PGS).
 
     See [Ricketts2023]_ for more details.
 
@@ -35,10 +35,6 @@ class PGS:
         `len(fields) == dim`. For `dim == 1`, the SRF can be directly given,
         instead of a list. This class supports structured and unstructured meshes.
         All fields must have the same shapes.
-    facies : :class:`numpy.ndarray`
-        A `dim` dimensional structured field, whose values are mapped to the PGS.
-        It does not have to have the same shape as the `fields`, as the indices are
-        automatically scaled.
 
     References
     ----------
@@ -49,7 +45,7 @@ class PGS:
         https://doi.org/10.1007/s11242-023-01930-8
     """
 
-    def __init__(self, dim, fields, facies):
+    def __init__(self, dim, fields):
         # hard to test for 1d case
         if dim > 1:
             if dim != len(fields):
@@ -61,31 +57,60 @@ class PGS:
                 raise ValueError("PGS: Not all fields have the same shape.")
         self._dim = dim
         self._Zs = np.array(fields)
-        self._L = np.array(facies)
-        if len(self._L.shape) != dim:
-            raise ValueError("PGS: Mismatch between dim. and facies shape.")
-        self._P = self.calc_pgs()
-
-    def calc_pgs(self):
-        """Generate the plurigaussian field.
-
-        The PGS is saved as `self.P` and is also returned.
-
-        Returns
-        -------
-        pgs : :class:`numpy.ndarray`
-            the plurigaussian field
-        """
         try:
-            mapping = np.stack(self._Zs, axis=1)
+            self._mapping = np.stack(self._Zs, axis=1)
         except np.AxisError:
             # if dim==1, `fields` is prob. a raw field & not a 1-tuple or
             # equivalent
             if self._dim == 1:
                 self._Zs = np.array([self._Zs])
-                mapping = np.stack(self._Zs, axis=1)
+                self._mapping = np.stack(self._Zs, axis=1)
             else:
                 raise
+
+    def __call__(self, L):
+        """Generate the plurigaussian field.
+
+        Parameters
+        ----------
+        L : :class:`numpy.ndarray`
+            A `dim` dimensional structured field, whose values are mapped to the PGS.
+            It does not have to have the same shape as the `fields`, as the indices are
+            automatically scaled.
+        Returns
+        -------
+        pgs : :class:`numpy.ndarray`
+            the plurigaussian field
+        """
+        self._L = np.array(L)
+        if len(self._L.shape) != self._dim:
+            raise ValueError("PGS: Mismatch between dim. and facies shape.")
+        self._pos_l = self.calc_L_axes(self._L.shape)
+
+        P_dig = []
+        for d in range(self._dim):
+            P_dig.append(np.digitize(self._mapping[:, d], self._pos_l[d]))
+
+        # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
+        return self._L[(*P_dig,)]
+
+    def calc_L_axes(self, L_shape):
+        """Calculate the axes on which the L field is defined.
+
+        With the centroid of the correlations of the SRFs at the center,
+        the axes are calculated, which hold all correlations.
+        These axes are used for the L field.
+
+        Parameters
+        ----------
+        L_shape : :class:`tuple`
+            The shape of the L field.
+
+        Returns
+        -------
+        pos_l : :class:`numpy.ndarray`
+            the axes holding all field correlations
+        """
         pos_l = []
         try:
             # structured grid
@@ -102,16 +127,40 @@ class PGS:
                 np.linspace(
                     centroid[d] - dist,
                     centroid[d] + dist,
-                    self._L.shape[d],
+                    L_shape[d],
                 )
             )
+        return pos_l
 
-        P_dig = []
+    def transform_coords(self, L_shape, pos):
+        """Transform position from correlation coords to L indices.
+
+        This is a helper method to get the L indices for given correlated
+        field values.
+
+        Parameters
+        ----------
+        L_shape : :class:`tuple`
+            The shape of the L field.
+        pos : :class:`numpy.ndarray`
+            The position in field coordinates, which will be transformed.
+
+        Returns
+        -------
+        pos_trans : :class:`list`
+            the transformed position tuple
+        """
+        pos_trans = []
+        pos_l = self.calc_L_axes(L_shape)
         for d in range(self._dim):
-            P_dig.append(np.digitize(mapping[:, d], pos_l[d]))
-
-        # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
-        return self._L[(*P_dig,)]
+            pos_trans.append(
+                int(
+                    (pos[d] - pos_l[d][0])
+                    / (pos_l[d][-1] - pos_l[d][0])
+                    * L_shape[d]
+                )
+            )
+        return pos_trans
 
     @property
     def P(self):

@@ -35,7 +35,7 @@ srf3 = gs.SRF(model3)
 field3 = srf3.structured([x, y, z], seed=20011012)
 
 ###############################################################################
-# The 3d `L` field will consist of a cube which contains one category and the
+# The 3d L-field will consist of a cube which contains one category and the
 # surrounding is the second category.
 
 # size of cube
@@ -49,8 +49,9 @@ L[
 ] = 1
 
 ###############################################################################
-# With the three SRFs and `L` ready, we can create the 3d PGS.
-pgs = gs.PGS(dim, [field1, field2, field3], L)
+# With the three SRFs and the L-field ready, we can create the 3d PGS.
+pgs = gs.PGS(dim, [field1, field2, field3])
+P = pgs(L)
 
 # ###############################################################################
 # For ploting the 3d PGS, we will use [PyVista](https://pyvista.org/) which works
@@ -60,11 +61,11 @@ import pyvista as pv
 
 grid = pv.ImageData(dimensions=N)
 
-# uncomment, if you want to see `L`, which is just a cube...
+# uncomment, if you want to see L, which is just a cube...
 # grid.point_data['L'] = np.meshgrid(L, indexing="ij")[0]
 # grid.plot(show_edges=True)
 
-grid.point_data["PGS"] = pgs.P.reshape(-1)
+grid.point_data["PGS"] = P.reshape(-1)
 grid.contour(isosurfaces=8).plot()
 
 ###############################################################################
