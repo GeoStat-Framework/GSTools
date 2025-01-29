@@ -2,6 +2,17 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.6.1] - Periodic Peach - 2025-01
+
+see [#375](https://github.com/GeoStat-Framework/GSTools/pull/375)
+
+- added wheels for Python 3.13
+
+### Bugfixes
+- fix readthedocs.com problems ([#375](https://github.com/GeoStat-Framework/GSTools/pull/375))
+- remove deprecated scipy dependency ([#375](https://github.com/GeoStat-Framework/GSTools/pull/375))
+
+
 ## [1.6.0] - Periodic Peach - 2024-07
 
 ### Enhancements
@@ -18,6 +29,7 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 - require gstools-core v1.0.0 at least ([#361](https://github.com/GeoStat-Framework/GSTools/pull/361))
+
 
 ## [1.5.2] - Nifty Neon - 2024-05
 
