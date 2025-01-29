@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# GeoStatTools documentation build configuration file, created by
+# GSTools documentation build configuration file, created by
 # sphinx-quickstart on Fri Jan  5 14:20:43 2018.
 #
 # This file is execfile()d with the current directory set to its
@@ -67,7 +67,7 @@ extensions = [
     "sphinx.ext.napoleon",  # parameters look better than with numpydoc only
     "numpydoc",
     "sphinx_gallery.gen_gallery",
-    "m2r2",
+    "myst_parser",
     "sphinxcontrib.youtube",
 ]
 
@@ -98,7 +98,11 @@ templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-source_suffix = [".rst", ".md"]
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+# source_suffix = [".rst", ".md"]
 # source_suffix = ".rst"
 
 # The master toctree document.
@@ -152,7 +156,7 @@ html_theme_options = {
     #    'canonical_url': '',
     #    'analytics_id': '',
     "logo_only": False,
-    "display_version": True,
+    "version_selector": True,
     "prev_next_buttons_location": "top",
     #    'style_external_links': False,
     #    'vcs_pageview_mode': '',
@@ -188,7 +192,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "GeoStatToolsdoc"
+htmlhelp_basename = "GSToolsdoc"
 # logos for the page
 html_logo = "pics/gstools_150.png"
 html_favicon = "pics/gstools.ico"
@@ -217,8 +221,8 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        "GeoStatTools.tex",
-        "GeoStatTools Documentation",
+        "GSTools.tex",
+        "GSTools Documentation",
         "Sebastian Müller, Lennart Schüler",
         "manual",
     )
@@ -229,9 +233,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, "geostattools", "GeoStatTools Documentation", [author], 1)
-]
+man_pages = [(master_doc, "GSTools", "GSTools Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -242,10 +244,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "GeoStatTools",
-        "GeoStatTools Documentation",
+        "GSTools",
+        "GSTools Documentation",
         author,
-        "GeoStatTools",
+        "GSTools",
         "Geo-statistical toolbox.",
         "Miscellaneous",
     )
@@ -320,7 +322,7 @@ sphinx_gallery_conf = {
     # Sort gallery example by file name instead of number of lines (default)
     "within_subsection_order": FileNameSortKey,
     # directory where function granular galleries are stored
-    "backreferences_dir": None,
+    "backreferences_dir": "examples/backreferences",
     # Modules for which function level galleries are created.  In
     "doc_module": "gstools",
     # "first_notebook_cell": (
