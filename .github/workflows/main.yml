@@ -22,10 +22,10 @@ jobs:
         with:
           fetch-depth: "0"
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.11
 
       - name: Install dependencies
         run: |
@@ -75,7 +75,7 @@ jobs:
           fetch-depth: "0"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.18.0
+        uses: pypa/cibuildwheel@v2.22.0
         with:
           output-dir: dist
 
@@ -97,7 +97,8 @@ jobs:
           - { py: "3.10", np: "==1.21.6", sp: "==1.7.2" }
           - { py: "3.11", np: "==1.23.2", sp: "==1.9.2" }
           - { py: "3.12", np: "==1.26.2", sp: "==1.11.2" }
-          - { py: "3.12", np: ">=2.0.0rc1", sp: ">=1.13.0" }
+          - { py: "3.13", np: "==2.1.0", sp: "==1.14.1" }
+          - { py: "3.13", np: ">=2.1.0", sp: ">=1.14.1" }
         exclude:
           - os: macos-14
             ver: { py: "3.8", np: "==1.20.0", sp: "==1.5.4" }
@@ -137,7 +138,7 @@ jobs:
           python -m build --sdist --outdir dist .
 
       - uses: actions/upload-artifact@v3
-        if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.9'
+        if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.11'
         with:
           path: dist/*.tar.gz
 
