@@ -417,7 +417,7 @@ You can contact us via <info@geostat-framework.org>.
 
 ## License
 
-[LGPLv3][license_link] © 2018-2024
+[LGPLv3][license_link] © 2018-2025
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_link]: https://docs.conda.io/en/latest/miniconda.html
