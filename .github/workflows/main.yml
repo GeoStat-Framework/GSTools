@@ -77,11 +77,12 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
         with:
-          output-dir: dist
+          output-dir: dist-wheel-${{ matrix.os }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          path: ./dist/*.whl
+          name: dist-wheel-${{ matrix.os }}
+          path: ./dist-wheel-${{ matrix.os }}/*.whl
 
   build_sdist:
     name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }} numpy${{ matrix.ver.np }} scipy${{ matrix.ver.sp }}
@@ -135,21 +136,23 @@ jobs:
       - name: Build sdist
         run: |
           # PEP 517 package builder from pypa
-          python -m build --sdist --outdir dist .
+          python -m build --sdist --outdir dist-sdist .
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.11'
         with:
-          path: dist/*.tar.gz
+          name: dist-sdist
+          path: dist-sdist/*.tar.gz
 
   upload_to_pypi:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: dist-*
+          merge-multiple: true
           path: dist
 
       - name: Publish to Test PyPI
