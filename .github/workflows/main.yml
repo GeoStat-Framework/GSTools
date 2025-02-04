@@ -49,40 +49,12 @@ jobs:
         run: |
           python -m pylint src/gstools/
 
-      - name: cython-lint check
-        run: |
-          cython-lint src/gstools/
-
       - name: coveralls check
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
           python -m coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build_wheels:
-    name: wheels for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # macos-13 is an intel runner, macos-14 is apple silicon
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: "0"
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22.0
-        with:
-          output-dir: dist-wheel-${{ matrix.os }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist-wheel-${{ matrix.os }}
-          path: ./dist-wheel-${{ matrix.os }}/*.whl
 
   build_sdist:
     name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }} numpy${{ matrix.ver.np }} scipy${{ matrix.ver.sp }}
@@ -123,8 +95,9 @@ jobs:
           pip install build
 
       - name: Install GSTools
-        env:
-          GSTOOLS_BUILD_PARALLEL: 1
+        # env:
+        #   GSTOOLS_BUILD_PARALLEL: 1
+        #   pip install --no-binary gstools-cython -v --editable .[test]
         run: |
           pip install -v --editable .[test]
 
@@ -136,13 +109,13 @@ jobs:
       - name: Build sdist
         run: |
           # PEP 517 package builder from pypa
-          python -m build --sdist --outdir dist-sdist .
+          python -m build .
 
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.11'
         with:
-          name: dist-sdist
-          path: dist-sdist/*.tar.gz
+          name: dist
+          path: dist/*
 
   upload_to_pypi:
     needs: [build_wheels, build_sdist]
@@ -151,9 +124,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
+          name: dist
 
       - name: Publish to Test PyPI
         # only if working on main

@@ -1,4 +1,0 @@
-prune **
-recursive-include tests *.py
-recursive-include src/gstools *.py *.pyx
-include AUTHORS.md LICENSE README.md pyproject.toml setup.py
