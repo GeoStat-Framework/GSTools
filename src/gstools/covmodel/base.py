@@ -1310,7 +1310,7 @@ class SumModel(CovModel):
                 if to_init is not None and to_init:
                     raise ValueError(imsg)
                 to_init = False
-                self._models.append(mod)
+                self._models.append(copy.deepcopy(mod))
             elif isinstance(mod, type) and issubclass(mod, CovModel):
                 if to_init is not None and not to_init:
                     raise ValueError(imsg)
