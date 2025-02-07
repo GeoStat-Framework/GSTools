@@ -10,6 +10,7 @@ The following classes and functions are provided
    ARG_DEF
    default_mod_kwargs
    sum_check
+   sum_compare
    sum_default_arg_bounds
    sum_default_opt_arg_bounds
    sum_set_norm_var_ratios
@@ -28,6 +29,7 @@ __all__ = [
     "ARG_DEF",
     "default_mod_kwargs",
     "sum_check",
+    "sum_compare",
     "sum_default_arg_bounds",
     "sum_default_opt_arg_bounds",
     "sum_set_var_weights",
@@ -208,6 +210,22 @@ def sum_set_len_weights(summod, weights, skip=None, len_scale=None):
         len_scales[i] = len_diff * weights[j] / weights_sum / summod.ratios[j]
         j += 1
     summod.len_scales = len_scales
+
+
+def sum_compare(this, that):
+    """
+    Compare SumModels.
+
+    Parameters
+    ----------
+    this / that : :any:`SumModel`
+        The sum models to compare.
+    """
+    if len(this) != len(that):
+        return False
+    if not np.isclose(this.nugget, that.nugget):
+        return False
+    return all([mod1 == mod2 for (mod1, mod2) in zip(this, that)])
 
 
 def sum_model_repr(summod):  # pragma: no cover

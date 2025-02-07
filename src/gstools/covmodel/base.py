@@ -22,6 +22,7 @@ from gstools.covmodel.fit import fit_variogram
 from gstools.covmodel.sum_tools import (
     default_mod_kwargs,
     sum_check,
+    sum_compare,
     sum_default_arg_bounds,
     sum_default_opt_arg_bounds,
     sum_model_repr,
@@ -1166,6 +1167,8 @@ class CovModel:
         """Compare CovModels."""
         if not isinstance(other, CovModel):
             return False
+        if isinstance(other, SumModel):
+            return False
         return compare(self, other)
 
     def __setattr__(self, name, value):
@@ -1737,6 +1740,12 @@ class SumModel(CovModel):
                     if name == f"{opt}_{i}":
                         return getattr(mod, opt)
         raise AttributeError(f"'{self.name}' object has no attribute '{name}'")
+
+    def __eq__(self, other):
+        """Compare SumModels."""
+        if not isinstance(other, SumModel):
+            return False
+        return sum_compare(self, other)
 
     def __repr__(self):
         """Return String representation."""
