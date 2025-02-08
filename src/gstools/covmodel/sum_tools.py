@@ -219,7 +219,7 @@ def sum_compare(this, that):
         return False
     if not np.isclose(this.nugget, that.nugget):
         return False
-    return all([mod1 == mod2 for (mod1, mod2) in zip(this, that)])
+    return all(mod1 == mod2 for (mod1, mod2) in zip(this, that))
 
 
 def sum_model_repr(summod):  # pragma: no cover
