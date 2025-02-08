@@ -449,9 +449,11 @@ class Field:
         """
         fields = self.field_names if fields is None else fields
         if not fields:
-            return
+            msg = "csv_export: no fields selected"
+            raise ValueError(msg)
         if not all(field in self for field in fields):
-            msg = f"csv_export: some fields are unknown: {fields}"
+            unknown = set(fields) - set(self.field_names)
+            msg = f"csv_export: some fields are unknown: {unknown}"
             raise ValueError(msg)
         # generate axis names
         s_dim = self.dim - int(self.temporal)
@@ -491,7 +493,7 @@ class Field:
             data[:, i] = p
         for i, f in enumerate(out_f.values()):
             data[:, i + self.dim] = f
-        return np.savetxt(
+        np.savetxt(
             filename,
             data,
             fmt="%s",

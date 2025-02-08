@@ -8,6 +8,7 @@ import unittest
 import numpy as np
 
 from gstools import SRF, Exponential, Gaussian
+from gstools.field import Field
 from gstools.random import MasterRNG
 
 HAS_PYVISTA = False
@@ -105,6 +106,14 @@ class TestExport(unittest.TestCase):
         self.srf_4d.csv_export(dfilename)
         self.assertTrue(os.path.isfile(dfilename))
         self.assertTrue(get_first_line(dfilename) == "x0,x1,x2,x3,field")
+        # check errors
+        field = Field(dim=4)
+        with self.assertRaises(ValueError):
+            field.csv_export("test.csv")
+        with self.assertRaises(ValueError):
+            field.csv_export("test.csv", fields=[])
+        with self.assertRaises(ValueError):
+            field.csv_export("test.csv", fields=["wow"])
 
 
 if __name__ == "__main__":
