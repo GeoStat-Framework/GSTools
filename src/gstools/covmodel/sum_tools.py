@@ -6,7 +6,6 @@ GStools subpackage providing tools for sum-models.
 The following classes and functions are provided
 
 .. autosummary::
-   RatioError
    ARG_DEF
    default_mod_kwargs
    sum_check
@@ -25,7 +24,6 @@ from gstools.tools import RADIAN_SCALE
 from gstools.tools.misc import list_format
 
 __all__ = [
-    "RatioError",
     "ARG_DEF",
     "default_mod_kwargs",
     "sum_check",
@@ -36,10 +34,6 @@ __all__ = [
     "sum_set_len_weights",
     "sum_model_repr",
 ]
-
-
-class RatioError(Exception):
-    """Error for invalid ratios in SumModel."""
 
 
 ARG_DEF = {
@@ -145,7 +139,7 @@ def sum_set_var_weights(summod, weights, skip=None, var=None):
     var_diff = var - var_sum
     if var_diff < 0:
         msg = "SumModel.set_var_weights: skipped variances to big."
-        raise RatioError(msg)
+        raise ValueError(msg)
     weights_sum = sum(weights)
     var_list = summod.vars
     j = 0
@@ -200,7 +194,7 @@ def sum_set_len_weights(summod, weights, skip=None, len_scale=None):
     len_diff = len_scale - len_sum
     if len_diff < 0:
         msg = "SumModel.set_len_weights: skipped length scales to big."
-        raise RatioError(msg)
+        raise ValueError(msg)
     weights_sum = sum(weights)
     len_scales = summod.len_scales
     j = 0
