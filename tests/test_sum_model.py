@@ -22,10 +22,40 @@ class TestSumModel(unittest.TestCase):
         self.assertTrue(s1 == s2)
         self.assertFalse(m1 == s2)
 
+        # Nugget cant set positive var or len-scale
+        with self.assertRaises(ValueError):
+            m1.var = 1
+        with self.assertRaises(ValueError):
+            m1.len_scale = 1
+
+        s1 = gs.Gaussian() + gs.Gaussian() + gs.Gaussian()
+        with self.assertRaises(ValueError):
+            s1.vars = [1, 2]
+        with self.assertRaises(ValueError):
+            s1.len_scales = [1, 2]
+
+        s1.integral_scale = 10
+        self.assertAlmostEqual(s1.integral_scale_0, 10)
+        self.assertAlmostEqual(s1.integral_scale_1, 10)
+        self.assertAlmostEqual(s1.integral_scale_2, 10)
+
+        s1.var = 2
+        s1.ratios = [0.2, 0.2, 0.6]
+        self.assertAlmostEqual(s1.vars[0], 0.4)
+        self.assertAlmostEqual(s1.vars[1], 0.4)
+        self.assertAlmostEqual(s1.vars[2], 1.2)
+
+        with self.assertRaises(ValueError):
+            s1.ratios = [0.3, 0.2, 0.6]
+        with self.assertRaises(ValueError):
+            s1.ratios = [0.3, 0.2]
+
         s1 = gs.Gaussian(var=1) + gs.Exponential(var=2)
         s2 = gs.Exponential(var=1) + gs.Gaussian(var=2)
         self.assertFalse(s1 == gs.Nugget(dim=3))
         self.assertFalse(s1 == s2)
+        self.assertFalse(gs.Exponential() == (gs.Exponential() + gs.Nugget()))
+        self.assertFalse((gs.Exponential() + gs.Nugget()) == gs.Exponential())
 
         # check that models get copied
         m1 = gs.Gaussian()
@@ -33,6 +63,19 @@ class TestSumModel(unittest.TestCase):
         var = [1.0, 2.0]
         s1.vars = var
         np.testing.assert_array_almost_equal(s1.vars, var)
+
+        s1 = gs.SumModel(gs.Exponential, gs.Exponential, var=3)
+        np.testing.assert_array_almost_equal(s1.vars, [1.5, 1.5])
+        self.assertFalse(gs.Gaussian() in s1)
+
+        s1 = gs.SumModel(gs.Exponential, gs.Exponential, len_scale=10)
+        np.testing.assert_array_almost_equal(s1.len_scales, [10, 10])
+
+        s1 = gs.SumModel(
+            gs.Exponential, gs.Exponential, temporal=True, spatial_dim=2
+        )
+        self.assertTrue(all(mod.temporal for mod in s1))
+        self.assertTrue(all(mod.dim == 3 for mod in s1))
 
         m1 = gs.Gaussian(dim=2, var=1.0, len_scale=1.0)
         m2 = gs.Matern(dim=2, var=2.0, len_scale=2.0, nu=2.0)
@@ -52,10 +95,22 @@ class TestSumModel(unittest.TestCase):
         self.assertTrue(s1 == s3)
 
         with self.assertRaises(ValueError):
+            gs.Exponential() + 1
+
+        with self.assertRaises(ValueError):
+            1 + gs.Exponential()
+
+        with self.assertRaises(ValueError):
             gs.SumModel(gs.Exponential, gs.Gaussian(dim=2))
 
         with self.assertRaises(ValueError):
             gs.SumModel(gs.Nugget, gs.Nugget(nugget=2))
+
+        with self.assertRaises(ValueError):
+            gs.SumModel(gs.Gaussian(dim=2), gs.Exponential)
+
+        with self.assertRaises(ValueError):
+            gs.SumModel(gs.Nugget(nugget=2), gs.Nugget)
 
         with self.assertRaises(ValueError):
             model = gs.Spherical() + gs.Spherical()
