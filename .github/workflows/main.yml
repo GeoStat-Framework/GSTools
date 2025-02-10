@@ -62,7 +62,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
         # https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
         ver:
           - { py: "3.8", np: "==1.20.0", sp: "==1.5.4" }
@@ -95,9 +95,6 @@ jobs:
           pip install build
 
       - name: Install GSTools
-        # env:
-        #   GSTOOLS_BUILD_PARALLEL: 1
-        #   pip install --no-binary gstools-cython -v --editable .[test]
         run: |
           pip install -v --editable .[test]
 
