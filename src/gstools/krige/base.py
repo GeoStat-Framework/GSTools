@@ -14,14 +14,14 @@ import collections
 
 import numpy as np
 import scipy.linalg as spl
+from gstools_cython.krige import calc_field_krige as calc_field_krige_c
+from gstools_cython.krige import (
+    calc_field_krige_and_variance as calc_field_krige_and_variance_c,
+)
 from scipy.spatial.distance import cdist
 
 from gstools import config
 from gstools.field.base import Field
-from gstools.krige.krigesum import calc_field_krige as calc_field_krige_c
-from gstools.krige.krigesum import (
-    calc_field_krige_and_variance as calc_field_krige_and_variance_c,
-)
 from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func

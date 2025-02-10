@@ -20,12 +20,12 @@ from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
 
 import numpy as np
+from gstools_cython.field import summate as summate_c
+from gstools_cython.field import summate_fourier as summate_fourier_c
+from gstools_cython.field import summate_incompr as summate_incompr_c
 
 from gstools import config
 from gstools.covmodel.base import CovModel
-from gstools.field.summator import summate as summate_c
-from gstools.field.summator import summate_fourier as summate_fourier_c
-from gstools.field.summator import summate_incompr as summate_incompr_c
 from gstools.random.rng import RNG
 from gstools.tools.geometric import generate_grid
 

@@ -12,6 +12,10 @@ The following functions are provided
 
 # pylint: disable=C0412
 import numpy as np
+from gstools_cython.variogram import directional as directional_c
+from gstools_cython.variogram import ma_structured as ma_structured_c
+from gstools_cython.variogram import structured as structured_c
+from gstools_cython.variogram import unstructured as unstructured_c
 
 from gstools import config
 from gstools.normalizer.tools import remove_trend_norm_mean
@@ -23,10 +27,6 @@ from gstools.tools.geometric import (
     generate_grid,
 )
 from gstools.variogram.binning import standard_bins
-from gstools.variogram.estimator import directional as directional_c
-from gstools.variogram.estimator import ma_structured as ma_structured_c
-from gstools.variogram.estimator import structured as structured_c
-from gstools.variogram.estimator import unstructured as unstructured_c
 
 if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
     # pylint: disable=E0401

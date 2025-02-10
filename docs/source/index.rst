@@ -90,21 +90,22 @@ When using conda, the parallel version of GSTools is installed per default.
 To enable the OpenMP support in Cython when using pip, you have to provide a C
 compiler and OpenMP. Parallel support is controlled by an environment variable
 ``GSTOOLS_BUILD_PARALLEL``, that can be ``0`` or ``1`` (interpreted as ``0``
-if not present). GSTools then needs to be installed from source:
+if not present). The GSTools-Cython backend then needs to be installed from source:
 
 .. code-block:: none
 
     export GSTOOLS_BUILD_PARALLEL=1
-    pip install --no-binary=gstools gstools
+    pip install --no-binary=gstools-cython gstools
 
-Note, that the ``--no-binary=gstools`` option forces pip to not use a wheel
-for GSTools.
+Note, that the ``--no-binary=gstools-cython`` option forces pip to not use a wheel
+for the GSTools-Cython backend.
 
 For the development version, you can do almost the same:
 
 .. code-block:: none
 
     export GSTOOLS_BUILD_PARALLEL=1
+    pip install git+git://github.com/GeoStat-Framework/GSTools-Cython.git@main
     pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
 
 
