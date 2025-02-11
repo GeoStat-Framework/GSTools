@@ -66,13 +66,14 @@ grid = pv.ImageData(dimensions=N)
 # grid.plot(show_edges=True)
 
 grid.point_data["PGS"] = P.reshape(-1)
-grid.contour(isosurfaces=8).plot()
 
 ###############################################################################
 # .. note::
 #    PyVista does not work on readthedocs, but you can try it out yourself by
 #    running the example yourself. You will get an interactive version of this
 #    screenshot.
+
+# grid.contour(isosurfaces=8).plot()
 
 ###############################################################################
 #
