@@ -57,6 +57,8 @@ class PGS:
                 raise ValueError("PGS: Not all fields have the same shape.")
         self._dim = dim
         self._Zs = np.array(fields)
+        self._L = None
+        self._pos_l = None
         try:
             self._mapping = np.stack(self._Zs, axis=1)
         except np.AxisError:
@@ -161,8 +163,3 @@ class PGS:
                 )
             )
         return pos_trans
-
-    @property
-    def P(self):
-        """:class:`numpy.ndarray`: The plurigaussian field"""
-        return self._P
