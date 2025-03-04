@@ -10,6 +10,8 @@ field examples.
 
 In this example, we assume that we know the categorical values of the PGS field
 to be 2 in the lower left 20 by 20 grid cells.
+
+Warning: Using PGS for conditioning fields is still a beta feature.
 """
 
 import matplotlib.pyplot as plt

@@ -24,7 +24,7 @@ except AttributeError:
 class PGS:
     """A class to generate plurigaussian field simulations (PGS).
 
-    See [Ricketts2023]_ for more details.
+    See e.g. [Ricketts2023]_ and [Armstrong2011]_ for more details.
 
     Parameters
     ----------
@@ -36,6 +36,10 @@ class PGS:
         instead of a list. This class supports structured and unstructured meshes.
         All fields must have the same shapes.
 
+    Notes
+    -----
+    Using plurigaussian fields for conditioning fields is still a beta feature.
+
     References
     ----------
     .. [Ricketts2023] Ricketts, E.J., Freeman, B.L., Cleall, P.J. et al.
@@ -43,6 +47,10 @@ class PGS:
         Field Generator for Multi-scale Modelling of Solute Transport in
         Concrete. Transp Porous Med 148, 95–121 (2023)
         https://doi.org/10.1007/s11242-023-01930-8
+    .. [Armstrong2011] Armstrong, Margaret, et al.
+        Plurigaussian simulations in geosciences.
+        Springer Science & Business Media, 2011.
+        https://doi.org/10.1007/978-3-642-19607-2
     """
 
     def __init__(self, dim, fields):
