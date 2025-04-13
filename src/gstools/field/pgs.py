@@ -64,26 +64,26 @@ class PGS:
             if not fields[0].shape == fields[d].shape:
                 raise ValueError("PGS: Not all fields have the same shape.")
         self._dim = dim
-        self._Zs = np.array(fields)
-        self._L = None
-        self._pos_l = None
+        self._fields = np.array(fields)
+        self._lithotypes = None
+        self._pos_lith = None
         try:
-            self._mapping = np.stack(self._Zs, axis=1)
+            self._mapping = np.stack(self._fields, axis=1)
         except np.AxisError:
             # if dim==1, `fields` is prob. a raw field & not a 1-tuple or
             # equivalent
             if self._dim == 1:
-                self._Zs = np.array([self._Zs])
-                self._mapping = np.stack(self._Zs, axis=1)
+                self._fields = np.array([self._fields])
+                self._mapping = np.stack(self._fields, axis=1)
             else:
                 raise
 
-    def __call__(self, L):
+    def __call__(self, lithotypes):
         """Generate the plurigaussian field.
 
         Parameters
         ----------
-        L : :class:`numpy.ndarray`
+        lithotypes : :class:`numpy.ndarray`
             A `dim` dimensional structured field, whose values are mapped to the PGS.
             It does not have to have the same shape as the `fields`, as the indices are
             automatically scaled.
@@ -92,66 +92,66 @@ class PGS:
         pgs : :class:`numpy.ndarray`
             the plurigaussian field
         """
-        self._L = np.array(L)
-        if len(self._L.shape) != self._dim:
+        self._lithotypes = np.array(lithotypes)
+        if len(self._lithotypes.shape) != self._dim:
             raise ValueError("PGS: Mismatch between dim. and facies shape.")
-        self._pos_l = self.calc_L_axes(self._L.shape)
+        self._pos_lith = self.calc_lithotype_axes(self._lithotypes.shape)
 
         P_dig = []
         for d in range(self._dim):
-            P_dig.append(np.digitize(self._mapping[:, d], self._pos_l[d]))
+            P_dig.append(np.digitize(self._mapping[:, d], self._pos_lith[d]))
 
         # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
-        return self._L[(*P_dig,)]
+        return self._lithotypes[(*P_dig,)]
 
-    def calc_L_axes(self, L_shape):
-        """Calculate the axes on which the L field is defined.
+    def calc_lithotype_axes(self, lithotypes_shape):
+        """Calculate the axes on which the lithorypes are defined.
 
         With the centroid of the correlations of the SRFs at the center,
         the axes are calculated, which hold all correlations.
-        These axes are used for the L field.
+        These axes are used for the lithotypes field.
 
         Parameters
         ----------
-        L_shape : :class:`tuple`
-            The shape of the L field.
+        lithotypes_shape : :class:`tuple`
+            The shape of the lithotypes field.
 
         Returns
         -------
-        pos_l : :class:`numpy.ndarray`
+        pos_lith : :class:`numpy.ndarray`
             the axes holding all field correlations
         """
-        pos_l = []
+        pos_lith = []
         try:
             # structured grid
-            centroid = self._Zs.mean(axis=tuple(range(1, self._dim + 1)))
+            centroid = self._fields.mean(axis=tuple(range(1, self._dim + 1)))
         except np.AxisError:
             # unstructured grid
-            centroid = self._Zs.mean(axis=1)
+            centroid = self._fields.mean(axis=1)
         for d in range(self._dim):
-            l = np.floor(self._Zs[d].min()) - 1
-            h = np.ceil(self._Zs[d].max()) + 1
+            l = np.floor(self._fields[d].min()) - 1
+            h = np.ceil(self._fields[d].max()) + 1
             m = (h + l) / 2.0
             dist = max(np.abs(h - m), np.abs(l - m))
-            pos_l.append(
+            pos_lith.append(
                 np.linspace(
                     centroid[d] - dist,
                     centroid[d] + dist,
-                    L_shape[d],
+                    lithotypes_shape[d],
                 )
             )
-        return pos_l
+        return pos_lith
 
-    def transform_coords(self, L_shape, pos):
+    def transform_coords(self, lithotypes_shape, pos):
         """Transform position from correlation coords to L indices.
 
-        This is a helper method to get the L indices for given correlated
-        field values.
+        This is a helper method to get the lithoty pes indices for given
+        correlated field values.
 
         Parameters
         ----------
-        L_shape : :class:`tuple`
-            The shape of the L field.
+        lithotypes_shape : :class:`tuple`
+            The shape of the lithotypes field.
         pos : :class:`numpy.ndarray`
             The position in field coordinates, which will be transformed.
 
@@ -161,13 +161,13 @@ class PGS:
             the transformed position tuple
         """
         pos_trans = []
-        pos_l = self.calc_L_axes(L_shape)
+        pos_lith = self.calc_lithotype_axes(lithotypes_shape)
         for d in range(self._dim):
             pos_trans.append(
                 int(
-                    (pos[d] - pos_l[d][0])
-                    / (pos_l[d][-1] - pos_l[d][0])
-                    * L_shape[d]
+                    (pos[d] - pos_lith[d][0])
+                    / (pos_lith[d][-1] - pos_lith[d][0])
+                    * lithotypes_shape[d]
                 )
             )
         return pos_trans

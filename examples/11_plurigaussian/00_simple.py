@@ -34,21 +34,21 @@ field1 = srf.structured([x, y], seed=20170519)
 field2 = srf.structured([x, y], seed=19970221)
 
 ###############################################################################
-# Now, we will create the L-field describing the categorical data. For now, we
-# will only have two categories and we will address them by the integers 0 and 1.
-# We start off by creating a matrix of 0s from which we will select a rectangle
-# and fill that with 1s.
-# This field does not have to match the shape of the SRFs.
+# Now, we will create the lithotypes field describing the categorical data. For
+# now, we will only have two categories and we will address them by the
+# integers 0 and 1. We start off by creating a matrix of 0s from which we will
+# select a rectangle and fill that with 1s. This field does not have to match
+# the shape of the SRFs.
 
-M = [200, 160]
+centroid = [200, 160]
 
 # size of the rectangle
-R = [40, 32]
+rect = [40, 32]
 
-L = np.zeros(M)
-L[
-    M[0] // 2 - R[0] // 2 : M[0] // 2 + R[0] // 2,
-    M[1] // 2 - R[1] // 2 : M[1] // 2 + R[1] // 2,
+lithotypes = np.zeros(centroid)
+lithotypes[
+    centroid[0] // 2 - rect[0] // 2 : centroid[0] // 2 + rect[0] // 2,
+    centroid[1] // 2 - rect[1] // 2 : centroid[1] // 2 + rect[1] // 2,
 ] = 1
 
 ###############################################################################
@@ -57,7 +57,7 @@ L[
 # field by calling the instance and handing over the L-field.
 
 pgs = gs.PGS(dim, [field1, field2])
-P = pgs(L)
+P = pgs(lithotypes)
 
 ###############################################################################
 # Finally, we can plot the PGS, but we will also show the L-field and the two
@@ -67,7 +67,7 @@ fig, axs = plt.subplots(2, 2)
 
 axs[0, 0].imshow(field1, cmap="copper", origin="lower")
 axs[0, 1].imshow(field2, cmap="copper", origin="lower")
-axs[1, 0].imshow(L, cmap="copper", origin="lower")
+axs[1, 0].imshow(lithotypes, cmap="copper", origin="lower")
 axs[1, 1].imshow(P, cmap="copper", origin="lower")
 
 # For more information on Plurigaussian fields and how they naturally extend

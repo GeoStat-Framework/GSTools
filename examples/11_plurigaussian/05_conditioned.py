@@ -36,7 +36,7 @@ y = np.arange(N[1])
 # We'll see the first few values, which are all 1. This value is not very
 # important. However, it should be in the range of SRF values, to not mess
 # with the kriging. The known value of the PGS, namely 2, will be set for the
-# L-field, which will map it the the conditioned SRF values of 1 at given
+# lithotypes field, which will map it the the conditioned SRF values of 1 at given
 # positions.
 
 cond_data = np.load("conditional_values.npz")
@@ -61,7 +61,7 @@ cond_srf.set_pos([x, y], "structured")
 # conditioned on our previous knowledge. We'll do that for the two SRFs needed
 # for the PGS, and then we will also set up the PGS generator. Next, we'll
 # use a little helper method, which can transform the coordinates from the SRFs
-# to the L field. This helps us set up the area around the conditioned value
+# to the lithotypes field. This helps us set up the area around the conditioned value
 # `cond_val`.
 
 field1 = cond_srf(seed=484739)
@@ -72,32 +72,34 @@ pgs = gs.PGS(dim, [field1, field2])
 M = [100, 80]
 
 # size of the rectangle
-R = [40, 32]
+rect = [40, 32]
 
-L = np.zeros(M)
-# calculate grid axes of the L-field
-pos_l = pgs.calc_L_axes(L.shape)
-# transform conditioned SRF value to L-field index
-pos_l_i = pgs.transform_coords(L.shape, [cond_val[0], cond_val[0]])
+lithotypes = np.zeros(M)
+# calculate grid axes of the lithotypes field
+pos_lith = pgs.calc_lithotype_axes(lithotypes.shape)
+# transform conditioned SRF value to lithotypes index
+pos_lith_ind = pgs.transform_coords(
+    lithotypes.shape, [cond_val[0], cond_val[0]]
+)
 
 # conditioned category of 2 around the conditioned values' positions
-L[
-    pos_l_i[0] - 5 : pos_l_i[0] + 5,
-    pos_l_i[1] - 5 : pos_l_i[1] + 5,
+lithotypes[
+    pos_lith_ind[0] - 5 : pos_lith_ind[0] + 5,
+    pos_lith_ind[1] - 5 : pos_lith_ind[1] + 5,
 ] = 2
 
 ###############################################################################
-# With the two SRFs and `L` ready, we can create the actual PGS.
+# With the two SRFs and the lithotypes ready, we can create the actual PGS.
 
-P = pgs(L)
+P = pgs(lithotypes)
 
 ###############################################################################
-# Finally, we can plot the PGS, but we will also show the L-field and the two
-# original Gaussian SRFs. We will set the colours of the SRF correlation
-# scatter plot to be the sum of their respective position tuples (x+y), to get a
-# feeling for which point corresponds to which position. The more blue the
+# Finally, we can plot the PGS, but we will also show the lithotypes and the
+# two original Gaussian SRFs. We will set the colours of the SRF correlation
+# scatter plot to be the sum of their respective position tuples (x+y), to get
+# a feeling for which point corresponds to which position. The more blue the
 # points, the smaller the sum is. We can nicely see that many blue points
-# gather in the highlighted rectangle of the L-field where the categorical
+# gather in the highlighted rectangle of the lithotypes where the categorical
 # value of 2 is set.
 
 fig, axs = plt.subplots(2, 2)
@@ -110,7 +112,9 @@ axs[1, 0].scatter(
     s=0.1,
     c=(x.reshape((len(x), 1)) + y.reshape((1, len(y))).flatten()),
 )
-axs[1, 0].pcolormesh(pos_l[0], pos_l[1], L.T, alpha=0.3, cmap="copper")
+axs[1, 0].pcolormesh(
+    pos_lith[0], pos_lith[1], lithotypes.T, alpha=0.3, cmap="copper"
+)
 axs[1, 1].imshow(P, cmap="copper", origin="lower")
 
 plt.tight_layout()
@@ -130,7 +134,7 @@ for i in range(ens_no):
     fields1.append(cond_srf(seed=seed()))
     fields2.append(cond_srf(seed=seed()))
     pgs = gs.PGS(dim, [fields1[-1], fields2[-1]])
-    Ps.append(pgs(L))
+    Ps.append(pgs(lithotypes))
 
 fig, axs = plt.subplots(3, 3)
 cnt = 0

@@ -18,13 +18,13 @@ class TestPGS(unittest.TestCase):
         field = srf.structured((x,))
 
         m = 10
-        L = np.zeros(n)
-        L[n // 3 - m // 2 : n // 3 + m // 2] = 1
-        L[n // 3 - 2 * m : n // 3 - m // 2] = 2
-        L[4 * n // 5 - m // 2 : 4 * n // 5 + m // 2] = 3
+        lithotypes = np.zeros(n)
+        lithotypes[n // 3 - m // 2 : n // 3 + m // 2] = 1
+        lithotypes[n // 3 - 2 * m : n // 3 - m // 2] = 2
+        lithotypes[4 * n // 5 - m // 2 : 4 * n // 5 + m // 2] = 3
 
         pgs = gs.PGS(1, field)
-        P = pgs(L)
+        P = pgs(lithotypes)
         self.assertAlmostEqual(P[n // 2], 0.0)
         self.assertAlmostEqual(P[0], 0.0)
         self.assertAlmostEqual(P[-1], 1.0)
@@ -47,26 +47,26 @@ class TestPGS(unittest.TestCase):
         m1 = 16
         m2 = 16
 
-        L = np.zeros((n1, n2))
-        L[
+        lithotypes = np.zeros((n1, n2))
+        lithotypes[
             n1 // 2 - m1 // 2 : n1 // 2 + m1 // 2,
             n2 // 2 - m2 // 2 : n2 // 2 + m2 // 2,
         ] = 1
-        L[
+        lithotypes[
             n1 // 2 - m1 // 2 + m1 : n1 // 2 + m1 // 2 + m1,
             n2 // 2 - m2 // 2 : n2 // 2 + m2 // 2,
         ] = 2
-        L[
+        lithotypes[
             n1 // 2 - m1 // 2 + m1 : n1 // 2 + m1 // 2 + m1,
             n2 // 2 - m2 // 2 + m2 : n2 // 2 + m2 // 2 + m2,
         ] = 3
-        L[
+        lithotypes[
             n1 // 3 - m1 // 2 : n1 // 3 + m1 // 2,
             n2 // 3 - m2 // 2 : n2 // 3 + m2 // 2,
         ] = 4
 
         pgs = gs.PGS(2, [field1, field2])
-        P = pgs(L)
+        P = pgs(lithotypes)
 
         self.assertAlmostEqual(P[n1 // 2, n2 // 2], 2.0)
         self.assertAlmostEqual(P[0, 0], 1.0)
@@ -97,15 +97,15 @@ class TestPGS(unittest.TestCase):
         m2 = 10
         m3 = 10
 
-        L = np.zeros((n1, n2, n3))
-        L[
+        lithotypes = np.zeros((n1, n2, n3))
+        lithotypes[
             n1 // 2 - m1 // 2 : n1 // 2 + m1 // 2,
             n2 // 2 - m2 // 2 : n2 // 2 + m2 // 2,
             n3 // 2 - m3 // 2 : n3 // 2 + m3 // 2,
         ] = 1
 
         pgs = gs.PGS(3, [field1, field2, field3])
-        P = pgs(L)
+        P = pgs(lithotypes)
 
         self.assertAlmostEqual(P[n1 // 2, n2 // 2, n3 // 2], 1.0)
         self.assertAlmostEqual(P[n1 // 3, n2 // 3, n3 // 3], 1.0)
@@ -148,8 +148,8 @@ class TestPGS(unittest.TestCase):
         m3 = 5
         m4 = 5
 
-        L = np.zeros((n1, n2, n3, n4))
-        L[
+        lithotypes = np.zeros((n1, n2, n3, n4))
+        lithotypes[
             n1 // 2 - m1 // 2 : n1 // 2 + m1 // 2,
             n2 // 2 - m2 // 2 : n2 // 2 + m2 // 2,
             n3 // 2 - m3 // 2 : n3 // 2 + m3 // 2,
@@ -157,7 +157,7 @@ class TestPGS(unittest.TestCase):
         ] = 1
 
         pgs = gs.PGS(4, [field1, field2, field3, field4])
-        P = pgs(L)
+        P = pgs(lithotypes)
 
         self.assertAlmostEqual(P[n1 // 2, n2 // 2, n3 // 2, n4 // 2], 1.0)
         self.assertAlmostEqual(P[0, 0, 0, 0], 0.0)
@@ -184,26 +184,26 @@ class TestPGS(unittest.TestCase):
         m1 = 4
         m2 = 4
 
-        L_struct = np.zeros((n1, n2))
-        L_struct[
+        lithotypes_struct = np.zeros((n1, n2))
+        lithotypes_struct[
             n1 // 2 - m1 // 2 : n1 // 2 + m1 // 2,
             n2 // 2 - m2 // 2 : n2 // 2 + m2 // 2,
         ] = 1
-        L_struct[
+        lithotypes_struct[
             n1 // 2 - m1 // 2 + m1 : n1 // 2 + m1 // 2 + m1,
             n2 // 2 - m2 // 2 : n2 // 2 + m2 // 2,
         ] = 2
-        L_struct[
+        lithotypes_struct[
             n1 // 2 - m1 // 2 + m1 : n1 // 2 + m1 // 2 + m1,
             n2 // 2 - m2 // 2 + m2 : n2 // 2 + m2 // 2 + m2,
         ] = 3
-        L_struct[
+        lithotypes_struct[
             n1 // 3 - m1 // 2 : n1 // 3 + m1 // 2,
             n2 // 3 - m2 // 2 : n2 // 3 + m2 // 2,
         ] = 4
 
         pgs = gs.PGS(2, [field1_unstruct, field2_unstruct])
-        P = pgs(L_struct)
+        P = pgs(lithotypes_struct)
 
         self.assertAlmostEqual(P[0], 4.0)
         self.assertAlmostEqual(P[-1], 1.0)
@@ -212,10 +212,10 @@ class TestPGS(unittest.TestCase):
     def test_assertions(self):
         n = 30
         pos = [np.arange(n), np.arange(n), np.arange(n)]
-        L_2d = np.empty((n, n))
+        lithotypes_2d = np.empty((n, n))
         field1 = np.empty((n, n))
         field2 = np.empty((n - 1, n - 1))
         pgs = gs.PGS(3, pos)
         self.assertRaises(ValueError, gs.PGS, 3, [0, 1])
-        self.assertRaises(ValueError, pgs, L_2d)
+        self.assertRaises(ValueError, pgs, lithotypes_2d)
         self.assertRaises(ValueError, gs.PGS, 2, [field1, field2])

@@ -31,36 +31,36 @@ srf2 = gs.SRF(model2)
 field2 = srf2.structured([x, y], seed=19970221)
 
 ###############################################################################
-# The L-field will consist of a circle which contains one category and the
+# The lithotypes will consist of a circle which contains one category and the
 # surrounding is the second category.
 
-# no. of grid cells of the L-field
+# no. of grid cells of the lithotypes
 M = [200, 200]
 
 # radius of circle
-R = 25
+radius = 25
 
-x_L = np.arange(M[0])
-y_L = np.arange(M[1])
-L = np.zeros(M)
-mask = (x_L[:, np.newaxis] - M[0] // 2) ** 2 + (
-    y_L[np.newaxis, :] - M[1] // 2
-) ** 2 < R**2
-L[mask] = 1
+x_lith = np.arange(M[0])
+y_lith = np.arange(M[1])
+lithotypes = np.zeros(M)
+mask = (x_lith[:, np.newaxis] - M[0] // 2) ** 2 + (
+    y_lith[np.newaxis, :] - M[1] // 2
+) ** 2 < radius**2
+lithotypes[mask] = 1
 
 ###############################################################################
-# With the two SRFs and the L-field ready, we can create the PGS.
+# With the two SRFs and the lithotypes ready, we can create the PGS.
 pgs = gs.PGS(dim, [field1, field2])
-P = pgs(L)
+P = pgs(lithotypes)
 
 ###############################################################################
-# And now the plotting of the two Gaussian fields, the L-field, and the PGS.
+# And now the plotting of the two Gaussian fields, the lithotypes, and the PGS.
 
 fig, axs = plt.subplots(2, 2)
 
 axs[0, 0].imshow(field1, cmap="copper", origin="lower")
 axs[0, 1].imshow(field2, cmap="copper", origin="lower")
-axs[1, 0].imshow(L, cmap="copper", origin="lower")
+axs[1, 0].imshow(lithotypes, cmap="copper", origin="lower")
 axs[1, 1].imshow(P, cmap="copper", origin="lower")
 
 ###############################################################################

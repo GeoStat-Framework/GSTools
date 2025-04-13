@@ -42,36 +42,36 @@ plt.scatter(field1.flatten(), field2.flatten(), s=0.1)
 
 ###############################################################################
 # This mapping always has a multivariate Gaussian distribution and this is also
-# the field on which we define our categorical data `L` and their relations to each
-# other. Before providing further explanations, we will create the L-field, which again
-# will have only two categories, but this time we will not prescribe a rectangle,
-# but a circle.
+# the field on which we define our categorical data `lithotypes` and their
+# relations to each other. Before providing further explanations, we will
+# create the lithotypes field, which again will have only two categories, but
+# this time we will not prescribe a rectangle, but a circle.
 
 # no. of grid cells of L-field
 M = [51, 41]
-# we need the indices of L later
-x_L = np.arange(M[0])
-y_L = np.arange(M[1])
+# we need the indices of `lithotypes` later
+x_lith = np.arange(M[0])
+y_lith = np.arange(M[1])
 
 # radius of circle
-R = 7
+radius = 7
 
-L = np.zeros(M)
-mask = (x_L[:, np.newaxis] - M[0] // 2) ** 2 + (
-    y_L[np.newaxis, :] - M[1] // 2
-) ** 2 < R**2
-L[mask] = 1
+lithotypes = np.zeros(M)
+mask = (x_lith[:, np.newaxis] - M[0] // 2) ** 2 + (
+    y_lith[np.newaxis, :] - M[1] // 2
+) ** 2 < radius**2
+lithotypes[mask] = 1
 
 ###############################################################################
 # We can compute the actual PGS now. As a second step, we use a helper function
-# to recalculate the axes on which the L-field is defined. Normally, this is
-# handled internally. But in order to show the scatter plot together with the
-# L-field, we need the axes here.
+# to recalculate the axes on which the lithotypes are defined. Normally, this
+# is handled internally. But in order to show the scatter plot together with
+# the lithotypes, we need the axes here.
 
 pgs = gs.PGS(dim, [field1, field2])
-P = pgs(L)
+P = pgs(lithotypes)
 
-x_l, y_l = pgs.calc_L_axes(L.shape)
+x_lith, y_lith = pgs.calc_lithotype_axes(lithotypes.shape)
 
 ###############################################################################
 # And now to some plotting. Unfortunately, matplotlib likes to mess around with
@@ -81,7 +81,7 @@ fig, axs = plt.subplots(2, 2)
 axs[0, 0].imshow(field1, cmap="copper", origin="lower")
 axs[0, 1].imshow(field2, cmap="copper", origin="lower")
 axs[1, 0].scatter(field1.flatten(), field2.flatten(), s=0.1, color="C0")
-axs[1, 0].pcolormesh(x_l, y_l, L.T, alpha=0.3, cmap="copper")
+axs[1, 0].pcolormesh(x_lith, y_lith, lithotypes.T, alpha=0.3, cmap="copper")
 
 axs[1, 1].imshow(P, cmap="copper", origin="lower")
 

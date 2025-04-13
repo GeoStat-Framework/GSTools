@@ -35,23 +35,23 @@ srf3 = gs.SRF(model3)
 field3 = srf3.structured([x, y, z], seed=20011012)
 
 ###############################################################################
-# The 3d L-field will consist of a cube which contains one category and the
-# surrounding is the second category.
+# The 3d lithotypes field will consist of a cube which contains one category
+# and the surrounding is the second category.
 
 # size of cube
-C = [18] * dim
+cube = [18] * dim
 
-L = np.zeros(N)
-L[
-    N[0] // 2 - C[0] // 2 : N[0] // 2 + C[0] // 2,
-    N[1] // 2 - C[1] // 2 : N[1] // 2 + C[1] // 2,
-    N[2] // 2 - C[2] // 2 : N[2] // 2 + C[2] // 2,
+lithotypes = np.zeros(N)
+lithotypes[
+    N[0] // 2 - cube[0] // 2 : N[0] // 2 + cube[0] // 2,
+    N[1] // 2 - cube[1] // 2 : N[1] // 2 + cube[1] // 2,
+    N[2] // 2 - cube[2] // 2 : N[2] // 2 + cube[2] // 2,
 ] = 1
 
 ###############################################################################
-# With the three SRFs and the L-field ready, we can create the 3d PGS.
+# With the three SRFs and the lithotypes ready, we can create the 3d PGS.
 pgs = gs.PGS(dim, [field1, field2, field3])
-P = pgs(L)
+P = pgs(lithotypes)
 
 # ###############################################################################
 # For ploting the 3d PGS, we will use [PyVista](https://pyvista.org/) which works
@@ -61,8 +61,8 @@ import pyvista as pv
 
 grid = pv.ImageData(dimensions=N)
 
-# uncomment, if you want to see L, which is just a cube...
-# grid.point_data['L'] = np.meshgrid(L, indexing="ij")[0]
+# uncomment, if you want to see lithotypes field, which is just a cube...
+# grid.point_data['lithotypes'] = np.meshgrid(lithotypes, indexing="ij")[0]
 # grid.plot(show_edges=True)
 
 grid.point_data["PGS"] = P.reshape(-1)

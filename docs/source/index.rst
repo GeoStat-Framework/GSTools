@@ -418,22 +418,21 @@ Example
    field1 = srf.structured([x, y], seed=20170519)
    field2 = srf.structured([x, y], seed=19970221)
 
-   # with L, we prescribe the categorical data and its relations
+   # with `lithotypes`, we prescribe the categorical data and its relations
    # here, we use 2 categories separated by a rectangle.
-   R = [40, 32]
-   L = np.zeros(N)
-   L[
-       N[0] // 2 - R[0] // 2 : N[0] // 2 + R[0] // 2,
-       N[1] // 2 - R[1] // 2 : N[1] // 2 + R[1] // 2,
+   rect = [40, 32]
+   lithotypes = np.zeros(N)
+   lithotypes[
+       N[0] // 2 - rect[0] // 2 : N[0] // 2 + rect[0] // 2,
+       N[1] // 2 - rect[1] // 2 : N[1] // 2 + rect[1] // 2,
    ] = 1
 
-   pgs = gs.PGS(2, [field1, field2], L)
+   pgs = gs.PGS(2, [field1, field2])
+   P = pgs(lithotypes)
 
    fig, axs = plt.subplots(1, 2)
-   axs[0].imshow(L, cmap="copper")
-   axs[1].imshow(pgs.P, cmap="copper")
-   plt.tight_layout()
-   plt.savefig("2d_pgs.png")
+   axs[0].imshow(lithotypes, cmap="copper")
+   axs[1].imshow(P, cmap="copper")
    plt.show()
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/2d_pgs.png
