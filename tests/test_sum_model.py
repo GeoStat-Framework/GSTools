@@ -28,6 +28,7 @@ class TestSumModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             m1.len_scale = 1
 
+    def test_attr_set(self):
         s1 = gs.Gaussian() + gs.Gaussian() + gs.Gaussian()
         with self.assertRaises(ValueError):
             s1.vars = [1, 2]
@@ -50,6 +51,7 @@ class TestSumModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             s1.ratios = [0.3, 0.2]
 
+    def test_compare(self):
         s1 = gs.Gaussian(var=1) + gs.Exponential(var=2)
         s2 = gs.Exponential(var=1) + gs.Gaussian(var=2)
         self.assertFalse(s1 == gs.Nugget(dim=3))
@@ -57,6 +59,7 @@ class TestSumModel(unittest.TestCase):
         self.assertFalse(gs.Exponential() == (gs.Exponential() + gs.Nugget()))
         self.assertFalse((gs.Exponential() + gs.Nugget()) == gs.Exponential())
 
+    def test_copy(self):
         # check that models get copied
         m1 = gs.Gaussian()
         s1 = m1 + m1
@@ -64,19 +67,26 @@ class TestSumModel(unittest.TestCase):
         s1.vars = var
         np.testing.assert_array_almost_equal(s1.vars, var)
 
+    def test_var_dist(self):
         s1 = gs.SumModel(gs.Exponential, gs.Exponential, var=3)
         np.testing.assert_array_almost_equal(s1.vars, [1.5, 1.5])
+
+    def test_presence(self):
+        s1 = gs.SumModel(gs.Exponential, gs.Exponential)
         self.assertFalse(gs.Gaussian() in s1)
 
+    def test_len_dist(self):
         s1 = gs.SumModel(gs.Exponential, gs.Exponential, len_scale=10)
         np.testing.assert_array_almost_equal(s1.len_scales, [10, 10])
 
+    def test_temporal(self):
         s1 = gs.SumModel(
             gs.Exponential, gs.Exponential, temporal=True, spatial_dim=2
         )
         self.assertTrue(all(mod.temporal for mod in s1))
         self.assertTrue(all(mod.dim == 3 for mod in s1))
 
+    def test_magic(self):
         m1 = gs.Gaussian(dim=2, var=1.0, len_scale=1.0)
         m2 = gs.Matern(dim=2, var=2.0, len_scale=2.0, nu=2.0)
         m3 = gs.Integral(dim=2, var=3.0, len_scale=3.0, nu=3.0)
@@ -94,6 +104,7 @@ class TestSumModel(unittest.TestCase):
         self.assertTrue(s2 == s3)
         self.assertTrue(s1 == s3)
 
+    def test_exceptions(self):
         with self.assertRaises(ValueError):
             gs.Exponential() + 1
 
