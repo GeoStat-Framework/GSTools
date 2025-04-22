@@ -252,6 +252,10 @@ def _pre_para(model, para_select, sill, anis):
 
 
 def _check_sill(model, para_select, sill, bnd, sum_cfg):
+    """
+    This functions checks if the selected values for
+    variance, nugget and sill are valid.
+    """
     is_sum = hasattr(model, "sub_arg")
     sill_low = bnd["var"][0] + bnd["nugget"][0]
     sill_up = bnd["var"][1] + bnd["nugget"][1]

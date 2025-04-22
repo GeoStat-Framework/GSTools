@@ -132,13 +132,18 @@ def sum_set_var_weights(summod, weights, skip=None, var=None):
         raise ValueError(msg)
     ids = range(len(summod))
     if fail := set(skip) - set(ids):
-        msg = f"SumModel.set_var_weights: skip ids not valid: {fail}"
+        msg = (
+            f"SumModel.set_var_weights: ids given by 'skip' not valid: {fail}"
+        )
         raise ValueError(msg)
     var = summod.var if var is None else float(var)
     var_sum = sum(summod.models[i].var for i in skip)
     var_diff = var - var_sum
     if var_diff < 0:
-        msg = "SumModel.set_var_weights: skipped variances to big."
+        msg = (
+            "SumModel.set_var_weights: summed variances selected "
+            "with 'skip' already to big to keep total variance."
+        )
         raise ValueError(msg)
     weights_sum = sum(weights)
     var_list = summod.vars
@@ -175,7 +180,9 @@ def sum_set_len_weights(summod, weights, skip=None, len_scale=None):
         raise ValueError(msg)
     ids = range(len(summod))
     if fail := set(skip) - set(ids):
-        msg = f"SumModel.set_len_weights: skip ids not valid: {fail}"
+        msg = (
+            f"SumModel.set_len_weights: ids given by 'skip' not valid: {fail}"
+        )
         raise ValueError(msg)
     len_scale = summod.len_scale if len_scale is None else float(len_scale)
     # also skip models with no variance (not contributing to total len scale)
@@ -193,7 +200,10 @@ def sum_set_len_weights(summod, weights, skip=None, len_scale=None):
     len_sum = sum(summod[i].len_scale * summod.ratios[i] for i in skip)
     len_diff = len_scale - len_sum
     if len_diff < 0:
-        msg = "SumModel.set_len_weights: skipped length scales to big."
+        msg = (
+            "SumModel.set_len_weights: summed length scales "
+            "selected with 'skip' already to big to keep total length scale."
+        )
         raise ValueError(msg)
     weights_sum = sum(weights)
     len_scales = summod.len_scales

@@ -53,6 +53,9 @@ __all__ = [
 class Nugget(SumModel):
     r"""Pure nugget model.
 
+    This model has no correlated variability and represents pure noise.
+    The length scale of the model will be zero.
+
     Parameters
     ----------
     dim : :class:`int`, optional

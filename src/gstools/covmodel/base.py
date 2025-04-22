@@ -150,6 +150,7 @@ class CovModel:
     """
 
     _add_doc = True
+    """Flag to append the above doc-string about parameters to the model implementation."""
 
     def __init__(
         self,
@@ -499,7 +500,11 @@ class CovModel:
 
     @property
     def needs_fourier_transform(self):
-        """Whether the model doesn't implement an analytical spectral density."""
+        """
+        Flag whether the model needs a fourier transform to calculate
+        the spectral density from the covariance function or if
+        it implements an analytical spectral density.
+        """
         base_method = getattr(CovModel, "spectral_density")
         instance_method = getattr(self.__class__, "spectral_density")
         return base_method == instance_method
@@ -1430,6 +1435,11 @@ class SumModel(CovModel):
         """
         Set variances of contained models by weights.
 
+        The variances of the sub-models act as ratios for the sum-model.
+        This function enables to keep the total variance of the sum-model
+        and reset the individual variances of the contained sub-models
+        by the given weights.
+
         Parameters
         ----------
         weights : iterable
@@ -1449,6 +1459,12 @@ class SumModel(CovModel):
     def set_len_weights(self, weights, skip=None, len_scale=None):
         """
         Set length scales of contained models by weights.
+
+        The variances of the sub-models act as ratios for the sub-model length
+        scales to determine the total length scale of the sum-model.
+        This function enables to keep the total length scale of the sum-model as
+        well as the variances of the sub-models and reset the individual length scales
+        of the contained sub-models by the given weights.
 
         Parameters
         ----------
