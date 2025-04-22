@@ -6,6 +6,7 @@ Let's create a 3d PGS! This will mostly feel very familiar, but the plotting
 will be a bit more involved.
 """
 
+# sphinx_gallery_thumbnail_path = 'pics/3d_pgs.png'
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -77,6 +78,6 @@ grid.point_data["PGS"] = P.reshape(-1)
 
 ###############################################################################
 #
-# .. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/3d_pgs.png
+# .. image:: ../../pics/3d_pgs.png
 #    :width: 400px
 #    :align: center

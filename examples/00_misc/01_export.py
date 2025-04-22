@@ -20,6 +20,6 @@ srf.vtk_export(filename="field")
 ###############################################################################
 # The result displayed with Paraview:
 #
-# .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GeoStat-Framework.github.io/master/img/paraview.png
+# .. image:: ../../pics/paraview.png
 #    :width: 400px
 #    :align: center
