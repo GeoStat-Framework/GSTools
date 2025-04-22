@@ -6,7 +6,7 @@ This tutorial demonstrates how to create and use sum models in GSTools.
 We'll combine a Spherical and a Gaussian covariance model to construct
 a sum model, visualize its variogram, and generate spatial random fields.
 
-Let's start with importing GSTools setting up the domain size.
+Let's start with importing GSTools and setting up the domain size.
 """
 
 import gstools as gs
@@ -15,8 +15,9 @@ x = y = range(100)
 
 ###############################################################################
 # First, we create two individual covariance models: a :any:`Spherical` model and a
-# :any:`Gaussian` model. The Spherical model will emphasize small-scale variability,
-# while the Gaussian model captures larger-scale patterns.
+# :any:`Gaussian` model. The Spherical model with its short length scale
+# will emphasize small-scale variability, while the Gaussian model with a larger length scale
+# captures larger-scale patterns.
 
 m0 = gs.Spherical(dim=2, var=2.0, len_scale=5.0)
 m1 = gs.Gaussian(dim=2, var=1.0, len_scale=10.0)
@@ -32,7 +33,8 @@ m1.plot(x_max=20, ax=ax)
 
 ###############################################################################
 # As shown, the Spherical model controls the behavior at shorter distances,
-# while the Gaussian model dominates at longer distances.
+# while the Gaussian model dominates at longer distances. The ratio of influence
+# is thereby controlled by the provided variances of the individual models.
 #
 # Using the sum model, we can generate a spatial random field. Let's visualize
 # the field created by the sum model.
