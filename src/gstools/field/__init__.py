@@ -28,10 +28,19 @@ Field Base Class
    :toctree:
 
    Field
+
+Plurigaussian Simulation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree:
+
+   PGS
 """
 
 from gstools.field.base import Field
 from gstools.field.cond_srf import CondSRF
+from gstools.field.pgs import PGS
 from gstools.field.srf import SRF
 
-__all__ = ["SRF", "CondSRF", "Field"]
+__all__ = ["SRF", "CondSRF", "Field", "PGS"]
