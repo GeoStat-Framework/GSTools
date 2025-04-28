@@ -7,6 +7,8 @@ All notable changes to **GSTools** will be documented in this file.
 ### Enhancements
 
 - new feature: Plurigaussian simulations (PGS) ([#370](https://github.com/GeoStat-Framework/GSTools/pull/370))
+  - they simulate distributions of categorical data, e.g. lithofacies, hydrofacies, soil types, or cementitious materials
+  - they naturally extend truncated Gaussian fields, which are already a part of GSTools through the field transformations
 - new feature: support for Sum-Models ([#364](https://github.com/GeoStat-Framework/GSTools/pull/364))
   - added `SumModel` class
     - represents sum of covariance models
