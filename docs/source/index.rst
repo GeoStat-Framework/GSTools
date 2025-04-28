@@ -33,6 +33,7 @@ GSTools provides geostatistical tools for various purposes:
 - data normalization and transformation
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
+- plurigaussian field simulations (PGS)
 - plotting and exporting routines
 
 
@@ -164,6 +165,7 @@ showing the most important use cases of GSTools, which are
 - `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
 - `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
 - `Normalizing Data <examples/10_normalizer/index.html>`__
+- `Plurigaussian Field Generation (PGS) <examples/11_plurigaussian/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 
@@ -387,6 +389,53 @@ Example
 yielding
 
 .. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/vec_srf_tut_gau.png
+   :width: 600px
+   :align: center
+
+
+Plurigaussian Field Simulation (PGS)
+====================================
+
+With PGS, more complex categorical (or discrete) fields can be created.
+
+
+Example
+-------
+
+.. code-block:: python
+
+   import gstools as gs
+   import numpy as np
+   import matplotlib.pyplot as plt
+
+   N = [180, 140]
+
+   x, y = range(N[0]), range(N[1])
+
+   # we need 2 SRFs
+   model = gs.Gaussian(dim=2, var=1, len_scale=5)
+   srf = gs.SRF(model)
+   field1 = srf.structured([x, y], seed=20170519)
+   field2 = srf.structured([x, y], seed=19970221)
+
+   # with `lithotypes`, we prescribe the categorical data and its relations
+   # here, we use 2 categories separated by a rectangle.
+   rect = [40, 32]
+   lithotypes = np.zeros(N)
+   lithotypes[
+       N[0] // 2 - rect[0] // 2 : N[0] // 2 + rect[0] // 2,
+       N[1] // 2 - rect[1] // 2 : N[1] // 2 + rect[1] // 2,
+   ] = 1
+
+   pgs = gs.PGS(2, [field1, field2])
+   P = pgs(lithotypes)
+
+   fig, axs = plt.subplots(1, 2)
+   axs[0].imshow(lithotypes, cmap="copper")
+   axs[1].imshow(P, cmap="copper")
+   plt.show()
+
+.. image:: https://raw.githubusercontent.com/GeoStat-Framework/GSTools/main/docs/source/pics/2d_pgs.png
    :width: 600px
    :align: center
 
