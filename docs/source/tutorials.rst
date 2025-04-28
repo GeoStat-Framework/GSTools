@@ -22,8 +22,8 @@ explore its whole beauty and power.
    examples/08_geo_coordinates/index
    examples/09_spatio_temporal/index
    examples/10_normalizer/index
-   examples/11_sum_model/index
    examples/11_plurigaussian/index
+   examples/12_sum_model/index
    examples/00_misc/index
 
 .. only:: html
