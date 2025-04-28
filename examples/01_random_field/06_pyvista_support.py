@@ -53,6 +53,6 @@ srf.mesh(grid, points="points", name="random-field")
 ###############################################################################
 # The result should look like this:
 #
-# .. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_pyvista_cut.png
+# .. image:: ../../pics/GS_pyvista_cut.png
 #    :width: 400px
 #    :align: center

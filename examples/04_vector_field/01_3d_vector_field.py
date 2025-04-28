@@ -59,6 +59,6 @@ p.add_mesh(
 ###############################################################################
 # The result should look like this:
 #
-# .. image:: https://github.com/GeoStat-Framework/GeoStat-Framework.github.io/raw/master/img/GS_3d_vector_field.png
+# .. image:: ../../pics/GS_3d_vector_field.png
 #    :width: 400px
 #    :align: center

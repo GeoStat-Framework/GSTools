@@ -398,6 +398,7 @@ def vario_estimate(
         field.fill_value = np.nan  # use no-data val. for remaining masked vals
         field = field[:, select].filled()  # convert to ndarray
         select = mask = None  # free space
+        pnt_cnt = len(pos[0])  # pnt cnt reduced now
     # set no_data values
     if not np.isnan(no_data):
         field[np.isclose(field, float(no_data))] = np.nan

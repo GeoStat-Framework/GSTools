@@ -154,6 +154,16 @@ class Generator(ABC):
 
     @property
     @abstractmethod
+    def model(self):
+        """:any:`CovModel`: Covariance model of the spatial random field."""
+
+    @property
+    def zero_var(self):
+        """:class:`bool`: Whether Covariance model has zero variance."""
+        return np.isclose(self.model.var, 0)
+
+    @property
+    @abstractmethod
     def value_type(self):
         """:class:`str`: Type of the field values (scalar, vector)."""
 
@@ -260,6 +270,10 @@ class RandMeth(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
+        if self.zero_var:
+            shp = pos.shape[1:]
+            return self.get_nugget(shp) if add_nugget else np.full(shp, 0.0)
+        # generate if var is not 0
         summed_modes = _summate(
             self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
         )
@@ -285,7 +299,7 @@ class RandMeth(Generator):
                 size=shape
             )
         else:
-            nugget = 0.0
+            nugget = np.full(shape, 0.0) if self.zero_var else 0.0
         return nugget
 
     def update(self, model=None, seed=np.nan):
@@ -362,23 +376,26 @@ class RandMeth(Generator):
         self._z_1 = self._rng.random.normal(size=self._mode_no)
         self._z_2 = self._rng.random.normal(size=self._mode_no)
         # sample uniform on a sphere
-        sphere_coord = self._rng.sample_sphere(self.model.dim, self._mode_no)
-        # sample radii according to radial spectral density of the model
-        if self.sampling == "inversion" or (
-            self.sampling == "auto" and self.model.has_ppf
-        ):
-            pdf, cdf, ppf = self.model.dist_func
-            rad = self._rng.sample_dist(
-                size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
-            )
+        if self.zero_var:
+            self._cov_sample = np.full((self.model.dim, self._mode_no), 0.0)
         else:
-            rad = self._rng.sample_ln_pdf(
-                ln_pdf=self.model.ln_spectral_rad_pdf,
-                size=self._mode_no,
-                sample_around=1.0 / self.model.len_rescaled,
-            )
-        # get fully spatial samples by multiplying sphere samples and radii
-        self._cov_sample = rad * sphere_coord
+            sph_crd = self._rng.sample_sphere(self.model.dim, self._mode_no)
+            # sample radii according to radial spectral density of the model
+            if self.sampling == "inversion" or (
+                self.sampling == "auto" and self.model.has_ppf
+            ):
+                pdf, cdf, ppf = self.model.dist_func
+                rad = self._rng.sample_dist(
+                    size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
+                )
+            else:
+                rad = self._rng.sample_ln_pdf(
+                    ln_pdf=self.model.ln_spectral_rad_pdf,
+                    size=self._mode_no,
+                    sample_around=1.0 / self.model.len_rescaled,
+                )
+            # get spatial samples by multiplying sphere samples and radii
+            self._cov_sample = rad * sph_crd
 
     @property
     def sampling(self):
@@ -541,6 +558,10 @@ class IncomprRandMeth(RandMeth):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
+        nugget = self.get_nugget(pos.shape) if add_nugget else 0.0
+        e1 = self._create_unit_vector(pos.shape)
+        if self.zero_var:
+            return self.mean_u * e1 + nugget
         summed_modes = _summate_incompr(
             self._cov_sample,
             self._z_1,
@@ -548,8 +569,6 @@ class IncomprRandMeth(RandMeth):
             pos,
             config.NUM_THREADS,
         )
-        nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
-        e1 = self._create_unit_vector(summed_modes.shape)
         return (
             self.mean_u * e1
             + self.mean_u
@@ -667,7 +686,10 @@ class Fourier(Generator):
             the random modes
         """
         pos = np.asarray(pos, dtype=np.double)
-
+        if self.zero_var:
+            shp = pos.shape[1:]
+            return self.get_nugget(shp) if add_nugget else np.full(shp, 0.0)
+        # generate if var is not 0
         summed_modes = _summate_fourier(
             self._spectrum_factor,
             self._modes,
@@ -698,7 +720,7 @@ class Fourier(Generator):
                 size=shape
             )
         else:
-            nugget = 0.0
+            nugget = np.full(shape, 0.0) if self.zero_var else 0.0
         return nugget
 
     def update(self, model=None, seed=np.nan, period=None, mode_no=None):
@@ -714,7 +736,7 @@ class Fourier(Generator):
             the seed of the random number generator.
             If :any:`None`, a random seed is used. If :any:`numpy.nan`,
             the actual seed will be kept. Default: :any:`numpy.nan`
-        period : :class:`list` or :any:`None, optional
+        period : :class:`list` or :any:`None`, optional
             The spatial periodicity of the field, is often the domain size.
         mode_no : :class:`list` or :any:`None`, optional
             Number of Fourier modes per dimension.
@@ -800,10 +822,13 @@ class Fourier(Generator):
         self._z_2 = self._rng.random.normal(size=np.prod(self._mode_no))
         # pre calc. the spectrum for all wave numbers they are handed over to
         # Cython, which doesn't have access to the CovModel
-        k_norm = np.linalg.norm(self._modes, axis=0)
-        self._spectrum_factor = np.sqrt(
-            self._model.spectrum(k_norm) * np.prod(self._delta_k)
-        )
+        if self.zero_var:
+            self._spectrum_factor = np.full(np.prod(self._mode_no), 0.0)
+        else:
+            k_norm = np.linalg.norm(self._modes, axis=0)
+            self._spectrum_factor = np.sqrt(
+                self._model.spectrum(k_norm) * np.prod(self._delta_k)
+            )
 
     def _fill_to_dim(
         self, values, dim, dtype=float, default_value=None
