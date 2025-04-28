@@ -124,6 +124,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dist
+          path: dist
 
       - name: Publish to Test PyPI
         # only if working on main
