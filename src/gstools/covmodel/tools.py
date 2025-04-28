@@ -297,18 +297,21 @@ def check_bounds(bounds):
                 * "oo" : open - open
                 * "oc" : open - close
                 * "co" : close - open
-                * "cc" : close - close
+                * "cc" : close - close (default)
     """
+    typ = bounds[2] if len(bounds) == 3 else "cc"
     if len(bounds) not in (2, 3):
         return False
-    if bounds[1] <= bounds[0]:
+    if (typ == "cc" and bounds[1] < bounds[0]) or (
+        typ != "cc" and bounds[1] <= bounds[0]
+    ):
         return False
     if len(bounds) == 3 and bounds[2] not in ("oo", "oc", "co", "cc"):
         return False
     return True
 
 
-def check_arg_in_bounds(model, arg, val=None):
+def check_arg_in_bounds(model, arg, val=None, error=False):
     """Check if given argument value is in bounds of the given model."""
     if arg not in model.arg_bounds:
         raise ValueError(f"check bounds: unknown argument: {arg}")
@@ -317,6 +320,7 @@ def check_arg_in_bounds(model, arg, val=None):
     val = np.asarray(val)
     error_case = 0
     if len(bnd) == 2:
+        bnd = list(bnd)
         bnd.append("cc")  # use closed intervals by default
     if bnd[2][0] == "c":
         if np.any(val < bnd[0]):
@@ -330,6 +334,15 @@ def check_arg_in_bounds(model, arg, val=None):
     else:
         if np.any(val >= bnd[1]):
             error_case = 4
+    if error:
+        if error_case == 1:
+            raise ValueError(f"{arg} needs to be >= {bnd[0]}, got: {val}")
+        if error_case == 2:
+            raise ValueError(f"{arg} needs to be > {bnd[0]}, got: {val}")
+        if error_case == 3:
+            raise ValueError(f"{arg} needs to be <= {bnd[1]}, got: {val}")
+        if error_case == 4:
+            raise ValueError(f"{arg} needs to be < {bnd[1]}, got: {val}")
     return error_case
 
 
@@ -452,24 +465,18 @@ def set_arg_bounds(model, check_args=True, **kwargs):
         <type> is one of ``"oo"``, ``"cc"``, ``"oc"`` or ``"co"``
         to define if the bounds are open ("o") or closed ("c").
     """
-    # if variance needs to be resetted, do this at last
-    var_bnds = []
     for arg, bounds in kwargs.items():
         if not check_bounds(bounds):
-            raise ValueError(
-                f"Given bounds for '{arg}' are not valid, got: {bounds}"
-            )
-        if arg in model.opt_arg:
+            msg = f"Given bounds for '{arg}' are not valid, got: {bounds}"
+            raise ValueError(msg)
+        if arg in getattr(model, "sub_arg", []):
+            # var_<i> and len_scale_<i>
+            name, i = _split_sub(arg)
+            setattr(model[i], f"_{name}_bounds", bounds)
+        elif arg in model.opt_arg:
             model._opt_arg_bounds[arg] = bounds
-        elif arg == "var":
-            var_bnds = bounds
-            continue
-        elif arg == "len_scale":
-            model.len_scale_bounds = bounds
-        elif arg == "nugget":
-            model.nugget_bounds = bounds
-        elif arg == "anis":
-            model.anis_bounds = bounds
+        elif arg in model.arg_bounds:
+            setattr(model, f"_{arg}_bounds", bounds)
         else:
             raise ValueError(f"set_arg_bounds: unknown argument '{arg}'")
         if check_args and check_arg_in_bounds(model, arg) > 0:
@@ -478,11 +485,15 @@ def set_arg_bounds(model, check_args=True, **kwargs):
                 setattr(model, arg, [def_arg] * (model.dim - 1))
             else:
                 setattr(model, arg, def_arg)
-    # set var last like always
-    if var_bnds:
-        model.var_bounds = var_bnds
-        if check_args and check_arg_in_bounds(model, "var") > 0:
-            model.var = default_arg_from_bounds(var_bnds)
+
+
+def _split_sub(name):
+    if name.startswith("var_"):
+        return "var", int(name[4:])
+    if name.startswith("len_scale_"):
+        return "len_scale", int(name[10:])
+    msg = f"Unknown sub variable: {name}"
+    raise ValueError(msg)
 
 
 def check_arg_bounds(model):
@@ -501,19 +512,7 @@ def check_arg_bounds(model):
     """
     # check var, len_scale, nugget and optional-arguments
     for arg in model.arg_bounds:
-        if not model.arg_bounds[arg]:
-            continue  # no bounds given during init (called from self.dim)
-        bnd = list(model.arg_bounds[arg])
-        val = getattr(model, arg)
-        error_case = check_arg_in_bounds(model, arg)
-        if error_case == 1:
-            raise ValueError(f"{arg} needs to be >= {bnd[0]}, got: {val}")
-        if error_case == 2:
-            raise ValueError(f"{arg} needs to be > {bnd[0]}, got: {val}")
-        if error_case == 3:
-            raise ValueError(f"{arg} needs to be <= {bnd[1]}, got: {val}")
-        if error_case == 4:
-            raise ValueError(f"{arg} needs to be < {bnd[1]}, got: {val}")
+        check_arg_in_bounds(model, arg, error=True)
 
 
 def set_dim(model, dim):
@@ -556,17 +555,17 @@ def set_dim(model, dim):
         )
     model._dim = int(dim)
     # create fourier transform just once (recreate for dim change)
-    model._sft = SFT(ndim=model.dim, **model.hankel_kw)
-    # recalculate dimension related parameters
-    if model._anis is not None:
-        model._len_scale, model._anis = set_len_anis(
-            model.dim, model._len_scale, model._anis
+    if model.needs_fourier_transform:
+        model._sft = SFT(ndim=model.dim, **model.hankel_kw)
+    # recalculate dimension related parameters (if model initialized)
+    if model._init:
+        model.len_scale, model.anis = set_len_anis(
+            model.dim, model.len_scale, model.anis
         )
-    if model._angles is not None:
-        model._angles = set_model_angles(
-            model.dim, model._angles, model.latlon, model.temporal
+        model.angles = set_model_angles(
+            model.dim, model.angles, model.latlon, model.temporal
         )
-    model.check_arg_bounds()
+        model.check_arg_bounds()
 
 
 def compare(this, that):
@@ -587,12 +586,12 @@ def compare(this, that):
     equal = True
     equal &= this.name == that.name
     equal &= np.isclose(this.var, that.var)
-    equal &= np.isclose(this.var_raw, that.var_raw)  # ?! needless?
     equal &= np.isclose(this.nugget, that.nugget)
     equal &= np.isclose(this.len_scale, that.len_scale)
     equal &= np.all(np.isclose(this.anis, that.anis))
     equal &= np.all(np.isclose(this.angles, that.angles))
     equal &= np.isclose(this.rescale, that.rescale)
+    equal &= np.isclose(this.geo_scale, that.geo_scale)
     equal &= this.latlon == that.latlon
     equal &= this.temporal == that.temporal
     for opt in this.opt_arg:
@@ -609,39 +608,24 @@ def model_repr(model):  # pragma: no cover
     model : :any:`CovModel`
         The covariance model in use.
     """
-    m = model
-    p = model._prec
-    opt_str = ""
+    m, p = model, model._prec
+    ani_str, ang_str, o_str, r_str = "", "", "", ""
     t_str = ", temporal=True" if m.temporal else ""
+    d_str = f"latlon={m.latlon}" if m.latlon else f"dim={m.spatial_dim}"
+    p_str = f", var={m.var:.{p}}, len_scale={m.len_scale:.{p}}"
+    p_str += "" if np.isclose(m.nugget, 0) else f", nugget={m.nugget:.{p}}"
     if not np.isclose(m.rescale, m.default_rescale()):
-        opt_str += f", rescale={m.rescale:.{p}}"
+        o_str += f", rescale={m.rescale:.{p}}"
     for opt in m.opt_arg:
-        opt_str += f", {opt}={getattr(m, opt):.{p}}"
+        o_str += f", {opt}={getattr(m, opt):.{p}}"
     if m.latlon:
-        ani_str = (
-            ""
-            if m.is_isotropic or not m.temporal
-            else f", anis={m.anis[-1]:.{p}}"
-        )
-        r_str = (
-            ""
-            if np.isclose(m.geo_scale, 1)
-            else f", geo_scale={m.geo_scale:.{p}}"
-        )
-        repr_str = (
-            f"{m.name}(latlon={m.latlon}{t_str}, var={m.var:.{p}}, "
-            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
-            f"{ani_str}{r_str}{opt_str})"
-        )
+        if not m.is_isotropic and m.temporal:
+            ani_str = f", anis={m.anis[-1]:.{p}}"
+        if not np.isclose(m.geo_scale, 1):
+            r_str = f", geo_scale={m.geo_scale:.{p}}"
     else:
-        # only print anis and angles if model is anisotropic or rotated
-        ani_str = "" if m.is_isotropic else f", anis={list_format(m.anis, p)}"
-        ang_str = (
-            f", angles={list_format(m.angles, p)}" if m.do_rotation else ""
-        )
-        repr_str = (
-            f"{m.name}(dim={m.spatial_dim}{t_str}, var={m.var:.{p}}, "
-            f"len_scale={m.len_scale:.{p}}, nugget={m.nugget:.{p}}"
-            f"{ani_str}{ang_str}{opt_str})"
-        )
-    return repr_str
+        if not m.is_isotropic:
+            ani_str = f", anis={list_format(m.anis, p)}"
+        if m.do_rotation:
+            ang_str = f", angles={list_format(m.angles, p)}"
+    return f"{m.name}({d_str}{t_str}{p_str}{ani_str}{ang_str}{r_str}{o_str})"

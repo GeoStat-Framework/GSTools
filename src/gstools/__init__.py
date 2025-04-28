@@ -55,6 +55,7 @@ Class to construct user defined covariance models
 
 .. autosummary::
    CovModel
+   SumModel
 
 Covariance Models
 ^^^^^^^^^^^^^^^^^
@@ -63,6 +64,7 @@ Standard Covariance Models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
+   Nugget
    Gaussian
    Exponential
    Matern
@@ -154,9 +156,11 @@ from gstools.covmodel import (
     JBessel,
     Linear,
     Matern,
+    Nugget,
     Rational,
     Spherical,
     Stable,
+    SumModel,
     SuperSpherical,
     TPLExponential,
     TPLGaussian,
@@ -199,6 +203,8 @@ __all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
 __all__ += ["transform", "normalizer", "config"]
 __all__ += [
     "CovModel",
+    "SumModel",
+    "Nugget",
     "Gaussian",
     "Exponential",
     "Matern",

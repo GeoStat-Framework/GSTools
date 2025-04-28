@@ -157,7 +157,7 @@ target-version = [
     max-locals = 50
     max-branches = 30
     max-statements = 85
-    max-attributes = 25
+    max-attributes = 30
     max-public-methods = 80
     max-positional-arguments=20
 
