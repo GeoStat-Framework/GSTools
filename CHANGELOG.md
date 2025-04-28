@@ -2,6 +2,44 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [1.7.0] - Morphic Mint - 2025-04
+
+### Enhancements
+
+- new feature: Plurigaussian simulations (PGS) ([#370](https://github.com/GeoStat-Framework/GSTools/pull/370))
+  - they simulate distributions of categorical data, e.g. lithofacies, hydrofacies, soil types, or cementitious materials
+  - they naturally extend truncated Gaussian fields, which are already a part of GSTools through the field transformations
+- new feature: support for Sum-Models ([#364](https://github.com/GeoStat-Framework/GSTools/pull/364))
+  - added `SumModel` class
+    - represents sum of covariance models
+    - behaves just as a normal covariance model with kriging and field generation
+    - covariance models can be added with overloaded `+` operator: `model = m1 + m2`
+    - class is subscriptable to access sub-models by index: `m1 = model[0]`
+    - included models will get a nugget of 0 and the nugget is stored separately in the sum-model
+    - model variance is the sum of the sub-model variances
+    - model length-scale is weighted sum of sub-model len-scales, where the weights are the ratios of the sub-models variance to the sum variance (motivated by the integral scale, which satisfies this relation)
+    - anisotropy and rotation need to be the same for all included sub-models
+    - parameters of the sub-models can be accessed by name with added index suffix: `model[0].nu == model.nu_0`
+    - fitting: if `len_scale` is fixed, none of the `len_scale_<i>` can be fixed since len_scale is calculated from variance ratios
+  - added Nugget class (empty SumModel)
+    - allow len scale of 0 in CovModel to enable a pure nugget model
+    - added `zero_var` and `model` attributes to Generator ABC to shortcut field generation for pure nugget models
+
+### Changes
+
+- outsourced cython code to a separate package [GSTools-Cython](https://github.com/GeoStat-Framework/GSTools-Cython) ([#376](https://github.com/GeoStat-Framework/GSTools/pull/376))
+- removed `var_raw` attribute from CovModel (was rarely used and only relevant for the truncated power law models)
+  - BREAKING CHANGE (but not to many should be affected)
+  - TPLCovModel now has a `intensity` attribute which calculates what `var_raw` was before
+- simplified variogram fitting (`var_raw` was a bad idea in the first place)
+- variogram plotting now handles a len-scale of 0 (to properly plot nugget models)
+- fitting: when sill is given and var and nugget are deselected from fitting, an error is raised if given var+nugget is not equal to sill (before, they were reset under the hood in a strange way)
+
+### Bugfixes
+
+- `pnt_cnt` was not recalculated in `vario_estimate` when a mask was applied, together with a given sample size this resulted in an `IndexError` most of the times ([#378](https://github.com/GeoStat-Framework/GSTools/pull/378))
+
+
 ## [1.6.1] - Periodic Peach - 2025-01
 
 see [#375](https://github.com/GeoStat-Framework/GSTools/pull/375)
@@ -469,7 +507,9 @@ See: [#197](https://github.com/GeoStat-Framework/GSTools/issues/197)
 First release of GSTools.
 
 
-[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/GeoStat-Framework/gstools/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.6.1...v1.7.0
+[1.6.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/GeoStat-Framework/gstools/compare/v1.5.0...v1.5.1
