@@ -87,16 +87,17 @@ When using conda, the parallel version of GSTools is installed per default.
 
 ***Parallelizing Cython***
 
-To enable the OpenMP support in Cython when using pip, you have to provide a C
-compiler and OpenMP. Parallel support is controlled by an environment variable
-``GSTOOLS_BUILD_PARALLEL``, that can be ``0`` or ``1`` (interpreted as ``0``
-if not present). The GSTools-Cython backend then needs to be installed from source:
+For parallel support, the `GSTools-Cython <https://github.com/GeoStat-Framework/GSTools-Cython>`_
+backend needs to be compiled from source the following way:
 
 .. code-block:: none
 
     export GSTOOLS_BUILD_PARALLEL=1
     pip install --no-binary=gstools-cython gstools
 
+You have to provide a C compiler and OpenMP to compile GSTools-Cython with parallel support.
+The feature is controlled by the environment variable
+``GSTOOLS_BUILD_PARALLEL``, that can be ``0`` or ``1`` (interpreted as ``0`` if not present).
 Note, that the ``--no-binary=gstools-cython`` option forces pip to not use a wheel
 for the GSTools-Cython backend.
 
@@ -112,14 +113,7 @@ For the development version, you can do almost the same:
 ***Using GSTools-Core for parallelization and even more speed***
 
 You can install the optional dependency `GSTools-Core <https://github.com/GeoStat-Framework/GSTools-Core>`_,
-which is a re-implementation of the algorithms used in GSTools. The new
-package uses the language Rust and it should be faster (in some cases by orders
-of magnitude), safer, and it will potentially completely replace the current
-standard implementation in Cython. Once the package GSTools-Core is available
-on your machine, it will be used by default. In case you want to switch back to
-the Cython implementation, you can set
-:code:`gstools.config.USE_GSTOOLS_CORE=False` in your code. This also works at
-runtime. You can install the optional dependency e.g. by
+which is a re-implementation of GSTools-Cython:
 
 .. code-block:: none
 
@@ -131,8 +125,12 @@ or by manually installing the package
 
     pip install gstools-core
 
-GSTools-Core will automatically run in parallel, without having to use provide
-OpenMP or a local C compiler.
+The new package uses the language Rust and it should be safer and faster (in some cases by orders of magnitude).
+Once the package GSTools-Core is available on your machine, it will be used by default.
+In case you want to switch back to the Cython implementation, you can set
+:code:`gstools.config.USE_GSTOOLS_CORE=False` in your code. This also works at runtime.
+
+GSTools-Core will automatically run in parallel, without having to provide OpenMP or a local C compiler.
 
 
 Citation
