@@ -49,10 +49,6 @@ jobs:
         run: |
           python -m pylint src/gstools/
 
-      - name: cython-lint check
-        run: |
-          cython-lint src/gstools/
-
       - name: coveralls check
         run: |
           python -m pytest --cov gstools --cov-report term-missing -v tests/
@@ -60,37 +56,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build_wheels:
-    name: wheels for ${{ matrix.os }}
+  build:
+    name: test on ${{ matrix.os }} with py ${{ matrix.ver.py }} numpy${{ matrix.ver.np }} scipy${{ matrix.ver.sp }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # macos-13 is an intel runner, macos-14 is apple silicon
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: "0"
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22.0
-        with:
-          output-dir: dist-wheel-${{ matrix.os }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist-wheel-${{ matrix.os }}
-          path: ./dist-wheel-${{ matrix.os }}/*.whl
-
-  build_sdist:
-    name: sdist on ${{ matrix.os }} with py ${{ matrix.ver.py }} numpy${{ matrix.ver.np }} scipy${{ matrix.ver.sp }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
         # https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
         ver:
           - { py: "3.8", np: "==1.20.0", sp: "==1.5.4" }
@@ -101,6 +73,8 @@ jobs:
           - { py: "3.13", np: "==2.1.0", sp: "==1.14.1" }
           - { py: "3.13", np: ">=2.1.0", sp: ">=1.14.1" }
         exclude:
+          - os: ubuntu-24.04-arm
+            ver: { py: "3.8", np: "==1.20.0", sp: "==1.5.4" }
           - os: macos-14
             ver: { py: "3.8", np: "==1.20.0", sp: "==1.5.4" }
           - os: macos-14
@@ -123,8 +97,6 @@ jobs:
           pip install build
 
       - name: Install GSTools
-        env:
-          GSTOOLS_BUILD_PARALLEL: 1
         run: |
           pip install -v --editable .[test]
 
@@ -133,27 +105,25 @@ jobs:
           pip install "numpy${{ matrix.ver.np }}" "scipy${{ matrix.ver.sp }}"
           python -m pytest -v tests/
 
-      - name: Build sdist
+      - name: Build dist
         run: |
           # PEP 517 package builder from pypa
-          python -m build --sdist --outdir dist-sdist .
+          python -m build .
 
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest' && matrix.ver.py == '3.11'
         with:
-          name: dist-sdist
-          path: dist-sdist/*.tar.gz
+          name: dist
+          path: dist/*
 
   upload_to_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [build]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
+          name: dist
 
       - name: Publish to Test PyPI
         # only if working on main

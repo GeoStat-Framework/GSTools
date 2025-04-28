@@ -1,13 +1,11 @@
+
+
 [build-system]
 requires = [
-    "setuptools>=64",
-    "setuptools_scm>=7",
-    "numpy>=2.0.0rc1,<2.3; python_version >= '3.9'",
-    "oldest-supported-numpy; python_version < '3.9'",
-    "Cython>=3.0.10,<3.1.0",
-    "extension-helpers>=1",
+    "hatchling>=1.8.0",
+    "hatch-vcs",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 
 [project]
 requires-python = ">=3.8"
@@ -17,7 +15,7 @@ authors = [
     {name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org"},
 ]
 readme = "README.md"
-license = {text = "LGPL-3.0"}
+license = "LGPL-3.0"
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -47,6 +45,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
+    "gstools-cython>=1,<2",
     "emcee>=3.0.0",
     "hankel>=1.0.0",
     "meshio>=5.1.0",
@@ -78,7 +77,6 @@ lint = [
     "black>=24",
     "pylint",
     "isort[colors]",
-    "cython-lint",
 ]
 
 [project.urls]
@@ -89,14 +87,25 @@ Homepage = "https://geostat-framework.org/#gstools"
 Source = "https://github.com/GeoStat-Framework/GSTools"
 Tracker = "https://github.com/GeoStat-Framework/GSTools/issues"
 
-[tool.setuptools]
-license-files = ["LICENSE"]
-
-[tool.setuptools_scm]
-write_to = "src/gstools/_version.py"
-write_to_template = "__version__ = '{version}'"
-local_scheme = "no-local-version"
+[tool.hatch.version]
+source = "vcs"
 fallback_version = "0.0.0.dev0"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/gstools/_version.py"
+template = "__version__ = '{version}'"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gstools"]
 
 [tool.isort]
 profile = "black"
@@ -160,12 +169,3 @@ target-version = [
     max-attributes = 30
     max-public-methods = 80
     max-positional-arguments=20
-
-[tool.cibuildwheel]
-# Switch to using build
-build-frontend = "build"
-# Disable building PyPy wheels on all platforms, 32bit for py3.10/11/12/13, musllinux builds, py3.6/7
-skip = ["cp36-*", "cp37-*", "pp*", "*-win32", "*-manylinux_i686", "*-musllinux_*"]
-# Run the package tests using `pytest`
-test-extras = "test"
-test-command = "pytest -v {package}/tests"
