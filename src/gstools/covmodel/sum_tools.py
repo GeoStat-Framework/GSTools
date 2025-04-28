@@ -142,7 +142,7 @@ def sum_set_var_weights(summod, weights, skip=None, var=None):
     if var_diff < 0:
         msg = (
             "SumModel.set_var_weights: summed variances selected "
-            "with 'skip' already to big to keep total variance."
+            "with 'skip' already too big to keep total variance."
         )
         raise ValueError(msg)
     weights_sum = sum(weights)
@@ -202,7 +202,7 @@ def sum_set_len_weights(summod, weights, skip=None, len_scale=None):
     if len_diff < 0:
         msg = (
             "SumModel.set_len_weights: summed length scales "
-            "selected with 'skip' already to big to keep total length scale."
+            "selected with 'skip' already too big to keep total length scale."
         )
         raise ValueError(msg)
     weights_sum = sum(weights)
