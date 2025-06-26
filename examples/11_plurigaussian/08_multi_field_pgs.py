@@ -74,7 +74,7 @@ config = {
 
 pgs = gs.PGS(dim, [field1, field2, field3, field4])
 
-_, P = pgs(tree=config)
+P = pgs(tree=config)
 
 plt.imshow(P, cmap="copper", origin="lower")
 plt.tight_layout()

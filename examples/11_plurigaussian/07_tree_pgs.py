@@ -12,12 +12,12 @@ import gstools as gs
 
 dim = 2
 
-N = [200,100]
+N = [150,150]
 
 x = np.arange(N[0])
 y = np.arange(N[1])
 
-model = gs.Gaussian(dim=dim, var=1, len_scale=15)
+model = gs.Gaussian(dim=dim, var=1, len_scale=10)
 srf = gs.SRF(model)
 field1 = srf.structured([x, y], seed=201519)
 field2 = srf.structured([x, y], seed=199221)
@@ -33,9 +33,9 @@ config = {
             'key2': 'Z2',
             'c1': 0,
             'c2': 0,
-            's1': 2.3,
-            's2': 0.3,
-            'angle': 30
+            's1': 2.5,
+            's2': 0.8,
+            'angle': -45
         },
         'yes_branch': 'phase1',
         'no_branch': 'phase0'
@@ -50,9 +50,13 @@ config = {
     },
 }
 
+
 pgs = gs.PGS(dim, [field1, field2])
 
-L, P = pgs(tree=config)
+L = pgs.compute_lithotype(tree=config)
+P = pgs(tree=config)
+
+# can compute L after also with L = pgs.compute_lithotype()
 
 fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 

@@ -112,22 +112,7 @@ class PGS:
             elif tree is not None:
                 self._tree = self.DecisionTree(tree)
                 self._tree = self._tree.build_tree()
-                
-                grid_shape = self._fields.shape[1:]
-                
-                if self._dim == len(self._fields):
-                    axes = [np.linspace(-3, 3, self._fields[0].shape[0]) for _ in self._fields.shape[1:]] # works 2D 2 Fields
-                    mesh = np.meshgrid(*axes, indexing='ij')
-                    coords_L = np.stack([m.ravel() for m in mesh], axis=1)
-                    labels_L = np.array([
-                        self._tree.decide(dict(zip(self._field_names, pt)))
-                        for pt in coords_L
-                    ])
-                    L_shape = tuple([self._fields.shape[1]] * len(self._fields.shape[1:]))
-                    L = labels_L.reshape(L_shape)
-                else:
-                    L = np.zeros(grid_shape, dtype=int)
-
+                         
                 coords_P = np.stack(
                     [self._fields[d].ravel() for d in range(len(self._fields))],
                     axis=1
@@ -136,12 +121,34 @@ class PGS:
                     self._tree.decide(dict(zip(self._field_names, pt)))
                     for pt in coords_P
                 ])
-                P = labels_P.reshape(grid_shape)
+                P = labels_P.reshape(self._fields.shape[1:])
 
-                return L, P
+                return P
 
         else:
-            raise ValueError("Must provide exactly one of `lithotypes` or `tree_config`")
+            raise ValueError("PGS: Must provide exactly one of `lithotypes` or `tree_config`")
+        
+    def compute_lithotype(self, tree=None):
+        if self._tree is None and tree is None:
+            raise ValueError("PGS: Please provide a decision tree config or compute P to assemble")
+        elif self._tree is None and tree is not None:
+            self._tree = self.DecisionTree(tree)
+            self._tree = self._tree.build_tree()
+
+        if self._dim == len(self._fields):
+            axes = [np.linspace(-3, 3, self._fields[0].shape[0]) for _ in self._fields.shape[1:]] # works 2D 2 Fields
+            mesh = np.meshgrid(*axes, indexing='ij')
+            coords_L = np.stack([m.ravel() for m in mesh], axis=1)
+            labels_L = np.array([
+                self._tree.decide(dict(zip(self._field_names, pt)))
+                for pt in coords_L
+            ])
+            L_shape = tuple([self._fields.shape[1]] * len(self._fields.shape[1:]))
+            L = labels_L.reshape(L_shape)
+        else:
+            raise ValueError("PGS: Only implemented for dim == len(fields)")
+        
+        return L
 
     def calc_lithotype_axes(self, lithotypes_shape):
         """Calculate the axes on which the lithorypes are defined.
