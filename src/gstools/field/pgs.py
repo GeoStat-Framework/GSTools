@@ -107,7 +107,7 @@ class PGS:
                     P_dig.append(np.digitize(self._mapping[:, d], self._pos_lith[d]))
 
                 # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
-                return self._lithotypes[(*P_dig,)]
+                P = self._lithotypes[(*P_dig,)]
             
             elif tree is not None:
                 self._tree = self.DecisionTree(tree)
@@ -123,7 +123,7 @@ class PGS:
                 ])
                 P = labels_P.reshape(self._fields.shape[1:])
 
-                return P
+            return P
 
         else:
             raise ValueError("PGS: Must provide exactly one of `lithotypes` or `tree_config`")
