@@ -264,16 +264,3 @@ class PGS:
 
             def decide(self, data):
                 return self.action
-
-def ellipse(data, key1, key2, c1, c2, s1, s2, angle=0):
-    x, y = data[key1] - c1, data[key2] - c2
-
-    if angle:
-        theta = np.deg2rad(angle)
-        c, s = np.cos(theta), np.sin(theta)
-        x, y = x*c + y*s, -x*s + y*c
-
-    return (x/s1)**2 + (y/s2)**2 <= 1
-
-def ellipsoid(data, key1, key2, key3, c1, c2, c3, s1, s2, s3):
-    return ((data[key1]-c1)/s1)**2 + ((data[key2]-c2)/s2)**2 + ((data[key3]-c3)/s3)**2 <= 1
