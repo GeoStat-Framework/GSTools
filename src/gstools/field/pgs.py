@@ -55,12 +55,6 @@ class PGS:
 
     def __init__(self, dim, fields):
         # hard to test for 1d case
-        if dim > 1:
-            # if dim != len(fields):
-            #     raise ValueError(
-            #         "PGS: Mismatch between dim. and no. of fields."
-            #     )
-            pass
         for d in range(1, dim):
             if not fields[0].shape == fields[d].shape:
                 raise ValueError("PGS: Not all fields have the same shape.")
@@ -97,6 +91,12 @@ class PGS:
         """
         if lithotypes is not None or tree is not None:
             if lithotypes is not None:
+                if self._dim > 1:
+                    if self._dim != len(self._fields):
+                        raise ValueError(
+                            "PGS: Mismatch between dim. and no. of fields."
+                        )
+
                 self._lithotypes = np.array(lithotypes)
                 if len(self._lithotypes.shape) != self._dim:
                     raise ValueError("PGS: Mismatch between dim. and facies shape.")
