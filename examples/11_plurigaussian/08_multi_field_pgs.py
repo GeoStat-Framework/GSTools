@@ -3,14 +3,14 @@ From bigaussian to plurigaussian simulation
 --------------------------------------------------
 
 In many PGS implementations, the dimensions of the simulation domain often
-matches the number of fields that are supplied. However, this is not a 
-requirement of the PGS algorithm. In fact, it is possible to use multiple 
+matches the number of fields that are supplied. However, this is not a
+requirement of the PGS algorithm. In fact, it is possible to use multiple
 spatial random fields in PGS, which can be useful for more complex lithotype
 definitions. In this example, we will demonstrate how to use multiple SRFs in
 PGS. In GSTools, this is done by utlising the tree based architecture.
 
-Typically, PGS in two dimensions is carried out as a bigaussian simulation, 
-where two random fields are used. Here, we will employ four. We begin by 
+Typically, PGS in two dimensions is carried out as a bigaussian simulation,
+where two random fields are used. Here, we will employ four. We begin by
 setting up the simulation domain and generating the necessary random fields,
 where the length scales of two of the fields are much larger than the other two.
 """
@@ -22,7 +22,7 @@ import gstools as gs
 
 dim = 2
 
-N = [200,200]
+N = [200, 200]
 
 x = np.arange(N[0])
 y = np.arange(N[1])
@@ -39,65 +39,58 @@ field4 = srf.structured([x, y], seed=1351455)
 ###############################################################################
 # As in the previous example, an ellipse is used as the decision boundary.
 
+
 def ellipse(data, key1, key2, c1, c2, s1, s2, angle=0):
     x, y = data[key1] - c1, data[key2] - c2
 
     if angle:
         theta = np.deg2rad(angle)
         c, s = np.cos(theta), np.sin(theta)
-        x, y = x*c + y*s, -x*s + y*c
+        x, y = x * c + y * s, -x * s + y * c
 
-    return (x/s1)**2 + (y/s2)**2 <= 1
+    return (x / s1) ** 2 + (y / s2) ** 2 <= 1
+
 
 ###############################################################################
 # The configuration dictionary for the decision tree is defined as before, but
 # this time we pass the additional keys `Z3` and `Z4`, which refer to the
 # additional fields `field3` and `field4`. The decision tree is structured in a
-# way that the first decision node is based on the first two fields, and the 
+# way that the first decision node is based on the first two fields, and the
 # second decision node is based on the last two fields.
 
 config = {
-    'root': {
-        'type': 'decision',
-        'func': ellipse,
-        'args': {
-            'key1': 'Z1',
-            'key2': 'Z2',
-            'c1': 0.7,
-            'c2': 0.7,
-            's1': 1.3,
-            's2': 1.3,
+    "root": {
+        "type": "decision",
+        "func": ellipse,
+        "args": {
+            "key1": "Z1",
+            "key2": "Z2",
+            "c1": 0.7,
+            "c2": 0.7,
+            "s1": 1.3,
+            "s2": 1.3,
         },
-        'yes_branch': 'phase1',
-        'no_branch': 'node1'
+        "yes_branch": "phase1",
+        "no_branch": "node1",
     },
-    'node1': {
-        'type': 'decision',
-        'func': ellipse,
-        'args': {
-            'key1': 'Z3',
-            'key2': 'Z4',
-            'c1': -0.7,
-            'c2': -0.7,
-            's1': 1.3,
-            's2': 1.3,
-            'angle': 30
+    "node1": {
+        "type": "decision",
+        "func": ellipse,
+        "args": {
+            "key1": "Z3",
+            "key2": "Z4",
+            "c1": -0.7,
+            "c2": -0.7,
+            "s1": 1.3,
+            "s2": 1.3,
+            "angle": 30,
         },
-        'yes_branch': 'phase2',
-        'no_branch': 'phase0'
+        "yes_branch": "phase2",
+        "no_branch": "phase0",
     },
-    'phase2': {
-        'type': 'leaf',
-        'action': 2
-    },
-    'phase1': {
-        'type': 'leaf',
-        'action': 1
-    },
-    'phase0': {
-        'type': 'leaf',
-        'action': 0
-    },
+    "phase2": {"type": "leaf", "action": 2},
+    "phase1": {"type": "leaf", "action": 1},
+    "phase0": {"type": "leaf", "action": 0},
 }
 
 ###############################################################################

@@ -2,11 +2,11 @@
 PGS through decision trees
 --------------------------
 
-In typical PGS workflows, the lithotype is defined through a spatial rule. A 
+In typical PGS workflows, the lithotype is defined through a spatial rule. A
 more flexible approach can be taken such that the lithotype is represented as a
 decision tree. More specifically, this is given as a binary tree, where each
 node is a decision based on the values of the spatial random
-fields [Sektnan et al., 2024](https://doi.org/10.1007/s11004-024-10162-5). The 
+fields [Sektnan et al., 2024](https://doi.org/10.1007/s11004-024-10162-5). The
 leaf nodes are then assigned a discrete value which is given to the cell that
 is being evaluated. Here, a simple example is provided showing how to use the
 tree based approach in conducting plurigaussian simulation.
@@ -23,7 +23,7 @@ import gstools as gs
 dim = 2
 
 # no. of cells in both dimensions
-N = [150,150]
+N = [150, 150]
 
 x = np.arange(N[0])
 y = np.arange(N[1])
@@ -40,22 +40,24 @@ field2 = srf.structured([x, y], seed=192534221)
 # The function accepts a data dictionary, which contains the values of the
 # spatial random fields, and the parameters of the ellipse.
 
+
 def ellipse(data, key1, key2, c1, c2, s1, s2, angle=0):
     x, y = data[key1] - c1, data[key2] - c2
 
     if angle:
         theta = np.deg2rad(angle)
         c, s = np.cos(theta), np.sin(theta)
-        x, y = x*c + y*s, -x*s + y*c
+        x, y = x * c + y * s, -x * s + y * c
 
-    return (x/s1)**2 + (y/s2)**2 <= 1
+    return (x / s1) ** 2 + (y / s2) ** 2 <= 1
+
 
 ###############################################################################
 # The decision tree is defined as a dictionary, where each node is a dictionary
 # itself. The root node is the first decision, which branches into two nodes,
 # one for each possible outcome. The leaf nodes are the final decisions, which
-# assign a discrete value to the given cell. The `func` key in each decision 
-# node contains the function to be called, and the `args` key contains the 
+# assign a discrete value to the given cell. The `func` key in each decision
+# node contains the function to be called, and the `args` key contains the
 # arguments to be passed to the function. These arguments must match the
 # parameters of the function. The `yes_branch` and `no_branch` keys contain the
 # names of the nodes to follow based on the outcome of the decision. `root`
@@ -68,7 +70,7 @@ def ellipse(data, key1, key2, c1, c2, s1, s2, angle=0):
 # `key2` refer to the spatial random fields, which are used to define the
 # ellipse. In the algorithm, the fields are indexed as `Z1`, `Z2`, etc.,
 # depending on the order in which they are passed to the PGS object. In this
-# case, `Z1` refers to `field1` and `Z2` refers to `field2`. The parameters 
+# case, `Z1` refers to `field1` and `Z2` refers to `field2`. The parameters
 # `c1`, `c2`, `s1`, `s2`, and `angle` define the center, scale, and rotation of
 # the ellipse, respectively.
 #
@@ -77,29 +79,23 @@ def ellipse(data, key1, key2, c1, c2, s1, s2, angle=0):
 # making ±3 a natural “full” range for defining splits or shapes.
 
 config = {
-    'root': {
-        'type': 'decision',
-        'func': ellipse,
-        'args': {
-            'key1': 'Z1',
-            'key2': 'Z2',
-            'c1': 0,
-            'c2': 0,
-            's1': 2.5,
-            's2': 0.8,
-            'angle': -45
+    "root": {
+        "type": "decision",
+        "func": ellipse,
+        "args": {
+            "key1": "Z1",
+            "key2": "Z2",
+            "c1": 0,
+            "c2": 0,
+            "s1": 2.5,
+            "s2": 0.8,
+            "angle": -45,
         },
-        'yes_branch': 'phase1',
-        'no_branch': 'phase0'
+        "yes_branch": "phase1",
+        "no_branch": "phase0",
     },
-    'phase1': {
-        'type': 'leaf',
-        'action': 1
-    },
-    'phase0': {
-        'type': 'leaf',
-        'action': 0
-    },
+    "phase1": {"type": "leaf", "action": 1},
+    "phase0": {"type": "leaf", "action": 0},
 }
 
 ###############################################################################

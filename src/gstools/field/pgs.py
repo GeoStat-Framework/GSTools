@@ -121,35 +121,43 @@ class PGS:
 
                 self._lithotypes = np.array(lithotypes)
                 if len(self._lithotypes.shape) != self._dim:
-                    raise ValueError("PGS: Mismatch between dim. and facies shape.")
-                self._pos_lith = self.calc_lithotype_axes(self._lithotypes.shape)
-
+                    raise ValueError(
+                        "PGS: Mismatch between dim. and facies shape."
+                    )
+                self._pos_lith = self.calc_lithotype_axes(
+                    self._lithotypes.shape
+                )
                 P_dig = []
                 for d in range(self._dim):
-                    P_dig.append(np.digitize(self._mapping[:, d], self._pos_lith[d]))
-
+                    P_dig.append(
+                        np.digitize(self._mapping[:, d], self._pos_lith[d])
+                    )
                 # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
-                P = self._lithotypes[(*P_dig,)]
-            
-            elif tree is not None:
+                return self._lithotypes[(*P_dig,)]
+
+            if tree is not None:
                 self._tree = self.DecisionTree(tree)
                 self._tree = self._tree.build_tree()
-                         
+
                 coords_P = np.stack(
-                    [self._fields[d].ravel() for d in range(len(self._fields))],
-                    axis=1
+                    [
+                        self._fields[d].ravel()
+                        for d in range(len(self._fields))
+                    ],
+                    axis=1,
                 )
-                labels_P = np.array([
-                    self._tree.decide(dict(zip(self._field_names, pt)))
-                    for pt in coords_P
-                ])
-                P = labels_P.reshape(self._fields.shape[1:])
+                labels_P = np.array(
+                    [
+                        self._tree.decide(dict(zip(self._field_names, pt)))
+                        for pt in coords_P
+                    ]
+                )
+                return labels_P.reshape(self._fields.shape[1:])
 
-            return P
+        raise ValueError(
+            "PGS: Must provide exactly one of `lithotypes` or `tree`"
+        )
 
-        else:
-            raise ValueError("PGS: Must provide exactly one of `lithotypes` or `tree`")
-        
     def compute_lithotype(self, tree=None):
         """
         Compute lithotype from input SRFs using a decision tree.
@@ -178,24 +186,33 @@ class PGS:
             the number of provided fields.
         """
         if self._tree is None and tree is None:
-            raise ValueError("PGS: Please provide a decision tree config or compute P to assemble")
-        elif self._tree is None and tree is not None:
+            raise ValueError(
+                "PGS: Please provide a decision tree config or compute P to assemble"
+            )
+        if self._tree is None and tree is not None:
             self._tree = self.DecisionTree(tree)
             self._tree = self._tree.build_tree()
 
         if self._dim == len(self._fields):
-            axes = [np.linspace(-3, 3, self._fields[0].shape[0]) for _ in self._fields.shape[1:]] # works 2D 2 Fields
-            mesh = np.meshgrid(*axes, indexing='ij')
+            axes = [
+                np.linspace(-3, 3, self._fields[0].shape[0])
+                for _ in self._fields.shape[1:]
+            ]  # works 2D 2 Fields
+            mesh = np.meshgrid(*axes, indexing="ij")
             coords_L = np.stack([m.ravel() for m in mesh], axis=1)
-            labels_L = np.array([
-                self._tree.decide(dict(zip(self._field_names, pt)))
-                for pt in coords_L
-            ])
-            L_shape = tuple([self._fields.shape[1]] * len(self._fields.shape[1:]))
+            labels_L = np.array(
+                [
+                    self._tree.decide(dict(zip(self._field_names, pt)))
+                    for pt in coords_L
+                ]
+            )
+            L_shape = tuple(
+                [self._fields.shape[1]] * len(self._fields.shape[1:])
+            )
             L = labels_L.reshape(L_shape)
         else:
             raise ValueError("PGS: Only implemented for dim == len(fields)")
-        
+
         return L
 
     def calc_lithotype_axes(self, lithotypes_shape):
@@ -265,7 +282,7 @@ class PGS:
                 )
             )
         return pos_trans
-    
+
     class DecisionTree:
         """
         Build and traverse a decision tree for assigning lithotype labels.
@@ -278,22 +295,22 @@ class PGS:
         ----------
         config : dict
             Mapping of node IDs to node specifications. Each entry must include:
-            - 'type': 'decision' or 'leaf'  
-            - For decision nodes:  
-            • 'func' (callable) and 'args' (dict)  
-            • Optional 'yes_branch' and 'no_branch' keys naming other nodes  
-            - For leaf nodes:  
-            • 'action' (any value to return upon reaching the leaf)
-
+            - 'type': 'decision' or 'leaf'
+            - For decision nodes:
+            • 'func' (callable) and 'args' (dict)
+            • Optional 'yes_branch' and 'no_branch' keys naming other nodes
+            - For leaf nodes:
         Notes
         -----
         - Call `build_tree()` to link nodes and obtain the root before using
-        `decide()`.  
+        `decide()`.
         - The tree is immutable once built; rebuild to apply a new config.
         """
+
         def __init__(self, config):
             self._config = config
-                    
+            self._tree = None
+
         def build_tree(self):
             """
             Construct the decision tree structure from the configuration.
@@ -313,19 +330,22 @@ class PGS:
             """
             nodes = {}
             for node_id, details in self._config.items():
-                if details['type'] == 'decision':
+                if details["type"] == "decision":
                     nodes[node_id] = self.DecisionNode(
-                        func=details['func'],
-                        args=details['args']
+                        func=details["func"], args=details["args"]
                     )
-                elif details['type'] == 'leaf':
-                    nodes[node_id] = self.LeafNode(details['action'])
+                elif details["type"] == "leaf":
+                    nodes[node_id] = self.LeafNode(details["action"])
             for node_id, details in self._config.items():
-                if details['type'] == 'decision':
-                    nodes[node_id].yes_branch = nodes.get(details.get('yes_branch'))
-                    nodes[node_id].no_branch = nodes.get(details.get('no_branch'))
+                if details["type"] == "decision":
+                    nodes[node_id].yes_branch = nodes.get(
+                        details.get("yes_branch")
+                    )
+                    nodes[node_id].no_branch = nodes.get(
+                        details.get("no_branch")
+                    )
 
-            return nodes['root']
+            return nodes["root"]
 
         def decide(self, data):
             """
@@ -350,10 +370,9 @@ class PGS:
             """
             if self._tree:
                 return self._tree.decide(data)
-            else:
-                raise ValueError("The decision tree has not been built yet.")
+            raise ValueError("The decision tree has not been built yet.")
 
-        class DecisionNode:
+        class DecisionNode:  # pylint: disable=too-few-public-methods
             """
             Internal node that evaluates a condition and routes to child branches.
 
@@ -373,6 +392,7 @@ class PGS:
             no_branch : DecisionNode or LeafNode, optional
                 Node to traverse if `func(data, **args)` returns False.
             """
+
             def __init__(self, func, args, yes_branch=None, no_branch=None):
                 self.func = func
                 self.args = args
@@ -395,11 +415,14 @@ class PGS:
                     if the respective branch is not set.
                 """
                 if self.func(data, **self.args):
-                    return self.yes_branch.decide(data) if self.yes_branch else None
-                else:
-                    return self.no_branch.decide(data) if self.no_branch else None
+                    return (
+                        self.yes_branch.decide(data)
+                        if self.yes_branch
+                        else None
+                    )
+                return self.no_branch.decide(data) if self.no_branch else None
 
-        class LeafNode:
+        class LeafNode:  # pylint: disable=too-few-public-methods
             """
             Terminal node that returns a stored action when reached.
 
@@ -411,10 +434,11 @@ class PGS:
             action : any
                 The value to return when this leaf is reached.
             """
+
             def __init__(self, action):
                 self.action = action
 
-            def decide(self, data):
+            def decide(self, _data):
                 """
                 Return the leaf action, terminating the traversal.
 
