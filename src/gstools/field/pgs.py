@@ -76,19 +76,41 @@ class PGS:
                 raise
 
     def __call__(self, lithotypes=None, tree=None):
-        """Generate the plurigaussian field.
+        """
+        Generate the plurigaussian field via spatial lithotype or decision tree.
+
+        Either a lithotype field or a decision tree config must be provided.
+        If `lithotypes` is given, map lithotype codes to the PGS via index
+        scaling. If `tree` is given, build and apply a DecisionTree to assign
+        phase labels.
 
         Parameters
         ----------
-        lithotypes : :class:`numpy.ndarray`
-            A `dim` dimensional structured field, whose values are mapped to the PGS.
-            It does not have to have the same shape as the `fields`, as the indices are
-            automatically scaled.
+        lithotypes : :class:`numpy.ndarray`, optional
+            `dim`-dimensional structured lithotype field. Shape may differ from
+            `fields`, as indices are automatically scaled. Mutually exclusive
+            with `tree`.
+        tree : dict, optional
+            Configuration dict for constructing a DecisionTree. Must contain
+            node specifications. Mutually exclusive with `lithotypes`.
+
         Returns
         -------
         pgs : :class:`numpy.ndarray`
-            the plurigaussian field
+            Plurigaussian field array: either the mapped lithotype field or
+            the labels assigned by the decision tree, matching the simulation
+            domain.
+
+        Raises
+        ------
+        ValueError
+            If neither or both of `lithotypes` and `tree` are provided.
+        ValueError
+            If `lithotypes` shape does not match `dim` or number of `fields`.
+        ValueError
+            If `dim` != len(fields) when using `lithotypes`.
         """
+
         if lithotypes is not None or tree is not None:
             if lithotypes is not None:
                 if self._dim > 1:
@@ -126,9 +148,35 @@ class PGS:
             return P
 
         else:
-            raise ValueError("PGS: Must provide exactly one of `lithotypes` or `tree_config`")
+            raise ValueError("PGS: Must provide exactly one of `lithotypes` or `tree`")
         
     def compute_lithotype(self, tree=None):
+        """
+        Compute lithotype from input SRFs using a decision tree.
+
+        If `self._tree` is not set, a tree configuration must be provided via
+        the `tree` argument. The method then builds or reuses the decision tree
+        and applies it to the coordinates of the plurigaussian fields to assign
+        a lithotype phase at each point.
+
+        Parameters
+        ----------
+        tree : dict or None, optional
+            Configuration for the decision tree. If None, `self._tree` must
+            already be defined. Defaults to None.
+
+        Returns
+        -------
+        lithotype : :class:`numpy.ndarray`
+            Discrete label array of shape equal to the simulation domain,
+            where each entry is the phase index determined by the tree.
+
+        Raises
+        ------
+        ValueError
+            If no decision tree is available or if `self._dim` does not equal
+            the number of provided fields.
+        """
         if self._tree is None and tree is None:
             raise ValueError("PGS: Please provide a decision tree config or compute P to assemble")
         elif self._tree is None and tree is not None:
@@ -219,10 +267,50 @@ class PGS:
         return pos_trans
     
     class DecisionTree:
+        """
+        Build and traverse a decision tree for assigning lithotype labels.
+
+        This class constructs a tree of DecisionNode and LeafNode instances
+        from a configuration mapping. Once built, it can classify input data
+        by following the decision branches to a leaf action.
+
+        Parameters
+        ----------
+        config : dict
+            Mapping of node IDs to node specifications. Each entry must include:
+            - 'type': 'decision' or 'leaf'  
+            - For decision nodes:  
+            • 'func' (callable) and 'args' (dict)  
+            • Optional 'yes_branch' and 'no_branch' keys naming other nodes  
+            - For leaf nodes:  
+            • 'action' (any value to return upon reaching the leaf)
+
+        Notes
+        -----
+        - Call `build_tree()` to link nodes and obtain the root before using
+        `decide()`.  
+        - The tree is immutable once built; rebuild to apply a new config.
+        """
         def __init__(self, config):
             self._config = config
                     
         def build_tree(self):
+            """
+            Construct the decision tree structure from the configuration.
+
+            Iterates through the config to create DecisionNode and LeafNode
+            instances, then links decision nodes to their yes/no branches.
+
+            Returns
+            -------
+            root : DecisionNode or LeafNode
+                The root node of the constructed decision tree.
+
+            Raises
+            ------
+            KeyError
+                If 'root' is not defined in the configuration.
+            """
             nodes = {}
             for node_id, details in self._config.items():
                 if details['type'] == 'decision':
@@ -240,12 +328,51 @@ class PGS:
             return nodes['root']
 
         def decide(self, data):
+            """
+            Traverse the built tree to make a decision for the given data.
+
+            Parameters
+            ----------
+            data : dict
+                A mapping of feature names to values, passed to decision functions
+                in each DecisionNode.
+
+            Returns
+            -------
+            result
+                The action value from the reached LeafNode, or None if a branch
+                is missing.
+
+            Raises
+            ------
+            ValueError
+                If the tree has not been built (i.e., `build_tree` not called).
+            """
             if self._tree:
                 return self._tree.decide(data)
             else:
                 raise ValueError("The decision tree has not been built yet.")
 
         class DecisionNode:
+            """
+            Internal node that evaluates a condition and routes to child branches.
+
+            A DecisionNode wraps a boolean function and two optional branches
+            (yes_branch and no_branch), which may be further DecisionNode or
+            LeafNode instances.
+
+            Parameters
+            ----------
+            func : callable
+                A function that evaluates a condition on the input data.
+                Must accept `data` as first argument and keyword args.
+            args : dict
+                Keyword arguments to pass to `func` when called.
+            yes_branch : DecisionNode or LeafNode, optional
+                Node to traverse if `func(data, **args)` returns True.
+            no_branch : DecisionNode or LeafNode, optional
+                Node to traverse if `func(data, **args)` returns False.
+            """
             def __init__(self, func, args, yes_branch=None, no_branch=None):
                 self.func = func
                 self.args = args
@@ -253,14 +380,52 @@ class PGS:
                 self.no_branch = no_branch
 
             def decide(self, data):
+                """
+                Evaluate the decision function and traverse to the next node.
+
+                Parameters
+                ----------
+                data : dict
+                    Feature mapping passed to `func`.
+
+                Returns
+                -------
+                result
+                    The outcome of the subsequent node's `decide` method, or None
+                    if the respective branch is not set.
+                """
                 if self.func(data, **self.args):
                     return self.yes_branch.decide(data) if self.yes_branch else None
                 else:
                     return self.no_branch.decide(data) if self.no_branch else None
 
         class LeafNode:
+            """
+            Terminal node that returns a stored action when reached.
+
+            A LeafNode represents the outcome of a decision path. Its `action`
+            value is returned directly by `decide()`
+
+            Parameters
+            ----------
+            action : any
+                The value to return when this leaf is reached.
+            """
             def __init__(self, action):
                 self.action = action
 
             def decide(self, data):
+                """
+                Return the leaf action, terminating the traversal.
+
+                Parameters
+                ----------
+                data : dict
+                    Ignored input data.
+
+                Returns
+                -------
+                action : any
+                    The action value stored in this leaf.
+                """
                 return self.action
