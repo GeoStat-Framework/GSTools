@@ -13,21 +13,19 @@ There are two options to generate a field on a given mesh:
 
 - `points="points"` will generate a field on the mesh points
 - `points="centroids"` will generate a field on the cell centroids
-
-In this example, we will generate a simple mesh with the aid of
-`meshzoo <https://github.com/nschloe/meshzoo>`_.
 """
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import meshio
-import meshzoo
 import numpy as np
 
 import gstools as gs
 
-# generate a triangulated hexagon with meshzoo
-points, cells = meshzoo.ngon(6, 4)
+# read a triangulated hexagon with meshio
+mesh_input = meshio.read("hexagon.mesh")
+points = mesh_input.points
+cells = mesh_input.cells[0].data
 mesh = meshio.Mesh(points, {"triangle": cells})
 
 ###############################################################################

@@ -58,7 +58,6 @@ dependencies = [
 doc = [
     "myst_parser",
     "matplotlib>=3.7",
-    "meshzoo>=0.7",
     "numpydoc>=1.1",
     "pykrige>=1.5,<2",
     "pyvista>=0.40",
