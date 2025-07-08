@@ -22,10 +22,9 @@ import numpy as np
 
 import gstools as gs
 
-# read a triangulated hexagon with meshio
-mesh_input = meshio.read("hexagon.mesh")
-points = mesh_input.points
-cells = mesh_input.cells[0].data
+# read a triangulated hexagon
+points = np.load("hexagon_points.npy")
+cells = np.load("hexagon_cells.npy")
 mesh = meshio.Mesh(points, {"triangle": cells})
 
 ###############################################################################
