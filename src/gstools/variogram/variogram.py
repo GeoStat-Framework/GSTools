@@ -57,10 +57,7 @@ def _directional(
     num_threads=None,
 ):
     """A wrapper function for calling the directional variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         directional_fct = directional_gsc
     else:
         directional_fct = directional_c
@@ -86,10 +83,7 @@ def _unstructured(
     num_threads=None,
 ):
     """A wrapper function for calling the unstructured variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         unstructured_fct = unstructured_gsc
     else:
         unstructured_fct = unstructured_c
@@ -109,10 +103,7 @@ def _structured(
     num_threads=None,
 ):
     """A wrapper function for calling the structured variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         structured_fct = structured_gsc
     else:
         structured_fct = structured_c
@@ -126,10 +117,7 @@ def _ma_structured(
     num_threads=None,
 ):
     """A wrapper function for calling the masked struct. variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         ma_structured_fct = ma_structured_gsc
     else:
         ma_structured_fct = ma_structured_c
