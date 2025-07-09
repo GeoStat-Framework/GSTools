@@ -74,7 +74,7 @@ rust = ["gstools_core>=1.1.0"]
 test = ["pytest-cov>=3"]
 lint = [
     "black>=24",
-    "pylint",
+    "ruff",
     "isort[colors]",
 ]
 
@@ -139,32 +139,3 @@ target-version = [
         "def __repr__",
         "def __str__",
     ]
-
-[tool.pylint]
-    [tool.pylint.main]
-    extension-pkg-whitelist = [
-        "numpy",
-        "scipy",
-        "gstools_core",
-    ]
-    ignore = "_version.py"
-    load-plugins = [
-        "pylint.extensions.no_self_use",
-    ]
-
-    [tool.pylint.message_control]
-    disable = [
-        "R0801",
-    ]
-
-    [tool.pylint.reports]
-    output-format = "colorized"
-
-    [tool.pylint.design]
-    max-args = 20
-    max-locals = 50
-    max-branches = 30
-    max-statements = 85
-    max-attributes = 30
-    max-public-methods = 80
-    max-positional-arguments=20
