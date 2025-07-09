@@ -87,7 +87,7 @@ def _post_process(fld, data, keep_mean):
 
 
 def _check_for_default_normal(fld):
-    if not type(fld.normalizer) == Normalizer:
+    if type(fld.normalizer) is not Normalizer:
         raise ValueError(
             "transform: need a normal field but there is a normalizer defined"
         )
