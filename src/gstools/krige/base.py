@@ -9,7 +9,6 @@ The following classes are provided
    Krige
 """
 
-# pylint: disable=C0103, W0221, E1102, R0201, C0412
 import collections
 
 import numpy as np
@@ -27,13 +26,12 @@ from gstools.tools.geometric import rotated_main_axes
 from gstools.tools.misc import eval_func
 from gstools.variogram import vario_estimate
 
-if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
-    # pylint: disable=E0401
+if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
     from gstools_core import (
-        calc_field_krige as calc_field_krige_gsc,  # pylint: disable=E0606
+        calc_field_krige as calc_field_krige_gsc,
     )
     from gstools_core import (
-        calc_field_krige_and_variance as calc_field_krige_and_variance_gsc,  # pylint: disable=E0606
+        calc_field_krige_and_variance as calc_field_krige_and_variance_gsc,
     )
 
 __all__ = ["Krige"]
@@ -47,13 +45,13 @@ def _calc_field_krige(krig_mat, krig_vecs, cond, num_threads=None):
     """A wrapper function for calling the krige algorithms."""
     if (
         config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        calc_field_krige_fct = (  # pylint: disable=W0201
-            calc_field_krige_gsc  # pylint: disable=E0606
+        and config._GSTOOLS_CORE_AVAIL
+    ):
+        calc_field_krige_fct = (
+            calc_field_krige_gsc
         )
     else:
-        calc_field_krige_fct = calc_field_krige_c  # pylint: disable=W0201
+        calc_field_krige_fct = calc_field_krige_c
     return calc_field_krige_fct(krig_mat, krig_vecs, cond, num_threads)
 
 
@@ -63,13 +61,13 @@ def _calc_field_krige_and_variance(
     """A wrapper function for calling the krige algorithms."""
     if (
         config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
+        and config._GSTOOLS_CORE_AVAIL
     ):
-        calc_field_krige_and_variance_fct = (  # pylint: disable=W0201
-            calc_field_krige_and_variance_gsc  # pylint: disable=E0606
+        calc_field_krige_and_variance_fct = (
+            calc_field_krige_and_variance_gsc
         )
     else:
-        calc_field_krige_and_variance_fct = (  # pylint: disable=W0201
+        calc_field_krige_and_variance_fct = (
             calc_field_krige_and_variance_c
         )
     return calc_field_krige_and_variance_fct(

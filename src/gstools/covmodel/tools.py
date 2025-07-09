@@ -22,7 +22,6 @@ The following classes and functions are provided
    model_repr
 """
 
-# pylint: disable=C0103, W0212
 import warnings
 
 import numpy as np

@@ -12,7 +12,6 @@ The following classes and functions are provided
    TPLSimple
 """
 
-# pylint: disable=C0103, E1101
 import warnings
 
 import numpy as np

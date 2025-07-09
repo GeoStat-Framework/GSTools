@@ -9,7 +9,6 @@ The following classes and functions are provided
    fit_variogram
 """
 
-# pylint: disable=C0103, W0632
 import numpy as np
 from scipy.optimize import curve_fit
 
