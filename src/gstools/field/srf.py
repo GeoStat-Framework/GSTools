@@ -9,7 +9,6 @@ The following classes are provided
    SRF
 """
 
-
 import numpy as np
 
 from gstools.field.base import Field

@@ -41,10 +41,7 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 def _summate(cov_samples, z_1, z_2, pos, num_threads=None):
     """A wrapper function for calling the randomization algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         summate_fct = summate_gsc
     else:
         summate_fct = summate_c
@@ -60,10 +57,7 @@ def _summate_incompr(
 ):
     """A wrapper function for calling the incompr. randomization algorithms."""
 
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         summate_incompr_fct = summate_incompr_gsc
     else:
         summate_incompr_fct = summate_incompr_c
@@ -72,10 +66,7 @@ def _summate_incompr(
 
 def _summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads=None):
     """A wrapper function for calling the Fourier algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-    ):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         summate_fourier_fct = summate_fourier_gsc
     else:
         summate_fourier_fct = summate_fourier_c
@@ -828,9 +819,7 @@ class Fourier(Generator):
                 self._model.spectrum(k_norm) * np.prod(self._delta_k)
             )
 
-    def _fill_to_dim(
-        self, values, dim, dtype=float, default_value=None
-    ):
+    def _fill_to_dim(self, values, dim, dtype=float, default_value=None):
         """Fill an array with last element up to len(dim)."""
         r = np.atleast_1d(values)
         if values is None:
