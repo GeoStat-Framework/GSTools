@@ -15,7 +15,6 @@ The following functions are provided
    tpl_gau_spec_dens
 """
 
-# pylint: disable=C0103, E1101
 import numpy as np
 from scipy import special as sps
 

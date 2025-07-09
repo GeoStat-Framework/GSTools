@@ -10,7 +10,6 @@ The following functions are provided
    vario_estimate_axis
 """
 
-# pylint: disable=C0412
 import numpy as np
 from gstools_cython.variogram import directional as directional_c
 from gstools_cython.variogram import ma_structured as ma_structured_c
@@ -28,8 +27,7 @@ from gstools.tools.geometric import (
 )
 from gstools.variogram.binning import standard_bins
 
-if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
-    # pylint: disable=E0401
+if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
     from gstools_core import variogram_directional as directional_gsc
     from gstools_core import variogram_ma_structured as ma_structured_gsc
     from gstools_core import variogram_structured as structured_gsc
@@ -59,11 +57,8 @@ def _directional(
     num_threads=None,
 ):
     """A wrapper function for calling the directional variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        directional_fct = directional_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        directional_fct = directional_gsc
     else:
         directional_fct = directional_c
     return directional_fct(
@@ -88,11 +83,8 @@ def _unstructured(
     num_threads=None,
 ):
     """A wrapper function for calling the unstructured variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        unstructured_fct = unstructured_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        unstructured_fct = unstructured_gsc
     else:
         unstructured_fct = unstructured_c
     return unstructured_fct(
@@ -111,11 +103,8 @@ def _structured(
     num_threads=None,
 ):
     """A wrapper function for calling the structured variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        structured_fct = structured_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        structured_fct = structured_gsc
     else:
         structured_fct = structured_c
     return structured_fct(field, estimator_type, num_threads)
@@ -128,11 +117,8 @@ def _ma_structured(
     num_threads=None,
 ):
     """A wrapper function for calling the masked struct. variogram algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):  # pylint: disable=W0212
-        ma_structured_fct = ma_structured_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        ma_structured_fct = ma_structured_gsc
     else:
         ma_structured_fct = ma_structured_c
     return ma_structured_fct(field, mask, estimator_type, num_threads)

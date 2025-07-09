@@ -14,7 +14,6 @@ The following classes are provided
    Fourier
 """
 
-# pylint: disable=C0103, W0222, C0412, W0231
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
@@ -29,8 +28,7 @@ from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
 from gstools.tools.geometric import generate_grid
 
-if config._GSTOOLS_CORE_AVAIL:  # pylint: disable=W0212; # pragma: no cover
-    # pylint: disable=E0401
+if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
     from gstools_core import summate as summate_gsc
     from gstools_core import summate_fourier as summate_fourier_gsc
     from gstools_core import summate_incompr as summate_incompr_gsc
@@ -43,11 +41,8 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 def _summate(cov_samples, z_1, z_2, pos, num_threads=None):
     """A wrapper function for calling the randomization algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):
-        summate_fct = summate_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        summate_fct = summate_gsc
     else:
         summate_fct = summate_c
     return summate_fct(cov_samples, z_1, z_2, pos, num_threads)
@@ -62,11 +57,8 @@ def _summate_incompr(
 ):
     """A wrapper function for calling the incompr. randomization algorithms."""
 
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):
-        summate_incompr_fct = summate_incompr_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        summate_incompr_fct = summate_incompr_gsc
     else:
         summate_incompr_fct = summate_incompr_c
     return summate_incompr_fct(cov_samples, z_1, z_2, pos, num_threads)
@@ -74,11 +66,8 @@ def _summate_incompr(
 
 def _summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads=None):
     """A wrapper function for calling the Fourier algorithms."""
-    if (
-        config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL  # pylint: disable=W0212
-    ):
-        summate_fourier_fct = summate_fourier_gsc  # pylint: disable=E0606
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        summate_fourier_fct = summate_fourier_gsc
     else:
         summate_fourier_fct = summate_fourier_c
     return summate_fourier_fct(
@@ -830,9 +819,7 @@ class Fourier(Generator):
                 self._model.spectrum(k_norm) * np.prod(self._delta_k)
             )
 
-    def _fill_to_dim(
-        self, values, dim, dtype=float, default_value=None
-    ):  # pylint: disable=R6301
+    def _fill_to_dim(self, values, dim, dtype=float, default_value=None):
         """Fill an array with last element up to len(dim)."""
         r = np.atleast_1d(values)
         if values is None:

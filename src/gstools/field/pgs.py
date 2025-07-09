@@ -11,7 +11,6 @@ The following classes are provided
    PGS
 """
 
-# pylint: disable=C0103
 import numpy as np
 
 # very clunky way of supporting both np 1.x and 2.x exceptions
@@ -129,7 +128,7 @@ class PGS:
             # unstructured grid
             centroid = self._fields.mean(axis=1)
         for d in range(self._dim):
-            l = np.floor(self._fields[d].min()) - 1
+            l = np.floor(self._fields[d].min()) - 1  # noqa: E741
             h = np.ceil(self._fields[d].max()) + 1
             m = (h + l) / 2.0
             dist = max(np.abs(h - m), np.abs(l - m))

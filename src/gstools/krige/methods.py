@@ -13,7 +13,6 @@ The following classes are provided
    Detrended
 """
 
-# pylint: disable=C0103
 from gstools.krige.base import Krige
 
 __all__ = ["Simple", "Ordinary", "Universal", "ExtDrift", "Detrended"]

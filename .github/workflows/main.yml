@@ -45,9 +45,9 @@ jobs:
         run: |
           python -m isort --check --diff --color .
 
-      - name: pylint check
+      - name: ruff check
         run: |
-          python -m pylint src/gstools/
+          python -m ruff check src/gstools/
 
       - name: coveralls check
         run: |
