@@ -10,7 +10,6 @@ The following classes and functions are provided
    plot_vec_field
 """
 
-# pylint: disable=C0103, W0613, E1101, E0606
 import numpy as np
 from scipy import interpolate as inter
 from scipy.spatial import ConvexHull

@@ -11,7 +11,6 @@ The following classes are provided
    PGS
 """
 
-# pylint: disable=C0103
 import numpy as np
 
 # very clunky way of supporting both np 1.x and 2.x exceptions

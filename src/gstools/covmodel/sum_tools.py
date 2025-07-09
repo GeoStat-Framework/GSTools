@@ -17,7 +17,6 @@ The following classes and functions are provided
    sum_model_repr
 """
 
-# pylint: disable=W0212
 import numpy as np
 
 from gstools.tools import RADIAN_SCALE

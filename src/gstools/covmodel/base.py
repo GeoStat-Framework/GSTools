@@ -10,7 +10,6 @@ The following classes are provided
    SumModel
 """
 
-# pylint: disable=C0103, R0201, E1101, C0302, W0613, W0231
 import copy
 
 import numpy as np

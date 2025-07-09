@@ -9,7 +9,6 @@ The following classes are provided
    Field
 """
 
-# pylint: disable=C0103, C0415
 from collections.abc import Iterable
 from copy import copy
 from functools import partial

@@ -9,7 +9,6 @@ The following classes are provided
    Normalizer
 """
 
-# pylint: disable=R0201
 import warnings
 
 import numpy as np
