@@ -10,8 +10,8 @@ The following functions are provided
    vario_estimate_axis
 """
 
-import numpy as np
 from gstools_cython.variogram import directional as directional_c
+import numpy as np
 from gstools_cython.variogram import ma_structured as ma_structured_c
 from gstools_cython.variogram import structured as structured_c
 from gstools_cython.variogram import unstructured as unstructured_c
