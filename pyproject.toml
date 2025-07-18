@@ -73,11 +73,7 @@ plotting = [
 ]
 rust = ["gstools_core>=1.0.0"]
 test = ["pytest-cov>=3"]
-lint = [
-    "black>=24",
-    "ruff",
-    "isort[colors]",
-]
+lint = ["ruff"]
 
 [project.urls]
 Changelog = "https://github.com/GeoStat-Framework/GSTools/blob/main/CHANGELOG.md"
@@ -107,21 +103,9 @@ include = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/gstools"]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 79
-
-[tool.black]
+[tool.ruff]
 line-length = 79
-target-version = [
-    "py38",
-    "py39",
-    "py310",
-    "py311",
-    "py312",
-    "py313",
-]
+target-version = "py38"
 
 [tool.coverage]
     [tool.coverage.run]
