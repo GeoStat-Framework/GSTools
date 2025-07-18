@@ -61,7 +61,16 @@ def _directional(
         directional_fct = directional_gsc
     else:
         directional_fct = directional_c
-    return directional_fct( field, bin_edges, pos, direction, angles_tol, bandwidth, separate_dirs, estimator_type, num_threads,
+    return directional_fct(
+        field,
+        bin_edges,
+        pos,
+        direction,
+        angles_tol,
+        bandwidth,
+        separate_dirs,
+        estimator_type,
+        num_threads,
     )
 
 
