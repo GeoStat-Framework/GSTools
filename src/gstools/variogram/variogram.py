@@ -60,18 +60,8 @@ def _directional(
     if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         directional_fct = directional_gsc
     else:
-        a = 5
         directional_fct = directional_c
-    return directional_fct(
-        field,
-        bin_edges,
-        pos,
-        direction,
-        angles_tol,
-        bandwidth,
-        separate_dirs,
-        estimator_type,
-        num_threads,
+    return directional_fct( field, bin_edges, pos, direction, angles_tol, bandwidth, separate_dirs, estimator_type, num_threads,
     )
 
 
