@@ -10,8 +10,8 @@ The following functions are provided
    vario_estimate_axis
 """
 
-from gstools_cython.variogram import directional as directional_c
 import numpy as np
+from gstools_cython.variogram import directional as directional_c
 from gstools_cython.variogram import ma_structured as ma_structured_c
 from gstools_cython.variogram import structured as structured_c
 from gstools_cython.variogram import unstructured as unstructured_c
@@ -60,6 +60,7 @@ def _directional(
     if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
         directional_fct = directional_gsc
     else:
+        a = 5
         directional_fct = directional_c
     return directional_fct(
         field,
