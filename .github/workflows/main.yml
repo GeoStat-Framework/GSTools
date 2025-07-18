@@ -43,7 +43,7 @@ jobs:
 
       - name: ruff format check
         run: |
-          python -m ruff check src/gstools/
+          python -m ruff format --diff src/gstools/
 
       - name: coveralls check
         run: |
