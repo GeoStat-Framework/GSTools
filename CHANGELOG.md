@@ -2,6 +2,12 @@
 
 All notable changes to **GSTools** will be documented in this file.
 
+## [Unreleased] - ?
+
+### Changes
+
+- replace pylint, black, and isort with ruff [#391](https://github.com/GeoStat-Framework/GSTools/pull/391)
+
 ## [1.7.0] - Morphic Mint - 2025-04
 
 ### Enhancements
