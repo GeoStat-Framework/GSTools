@@ -29,8 +29,10 @@ with your idea or suggestion and we'd love to discuss about it.
 
 - Fork the repo on [GitHub](https://github.com/GeoStat-Framework/GSTools)
 - Add yourself to AUTHORS.md (if you want to).
-- We use [black](https://github.com/psf/black) and [isort](https://github.com/PyCQA/isort) to format our code.
-  Please use the scripts `black .` and `isort .` after you have written your code.
+- We use [Ruff](https://github.com/psf/black) to check and format the code.
+  Please use the scripts `ruff check src/gstools`,
+  `ruff check --select I --fix src/gstools/`, and
+  `ruff format --diff src/gstools/` after you have written your code.
 - Add some tests if possible.
 - Add an example showing your new feature in one of the examples sub-folders if possible.
   Follow this [Sphinx-Gallary guide](https://sphinx-gallery.github.io/stable/syntax.html#embed-rst-in-your-example-python-files).
