@@ -22,7 +22,6 @@ The following classes are provided
    JBessel
 """
 
-# pylint: disable=C0103, C0302, E1101, R0201
 import warnings
 
 import numpy as np

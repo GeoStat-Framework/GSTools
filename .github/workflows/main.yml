@@ -33,21 +33,17 @@ jobs:
           pip install -v --editable '.[lint,test]'
           pip install "coveralls>=3.0.0"
 
-      - name: black check
+      - name: ruff linter
         run: |
-          python -m black --check --diff --color .
+          python -m ruff check src/gstools/
 
-      - name: black preview
+      - name: ruff import check
         run: |
-          python -m black --preview --diff --color .
+          python -m ruff check --select I --diff src/gstools/
 
-      - name: isort check
+      - name: ruff format check
         run: |
-          python -m isort --check --diff --color .
-
-      - name: pylint check
-        run: |
-          python -m pylint src/gstools/
+          python -m ruff format --diff src/gstools/
 
       - name: coveralls check
         run: |

@@ -11,7 +11,6 @@ The following classes and functions are provided
    generate_on_mesh
 """
 
-# pylint: disable=W0212, C0415
 import meshio
 import numpy as np
 

@@ -236,6 +236,7 @@ __all__ += [
     "Krige",
     "SRF",
     "CondSRF",
+    "PGS",
     "rotated_main_axes",
     "generate_grid",
     "generate_st_grid",

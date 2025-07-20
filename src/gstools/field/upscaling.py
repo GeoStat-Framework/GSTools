@@ -12,7 +12,6 @@ The following functions are provided
    var_no_scaling
 """
 
-# pylint: disable=W0613
 import warnings
 
 import numpy as np
@@ -75,9 +74,9 @@ def var_coarse_graining(model, point_volumes=0.0):
         )
     # interpret volume as a hypercube and calculate the edge length
     edge = point_volumes ** (1.0 / model.dim)
-    var_factor = (
-        model.len_scale**2 / (model.len_scale**2 + edge**2 / 4)
-    ) ** (model.dim / 2.0)
+    var_factor = (model.len_scale**2 / (model.len_scale**2 + edge**2 / 4)) ** (
+        model.dim / 2.0
+    )
 
     return model.sill * var_factor
 
