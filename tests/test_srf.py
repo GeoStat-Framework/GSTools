@@ -9,7 +9,6 @@ import meshio
 import numpy as np
 
 import gstools as gs
-from gstools import transform as tf
 
 HAS_PYVISTA = False
 try:
