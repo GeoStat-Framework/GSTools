@@ -54,11 +54,6 @@ class PGS:
 
     def __init__(self, dim, fields):
         # hard to test for 1d case
-        if dim > 1:
-            if dim != len(fields):
-                raise ValueError(
-                    "PGS: Mismatch between dim. and no. of fields."
-                )
         for d in range(1, dim):
             if not fields[0].shape == fields[d].shape:
                 raise ValueError("PGS: Not all fields have the same shape.")
@@ -66,6 +61,8 @@ class PGS:
         self._fields = np.array(fields)
         self._lithotypes = None
         self._pos_lith = None
+        self._tree = None
+        self._field_names = [f"Z{i+1}" for i in range(len(self._fields))]
         try:
             self._mapping = np.stack(self._fields, axis=1)
         except np.AxisError:
@@ -77,31 +74,145 @@ class PGS:
             else:
                 raise
 
-    def __call__(self, lithotypes):
-        """Generate the plurigaussian field.
+    def __call__(self, lithotypes=None, tree=None):
+        """
+        Generate the plurigaussian field via spatial lithotype or decision tree.
+
+        Either a lithotype field or a decision tree config must be provided.
+        If `lithotypes` is given, map lithotype codes to the PGS via index
+        scaling. If `tree` is given, build and apply a DecisionTree to assign
+        phase labels.
 
         Parameters
         ----------
-        lithotypes : :class:`numpy.ndarray`
-            A `dim` dimensional structured field, whose values are mapped to the PGS.
-            It does not have to have the same shape as the `fields`, as the indices are
-            automatically scaled.
+        lithotypes : :class:`numpy.ndarray`, optional
+            `dim`-dimensional structured lithotype field. Shape may differ from
+            `fields`, as indices are automatically scaled. Mutually exclusive
+            with `tree`.
+        tree : dict, optional
+            Configuration dict for constructing a DecisionTree. Must contain
+            node specifications. Mutually exclusive with `lithotypes`.
+
         Returns
         -------
         pgs : :class:`numpy.ndarray`
-            the plurigaussian field
+            Plurigaussian field array: either the mapped lithotype field or
+            the labels assigned by the decision tree, matching the simulation
+            domain.
+
+        Raises
+        ------
+        ValueError
+            If neither or both of `lithotypes` and `tree` are provided.
+        ValueError
+            If `lithotypes` shape does not match `dim` or number of `fields`.
+        ValueError
+            If `dim` != len(fields) when using `lithotypes`.
         """
-        self._lithotypes = np.array(lithotypes)
-        if len(self._lithotypes.shape) != self._dim:
-            raise ValueError("PGS: Mismatch between dim. and facies shape.")
-        self._pos_lith = self.calc_lithotype_axes(self._lithotypes.shape)
 
-        P_dig = []
-        for d in range(self._dim):
-            P_dig.append(np.digitize(self._mapping[:, d], self._pos_lith[d]))
+        if lithotypes is not None or tree is not None:
+            if lithotypes is not None:
+                if self._dim > 1:
+                    if self._dim != len(self._fields):
+                        raise ValueError(
+                            "PGS: Mismatch between dim. and no. of fields."
+                        )
 
-        # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
-        return self._lithotypes[(*P_dig,)]
+                self._lithotypes = np.array(lithotypes)
+                if len(self._lithotypes.shape) != self._dim:
+                    raise ValueError(
+                        "PGS: Mismatch between dim. and facies shape."
+                    )
+                self._pos_lith = self.calc_lithotype_axes(
+                    self._lithotypes.shape
+                )
+                P_dig = []
+                for d in range(self._dim):
+                    P_dig.append(
+                        np.digitize(self._mapping[:, d], self._pos_lith[d])
+                    )
+                # once Py3.11 has reached its EOL, we can drop the 1-tuple :-)
+                return self._lithotypes[(*P_dig,)]
+
+            if tree is not None:
+                self._tree = self.DecisionTree(tree)
+                self._tree = self._tree.build_tree()
+
+                coords_P = np.stack(
+                    [
+                        self._fields[d].ravel()
+                        for d in range(len(self._fields))
+                    ],
+                    axis=1,
+                )
+                labels_P = np.array(
+                    [
+                        self._tree.decide(dict(zip(self._field_names, pt)))
+                        for pt in coords_P
+                    ]
+                )
+                return labels_P.reshape(self._fields.shape[1:])
+
+        raise ValueError(
+            "PGS: Must provide exactly one of `lithotypes` or `tree`"
+        )
+
+    def compute_lithotype(self, tree=None):
+        """
+        Compute lithotype from input SRFs using a decision tree.
+
+        If `self._tree` is not set, a tree configuration must be provided via
+        the `tree` argument. The method then builds or reuses the decision tree
+        and applies it to the coordinates of the plurigaussian fields to assign
+        a lithotype phase at each point.
+
+        Parameters
+        ----------
+        tree : dict or None, optional
+            Configuration for the decision tree. If None, `self._tree` must
+            already be defined. Defaults to None.
+
+        Returns
+        -------
+        lithotype : :class:`numpy.ndarray`
+            Discrete label array of shape equal to the simulation domain,
+            where each entry is the phase index determined by the tree.
+
+        Raises
+        ------
+        ValueError
+            If no decision tree is available or if `self._dim` does not equal
+            the number of provided fields.
+        """
+        if self._tree is None and tree is None:
+            raise ValueError(
+                "PGS: Please provide a decision tree config or compute P to assemble"
+            )
+        if self._tree is None and tree is not None:
+            self._tree = self.DecisionTree(tree)
+            self._tree = self._tree.build_tree()
+
+        if self._dim == len(self._fields):
+            axes = [
+                np.linspace(-3, 3, self._fields[0].shape[0])
+                for _ in self._fields.shape[1:]
+            ]  # works 2D 2 Fields
+            mesh = np.meshgrid(*axes, indexing="ij")
+            coords_L = np.stack([m.ravel() for m in mesh], axis=1)
+            labels_L = np.array(
+                [
+                    self._tree.decide(dict(zip(self._field_names, pt)))
+                    for pt in coords_L
+                ]
+            )
+            L_shape = tuple(
+                [self._fields.shape[1]] * len(self._fields.shape[1:])
+            )
+            L = labels_L.reshape(L_shape)
+        else:
+            raise ValueError("PGS: Only implemented for dim == len(fields)")
+
+        return L
 
     def calc_lithotype_axes(self, lithotypes_shape):
         """Calculate the axes on which the lithorypes are defined.
@@ -170,3 +281,174 @@ class PGS:
                 )
             )
         return pos_trans
+
+    class DecisionTree:
+        """
+        Build and traverse a decision tree for assigning lithotype labels.
+
+        This class constructs a tree of DecisionNode and LeafNode instances
+        from a configuration mapping. Once built, it can classify input data
+        by following the decision branches to a leaf action.
+
+        Parameters
+        ----------
+        config : dict
+            Mapping of node IDs to node specifications. Each entry must include:
+            - 'type': 'decision' or 'leaf'
+            - For decision nodes:
+            • 'func' (callable) and 'args' (dict)
+            • Optional 'yes_branch' and 'no_branch' keys naming other nodes
+            - For leaf nodes:
+        Notes
+        -----
+        - Call `build_tree()` to link nodes and obtain the root before using
+        `decide()`.
+        - The tree is immutable once built; rebuild to apply a new config.
+        """
+
+        def __init__(self, config):
+            self._config = config
+            self._tree = None
+
+        def build_tree(self):
+            """
+            Construct the decision tree structure from the configuration.
+
+            Iterates through the config to create DecisionNode and LeafNode
+            instances, then links decision nodes to their yes/no branches.
+
+            Returns
+            -------
+            root : DecisionNode or LeafNode
+                The root node of the constructed decision tree.
+
+            Raises
+            ------
+            KeyError
+                If 'root' is not defined in the configuration.
+            """
+            nodes = {}
+            for node_id, details in self._config.items():
+                if details["type"] == "decision":
+                    nodes[node_id] = self.DecisionNode(
+                        func=details["func"], args=details["args"]
+                    )
+                elif details["type"] == "leaf":
+                    nodes[node_id] = self.LeafNode(details["action"])
+            for node_id, details in self._config.items():
+                if details["type"] == "decision":
+                    nodes[node_id].yes_branch = nodes.get(
+                        details.get("yes_branch")
+                    )
+                    nodes[node_id].no_branch = nodes.get(
+                        details.get("no_branch")
+                    )
+
+            return nodes["root"]
+
+        def decide(self, data):
+            """
+            Traverse the built tree to make a decision for the given data.
+
+            Parameters
+            ----------
+            data : dict
+                A mapping of feature names to values, passed to decision functions
+                in each DecisionNode.
+
+            Returns
+            -------
+            result
+                The action value from the reached LeafNode, or None if a branch
+                is missing.
+
+            Raises
+            ------
+            ValueError
+                If the tree has not been built (i.e., `build_tree` not called).
+            """
+            if self._tree:
+                return self._tree.decide(data)
+            raise ValueError("The decision tree has not been built yet.")
+
+        class DecisionNode:  # pylint: disable=too-few-public-methods
+            """
+            Internal node that evaluates a condition and routes to child branches.
+
+            A DecisionNode wraps a boolean function and two optional branches
+            (yes_branch and no_branch), which may be further DecisionNode or
+            LeafNode instances.
+
+            Parameters
+            ----------
+            func : callable
+                A function that evaluates a condition on the input data.
+                Must accept `data` as first argument and keyword args.
+            args : dict
+                Keyword arguments to pass to `func` when called.
+            yes_branch : DecisionNode or LeafNode, optional
+                Node to traverse if `func(data, **args)` returns True.
+            no_branch : DecisionNode or LeafNode, optional
+                Node to traverse if `func(data, **args)` returns False.
+            """
+
+            def __init__(self, func, args, yes_branch=None, no_branch=None):
+                self.func = func
+                self.args = args
+                self.yes_branch = yes_branch
+                self.no_branch = no_branch
+
+            def decide(self, data):
+                """
+                Evaluate the decision function and traverse to the next node.
+
+                Parameters
+                ----------
+                data : dict
+                    Feature mapping passed to `func`.
+
+                Returns
+                -------
+                result
+                    The outcome of the subsequent node's `decide` method, or None
+                    if the respective branch is not set.
+                """
+                if self.func(data, **self.args):
+                    return (
+                        self.yes_branch.decide(data)
+                        if self.yes_branch
+                        else None
+                    )
+                return self.no_branch.decide(data) if self.no_branch else None
+
+        class LeafNode:  # pylint: disable=too-few-public-methods
+            """
+            Terminal node that returns a stored action when reached.
+
+            A LeafNode represents the outcome of a decision path. Its `action`
+            value is returned directly by `decide()`
+
+            Parameters
+            ----------
+            action : any
+                The value to return when this leaf is reached.
+            """
+
+            def __init__(self, action):
+                self.action = action
+
+            def decide(self, _data):
+                """
+                Return the leaf action, terminating the traversal.
+
+                Parameters
+                ----------
+                data : dict
+                    Ignored input data.
+
+                Returns
+                -------
+                action : any
+                    The action value stored in this leaf.
+                """
+                return self.action
