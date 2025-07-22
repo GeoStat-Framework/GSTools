@@ -98,6 +98,12 @@ packages = ["src/gstools"]
 line-length = 79
 target-version = "py38"
 
+[tool.ruff.lint]
+select = [
+    "F",
+    "I",
+]
+
 [tool.coverage]
 [tool.coverage.run]
 source = ["gstools"]
