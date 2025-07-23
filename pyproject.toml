@@ -58,7 +58,6 @@ dependencies = [
 doc = [
     "myst_parser",
     "matplotlib>=3.7",
-    "meshzoo>=0.7",
     "numpydoc>=1.1",
     "pykrige>=1.5,<2",
     "pyvista>=0.40",
@@ -71,7 +70,7 @@ plotting = [
     "matplotlib>=3.7",
     "pyvista>=0.40",
 ]
-rust = ["gstools_core>=1.0.0"]
+rust = ["gstools_core>=1.1.0"]
 test = ["pytest-cov>=3"]
 lint = ["ruff"]
 
