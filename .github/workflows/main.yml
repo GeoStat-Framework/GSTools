@@ -37,10 +37,6 @@ jobs:
         run: |
           python -m ruff check src/gstools/
 
-      - name: ruff import check
-        run: |
-          python -m ruff check --select I --diff src/gstools/
-
       - name: ruff format check
         run: |
           python -m ruff format --diff src/gstools/
@@ -58,7 +54,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
+        os:
+          [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-13, macos-14]
         # https://github.com/scipy/oldest-supported-numpy/blob/main/setup.cfg
         ver:
           - { py: "3.8", np: "==1.20.0", sp: "==1.5.4" }

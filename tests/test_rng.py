@@ -5,9 +5,8 @@ This is the unittest of the RNG class.
 import unittest
 
 import numpy as np
-from scipy.stats import kurtosis, normaltest, skew
 
-from gstools import Gaussian, TPLStable
+from gstools import Gaussian
 from gstools.random.rng import RNG
 
 
@@ -100,7 +99,8 @@ class TestRNG(unittest.TestCase):
 
         # TODO test with different models
 
-    # TODO rework this
+    # TODO rework this, needs
+    # from scipy.stats import kurtosis, normaltest, skew
     # def test_gau(self):
     #    for d in range(len(self.rngs)):
     #        Z, k = self.rngs[d]('gau', self.len_scale, self.many_modes)

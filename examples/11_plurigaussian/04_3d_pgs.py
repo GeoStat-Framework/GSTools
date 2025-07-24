@@ -7,7 +7,6 @@ will be a bit more involved.
 """
 
 # sphinx_gallery_thumbnail_path = 'pics/3d_pgs.png'
-import matplotlib.pyplot as plt
 import numpy as np
 
 import gstools as gs

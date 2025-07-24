@@ -69,18 +69,12 @@ lithotypes[
 for i in range(4):
     lithotypes[
         M[0] // 2 + S1[0] : M[0] // 2 + S1[0] + rect[0],
-        M[1] // 2
-        + S1[1]
-        + rect[1]
-        + 3
-        + 2 * i : M[1] // 2
+        M[1] // 2 + S1[1] + rect[1] + 3 + 2 * i : M[1] // 2
         + S1[1]
         + rect[1]
         + 4
         + 2 * i,
-    ] = (
-        4 + i
-    )
+    ] = 4 + i
 
 ###############################################################################
 # With the two SRFs and the L-field ready, we can create the PGS.

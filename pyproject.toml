@@ -1,10 +1,7 @@
 
 
 [build-system]
-requires = [
-    "hatchling>=1.8.0",
-    "hatch-vcs",
-]
+requires = ["hatchling>=1.8.0", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -12,7 +9,7 @@ requires-python = ">=3.8"
 name = "gstools"
 description = "GSTools: A geostatistical toolbox."
 authors = [
-    {name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org"},
+    { name = "Sebastian Müller, Lennart Schüler", email = "info@geostat-framework.org" },
 ]
 readme = "README.md"
 license = "LGPL-3.0"
@@ -67,10 +64,7 @@ doc = [
     "sphinx-rtd-theme>=3",
     "sphinxcontrib-youtube>=1.1",
 ]
-plotting = [
-    "matplotlib>=3.7",
-    "pyvista>=0.40",
-]
+plotting = ["matplotlib>=3.7", "pyvista>=0.40"]
 rust = ["gstools_core>=1.0.0"]
 test = ["pytest-cov>=3"]
 lint = ["ruff"]
@@ -95,10 +89,7 @@ version-file = "src/gstools/_version.py"
 template = "__version__ = '{version}'"
 
 [tool.hatch.build.targets.sdist]
-include = [
-  "/src",
-  "/tests",
-]
+include = ["/src", "/tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gstools"]
@@ -107,20 +98,22 @@ packages = ["src/gstools"]
 line-length = 79
 target-version = "py38"
 
-[tool.coverage]
-    [tool.coverage.run]
-    source = ["gstools"]
-    omit = [
-        "*docs*",
-        "*examples*",
-        "*tests*",
-        "*/src/gstools/covmodel/plot.py",
-        "*/src/gstools/field/plot.py",
-    ]
+[tool.ruff.lint]
+select = [
+    "F",
+    "I",
+]
 
-    [tool.coverage.report]
-    exclude_lines = [
-        "pragma: no cover",
-        "def __repr__",
-        "def __str__",
-    ]
+[tool.coverage]
+[tool.coverage.run]
+source = ["gstools"]
+omit = [
+    "*docs*",
+    "*examples*",
+    "*tests*",
+    "*/src/gstools/covmodel/plot.py",
+    "*/src/gstools/field/plot.py",
+]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "def __repr__", "def __str__"]
