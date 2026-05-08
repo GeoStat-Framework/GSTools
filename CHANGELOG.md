@@ -6,6 +6,9 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 
+- add decision-tree based plurigaussian fields [#387](https://github.com/GeoStat-Framework/GSTools/pull/387)
+  - instead of spatial rules, as before, decision trees are a more flexible approach
+  - each node of the binary tree is a decision based on the values of the SRF
 - replace pylint, black, and isort with ruff [#391](https://github.com/GeoStat-Framework/GSTools/pull/391)
 
 ## [1.7.0] - Morphic Mint - 2025-04
