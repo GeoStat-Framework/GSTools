@@ -5,7 +5,7 @@ Creating PGS with periodic boundaries
 Plurigaussian fields with periodic boundaries (P-PGS) are used in various
 applications, including the simulation of interactions between the landsurface
 and the atmosphere, as well as the application of homogenisation theory to
-porous media, e.g. [Ricketts 2024](https://doi.org/10.1007/s11242-024-02074-z).
+porous media, e.g. `Ricketts 2024 <https://doi.org/10.1007/s11242-024-02074-z>`__.
 
 In this example we will use GSTools's Fourier generator to create periodic
 random fields, which can in turn be used to generate P-PGS.
