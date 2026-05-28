@@ -78,6 +78,25 @@ To get the latest development version you can install it directly from GitHub:
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
+
+uv
+--
+
+GSTools can be installed via `pip <https://docs.astral.sh/uv/>`_
+on Linux, Mac, and Windows.
+Install the package by typing the following command in a command terminal:
+
+.. code-block:: none
+
+    uv add gstools
+
+To get the latest development version you can install it directly from GitHub:
+
+.. code-block:: none
+
+    uv add "gstools @ git+https://github.com/GeoStat-Framework/GSTools.git"
+
+
 **Speeding up GSTools by parallelization**
 
 We provide two possibilities to run GSTools in parallel, often causing a
@@ -89,12 +108,19 @@ When using conda, the parallel version of GSTools is installed per default.
 ***Parallelizing Cython***
 
 For parallel support, the `GSTools-Cython <https://github.com/GeoStat-Framework/GSTools-Cython>`_
-backend needs to be compiled from source the following way:
+backend needs to be compiled from source. Using pip this can be done with:
 
 .. code-block:: none
 
     export GSTOOLS_BUILD_PARALLEL=1
     pip install --no-binary=gstools-cython gstools
+
+In case you are using uv, use these commands:
+
+.. code-block:: none
+
+    export GSTOOLS_BUILD_PARALLEL=1
+    uv add --no-binary-package=gstools-cython gstools
 
 You have to provide a C compiler and OpenMP to compile GSTools-Cython with parallel support.
 The feature is controlled by the environment variable
@@ -102,7 +128,7 @@ The feature is controlled by the environment variable
 Note, that the ``--no-binary=gstools-cython`` option forces pip to not use a wheel
 for the GSTools-Cython backend.
 
-For the development version, you can do almost the same:
+For the development version, you can do almost the same. Using pip:
 
 .. code-block:: none
 
@@ -110,11 +136,18 @@ For the development version, you can do almost the same:
     pip install git+git://github.com/GeoStat-Framework/GSTools-Cython.git@main
     pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
 
+And using uv:
+
+.. code-block:: none
+
+    export GSTOOLS_BUILD_PARALLEL=1
+    uv add "gstools @ git+https://github.com/GeoStat-Framework/GSTools-Cython.git"
+    uv add "gstools @ git+https://github.com/GeoStat-Framework/GSTools.git"
 
 ***Using GSTools-Core for parallelization and even more speed***
 
 You can install the optional dependency `GSTools-Core <https://github.com/GeoStat-Framework/GSTools-Core>`_,
-which is a re-implementation of GSTools-Cython:
+which is a re-implementation of GSTools-Cython. Using pip, you can install it with:
 
 .. code-block:: none
 
@@ -125,6 +158,18 @@ or by manually installing the package
 .. code-block:: none
 
     pip install gstools-core
+
+If you are using uv, you can install it together with GSTools in a single step with:
+
+.. code-block:: none
+
+    uv add "gstools[rust]"
+
+or by manually installing the package
+
+.. code-block:: none
+
+    uv add gstools-core
 
 The new package uses the language Rust and it should be safer and faster (in some cases by orders of magnitude).
 Once the package GSTools-Core is available on your machine, it will be used by default.

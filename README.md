@@ -74,6 +74,20 @@ is installed. In case you want the parallel version, follow these easy
 [steps][doc_install_link].
 
 
+### uv
+
+GSTools can be installed via [uv][uv_link] on Linux, Mac, and Windows.
+Install the package by typing the following command in a command terminal:
+
+    uv add gstools
+
+To install the latest development version via uv, see the
+[documentation][doc_install_link].
+One thing to point out is that this way, the non-parallel version of GSTools
+is installed. In case you want the parallel version, follow these easy
+[steps][doc_install_link].
+
+
 ## Citation
 
 If you are using GSTools in your publication please cite our paper:
@@ -417,6 +431,7 @@ You can contact us via <info@geostat-framework.org>.
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_link]: https://docs.conda.io/en/latest/miniconda.html
+[uv_link]: https://docs.astral.sh/uv/
 [conda_forge_link]: https://github.com/conda-forge/gstools-feedstock#installing-gstools
 [conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i
