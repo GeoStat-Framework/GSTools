@@ -14,10 +14,7 @@ import warnings
 import numpy as np
 import scipy.optimize as spo
 
-
-def _derivative(f, x, dx=1e-6):
-    """Central difference formula."""
-    return (f(x + dx) - f(x - dx)) / (2 * dx)
+from gstools.tools.misc import derivative
 
 
 class Normalizer:
@@ -60,7 +57,7 @@ class Normalizer:
         return data
 
     def _derivative(self, data):
-        return _derivative(self._normalize, data, dx=self._dx)
+        return derivative(self._normalize, data, dx=self._dx)
 
     def _loglikelihood(self, data):
         add = -0.5 * np.size(data) * (np.log(2 * np.pi) + 1)

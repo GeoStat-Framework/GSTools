@@ -188,6 +188,9 @@ class Gaussian(CovModel):
     def calc_integral_scale(self):  # noqa: D102
         return self.len_rescaled * np.sqrt(np.pi) / 2.0
 
+    def _roughness(self):
+        return 2.0
+
 
 class Exponential(CovModel):
     r"""The Exponential covariance model.
@@ -272,6 +275,9 @@ class Exponential(CovModel):
     def calc_integral_scale(self):  # noqa: D102
         return self.len_rescaled
 
+    def _roughness(self):
+        return 1.0
+
 
 class Stable(CovModel):
     r"""The stable covariance model.
@@ -346,6 +352,9 @@ class Stable(CovModel):
 
     def calc_integral_scale(self):  # noqa: D102
         return self.len_rescaled * sps.gamma(1.0 + 1.0 / self.alpha)
+
+    def _roughness(self):
+        return self.alpha
 
 
 class Matern(CovModel):
@@ -457,6 +466,9 @@ class Matern(CovModel):
             / sps.beta(self.nu, 0.5)
         )
 
+    def _roughness(self):
+        return min(2.0, 2 * self.nu)
+
 
 class Integral(CovModel):
     r"""The Exponential Integral covariance model.
@@ -548,6 +560,9 @@ class Integral(CovModel):
             self.len_rescaled * self.nu * np.sqrt(np.pi) / (2 * self.nu + 2.0)
         )
 
+    def _roughness(self):
+        return min(2.0, self.nu)
+
 
 class Rational(CovModel):
     r"""The rational quadratic covariance model.
@@ -620,6 +635,9 @@ class Rational(CovModel):
             / 2.0
         )
 
+    def _roughness(self):
+        return 2.0
+
 
 class Cubic(CovModel):
     r"""The Cubic covariance model.
@@ -656,6 +674,9 @@ class Cubic(CovModel):
         h = np.minimum(np.abs(h, dtype=np.double), 1.0)
         return 1.0 - 7 * h**2 + 8.75 * h**3 - 3.5 * h**5 + 0.75 * h**7
 
+    def _roughness(self):
+        return 2.0
+
 
 class Linear(CovModel):
     r"""The bounded linear covariance model.
@@ -691,6 +712,9 @@ class Linear(CovModel):
     def check_dim(self, dim):
         """Linear model is only valid in 1D."""
         return dim < 2
+
+    def _roughness(self):
+        return 1.0
 
 
 class Circular(CovModel):
@@ -741,6 +765,9 @@ class Circular(CovModel):
         """Circular model is only valid in 1D and 2D."""
         return dim < 3
 
+    def _roughness(self):
+        return 1.0
+
 
 class Spherical(CovModel):
     r"""The Spherical covariance model.
@@ -779,6 +806,9 @@ class Spherical(CovModel):
     def check_dim(self, dim):
         """Spherical model is only valid in 1D, 2D and 3D."""
         return dim < 4
+
+    def _roughness(self):
+        return 1.0
 
 
 class HyperSpherical(CovModel):
@@ -840,6 +870,9 @@ class HyperSpherical(CovModel):
             / np.sqrt(np.pi) ** self.dim
         )
         return res
+
+    def _roughness(self):
+        return 1.0
 
 
 class SuperSpherical(CovModel):
@@ -916,6 +949,9 @@ class SuperSpherical(CovModel):
             0.5, -self.nu, 1.5, h[h_l1] ** 2
         )
         return res
+
+    def _roughness(self):
+        return 1.0
 
 
 class JBessel(CovModel):
@@ -1004,12 +1040,7 @@ class JBessel(CovModel):
     def cor(self, h):
         """J-Bessel correlation."""
         h = np.asarray(h, dtype=np.double)
-        h_gz = np.logical_not(np.isclose(h, 0))
-        hh = h[h_gz]
-        res = np.ones_like(h)
-        nu = self.nu
-        res[h_gz] = sps.gamma(nu + 1) * sps.jv(nu, hh) / (hh / 2.0) ** nu
-        return res
+        return sps.hyp0f1(self.nu + 1, -0.25 * h**2)
 
     def spectral_density(self, k):  # noqa: D102
         k = np.asarray(k, dtype=np.double)
@@ -1025,3 +1056,14 @@ class JBessel(CovModel):
             * (1.0 - (kk * self.len_rescaled) ** 2) ** (self.nu - self.dim / 2)
         )
         return res
+
+    def calc_integral_scale(self):  # noqa: D102
+        return (
+            self.len_rescaled
+            * np.sqrt(np.pi)
+            * sps.gamma(self.nu + 1)
+            / sps.gamma(self.nu + 0.5)
+        )
+
+    def _roughness(self):
+        return 2.0

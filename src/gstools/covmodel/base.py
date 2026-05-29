@@ -52,6 +52,7 @@ from gstools.tools.geometric import (
     pos2latlon,
     rotated_main_axes,
 )
+from gstools.tools.misc import derivative
 
 __all__ = ["CovModel"]
 
@@ -1166,6 +1167,53 @@ class CovModel:
     def is_isotropic(self):
         """:any:`bool`: State if a model is isotropic."""
         return np.all(np.isclose(self.anis, 1.0))
+
+    @property
+    def roughness(self):
+        """:any:`float`: roughness information of the model. Zero for any present nugget."""
+        if self.nugget > 0:
+            return 0.0
+        if np.isclose(self.var, 0):
+            return np.inf
+        if hasattr(self, "_roughness"):
+            return self._roughness()
+        return self.calc_roughness()
+
+    def calc_roughness(self, x=1e-4, dx=1e-4):
+        """Calculate the roughness of the model.
+
+        This ignores the nugget of the model.
+
+        Parameters
+        ----------
+        x : :class:`float`, optional
+            Point at which the derivative is calculated.
+            Default: ``1e-4``
+        dx : :class:`float`, optional
+            Step size for the derivative calculation.
+            Default: ``1e-4``
+
+        Returns
+        -------
+        roughness : :class:`float`
+            Roughness of the model.
+
+        Notes
+        -----
+        The roughness is defined as the derivative of the log-log
+        correlation function at zero:
+
+            * ``roughness = d( log(1 - cor(r)) ) / d( log(r) ) | r->0``
+
+        This is calculated numerically by evaluating the derivative
+        at a small distance `x`.
+        """
+
+        def f(h):
+            """Function for derivative calculation."""
+            return np.log(1 - self.cor(np.exp(h)))
+
+        return derivative(f, np.log(x), dx=dx, order=1)
 
     def __eq__(self, other):
         """Compare CovModels."""
