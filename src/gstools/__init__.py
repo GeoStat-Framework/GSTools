@@ -44,6 +44,8 @@ Collocated cokriging methods for multivariate estimation
 .. currentmodule:: gstools.cokriging
 
 .. autosummary::
+   CollocatedCokriging
+   Correlogram
    SimpleCollocated
    IntrinsicCollocated
    MarkovModel1
@@ -159,6 +161,8 @@ from gstools import (  # noqa: I001
     variogram,
 )
 from gstools.cokriging import (
+    CollocatedCokriging,
+    Correlogram,
     IntrinsicCollocated,
     MarkovModel1,
     SimpleCollocated,
@@ -260,6 +264,8 @@ __all__ += [
 
 __all__ += [
     "Krige",
+    "CollocatedCokriging",
+    "Correlogram",
     "SimpleCollocated",
     "IntrinsicCollocated",
     "MarkovModel1",

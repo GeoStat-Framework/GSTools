@@ -11,7 +11,6 @@ The following classes are provided
 """
 
 from gstools.cokriging.base import CollocatedCokriging
-from gstools.cokriging.correlogram import Correlogram
 
 __all__ = ["SimpleCollocated", "IntrinsicCollocated"]
 
@@ -102,13 +101,6 @@ class SimpleCollocated(CollocatedCokriging):
         fit_normalizer=False,
         fit_variogram=False,
     ):
-        # Check if correlogram is actually a Correlogram object
-        if not isinstance(correlogram, Correlogram):
-            raise TypeError(
-                f"First argument must be a Correlogram instance. "
-                f"Got {type(correlogram).__name__}."
-            )
-
         # Initialize using base class with simple collocated algorithm
         super().__init__(
             correlogram=correlogram,
@@ -220,13 +212,6 @@ class IntrinsicCollocated(CollocatedCokriging):
         fit_normalizer=False,
         fit_variogram=False,
     ):
-        # Check if correlogram is actually a Correlogram object
-        if not isinstance(correlogram, Correlogram):
-            raise TypeError(
-                f"First argument must be a Correlogram instance. "
-                f"Got {type(correlogram).__name__}. "
-            )
-
         # Initialize using base class with intrinsic algorithm
         super().__init__(
             correlogram=correlogram,

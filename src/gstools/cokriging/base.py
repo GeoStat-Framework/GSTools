@@ -138,15 +138,32 @@ class CollocatedCokriging(Krige):
                 raise ValueError(
                     "secondary_cond_pos and secondary_cond_val required for ICCK"
                 )
-            self.secondary_cond_pos = secondary_cond_pos
-            self.secondary_cond_val = np.asarray(
-                secondary_cond_val, dtype=np.double
+            # ICCK requires secondary data collocated with the primary data
+            prim = np.asarray(cond_pos, dtype=np.double).reshape(
+                correlogram.primary_model.dim, -1
             )
-
-            if len(self.secondary_cond_val) != len(cond_val):
+            sec_pos = np.asarray(secondary_cond_pos, dtype=np.double).reshape(
+                correlogram.primary_model.dim, -1
+            )
+            if sec_pos.shape != prim.shape or not np.allclose(sec_pos, prim):
+                raise ValueError(
+                    "ICCK requires secondary_cond_pos to be collocated with "
+                    "cond_pos (secondary data given at the primary locations)"
+                )
+            # length must match the primary values *before* NaN filtering
+            raw_cond_val = np.asarray(cond_val, dtype=np.double).reshape(-1)
+            secondary_cond_val = np.asarray(
+                secondary_cond_val, dtype=np.double
+            ).reshape(-1)
+            if len(secondary_cond_val) != len(raw_cond_val):
                 raise ValueError(
                     "secondary_cond_val must have same length as primary cond_val"
                 )
+            # drop secondary values whose primary is non-finite, matching the
+            # mask that Krige.set_condition applies to cond_pos/cond_val
+            finite_mask = np.isfinite(raw_cond_val)
+            self.secondary_cond_pos = secondary_cond_pos
+            self.secondary_cond_val = secondary_cond_val[finite_mask]
         else:
             self.secondary_cond_pos = None
             self.secondary_cond_val = None
@@ -172,8 +189,9 @@ class CollocatedCokriging(Krige):
         """
         Generate the collocated cokriging field.
 
-        The field is saved as `self.field` and is also returned.
-        The error variance is saved as `self.krige_var` and is also returned.
+        The cokriging field is saved as `self.field` and is also returned.
+        The cokriging error variance is saved as `self.krige_var` and is
+        also returned (if ``return_var`` is True).
 
         Parameters
         ----------
@@ -181,73 +199,96 @@ class CollocatedCokriging(Krige):
             the position tuple, containing main direction and transversal
             directions (x, [y, z])
         secondary_data : :class:`numpy.ndarray`
-            Secondary variable values at the given positions.
+            Secondary variable values at the given evaluation positions.
+            Must have one value per evaluation point.
         **kwargs
-            Keyword arguments passed to Krige.__call__.
+            Keyword arguments passed to :any:`Krige.__call__`
+            (e.g. ``mesh_type``, ``chunk_size``, ``return_var``, ``store``,
+            ``post_process``).
 
         Returns
         -------
         field : :class:`numpy.ndarray`
             the collocated cokriging field
         krige_var : :class:`numpy.ndarray`, optional
-            the collocated cokriging error variance
-            (if return_var is True)
+            the collocated cokriging error variance (if ``return_var`` is True)
         """
         if secondary_data is None:
             raise ValueError(
-                "secondary_data required for collocated cokriging"
+                "secondary_data required for collocated cokriging. "
+                "Note: collocated cokriging objects cannot be wrapped in "
+                "CondSRF, which provides no secondary_data channel."
+            )
+        if kwargs.get("only_mean", False):
+            raise NotImplementedError(
+                "only_mean is not supported for collocated cokriging"
             )
 
-        user_return_var = kwargs.get("return_var", True)
-        # always get variance for weight calculation
-        kwargs_with_var = kwargs.copy()
-        kwargs_with_var["return_var"] = True
-        # get simple kriging results
-        sk_field, sk_var = super().__call__(pos=pos, **kwargs_with_var)
-        secondary_data = np.asarray(secondary_data, dtype=np.double)
+        return_var = kwargs.pop("return_var", True)
+        store = kwargs.pop("store", True)
+        post_process = kwargs.pop("post_process", True)
 
-        # apply algorithm-specific post-processing
-        if self.algorithm == "simple":
-            cokriging_field, cokriging_var = self._apply_simple_collocated(
-                sk_field, sk_var, secondary_data, user_return_var
-            )
-        elif self.algorithm == "intrinsic":
-            cokriging_field, cokriging_var = self._apply_intrinsic_collocated(
-                sk_field, sk_var, secondary_data, user_return_var
-            )
+        # SCCK's collocated weight depends on SK variance, so it always
+        # needs the variance; ICCK's field path does not.
+        need_var = return_var or self.algorithm == "simple"
+
+        # solve simple kriging in residual/normal space (no store, no post)
+        sk_result = super().__call__(
+            pos=pos,
+            return_var=need_var,
+            store=False,
+            post_process=False,
+            **kwargs,
+        )
+        if need_var:
+            sk_field, sk_var = sk_result
         else:
-            raise ValueError(f"Unknown algorithm: {self.algorithm}")
+            sk_field, sk_var = sk_result, None
 
-        if user_return_var:
-            return cokriging_field, cokriging_var
-        return cokriging_field
+        secondary_data = self._prepare_secondary(
+            secondary_data, sk_field.shape
+        )
+
+        if self.algorithm == "simple":
+            ck_field, ck_var = self._apply_simple_collocated(
+                sk_field, sk_var, secondary_data, return_var
+            )
+        else:  # "intrinsic" (validated in __init__)
+            ck_field, ck_var = self._apply_intrinsic_collocated(
+                sk_field, sk_var, secondary_data, return_var
+            )
+
+        # post-process (mean/normalizer/trend) and store exactly once
+        ck_field = self.post_field(ck_field, "field", post_process, store)
+        if return_var:
+            ck_var = self.post_field(ck_var, "krige_var", False, store)
+            return ck_field, ck_var
+        return ck_field
 
     def _apply_simple_collocated(
         self, sk_field, sk_var, secondary_data, return_var
     ):
-        """Apply simple collocated cokriging."""
+        """Apply simple collocated cokriging in residual/normal space."""
         C_Z0, C_Y0, C_YZ0 = self._compute_covariances()
         k = C_YZ0 / C_Z0
 
-        # compute collocated weight
+        # collocated secondary weight (depends on SK variance)
         numerator = k * sk_var
         denominator = C_Y0 - (k**2) * (C_Z0 - sk_var)
         collocated_weights = np.where(
             np.abs(denominator) < 1e-15, 0.0, numerator / denominator
         )
 
-        # apply collocated cokriging estimator
-        scck_field = (
-            sk_field * (1 - k * collocated_weights)
-            + collocated_weights
+        # residual-space estimator: (1 - k*lam)*sk_resid + lam*(sec - m_Y)
+        scck_field = sk_field * (1 - k * collocated_weights) + (
+            collocated_weights
             * (secondary_data - self.correlogram.secondary_mean)
-            + k * collocated_weights * self.mean
         )
 
         if return_var:
-            # simple collocated variance
-            scck_variance = sk_var * (1 - collocated_weights * k)
-            scck_variance = np.maximum(0.0, scck_variance)
+            scck_variance = np.maximum(
+                0.0, sk_var * (1 - collocated_weights * k)
+            )
         else:
             scck_variance = None
         return scck_field, scck_variance
@@ -256,70 +297,88 @@ class CollocatedCokriging(Krige):
         self, sk_field, sk_var, secondary_data, return_var
     ):
         """
-        Apply intrinsic collocated cokriging.
+        Apply intrinsic collocated cokriging in residual/normal space.
 
-        Adds the collocated secondary contribution at estimation locations
-        and computes ICCK variance.
-
-        Note: The secondary-at-primary contribution is already added during
-        the kriging solve in _summate().
+        The secondary-at-primary contribution is already added to the
+        residual-space field during the kriging solve in :any:`_summate`.
+        Here we add only the collocated secondary contribution at the
+        evaluation points, so both secondary terms live in the same
+        (normal) space before a single post-processing step.
         """
-        # apply collocated secondary contribution
-        collocated_contribution = self._lambda_Y0 * (
+        C_Z0, C_Y0, C_YZ0 = self._compute_covariances()
+        if C_Y0 < 1e-15:
+            lambda_Y0 = 0.0
+        else:
+            lambda_Y0 = C_YZ0 / C_Y0
+        icck_field = sk_field + lambda_Y0 * (
             secondary_data - self.correlogram.secondary_mean
         )
-        icck_field = sk_field + collocated_contribution
 
-        # compute intrinsic variance
         if return_var:
-            C_Z0, C_Y0, C_YZ0 = self._compute_covariances()
             if C_Y0 * C_Z0 < 1e-15:
                 rho_squared = 0.0
             else:
                 rho_squared = (C_YZ0**2) / (C_Y0 * C_Z0)
-            icck_var = (1.0 - rho_squared) * sk_var
-            icck_var = np.maximum(0.0, icck_var)
+            icck_var = np.maximum(0.0, (1.0 - rho_squared) * sk_var)
         else:
             icck_var = None
         return icck_field, icck_var
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
-        """Apply intrinsic collocated cokriging during kriging solve."""
+        """Fill the residual-space field (and variance) for one chunk.
+
+        Computes kriging weights once in NumPy and derives field and variance
+        directly, avoiding the redundant Cython solve from super()._summate.
+        For the intrinsic algorithm, the secondary-at-primary contribution is
+        also added here so both secondary terms are in residual space before
+        the single post_field call in __call__.
+        """
+        sk_weights = self._krige_mat @ k_vec
+        field[c_slice] = self._krige_cond @ sk_weights
+        if return_var:
+            krige_var[c_slice] = np.sum(k_vec * sk_weights, axis=0)
+
         if self.algorithm == "simple":
-            super()._summate(field, krige_var, c_slice, k_vec, return_var)
             return
 
-        elif self.algorithm == "intrinsic":
-            sk_weights = self._krige_mat @ k_vec
-            C_Z0, C_Y0, C_YZ0 = self._compute_covariances()
+        # intrinsic: add secondary-at-primary contribution
+        C_Z0, C_Y0, C_YZ0 = self._compute_covariances()
+        if abs(C_YZ0) < 1e-15:
+            return
 
-            if abs(C_YZ0) < 1e-15:
-                self._lambda_Y0 = 0.0
-                self._secondary_at_primary = 0.0
-                super()._summate(field, krige_var, c_slice, k_vec, return_var)
-                return
+        lambda_weights = sk_weights[: self.cond_no]
+        mu_weights = -(C_YZ0 / C_Y0) * lambda_weights
+        secondary_residuals = (
+            self.secondary_cond_val - self.correlogram.secondary_mean
+        )
+        field[c_slice] += np.sum(
+            mu_weights * secondary_residuals[:, None], axis=0
+        )
 
-            lambda_weights = sk_weights[: self.cond_no]
-            mu_weights = -(C_YZ0 / C_Y0) * lambda_weights
-            lambda_Y0 = C_YZ0 / C_Y0
+    def _prepare_secondary(self, secondary_data, field_shape):
+        """
+        Validate and reshape secondary data to the evaluation field shape.
 
-            secondary_residuals = (
-                self.secondary_cond_val - self.correlogram.secondary_mean
+        Parameters
+        ----------
+        secondary_data : array_like
+            Secondary variable values, one per evaluation point.
+        field_shape : tuple
+            Shape of the (residual-space) simple-kriging field.
+
+        Returns
+        -------
+        numpy.ndarray
+            secondary_data reshaped to ``field_shape``.
+        """
+        secondary_data = np.asarray(secondary_data, dtype=np.double)
+        n_expected = int(np.prod(field_shape))
+        if secondary_data.size != n_expected:
+            raise ValueError(
+                "secondary_data must have one value per evaluation point: "
+                f"expected {n_expected}, got {secondary_data.size}"
             )
-            if sk_weights.ndim == 1:
-                secondary_at_primary = np.sum(mu_weights * secondary_residuals)
-            else:
-                secondary_at_primary = np.sum(
-                    mu_weights * secondary_residuals[:, None], axis=0
-                )
-
-            self._lambda_Y0 = lambda_Y0
-            self._secondary_at_primary = secondary_at_primary
-
-            super()._summate(field, krige_var, c_slice, k_vec, return_var)
-            field[c_slice] += secondary_at_primary
-        else:
-            raise ValueError(f"Unknown algorithm: {self.algorithm}")
+        return secondary_data.reshape(field_shape)
 
     def _compute_covariances(self):
         """
