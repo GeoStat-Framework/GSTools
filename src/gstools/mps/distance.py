@@ -36,7 +36,9 @@ def compute_node_weights(
         Number of neighbours in the data event.
     lag_norms : array-like or None, shape (n,)
         Euclidean norms ``‖h_i‖`` of each lag vector. ``None`` or
-        ``distance_power == 0`` → uniform spatial weights.
+        ``distance_power == 0`` → uniform spatial weights. A zero lag-norm
+        (collocated ``h=0`` entry) keeps the unit baseline weight and is not
+        amplified by the spatial decay — its weight is scaled by ``cond_weight``.
     distance_power : float
         Exponent δ. ``0.0`` → uniform.
     cond_mask : array-like of bool, optional
@@ -49,12 +51,16 @@ def compute_node_weights(
     numpy.ndarray, shape (n,)
         Node weights normalized to sum to 1.
     """
+    raw_w = np.ones(n, dtype=np.float64)
     if lag_norms is not None and distance_power != 0.0:
         norms = np.asarray(lag_norms, dtype=np.float64)
-        norms = np.where(norms == 0.0, 1e-10, norms)
-        raw_w = norms ** (-distance_power)
-    else:
-        raw_w = np.ones(n, dtype=np.float64)
+        # Only non-zero lags decay with distance.  A *true* zero lag-norm is a
+        # collocated/conditioning entry (h=0, e.g. the multivariate same-node
+        # constraint); it keeps the unit-cell baseline weight 1.0 rather than the
+        # divergent norm**(-power), and its importance is governed by the
+        # cond_weight multiplier below (it always carries cond_mask=True).
+        nz = norms != 0.0
+        raw_w[nz] = norms[nz] ** (-distance_power)
 
     if cond_mask is not None:
         raw_w = raw_w.copy()

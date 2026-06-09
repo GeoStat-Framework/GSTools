@@ -471,6 +471,408 @@ def ds_simulate(
     return sg
 
 
+def _build_dag_mv(
+    path,
+    variables,
+    n_k,
+    sim_shape,
+    offset_arr,
+    vmap,
+    max_radius=None,
+):
+    """Node-vertex dependency DAG for node-wise multivariate simulation.
+
+    Vertices are simulation-path *nodes*.  For each node ``i`` and each variable
+    ``v``, the ``n_k[v]``-closest path-node neighbours of ``x_i`` (selected
+    through that variable's position map ``vmap[v]``) become dependencies: an
+    edge ``j -> i`` with ``j < i`` (acyclic by construction).  In-degree is
+    tracked *per variable*, so a node is only dispatched once **every** variable's
+    neighbourhood has committed.
+
+    Conditioned cells carry ``-1`` in ``vmap[v]`` (always available, like
+    univariate conditioning) and are removed by the ``vidx >= 0`` filter, so they
+    add no edge and never enter the in-degree count.  There are no collocated
+    edges: conditioning is the only same-node source and is always available.
+
+    Returns
+    -------
+    indegree : dict of {str: numpy.ndarray}
+        ``indegree[v][i]`` is node ``i``'s dependency count for variable ``v``.
+    out_edges : list of list of (int, str)
+        ``out_edges[j]`` holds ``(i, v)`` pairs: completing node ``j`` decrements
+        ``indegree[v][i]``.
+    """
+    N = len(path)
+    sim_shape_arr = np.array(sim_shape)
+    indegree = {v: np.zeros(N, dtype=np.int32) for v in variables}
+    out_edges = [[] for _ in range(N)]
+    for i in range(N):
+        x_i = path[i]
+        for var in variables:
+            _, vidx = _select_neighbors(
+                x_i,
+                offset_arr,
+                sim_shape_arr,
+                sim_shape,
+                vmap[var],
+                i,  # build-time: all path nodes with index < i are committed
+                None,
+                max_radius,
+                n_k[var],
+            )
+            for j in vidx[vidx >= 0]:
+                indegree[var][i] += 1
+                out_edges[int(j)].append((i, var))
+    return indegree, out_edges
+
+
+def ds_simulate_mv(
+    training_image,
+    sim_shape,
+    n_neighbors,
+    threshold,
+    scan_fraction,
+    rng,
+    conditions=None,
+    cond_weight=1.0,
+    boundary="strict",
+    max_radius=None,
+    num_threads=None,
+):
+    """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
+
+    Co-simulates every variable of a dict-valued :class:`TrainingImage` on one
+    structured grid, treating all variables equally. The path visits every
+    *node* with at least one unknown variable; at each node a single joint scan
+    finds the TI cell ``y`` minimising the weighted distance ``Σ_k w_k d_k`` over
+    all variables, and that one cell's whole vector ``{TI[v][y]}`` is copied to
+    the node's *uninformed* variables. Because every variable at a node is drawn
+    from the same TI cell, the joint (cross-variable) relationship is reproduced
+    exactly. Variables already known at the node (only ever via conditioning
+    data) act as collocated ``h = 0`` constraints, weighted by ``cond_weight``.
+
+    Parameters
+    ----------
+    training_image : TrainingImage
+        Multivariate training image (``training_image.multivariate`` is True).
+    sim_shape : tuple
+        Simulation grid shape.
+    n_neighbors : int or dict
+        Maximum neighbours per variable. An ``int`` broadcasts to all variables;
+        a dict gives one value per variable name.
+    threshold : float
+        Distance threshold (Juda2022 §2). ``0.0`` -> DSBC mode.
+    scan_fraction : float
+        Fraction of the per-node search window to scan.
+    rng : numpy.random.RandomState
+        Master RNG (path permutation + per-component seeds).
+    conditions : dict, optional
+        ``{node_index: {variable: value}}`` conditioning data.
+    cond_weight : float, optional
+        Weight delta for conditioning nodes (Mariethoz2010 §3 ¶26).
+    boundary : str, optional
+        ``"strict"`` (default) or ``"partial"`` search-window strategy.
+    max_radius : float, optional
+        Euclidean cap on neighbour selection.
+    num_threads : int or None, optional
+        Threads for the node-wise DAG. ``None`` -> ``config.NUM_THREADS``.
+
+    Returns
+    -------
+    dict
+        ``{variable: numpy.ndarray}`` — one simulated field per variable.
+    """
+    variables = training_image.variables
+    weights = training_image.weights  # hoisted once (avoid per-block dict copy)
+    ti_shape = np.array(training_image.shape)
+    sim_shape_arr = np.array(sim_shape)
+    dim = len(sim_shape)
+
+    n_k = (
+        {v: int(n_neighbors[v]) for v in variables}
+        if isinstance(n_neighbors, dict)
+        else {v: int(n_neighbors) for v in variables}
+    )
+
+    sg = {v: np.full(sim_shape, np.nan) for v in variables}
+    informed = {v: np.zeros(sim_shape, dtype=bool) for v in variables}
+    is_cond = {v: np.zeros(sim_shape, dtype=bool) for v in variables}
+    if conditions:
+        for idx, vd in conditions.items():
+            for v, val in vd.items():
+                sg[v][idx] = val
+                is_cond[v][idx] = True
+                informed[v][idx] = True
+
+    n_threads = (
+        num_threads if num_threads is not None else (config.NUM_THREADS or 1)
+    )
+    executor = (
+        ThreadPoolExecutor(max_workers=n_threads) if n_threads > 1 else None
+    )
+    max_off_int = int(np.ceil(max_radius)) if max_radius is not None else None
+    offset_arr = _precompute_offsets(sim_shape, max_off_int)
+
+    # Node path: every node with >= 1 uninformed variable.  Fully-conditioned
+    # nodes need no simulation and are excluded (they stay -1 / always available).
+    unknown = np.zeros(sim_shape, dtype=bool)
+    for v in variables:
+        unknown |= np.isnan(sg[v])
+    path = np.argwhere(unknown)
+    path = path[rng.permutation(len(path))]
+    node_seeds = rng.randint(0, 2**32, size=len(path), dtype=np.int64)
+
+    sg_size = int(np.prod(sim_shape))
+    path_flat = (
+        np.ravel_multi_index(path.T, sim_shape)
+        if len(path)
+        else np.empty(0, dtype=np.intp)
+    )
+    # Per-variable position maps over the node path.  A path node carries its
+    # node-path index; a cell conditioned in variable v is set to -1 in vmap[v]
+    # (always available for v, like univariate conditioning) — essential for a
+    # partially-conditioned node, whose known value must not be gated by path
+    # order.  Cells absent from the path are already -1.
+    vmap = {}
+    for v in variables:
+        m = np.full(sg_size, -1, dtype=np.intp)
+        m[path_flat] = np.arange(len(path_flat))
+        m[np.flatnonzero(is_cond[v].reshape(-1))] = -1
+        vmap[v] = m
+
+    def _rand_fallback(targets, node_rng):
+        # Single random TI cell supplies the whole node-vector (preserves the
+        # joint relationship); never an independent draw per variable.
+        cell = tuple(int(node_rng.randint(0, s)) for s in ti_shape)
+        return {v: float(training_image.variable(v)[cell]) for v in targets}
+
+    def _joint_scan(lo, win_shape, int_lags, de_v, cm_v, ln_v, node_rng):
+        # Mirrors _scan_ti: full vectorized argmin for DSBC (threshold <= 0),
+        # chunked first-under-threshold for DS (threshold > 0).  Returns the
+        # single best TI cell coordinate ``y``; the caller copies TI[v][y] to all
+        # uninformed variables.  The window is the intersection of per-variable
+        # boxes, so every ``y + lag`` is in bounds and the gather needs no
+        # clipping; the h=0 lag maps to ``y`` itself.
+        win_size = int(np.prod(win_shape))
+        max_scan = max(1, int(scan_fraction * win_size))
+        start = int(node_rng.randint(0, win_size))
+        positions = (start + np.arange(max_scan)) % win_size
+        y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
+
+        def _dist_block(y_blk):
+            d = np.zeros(len(y_blk))
+            for v in variables:
+                il = int_lags.get(v)
+                if il is None:
+                    continue
+                coords = y_blk[:, None, :] + il[None, :, :]
+                all_de_ti = training_image.variable(v)[
+                    tuple(coords.transpose(2, 0, 1))
+                ]
+                d += weights[v] * training_image.vec_distance_var(
+                    v, de_v[v], all_de_ti, cm_v[v], cond_weight, ln_v[v]
+                )
+            return d
+
+        if threshold <= 0:
+            return y_all[int(np.argmin(_dist_block(y_all)))]
+
+        best_d, best_y = np.inf, None
+        for b0 in range(0, max_scan, _SCAN_BLOCK):
+            y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
+            d_blk = _dist_block(y_blk)
+            under = d_blk <= threshold
+            if np.any(under):
+                return y_blk[int(np.argmax(under))]
+            k = int(np.argmin(d_blk))
+            if d_blk[k] < best_d:
+                best_d = float(d_blk[k])
+                best_y = y_blk[k]
+        return best_y
+
+    def _simulate_node_mv(curr_idx, x_i, node_rng):
+        x_i_t = tuple(int(c) for c in x_i)
+        targets = [v for v in variables if np.isnan(sg[v][x_i_t])]
+
+        lags_v, de_v, cm_v, ln_v = {}, {}, {}, {}
+        for var in variables:
+            coords, _ = _select_neighbors(
+                x_i,
+                offset_arr,
+                sim_shape_arr,
+                sim_shape,
+                vmap[var],
+                curr_idx,
+                informed[var],
+                max_radius,
+                n_k[var],
+            )
+            if len(coords):
+                lv = (coords - x_i).astype(np.float64)
+                dv = sg[var][tuple(coords.T)]
+                cv = is_cond[var][tuple(coords.T)]
+                lnv = np.linalg.norm(lv, axis=1)
+            else:
+                lv = np.empty((0, dim), dtype=np.float64)
+                dv = np.empty(0)
+                cv = np.empty(0, dtype=bool)
+                lnv = np.empty(0)
+            # collocated h=0 — a variable known at this very node (only possible
+            # via conditioning, as the node's unknown variables are what we fill).
+            # Never added for a target variable (uninformed here by definition).
+            if informed[var][x_i_t]:
+                lv = np.concatenate([np.zeros((1, dim)), lv], axis=0)
+                dv = np.concatenate([[sg[var][x_i_t]], dv])
+                cv = np.concatenate([[is_cond[var][x_i_t]], cv])
+                lnv = np.concatenate([[0.0], lnv])
+            lags_v[var], de_v[var], cm_v[var], ln_v[var] = lv, dv, cv, lnv
+
+        if all(len(lags_v[v]) == 0 for v in variables):
+            return _rand_fallback(targets, node_rng)
+
+        # Per-variable search window, intersected.  h=0 lags are excluded — they
+        # map to y itself and never constrain the window.
+        win_lo = np.zeros(dim, dtype=int)
+        win_hi = ti_shape - 1
+        for var in variables:
+            lv = lags_v[var]
+            nz = np.flatnonzero(np.any(lv != 0, axis=1))
+            if not len(nz):
+                continue
+            if boundary == "strict":
+                lv_nz = lv[nz]
+                lo = np.maximum(0, np.ceil(-lv_nz.min(axis=0))).astype(int)
+                hi = np.minimum(
+                    ti_shape - 1, np.floor(ti_shape - 1 - lv_nz.max(axis=0))
+                ).astype(int)
+                if np.any(lo > hi):
+                    return _rand_fallback(targets, node_rng)
+            else:  # "partial" — drop farthest neighbours until the box fits
+                keep = len(lv)
+                while keep > 0:
+                    lv_k = lv[:keep]
+                    nzk = lv_k[np.any(lv_k != 0, axis=1)]
+                    if not len(nzk):
+                        lo = np.zeros(dim, dtype=int)
+                        hi = ti_shape - 1
+                        break
+                    lo = np.maximum(0, np.ceil(-nzk.min(axis=0))).astype(int)
+                    hi = np.minimum(
+                        ti_shape - 1, np.floor(ti_shape - 1 - nzk.max(axis=0))
+                    ).astype(int)
+                    if np.all(lo <= hi):
+                        break
+                    keep -= 1
+                else:
+                    return _rand_fallback(targets, node_rng)
+                lags_v[var] = lv[:keep]
+                de_v[var] = de_v[var][:keep]
+                cm_v[var] = cm_v[var][:keep]
+                ln_v[var] = ln_v[var][:keep]
+            win_lo = np.maximum(win_lo, lo)
+            win_hi = np.minimum(win_hi, hi)
+
+        if np.any(win_lo > win_hi):
+            return _rand_fallback(targets, node_rng)
+
+        # Integer lags per variable (already exact integers as float64, incl.
+        # the 0.0 h=0 row); reused for the scan and the mean-shift gather.
+        int_lags = {
+            v: lags_v[v].astype(int)
+            for v in variables
+            if len(lags_v[v])
+        }
+        y = _joint_scan(
+            win_lo,
+            tuple(win_hi - win_lo + 1),
+            int_lags,
+            de_v,
+            cm_v,
+            ln_v,
+            node_rng,
+        )
+        y_t = tuple(int(c) for c in y)
+        # Copy the single matched cell's vector to every uninformed variable.
+        result = {}
+        for v in targets:
+            ti_val = float(training_image.variable(v)[y_t])
+            il = int_lags.get(v)
+            de_ti_v = (
+                training_image.variable(v)[tuple((y + il).T)]
+                if il is not None
+                else np.empty(0)
+            )
+            result[v] = training_image.adjust_value_var(
+                v, ti_val, de_v[v], de_ti_v
+            )
+        return result
+
+    def _write_result(node, result):
+        for v, val in result.items():
+            if np.isnan(val):
+                raise ValueError(
+                    f"Simulation produced NaN for {(v, node)}. Check TI data."
+                )
+            sg[v][node] = val
+            informed[v][node] = True
+
+    try:
+        if executor is not None:
+            indegree, out_edges = _build_dag_mv(
+                path, variables, n_k, sim_shape, offset_arr, vmap, max_radius
+            )
+            # Running ready-queue over nodes: a node is dispatched the instant
+            # every variable's neighbourhood has committed (all per-variable
+            # in-degrees zero).  Workers only read the live sg / informed dicts;
+            # all mutation happens on this main thread.  A node's whole vector
+            # depends only on its seed and its (final) neighbour vectors, so the
+            # output is identical to the serial run for the same master seed,
+            # regardless of completion order.
+            remaining = {v: indegree[v].copy() for v in variables}
+            submitted = np.zeros(len(path), dtype=bool)
+            done_q = queue.Queue()
+            counts = {"submitted": 0, "done": 0}
+
+            def _ready(i):
+                return all(remaining[v][i] == 0 for v in variables)
+
+            def _run(i):
+                return i, _simulate_node_mv(
+                    i, path[i], RNG(int(node_seeds[i])).random
+                )
+
+            def _submit(i):
+                if submitted[i]:
+                    return
+                submitted[i] = True
+                executor.submit(_run, i).add_done_callback(done_q.put)
+                counts["submitted"] += 1
+
+            for i in range(len(path)):
+                if _ready(i):
+                    _submit(i)
+
+            while counts["done"] < counts["submitted"]:
+                i, result = done_q.get().result()
+                counts["done"] += 1
+                _write_result(tuple(int(c) for c in path[i]), result)
+                for j, v in out_edges[i]:
+                    remaining[v][j] -= 1
+                    if _ready(j):
+                        _submit(j)
+        else:
+            for i in range(len(path)):
+                result = _simulate_node_mv(
+                    i, path[i], RNG(int(node_seeds[i])).random
+                )
+                _write_result(tuple(int(c) for c in path[i]), result)
+    finally:
+        if executor is not None:
+            executor.shutdown(wait=True)
+
+    return sg
+
+
 class DirectSampling(Field):
     """Multiple Point Statistics simulation using Direct Sampling.
 
@@ -481,8 +883,10 @@ class DirectSampling(Field):
     ----------
     ti : TrainingImage
         The training image (the MPS model).
-    n_neighbors : int, optional
-        Maximum neighbors in data event. Default: 32.
+    n_neighbors : int or dict of {str: int}, optional
+        Maximum neighbors in the data event. A dict gives one value per variable
+        name (multivariate TIs only); an int broadcasts to all variables.
+        Default: 32.
     scan_fraction : float, optional
         Fraction of the per-node search window to scan. Default: 1.
     threshold : float, optional
@@ -521,7 +925,26 @@ class DirectSampling(Field):
                 f"DirectSampling: boundary must be one of {_VALID_BOUNDARY!r}, "
                 f"got {boundary!r}"
             )
-        if int(n_neighbors) < 1:
+        if isinstance(n_neighbors, dict):
+            if not ti.multivariate:
+                raise ValueError(
+                    "DirectSampling: dict n_neighbors is only valid for "
+                    "multivariate TrainingImages."
+                )
+            missing = set(ti.variables) - set(n_neighbors)
+            extra = set(n_neighbors) - set(ti.variables)
+            if missing or extra:
+                raise ValueError(
+                    f"DirectSampling: n_neighbors dict keys must match TI "
+                    f"variables {ti.variables!r}. Missing: {sorted(missing)}, "
+                    f"extra: {sorted(extra)}."
+                )
+            for k, v in n_neighbors.items():
+                if int(v) < 1:
+                    raise ValueError(
+                        f"DirectSampling: n_neighbors[{k!r}] must be >= 1, got {v!r}"
+                    )
+        elif int(n_neighbors) < 1:
             raise ValueError(
                 f"DirectSampling: n_neighbors must be >= 1, got {n_neighbors!r}"
             )
@@ -546,9 +969,23 @@ class DirectSampling(Field):
                 f"DirectSampling: max_radius must be a positive float, "
                 f"got {max_radius!r}"
             )
+        if ti.multivariate:
+            # Variable names become stored field names (Field.post_field), so
+            # they must be valid identifiers and not clash with Field attributes.
+            for v in ti.variables:
+                if not v.isidentifier() or (v != "field" and v in dir(self)):
+                    raise ValueError(
+                        f"DirectSampling: variable name {v!r} cannot be used as "
+                        f"a field name; use a valid Python identifier that does "
+                        f"not collide with an existing attribute."
+                    )
         super().__init__(model=None, dim=ti.ndim, value_type="scalar")
         self._ti = ti
-        self._n_neighbors = int(n_neighbors)
+        self._n_neighbors = (
+            {k: int(v) for k, v in n_neighbors.items()}
+            if isinstance(n_neighbors, dict)
+            else int(n_neighbors)
+        )
         self._scan_fraction = float(scan_fraction)
         self._threshold = float(threshold)
         self._cond_weight = float(cond_weight)
@@ -594,8 +1031,12 @@ class DirectSampling(Field):
 
         Returns
         -------
-        field : :class:`numpy.ndarray`
-            The simulated field.
+        field : :class:`numpy.ndarray` or :class:`dict`
+            For a univariate training image, the simulated field (also saved as
+            ``self.field``). For a multivariate training image, a
+            ``{variable: numpy.ndarray}`` dict with all variables on equal
+            footing — each is also stored as a named field accessible via
+            ``self[variable]`` / :attr:`all_fields`.
         """
         if mesh_type != "structured":
             raise ValueError(
@@ -609,6 +1050,32 @@ class DirectSampling(Field):
         rng = np.random.RandomState(
             int(self.rng.random.randint(0, 2**32, dtype=np.int64))
         )
+        if self._ti.multivariate:
+            result = ds_simulate_mv(
+                training_image=self._ti,
+                sim_shape=shape,
+                n_neighbors=self._n_neighbors,
+                threshold=self._threshold,
+                scan_fraction=self._scan_fraction,
+                rng=rng,
+                conditions=conditions,
+                cond_weight=self._cond_weight,
+                boundary=self._boundary,
+                max_radius=self._max_radius,
+                num_threads=self._num_threads,
+            )
+            # Equal treatment: every variable is a first-class named field
+            # (no privileged primary). Returned as a dict keyed by variable name.
+            # TODO: per-variable post-processing. post_field applies the single
+            # inherited mean/normalizer/trend to all variables identically; true
+            # per-variable transforms would need per-variable transform storage
+            # (or a direct apply_mean_norm_trend call). Deferred feature.
+            return {
+                v: self.post_field(
+                    result[v], name=v, process=post_process, save=save
+                )
+                for v in self._ti.variables
+            }
         field = ds_simulate(
             training_image=self._ti,
             sim_shape=shape,
@@ -625,9 +1092,48 @@ class DirectSampling(Field):
         return self.post_field(field, name, post_process, save)
 
     def _conditions_to_grid(self, axes):
-        """Smart snapping: Mariethoz 2010 collision rule."""
+        """Snap conditioning points to nearest grid nodes (Mariethoz2010 §3 ¶12).
+
+        Univariate returns ``{idx: value}``; multivariate returns
+        ``{idx: {variable: value}}`` with non-finite (NaN) entries skipped. When
+        two points snap to the same node, the one closer to the node centre wins
+        for all of its variables.
+        When the closer point carries ``NaN`` for a variable, that variable is
+        not conditioned at the node even if a farther colliding point had a
+        finite value there.
+
+        Parameters
+        ----------
+        axes : tuple of numpy.ndarray
+            Raw grid axis arrays (``self.pos``).
+
+        Returns
+        -------
+        dict
+        """
         if self._cond_pos is None:
             return {}
+        if self._ti.multivariate and isinstance(self._cond_val, dict):
+            candidates = {}  # idx -> (val_dict, dist_sq)
+            n_cond = len(next(iter(self._cond_val.values())))
+            for k in range(n_cond):
+                idx = tuple(
+                    int(np.argmin(np.abs(axes[d] - self._cond_pos[d][k])))
+                    for d in range(self.dim)
+                )
+                dist_sq = sum(
+                    (axes[d][idx[d]] - self._cond_pos[d][k]) ** 2
+                    for d in range(self.dim)
+                )
+                val_dict = {
+                    v: float(self._cond_val[v][k])
+                    for v in self._cond_val
+                    if np.isfinite(self._cond_val[v][k])
+                }
+                if idx not in candidates or dist_sq < candidates[idx][1]:
+                    candidates[idx] = (val_dict, dist_sq)
+            return {idx: vd for idx, (vd, _) in candidates.items()}
+        # univariate (unchanged)
         candidates = {}  # idx -> (val, dist_sq)
         for k in range(self._cond_val.shape[0]):
             idx = tuple(
@@ -649,19 +1155,47 @@ class DirectSampling(Field):
         ----------
         cond_pos : :class:`list`
             The position tuple of the conditioning data ``(x, [y, z])``.
-        cond_val : :class:`numpy.ndarray`
-            The values at the conditioning positions.
+        cond_val : :class:`numpy.ndarray` or :class:`dict`
+            Univariate: values at the conditioning positions. Multivariate: a
+            ``{variable: numpy.ndarray}`` mapping (use ``numpy.nan`` for a
+            variable that is not conditioned at a given point).
         cond_weight : :class:`float`, optional
-            Conditioning weight δ. If given, overrides the ``cond_weight``
-            set at construction. Default: :any:`None` (keep existing weight)
+            Conditioning weight delta. If given, overrides the ``cond_weight`` set
+            at construction. Default: :any:`None` (keep existing weight)
         """
-        from gstools.krige.tools import set_condition as _gs_set_condition
-
-        self._cond_pos, self._cond_val = _gs_set_condition(
-            cond_pos, cond_val, self.dim
-        )
         if cond_weight is not None:
             self._cond_weight = float(cond_weight)
+        if self._ti.multivariate and isinstance(cond_val, dict):
+            cond_pos_arr = np.asarray(cond_pos, dtype=np.double).reshape(
+                self.dim, -1
+            )
+            n_cond = len(next(iter(cond_val.values())))
+            for v, arr in cond_val.items():
+                if len(arr) != n_cond:
+                    raise ValueError(
+                        "DirectSampling: all cond_val arrays must have the same "
+                        f"length; got {n_cond} for {next(iter(cond_val))!r} but "
+                        f"{len(arr)} for {v!r}."
+                    )
+            if cond_pos_arr.shape[1] != n_cond:
+                raise ValueError(
+                    "DirectSampling: cond_pos and cond_val length mismatch."
+                )
+            self._cond_pos = cond_pos_arr
+            self._cond_val = {
+                v: np.asarray(a, dtype=np.double) for v, a in cond_val.items()
+            }
+        elif self._ti.multivariate:
+            raise ValueError(
+                "DirectSampling: cond_val must be a dict {variable: array} "
+                "for multivariate TrainingImages."
+            )
+        else:
+            from gstools.krige.tools import set_condition as _gs_set_condition
+
+            self._cond_pos, self._cond_val = _gs_set_condition(
+                cond_pos, cond_val, self.dim
+            )
 
     @property
     def ti(self):
@@ -670,16 +1204,37 @@ class DirectSampling(Field):
 
     @property
     def n_neighbors(self):
-        """:class:`int`: Maximum neighbours in the data event."""
+        """:class:`int` or :class:`dict`: Maximum neighbours in the data event (per-variable dict for multivariate TIs)."""
         return self._n_neighbors
 
     @n_neighbors.setter
     def n_neighbors(self, value):
-        if int(value) < 1:
-            raise ValueError(
-                f"DirectSampling: n_neighbors must be >= 1, got {value!r}"
-            )
-        self._n_neighbors = int(value)
+        if isinstance(value, dict):
+            if not self._ti.multivariate:
+                raise ValueError(
+                    "DirectSampling: dict n_neighbors is only valid for "
+                    "multivariate TrainingImages."
+                )
+            missing = set(self._ti.variables) - set(value)
+            extra = set(value) - set(self._ti.variables)
+            if missing or extra:
+                raise ValueError(
+                    f"DirectSampling: n_neighbors dict keys must match TI "
+                    f"variables {self._ti.variables!r}. Missing: {sorted(missing)}, "
+                    f"extra: {sorted(extra)}."
+                )
+            for k, v in value.items():
+                if int(v) < 1:
+                    raise ValueError(
+                        f"DirectSampling: n_neighbors[{k!r}] must be >= 1, got {v!r}"
+                    )
+            self._n_neighbors = {k: int(v) for k, v in value.items()}
+        else:
+            if int(value) < 1:
+                raise ValueError(
+                    f"DirectSampling: n_neighbors must be >= 1, got {value!r}"
+                )
+            self._n_neighbors = int(value)
 
     @property
     def scan_fraction(self):

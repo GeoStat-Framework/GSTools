@@ -410,6 +410,27 @@ class TestTrainingImage(unittest.TestCase):
         self.assertAlmostEqual(w.sum(), 1.0)
         np.testing.assert_allclose(w, np.full(3, 1.0 / 3.0))
 
+    def test_node_weights_zero_lag_norm_not_amplified(self):
+        """A true zero lag-norm (collocated h=0) must keep the unit baseline
+        weight under distance_power > 0, not the divergent 1e-10**(-power), and
+        cond_weight must be the knob that scales it."""
+        # raw = [baseline 1.0, 1**-2=1.0, 2**-2=0.25] -> zero-lag == unit-lag,
+        # and never dominates the data event.
+        w = compute_node_weights(3, [0.0, 1.0, 2.0], 2.0)
+        self.assertTrue(np.all(np.isfinite(w)))
+        self.assertAlmostEqual(w[0], w[1])
+        self.assertGreater(w[0], w[2])
+        self.assertLess(w[0], 0.9)  # not the old ~1.0 blow-up
+        # cond_weight scales the collocated entry (it carries cond_mask=True).
+        w_c = compute_node_weights(
+            3,
+            [0.0, 1.0, 2.0],
+            2.0,
+            cond_mask=np.array([True, False, False]),
+            cond_weight=5.0,
+        )
+        self.assertGreater(w_c[0], w[0])
+
 
 class TestDirectSampling(unittest.TestCase):
     def setUp(self):
@@ -642,6 +663,427 @@ class TestDirectSampling(unittest.TestCase):
         self.assertIs(gs.TrainingImage, TrainingImage)
         self.assertIs(gs.mps.DirectSampling, DirectSampling)
         self.assertIs(gs.mps.TrainingImage, TrainingImage)
+
+
+class TestMultivariateTrainingImage(unittest.TestCase):
+    def test_shape_mismatch(self):
+        with self.assertRaisesRegex(ValueError, "same shape"):
+            TrainingImage({"a": np.zeros((4, 4)), "b": np.zeros((3, 3))})
+
+    def test_equal_weights(self):
+        ti = TrainingImage(
+            {"a": np.zeros((4, 4), dtype=int), "b": np.ones((4, 4), dtype=int)}
+        )
+        self.assertTrue(ti.multivariate)
+        self.assertEqual(ti.variables, ["a", "b"])
+        self.assertAlmostEqual(ti.weights["a"], 0.5)
+        self.assertAlmostEqual(ti.weights["b"], 0.5)
+        self.assertEqual(ti.shape, (4, 4))
+        self.assertEqual(ti.ndim, 2)
+
+    def test_weights_must_sum_to_one(self):
+        with self.assertRaisesRegex(ValueError, "sum to 1"):
+            TrainingImage(
+                {"a": np.zeros((4, 4), dtype=int), "b": np.zeros((4, 4), dtype=int)},
+                weights={"a": 0.3, "b": 0.3},
+            )
+
+    def test_distance_weighted_sum(self):
+        # w=0.5 each; d_a=1.0 (full mismatch), d_b=0.0 -> joint = 0.5
+        ti = TrainingImage(
+            {"a": np.zeros((4, 4), dtype=int), "b": np.zeros((4, 4), dtype=int)},
+            weights={"a": 0.5, "b": 0.5},
+        )
+        de_sg = {"a": np.array([1, 1]), "b": np.array([0, 0])}
+        de_ti = {"a": np.array([0, 0]), "b": np.array([0, 0])}
+        self.assertAlmostEqual(ti.distance(de_sg, de_ti), 0.5)
+
+    def test_per_variable_categorical_and_distance(self):
+        ti = TrainingImage(
+            {"cat": np.zeros((4, 4), dtype=int),
+             "cont": np.linspace(0, 100, 16).reshape(4, 4)},
+            categorical={"cat": True, "cont": False},
+            distance={"cat": "l1", "cont": "l2"},
+        )
+        self.assertTrue(ti.categorical["cat"])
+        self.assertFalse(ti.categorical["cont"])
+        self.assertAlmostEqual(ti._d_max["cont"], 100.0)
+
+    def test_univariate_variation_p_preserved(self):
+        # Regression guard: the shared _parse_distance refactor must keep
+        # variation<p> support and the _variation_p_norm attribute intact.
+        ti = TrainingImage(
+            np.linspace(0, 100, 16).reshape(4, 4),
+            categorical=False,
+            distance="variation1.5",
+        )
+        self.assertFalse(ti.multivariate)
+        self.assertIsNone(ti.variables)
+        self.assertIsNone(ti.weights)
+        self.assertEqual(ti._variation_p_norm, 1.5)
+        self.assertIsNone(ti._p_norm)
+
+    def test_variable_accessor(self):
+        a = np.arange(16).reshape(4, 4)
+        ti = TrainingImage({"a": a, "b": np.zeros((4, 4), dtype=int)})
+        np.testing.assert_array_equal(ti.variable("a"), a)
+        # univariate TIs have no named variables
+        uni = TrainingImage(np.zeros((4, 4), dtype=int))
+        with self.assertRaises(TypeError):
+            uni.variable("a")
+
+    def test_adjust_value_var(self):
+        ti = TrainingImage(
+            {"v": np.linspace(0, 100, 16).reshape(4, 4),
+             "c": np.zeros((4, 4), dtype=int)},
+            categorical={"v": False, "c": True},
+            distance={"v": "variation", "c": "l1"},
+        )
+        # variation: Z(y) - mean(de_ti) + mean(de_sim) = 50 - 50 + 20 = 20
+        self.assertAlmostEqual(
+            ti.adjust_value_var("v", 50.0, np.array([10.0, 20.0, 30.0]),
+                                np.array([40.0, 50.0, 60.0])),
+            20.0,
+        )
+        # categorical variable: returned unchanged
+        self.assertEqual(
+            ti.adjust_value_var("c", 1.0, np.array([0, 1]), np.array([1, 0])), 1.0
+        )
+        # empty data event: returned unchanged even for variation
+        self.assertAlmostEqual(
+            ti.adjust_value_var("v", 7.0, np.array([]), np.array([])), 7.0
+        )
+
+    def test_weights_unknown_variable(self):
+        with self.assertRaisesRegex(ValueError, "unknown"):
+            TrainingImage(
+                {"a": np.zeros((4, 4), dtype=int),
+                 "b": np.zeros((4, 4), dtype=int)},
+                weights={"a": 0.5, "b": 0.5, "ghost": 0.0},
+            )
+
+
+class TestMultivariateDirectSampling(unittest.TestCase):
+    def test_fills_all_nodes(self):
+        # Node-wise path must leave no NaN in any variable.
+        rng = np.random.default_rng(42)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        field = ds([np.arange(6, dtype=float)] * 2, seed=1)
+        self.assertFalse(np.any(np.isnan(field["a"])))
+        self.assertFalse(np.any(np.isnan(field["b"])))
+
+    def test_output_shapes(self):
+        rng = np.random.default_rng(0)
+        data = {"primary": rng.integers(0, 3, (20, 20)),
+                "secondary": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=8, scan_fraction=0.1)
+        field = ds([np.arange(10, dtype=float)] * 2, seed=0)
+        self.assertEqual(field["primary"].shape, (10, 10))
+        self.assertIn("secondary", field)
+        self.assertEqual(field["secondary"].shape, (10, 10))
+
+    def test_values_valid(self):
+        rng = np.random.default_rng(1)
+        data = {"a": rng.integers(0, 4, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.2)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=5)
+        self.assertTrue(np.all(np.isin(field["a"], [0, 1, 2, 3])))
+        self.assertTrue(np.all(np.isin(field["b"], [0, 1])))
+
+    def test_per_variable_n_neighbors(self):
+        rng = np.random.default_rng(3)
+        data = {"primary": rng.integers(0, 3, (20, 20)),
+                "secondary": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors={"primary": 8, "secondary": 2},
+                            scan_fraction=0.2)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=7)
+        self.assertEqual(field["primary"].shape, (8, 8))
+        self.assertFalse(np.any(np.isnan(field["primary"])))
+        self.assertFalse(np.any(np.isnan(field["secondary"])))
+
+    def test_3d_runs(self):
+        rng = np.random.default_rng(8)
+        data = {"a": rng.integers(0, 2, (10, 10, 10)),
+                "b": rng.integers(0, 2, (10, 10, 10))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.2)
+        field = ds([np.arange(4, dtype=float)] * 3, seed=0)
+        self.assertEqual(field["a"].shape, (4, 4, 4))
+        self.assertFalse(np.any(np.isnan(field["a"])))
+        self.assertFalse(np.any(np.isnan(field["b"])))
+
+    def test_partial_boundary_runs(self):
+        rng = np.random.default_rng(11)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=6, scan_fraction=0.3,
+                            boundary="partial")
+        field = ds([np.arange(8, dtype=float)] * 2, seed=2)
+        self.assertFalse(np.any(np.isnan(field["a"])))
+        self.assertFalse(np.any(np.isnan(field["b"])))
+        self.assertTrue(np.all(np.isin(field["a"], [0, 1])))
+
+    def test_ds_mode_threshold(self):
+        rng = np.random.default_rng(12)
+        data = {"a": rng.integers(0, 3, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.5, threshold=0.3)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=4)
+        self.assertFalse(np.any(np.isnan(field["a"])))
+        self.assertTrue(np.all(np.isin(field["a"], [0, 1, 2])))
+        self.assertTrue(np.all(np.isin(field["b"], [0, 1])))
+
+    def test_continuous_variation_variable(self):
+        # A continuous variable with variation distance exercises the
+        # mean-shift adjust_value_var path end to end.
+        rng = np.random.default_rng(13)
+        data = {"cont": rng.random((20, 20)) * 10.0,
+                "cat": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(
+            data,
+            categorical={"cont": False, "cat": True},
+            distance={"cont": "variation", "cat": "l1"},
+        )
+        ds = DirectSampling(ti, n_neighbors=6, scan_fraction=0.3)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=6)
+        self.assertEqual(field["cont"].shape, (8, 8))
+        self.assertTrue(np.all(np.isfinite(field["cont"])))
+        self.assertTrue(np.all(np.isin(field["cat"], [0, 1])))
+
+    def test_joint_cell_invariant(self):
+        # Core acceptance test for node-wise co-simulation: every node's vector
+        # must be copied from a SINGLE TI cell.  Build a TI where ``b`` is an
+        # injective function of ``a`` (b = a + 100), so a consistent (a, b) pair
+        # exists at exactly one TI cell.  If both variables at every node trace
+        # to one cell, ``b == a + 100`` must hold everywhere.
+        ids = np.arange(64).reshape(8, 8)
+        ti = TrainingImage(
+            {"a": ids, "b": ids + 100},
+            categorical={"a": True, "b": True},
+        )
+        ds = DirectSampling(ti, n_neighbors=8, scan_fraction=1.0, threshold=0.0)
+        field = ds([np.arange(6, dtype=float)] * 2, seed=0)
+        np.testing.assert_array_equal(field["b"], field["a"] + 100)
+
+    def test_equal_treatment_named_fields(self):
+        # No privileged primary: all variables are first-class named fields.
+        rng = np.random.default_rng(20)
+        ti = TrainingImage({"x": rng.integers(0, 2, (15, 15)),
+                            "y": rng.integers(0, 2, (15, 15))})
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        field = ds([np.arange(6, dtype=float)] * 2, seed=0)
+        self.assertEqual(set(field), {"x", "y"})
+        self.assertIn("x", ds.field_names)
+        self.assertIn("y", ds.field_names)
+        np.testing.assert_array_equal(ds["x"], field["x"])
+        np.testing.assert_array_equal(ds["y"], field["y"])
+
+    def test_invalid_variable_name_raises(self):
+        ti = TrainingImage({"a b": np.zeros((5, 5), dtype=int),
+                            "c": np.zeros((5, 5), dtype=int)})
+        with self.assertRaisesRegex(ValueError, "field name"):
+            DirectSampling(ti, n_neighbors=4)
+
+    def test_n_neighbors_dict_requires_multivariate(self):
+        ti = TrainingImage(np.zeros((10, 10), dtype=int))
+        with self.assertRaisesRegex(ValueError, "multivariate"):
+            DirectSampling(ti, n_neighbors={"a": 4})
+
+    def test_n_neighbors_dict_keys_must_match(self):
+        ti = TrainingImage({"a": np.zeros((10, 10), dtype=int),
+                            "b": np.zeros((10, 10), dtype=int)})
+        with self.assertRaisesRegex(ValueError, "keys must match"):
+            DirectSampling(ti, n_neighbors={"a": 4})
+
+    def test_set_condition_basic(self):
+        rng = np.random.default_rng(0)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        ds.set_condition(
+            cond_pos=[[2.0, 5.0], [2.0, 5.0]],
+            cond_val={"a": np.array([1, 0]), "b": np.array([0, 1])},
+        )
+        field = ds([np.arange(8, dtype=float)] * 2, seed=0)
+        self.assertEqual(field["a"][2, 2], 1)
+        self.assertEqual(field["b"][2, 2], 0)
+        self.assertEqual(field["a"][5, 5], 0)
+        self.assertEqual(field["b"][5, 5], 1)
+
+    def test_set_condition_partial_nan(self):
+        # NaN for b at the conditioning point -> b unconstrained there; only a
+        # is conditioned, and b is filled by the simulation (not NaN).
+        rng = np.random.default_rng(1)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        ds.set_condition(
+            cond_pos=[[3.0], [3.0]],
+            cond_val={"a": np.array([1]), "b": np.array([np.nan])},
+        )
+        field = ds([np.arange(8, dtype=float)] * 2, seed=2)
+        self.assertEqual(field["a"][3, 3], 1)
+        self.assertFalse(np.isnan(field["b"][3, 3]))
+
+    def test_set_condition_collision(self):
+        # Both points snap to node (4, 4); (4.1, 4.1) is closer than (4.4, 4.4)
+        # -> the closer point's values win for all variables.
+        rng = np.random.default_rng(2)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        ds.set_condition(
+            cond_pos=[[4.4, 4.1], [4.4, 4.1]],
+            cond_val={"a": np.array([0, 1]), "b": np.array([0, 1])},
+        )
+        field = ds([np.arange(8, dtype=float)] * 2, seed=3)
+        self.assertEqual(field["a"][4, 4], 1)
+        self.assertEqual(field["b"][4, 4], 1)
+
+    def test_collocated_constraint(self):
+        # b is a unique index per TI cell; a is a deterministic function of b.
+        # Conditioning b at the single simulated node forces the collocated
+        # (h=0) term to select the TI cell whose b matches, so the co-simulated
+        # a must equal that cell's a.  DSBC full scan => exact global argmin.
+        # 1x1 sim grid: exactly one node is simulated; with b conditioned there,
+        # the collocated h=0 term alone determines which TI cell is matched.
+        nb = np.arange(36).reshape(6, 6)
+        na = (nb * 7) % 5
+        ti = TrainingImage({"a": na, "b": nb})
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=1.0, threshold=0.0)
+        ds.set_condition(
+            cond_pos=[[0.0], [0.0]],
+            cond_val={"a": np.array([np.nan]), "b": np.array([20])},
+        )
+        field = ds([np.arange(1, dtype=float)] * 2, seed=0)
+        # b=20 sits at TI cell (3, 2); a there is (20*7) % 5 == 0
+        self.assertEqual(field["a"][0, 0], (20 * 7) % 5)
+
+    def test_univariate_set_condition_still_works(self):
+        # Regression guard: scalar set_condition path is unchanged.
+        rng = np.random.default_rng(0)
+        ti = TrainingImage(rng.integers(0, 3, (20, 20)))
+        ds = DirectSampling(ti, n_neighbors=8, scan_fraction=0.2)
+        ds.set_condition([[5.0], [5.0]], [2])
+        field = ds([np.arange(10, dtype=float)] * 2, seed=0)
+        self.assertEqual(field[5, 5], 2)
+
+    def test_set_condition_length_mismatch(self):
+        ti = TrainingImage({"a": np.zeros((10, 10), dtype=int),
+                            "b": np.zeros((10, 10), dtype=int)})
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        # cond_pos has 1 point but cond_val has 2 -> length mismatch
+        with self.assertRaisesRegex(ValueError, "mismatch"):
+            ds.set_condition(
+                cond_pos=[[3.0], [3.0]],
+                cond_val={"a": np.array([1, 0]), "b": np.array([1, 0])},
+            )
+        # per-variable arrays of different lengths
+        with self.assertRaisesRegex(ValueError, "same"):
+            ds.set_condition(
+                cond_pos=[[3.0, 4.0], [3.0, 4.0]],
+                cond_val={"a": np.array([1, 0]), "b": np.array([1])},
+            )
+
+    def test_parallel_valid_values(self):
+        rng = np.random.default_rng(4)
+        data = {"a": rng.integers(0, 3, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.2, num_threads=2)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=0)
+        self.assertTrue(np.all(np.isin(field["a"], [0, 1, 2])))
+        self.assertTrue(np.all(np.isin(field["b"], [0, 1])))
+
+    def test_parallel_matches_serial(self):
+        # The node-vertex DAG commits every per-variable neighbour before a node
+        # runs, so num_threads > 1 is bit-identical to serial.
+        rng = np.random.default_rng(5)
+        data = {"a": rng.integers(0, 3, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        pos = [np.arange(8, dtype=float)] * 2
+        ds_s = DirectSampling(ti, n_neighbors=4, scan_fraction=0.2, num_threads=1)
+        ds_p = DirectSampling(ti, n_neighbors=4, scan_fraction=0.2, num_threads=2)
+        f_s = ds_s(pos, seed=7)
+        f_p = ds_p(pos, seed=7)
+        np.testing.assert_array_equal(f_s["a"], f_p["a"])
+        np.testing.assert_array_equal(f_s["b"], f_p["b"])
+
+    def test_parallel_conditioning_preserved(self):
+        rng = np.random.default_rng(6)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3, num_threads=2)
+        ds.set_condition(
+            cond_pos=[[3.0], [3.0]],
+            cond_val={"a": np.array([1]), "b": np.array([0])},
+        )
+        field = ds([np.arange(8, dtype=float)] * 2, seed=9)
+        self.assertEqual(field["a"][3, 3], 1)
+        self.assertEqual(field["b"][3, 3], 0)
+
+    def test_set_condition_array_on_multivariate_raises(self):
+        ti = TrainingImage({"a": np.zeros((10, 10), dtype=int),
+                            "b": np.zeros((10, 10), dtype=int)})
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        with self.assertRaisesRegex(ValueError, "dict"):
+            ds.set_condition([[3.0], [3.0]], np.array([1]))
+
+    def test_set_condition_collision_nan_drops_variable(self):
+        # Closer point {a:1, b:nan} wins over farther {a:0, b:0}; a is pinned to
+        # the closer value and b is left to the simulation (filled, finite).
+        rng = np.random.default_rng(7)
+        data = {"a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        ds.set_condition(
+            cond_pos=[[4.4, 4.1], [4.4, 4.1]],
+            cond_val={"a": np.array([0, 1]), "b": np.array([0, np.nan])},
+        )
+        field = ds([np.arange(8, dtype=float)] * 2, seed=1)
+        self.assertEqual(field["a"][4, 4], 1)
+        self.assertFalse(np.isnan(field["b"][4, 4]))
+
+    def test_distance_power_multivariate(self):
+        # distance_power > 0 exercises the per-variable lag-norm weighting path.
+        rng = np.random.default_rng(8)
+        data = {"cont": rng.random((20, 20)) * 10.0,
+                "cat": rng.integers(0, 2, (20, 20))}
+        ti = TrainingImage(
+            data,
+            categorical={"cont": False, "cat": True},
+            distance={"cont": "l2", "cat": "l1"},
+            distance_power=1.0,
+        )
+        ds = DirectSampling(ti, n_neighbors=6, scan_fraction=0.3)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=3)
+        self.assertEqual(field["cont"].shape, (8, 8))
+        self.assertTrue(np.all(np.isfinite(field["cont"])))
+        self.assertTrue(np.all(np.isin(field["cat"], [0, 1])))
+
+    def test_single_variable_multivariate(self):
+        rng = np.random.default_rng(9)
+        ti = TrainingImage({"only": rng.integers(0, 3, (20, 20))})
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=0)
+        self.assertEqual(set(field), {"only"})
+        self.assertEqual(field["only"].shape, (8, 8))
+        self.assertTrue(np.all(np.isin(field["only"], [0, 1, 2])))
 
 
 if __name__ == "__main__":
