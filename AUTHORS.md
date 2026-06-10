@@ -8,6 +8,7 @@ and was created by following people.
 
 - Sebastian Müller, GitHub: [@MuellerSeb](https://github.com/MuellerSeb), Email:  <sebastian@geostat-framework.org>
 - Lennart Schüler, GitHub: [@LSchueler](https://github.com/LSchueler), Email:  <lennart@geostat-framework.org>
+- Jeisson Leal, GitHub: [@LSchueler](https://github.com/jeilealr), Email:  <jeisson@geostat-framework.org>
 
 
 ## Contributors (in order of contributions)

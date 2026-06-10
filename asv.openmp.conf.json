@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "project": "GSTools",
+  "project_url": "https://github.com/jeilealr/GSTools",
+  "repo": ".",
+  "branches": ["main"],
+  "benchmark_dir": "benchmarks",
+  "env_dir": ".asv-openmp/env",
+  "results_dir": ".asv-openmp/results",
+  "html_dir": ".asv-openmp/html",
+  "show_commit_url": "https://github.com/jeilealr/GSTools/commit/",
+  "environment_type": "conda",
+  "conda_channels": ["conda-forge"],
+  "pythons": ["3.14"],
+  "matrix": {
+    "req": {
+      "c-compiler": [""],
+      "cxx-compiler": [""],
+      "cython": [""],
+      "emcee": [""],
+      "extension-helpers": [""],
+      "hankel": [""],
+      "meshio": [""],
+      "numpy": [""],
+      "pyevtk": [""],
+      "scipy": [""],
+      "setuptools>=77": [""],
+      "wheel": [""]
+    }
+  },
+  "install_command": [
+    "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_pyproject_extras.py --pyproject {conf_dir}/pyproject.toml rust",
+    "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_openmp_cython.py {env_dir}",
+    "in-dir={env_dir} python -m pip install --no-deps {build_dir}",
+    "in-dir={env_dir} python {conf_dir}/benchmarks/tools/check_backend_parallel_ready.py --verbose"
+  ],
+  "number": 1,
+  "repeat": 20
+}

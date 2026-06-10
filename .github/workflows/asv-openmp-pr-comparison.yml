@@ -1,0 +1,251 @@
+name: Benchmarking
+
+on:
+  pull_request:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: openmp-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  ASV_CONFIG: asv.openmp.conf.json
+  MACHINE_NAME: github-actions-ubuntu
+
+jobs:
+  benchmark_changes:
+    name: Detect benchmark-relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      required: ${{ steps.changes.outputs.required }}
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Detect benchmark-relevant changes
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
+            src \
+            benchmarks \
+            pyproject.toml \
+            asv.conf.json \
+            asv.openmp.conf.json \
+            .github/workflows/benchmark-readiness.yml \
+            .github/workflows/asv-openmp-pr-comparison.yml \
+            .github/workflows/asv-benchmark-publish.yml
+          then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  benchmark:
+    name: Full OpenMP comparison on Linux
+    if: needs.benchmark_changes.outputs.required == 'true'
+    needs: benchmark_changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
+        with:
+          activate-environment: gstools-asv-driver
+          python-version: "3.14"
+          channels: conda-forge
+          conda-remove-defaults: true
+
+      - name: Install ASV driver
+        run: |
+          conda install -n gstools-asv-driver -y -c conda-forge pip
+          python -m pip install --upgrade pip asv
+
+      - name: Configure PR commits and ASV branches
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          printf '%s\n%s\n' "$BASE_SHA" "$HEAD_SHA" \
+            > "$RUNNER_TEMP/asv-pr-commits.txt"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          config = json.loads(Path("asv.openmp.conf.json").read_text())
+          config["branches"] = [os.environ["BASE_SHA"], os.environ["HEAD_SHA"]]
+          Path("asv.openmp.pr.conf.json").write_text(
+              json.dumps(config, indent=2),
+              encoding="utf8",
+          )
+          PY
+          echo "ASV_CONFIG=asv.openmp.pr.conf.json" >> "$GITHUB_ENV"
+
+      - name: Configure stable ASV machine name
+        run: |
+          python benchmarks/tools/configure_asv_machine.py "$MACHINE_NAME"
+
+      - name: Run full OpenMP comparison
+        env:
+          GSTOOLS_BENCHMARK_THREADS: "1,2,4,8"
+        run: |
+          asv --config "$ASV_CONFIG" run \
+            "HASHFILE:$RUNNER_TEMP/asv-pr-commits.txt" \
+            --machine "$MACHINE_NAME" \
+            --interleave-rounds \
+            --no-pull \
+            --bench "^benchmark_" \
+            --show-stderr
+
+      - name: Write informational ASV comparison
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir -p .asv-openmp/artifact
+          set +e
+          # --factor 1.05: only flag changes whose ratio exceeds 5%.
+          # A benchmark is marked regressed (+) or improved (-) only when BOTH
+          # the ratio threshold AND ASV's Mann-Whitney U statistical test agree.
+          # Lines prefixed with ~ exceeded the ratio but were not statistically
+          # significant (measurement noise on the shared runner).
+          asv --config "$ASV_CONFIG" compare \
+            "$BASE_SHA" \
+            "$HEAD_SHA" \
+            --machine "$MACHINE_NAME" \
+            --factor 1.05 \
+            --split \
+            | tee .asv-openmp/artifact/comparison.txt
+          compare_status="${PIPESTATUS[0]}"
+          set -e
+          echo "ASV comparison exit status: $compare_status" \
+            >> .asv-openmp/artifact/comparison.txt
+
+      - name: Build custom and native ASV reports
+        run: |
+          python benchmarks/tools/plot_case_backend_comparison.py \
+            --results-dir .asv-openmp/results \
+            --output .asv-openmp/artifact/index.html
+          asv --config "$ASV_CONFIG" publish \
+            --no-pull \
+            --html-dir .asv-openmp/artifact/asv
+          cp -R .asv-openmp/results .asv-openmp/artifact/results
+
+      - name: Upload OpenMP benchmark reports
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: openmp-pr-${{ github.event.pull_request.number }}
+          path: .asv-openmp/artifact
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Write benchmark step summary
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python benchmarks/tools/render_benchmark_comment.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --artifact-url "${ARTIFACT_URL:-}" \
+            --comparison .asv-openmp/artifact/comparison.txt \
+            --output /tmp/benchmark_comment.md
+          if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            tail -n +2 /tmp/benchmark_comment.md > "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Post benchmark results as PR comment
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          EXISTING_ID=$(gh api \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.body | startswith("<!-- gstools-openmp-benchmark -->")) | .id' \
+            | head -1)
+          if [ -n "$EXISTING_ID" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/comments/$EXISTING_ID" \
+              -X PATCH -F body=@/tmp/benchmark_comment.md
+          else
+            gh pr comment "$PR_NUMBER" --body-file /tmp/benchmark_comment.md
+          fi
+
+      - name: Save PR context for comment workflow
+        if: always()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          mkdir -p .asv-openmp/pr-context
+          printf '%s' "$PR_NUMBER"    > .asv-openmp/pr-context/pr_number.txt
+          printf '%s' "$BASE_SHA"     > .asv-openmp/pr-context/base_sha.txt
+          printf '%s' "$HEAD_SHA"     > .asv-openmp/pr-context/head_sha.txt
+          printf '%s' "$ARTIFACT_URL" > .asv-openmp/pr-context/artifact_url.txt
+          cp .asv-openmp/artifact/comparison.txt \
+             .asv-openmp/pr-context/comparison.txt 2>/dev/null \
+            || printf '_Comparison output not available._' \
+                 > .asv-openmp/pr-context/comparison.txt
+
+      - name: Upload PR context for comment workflow
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: benchmark-pr-context
+          path: .asv-openmp/pr-context
+          if-no-files-found: warn
+          retention-days: 1
+
+  required_gate:
+    name: OpenMP benchmark gate
+    if: always()
+    needs:
+      - benchmark_changes
+      - benchmark
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check required benchmark result
+        env:
+          CHANGE_RESULT: ${{ needs.benchmark_changes.result }}
+          BENCHMARK_REQUIRED: ${{ needs.benchmark_changes.outputs.required }}
+          BENCHMARK_RESULT: ${{ needs.benchmark.result }}
+        run: |
+          if [[ "$CHANGE_RESULT" != "success" ]]; then
+            echo "Could not determine whether the benchmark is required."
+            exit 1
+          fi
+          if [[ "$BENCHMARK_REQUIRED" == "true" \
+            && "$BENCHMARK_RESULT" != "success" ]]; then
+            echo "The required OpenMP benchmark did not complete successfully."
+            exit 1
+          fi
+          if [[ "$BENCHMARK_REQUIRED" == "true" ]]; then
+            echo "The required OpenMP benchmark completed successfully."
+          else
+            echo "No benchmark-relevant files changed."
+          fi

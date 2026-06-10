@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "project": "GSTools",
+  "project_url": "https://github.com/jeilealr/GSTools",
+  "repo": ".",
+  "branches": ["main"],
+  "benchmark_dir": "benchmarks",
+  "env_dir": ".asv/env",
+  "results_dir": ".asv/results",
+  "html_dir": ".asv/html",
+  "show_commit_url": "https://github.com/jeilealr/GSTools/commit/",
+  "environment_type": "conda",
+  "conda_channels": ["conda-forge"],
+  "pythons": ["3.14"],
+  "matrix": {
+    "req": {
+      "emcee": [""],
+      "hankel": [""],
+      "meshio": [""],
+      "numpy": [""],
+      "pyevtk": [""],
+      "scipy": [""],
+      "gstools-cython": [""]
+    }
+  },
+  "install_command": [
+    "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_pyproject_extras.py --pyproject {conf_dir}/pyproject.toml rust",
+    "in-dir={env_dir} python -m pip install --no-deps {build_dir}"
+  ],
+  "number": 1,
+  "repeat": 20
+}

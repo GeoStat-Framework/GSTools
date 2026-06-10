@@ -1,0 +1,60 @@
+name: Post Benchmark PR Comment
+
+on:
+  workflow_run:
+    workflows: ["Benchmarking"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    # Only runs when the triggering event was a pull_request and the run
+    # produced a benchmark-pr-context artifact (skipped if no relevant changes).
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Download PR context artifact
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: benchmark-pr-context
+          path: pr-context
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Post or update benchmark PR comment
+        if: steps.download.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_SHA=$(cat pr-context/base_sha.txt)
+          HEAD_SHA=$(cat pr-context/head_sha.txt)
+          ARTIFACT_URL=$(cat pr-context/artifact_url.txt)
+          PR_NUMBER=$(cat pr-context/pr_number.txt)
+
+          python benchmarks/tools/render_benchmark_comment.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --artifact-url "$ARTIFACT_URL" \
+            --comparison pr-context/comparison.txt \
+            --output /tmp/benchmark_comment.md
+
+          EXISTING_ID=$(gh api \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.body | startswith("<!-- gstools-openmp-benchmark -->")) | .id' \
+            | head -1)
+          if [ -n "$EXISTING_ID" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/comments/$EXISTING_ID" \
+              -X PATCH -F body=@/tmp/benchmark_comment.md
+          else
+            gh pr comment "$PR_NUMBER" --body-file /tmp/benchmark_comment.md
+          fi

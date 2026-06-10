@@ -1,0 +1,117 @@
+name: Publish OpenMP Benchmark History
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "src/**"
+      - "benchmarks/**"
+      - "pyproject.toml"
+      - "asv.conf.json"
+      - "asv.openmp.conf.json"
+      - ".github/workflows/benchmark-readiness.yml"
+      - ".github/workflows/asv-openmp-pr-comparison.yml"
+      - ".github/workflows/asv-benchmark-publish.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openmp-benchmark-publish
+  cancel-in-progress: false
+
+env:
+  ASV_CONFIG: asv.openmp.conf.json
+  BENCHMARKS_REPO: jeilealr/gstools-benchmarks-asv
+  MACHINE_NAME: github-actions-ubuntu
+
+jobs:
+  publish:
+    name: Benchmark accepted main commit and publish history
+    if: github.repository == 'jeilealr/GSTools'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Check out GSTools
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Check out benchmark history repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          repository: ${{ env.BENCHMARKS_REPO }}
+          token: ${{ secrets.BENCHMARKS_REPO_TOKEN }}
+          path: benchmark-site
+
+      - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
+        with:
+          activate-environment: gstools-asv-driver
+          python-version: "3.14"
+          channels: conda-forge
+          conda-remove-defaults: true
+
+      - name: Install ASV driver
+        run: |
+          conda install -n gstools-asv-driver -y -c conda-forge pip
+          python -m pip install --upgrade pip asv
+
+      - name: Expose accepted commit as local main branch
+        run: |
+          git checkout --detach "$GITHUB_SHA"
+          git branch --force main "$GITHUB_SHA"
+
+      - name: Restore cumulative ASV results
+        run: |
+          mkdir -p .asv-openmp/results
+          if [[ -d benchmark-site/results ]]; then
+            cp -R benchmark-site/results/. .asv-openmp/results/
+          fi
+
+      - name: Configure stable ASV machine name
+        run: |
+          python benchmarks/tools/configure_asv_machine.py "$MACHINE_NAME"
+
+      - name: Benchmark newly accepted main commit
+        env:
+          GSTOOLS_BENCHMARK_THREADS: "1,2,4,8"
+        run: |
+          asv --config "$ASV_CONFIG" run \
+            "$GITHUB_SHA^!" \
+            --machine "$MACHINE_NAME" \
+            --skip-existing-successful \
+            --no-pull \
+            --bench "^benchmark_" \
+            --show-stderr
+
+      - name: Build published reports and preserve raw results
+        run: |
+          rm -rf benchmark-site/asv benchmark-site/results
+          python benchmarks/tools/plot_case_backend_comparison.py \
+            --results-dir .asv-openmp/results \
+            --output benchmark-site/index.html
+          asv --config "$ASV_CONFIG" publish \
+            --no-pull \
+            --html-dir benchmark-site/asv
+          cp -R .asv-openmp/results benchmark-site/results
+          touch benchmark-site/.nojekyll
+
+      - name: Commit and push benchmark history
+        working-directory: benchmark-site
+        run: |
+          git config user.name "GSTools benchmark bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No benchmark history changes to publish."
+            exit 0
+          fi
+          git commit -m "Update OpenMP benchmarks for ${GITHUB_SHA::8}"
+          git push origin main
