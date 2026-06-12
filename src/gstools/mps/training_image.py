@@ -74,6 +74,13 @@ class TrainingImage:
             return
 
         # ---- univariate (unchanged behaviour) ----
+        if weights is not None:
+            raise TypeError(
+                "TrainingImage: 'weights' is only valid for multivariate "
+                "(dict) TIs. Did you mean to pass 'distance'? "
+                "Use a keyword argument: "
+                "TrainingImage(data, categorical, distance='variation')."
+            )
         self._multivariate = False
         self._variables = None
         self._weights = None

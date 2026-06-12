@@ -431,6 +431,12 @@ class TestTrainingImage(unittest.TestCase):
         )
         self.assertGreater(w_c[0], w[0])
 
+    def test_weights_positional_arg_guard(self):
+        # Passing a string as the 3rd positional arg (the old `distance` slot)
+        # must raise TypeError with a helpful message, not silently use "l1".
+        with self.assertRaises(TypeError):
+            TrainingImage(np.zeros((4, 4), dtype=int), True, "variation")
+
 
 class TestDirectSampling(unittest.TestCase):
     def setUp(self):
@@ -1084,6 +1090,28 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         self.assertEqual(set(field), {"only"})
         self.assertEqual(field["only"].shape, (8, 8))
         self.assertTrue(np.all(np.isin(field["only"], [0, 1, 2])))
+
+    def test_threshold_renormalization_with_empty_variable(self):
+        # Fix 1 regression guard: when variable 'b' has no informed neighbours
+        # (first node on the path), the joint distance must still be renormalized
+        # to [0,1] so the threshold comparison is meaningful.
+        # Build a TI where 'a' and 'b' are injective: b = a + 100 (same as
+        # test_joint_cell_invariant). Use threshold > 0 (DS mode, not DSBC).
+        # The first simulated node has zero neighbours for both variables, so
+        # it falls back to a random TI cell — both variables must be drawn from
+        # the same cell (b == a + 100 for that node too).
+        ids = np.arange(64).reshape(8, 8)
+        ti = TrainingImage(
+            {"a": ids, "b": ids + 100},
+            categorical={"a": True, "b": True},
+        )
+        # scan_fraction=1.0, threshold=0.01: very strict but must still complete
+        # without NaN and must reproduce the joint relationship everywhere.
+        ds = DirectSampling(ti, n_neighbors=8, scan_fraction=1.0, threshold=0.01)
+        field = ds([np.arange(6, dtype=float)] * 2, seed=0)
+        self.assertFalse(np.any(np.isnan(field["a"])))
+        self.assertFalse(np.any(np.isnan(field["b"])))
+        np.testing.assert_array_equal(field["b"], field["a"] + 100)
 
 
 if __name__ == "__main__":

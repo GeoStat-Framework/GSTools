@@ -124,6 +124,46 @@ def _select_neighbors(
     )
 
 
+def _build_dag_base(path, sim_shape, offset_arr, vmap_dict, n_k_dict, max_radius=None):
+    """Unified dependency-DAG builder for both univariate and multivariate DS.
+
+    Parameters
+    ----------
+    vmap_dict : dict of {key: numpy.ndarray}
+        One position map per key.  For univariate DS pass ``{"": path_pos_map}``.
+    n_k_dict : dict of {key: int}
+        Maximum neighbours per key, matching ``vmap_dict``.
+
+    Returns
+    -------
+    indegree : dict of {key: numpy.ndarray of int32, shape (N,)}
+    out_edges : list of list of (int, key)
+        ``out_edges[j]`` → ``(i, key)`` pairs to process when node ``j`` completes.
+    """
+    N = len(path)
+    sim_shape_arr = np.array(sim_shape)
+    indegree = {k: np.zeros(N, dtype=np.int32) for k in vmap_dict}
+    out_edges = [[] for _ in range(N)]
+    for i in range(N):
+        x_i = path[i]
+        for key, vmap in vmap_dict.items():
+            _, vidx = _select_neighbors(
+                x_i,
+                offset_arr,
+                sim_shape_arr,
+                sim_shape,
+                vmap,
+                i,
+                None,
+                max_radius,
+                n_k_dict[key],
+            )
+            for j in vidx[vidx >= 0]:
+                indegree[key][i] += 1
+                out_edges[int(j)].append((i, key))
+    return indegree, out_edges
+
+
 def _build_dag(
     path,
     n_neighbors,
@@ -132,37 +172,20 @@ def _build_dag(
     path_pos_map,
     max_radius=None,
 ):
-    """Build the simulation dependency DAG.
+    """Build the univariate simulation dependency DAG.
 
-    Edge ``j -> i`` means path node ``j`` (j < i) is among the n-closest
-    neighbours used when simulating node ``i``.  Conditioning data carry no
-    edge.  Uses the same vectorized neighbour selection as the simulation
-    (:func:`_select_neighbors`), so the resulting dependencies match the set
-    each node would actually pick at simulation time.
+    Thin wrapper around :func:`_build_dag_base` that converts the result back
+    to the univariate format (scalar indegree array, list-of-int out_edges).
     """
-    N = len(path)
-    sim_shape_arr = np.array(sim_shape)
-    indegree = np.zeros(N, dtype=np.int32)
-    out_edges = [[] for _ in range(N)]
-
-    for i in range(N):
-        _, vidx = _select_neighbors(
-            path[i],
-            offset_arr,
-            sim_shape_arr,
-            sim_shape,
-            path_pos_map,
-            i,  # build-time: all path nodes with index < i are informed
-            None,
-            max_radius,
-            n_neighbors,
-        )
-        # path-node neighbours (conditioning data have index -1, no edge)
-        for j in vidx[vidx >= 0]:
-            indegree[i] += 1
-            out_edges[int(j)].append(i)
-
-    return indegree, out_edges
+    indegree_d, out_edges_d = _build_dag_base(
+        path,
+        sim_shape,
+        offset_arr,
+        {"": path_pos_map},
+        {"": n_neighbors},
+        max_radius,
+    )
+    return indegree_d[""], [[i for i, _ in es] for es in out_edges_d]
 
 
 def ds_simulate(
@@ -482,17 +505,8 @@ def _build_dag_mv(
 ):
     """Node-vertex dependency DAG for node-wise multivariate simulation.
 
-    Vertices are simulation-path *nodes*.  For each node ``i`` and each variable
-    ``v``, the ``n_k[v]``-closest path-node neighbours of ``x_i`` (selected
-    through that variable's position map ``vmap[v]``) become dependencies: an
-    edge ``j -> i`` with ``j < i`` (acyclic by construction).  In-degree is
-    tracked *per variable*, so a node is only dispatched once **every** variable's
-    neighbourhood has committed.
-
-    Conditioned cells carry ``-1`` in ``vmap[v]`` (always available, like
-    univariate conditioning) and are removed by the ``vidx >= 0`` filter, so they
-    add no edge and never enter the in-degree count.  There are no collocated
-    edges: conditioning is the only same-node source and is always available.
+    Thin wrapper around :func:`_build_dag_base`.  Per-variable in-degrees and
+    ``(node, variable)`` out-edges are returned directly from the base builder.
 
     Returns
     -------
@@ -502,28 +516,7 @@ def _build_dag_mv(
         ``out_edges[j]`` holds ``(i, v)`` pairs: completing node ``j`` decrements
         ``indegree[v][i]``.
     """
-    N = len(path)
-    sim_shape_arr = np.array(sim_shape)
-    indegree = {v: np.zeros(N, dtype=np.int32) for v in variables}
-    out_edges = [[] for _ in range(N)]
-    for i in range(N):
-        x_i = path[i]
-        for var in variables:
-            _, vidx = _select_neighbors(
-                x_i,
-                offset_arr,
-                sim_shape_arr,
-                sim_shape,
-                vmap[var],
-                i,  # build-time: all path nodes with index < i are committed
-                None,
-                max_radius,
-                n_k[var],
-            )
-            for j in vidx[vidx >= 0]:
-                indegree[var][i] += 1
-                out_edges[int(j)].append((i, var))
-    return indegree, out_edges
+    return _build_dag_base(path, sim_shape, offset_arr, vmap, n_k, max_radius)
 
 
 def ds_simulate_mv(
@@ -640,11 +633,15 @@ def ds_simulate_mv(
         m[np.flatnonzero(is_cond[v].reshape(-1))] = -1
         vmap[v] = m
 
+    # Hoist TI variable arrays once — avoids repeated method-call overhead
+    # inside the per-node scan loop; all inner closures read from this dict.
+    ti_vars = {v: training_image.variable(v) for v in variables}
+
     def _rand_fallback(targets, node_rng):
         # Single random TI cell supplies the whole node-vector (preserves the
         # joint relationship); never an independent draw per variable.
         cell = tuple(int(node_rng.randint(0, s)) for s in ti_shape)
-        return {v: float(training_image.variable(v)[cell]) for v in targets}
+        return {v: float(ti_vars[v][cell]) for v in targets}
 
     def _joint_scan(lo, win_shape, int_lags, de_v, cm_v, ln_v, node_rng):
         # Mirrors _scan_ti: full vectorized argmin for DSBC (threshold <= 0),
@@ -661,17 +658,23 @@ def ds_simulate_mv(
 
         def _dist_block(y_blk):
             d = np.zeros(len(y_blk))
+            active_w = 0.0
             for v in variables:
                 il = int_lags.get(v)
                 if il is None:
                     continue
                 coords = y_blk[:, None, :] + il[None, :, :]
-                all_de_ti = training_image.variable(v)[
-                    tuple(coords.transpose(2, 0, 1))
-                ]
+                all_de_ti = ti_vars[v][tuple(coords.transpose(2, 0, 1))]
                 d += weights[v] * training_image.vec_distance_var(
                     v, de_v[v], all_de_ti, cm_v[v], cond_weight, ln_v[v]
                 )
+                active_w += weights[v]
+            # Renormalize so the joint distance stays in [0, 1] even when
+            # some variables have no data event and are excluded from int_lags.
+            # Without this, the threshold fires on a compressed scale and
+            # accepts matches that should be rejected.
+            if 0.0 < active_w < 1.0:
+                d /= active_w
             return d
 
         if threshold <= 0:
@@ -795,10 +798,10 @@ def ds_simulate_mv(
         # Copy the single matched cell's vector to every uninformed variable.
         result = {}
         for v in targets:
-            ti_val = float(training_image.variable(v)[y_t])
+            ti_val = float(ti_vars[v][y_t])
             il = int_lags.get(v)
             de_ti_v = (
-                training_image.variable(v)[tuple((y + il).T)]
+                ti_vars[v][tuple((y + il).T)]
                 if il is not None
                 else np.empty(0)
             )
@@ -908,6 +911,37 @@ class DirectSampling(Field):
 
     default_field_names = ["field"]
 
+    @staticmethod
+    def _validate_n_neighbors(value, ti):
+        """Validate and normalise *n_neighbors*; return ``int`` or ``dict of int``."""
+        if isinstance(value, dict):
+            if not ti.multivariate:
+                raise ValueError(
+                    "DirectSampling: dict n_neighbors is only valid for "
+                    "multivariate TrainingImages."
+                )
+            missing = set(ti.variables) - set(value)
+            extra = set(value) - set(ti.variables)
+            if missing or extra:
+                raise ValueError(
+                    f"DirectSampling: n_neighbors dict keys must match TI "
+                    f"variables {ti.variables!r}. Missing: {sorted(missing)}, "
+                    f"extra: {sorted(extra)}."
+                )
+            for k, v in value.items():
+                if int(v) < 1:
+                    raise ValueError(
+                        f"DirectSampling: n_neighbors[{k!r}] must be >= 1, "
+                        f"got {v!r}"
+                    )
+            return {k: int(v) for k, v in value.items()}
+        else:
+            if int(value) < 1:
+                raise ValueError(
+                    f"DirectSampling: n_neighbors must be >= 1, got {value!r}"
+                )
+            return int(value)
+
     def __init__(
         self,
         ti,
@@ -925,29 +959,7 @@ class DirectSampling(Field):
                 f"DirectSampling: boundary must be one of {_VALID_BOUNDARY!r}, "
                 f"got {boundary!r}"
             )
-        if isinstance(n_neighbors, dict):
-            if not ti.multivariate:
-                raise ValueError(
-                    "DirectSampling: dict n_neighbors is only valid for "
-                    "multivariate TrainingImages."
-                )
-            missing = set(ti.variables) - set(n_neighbors)
-            extra = set(n_neighbors) - set(ti.variables)
-            if missing or extra:
-                raise ValueError(
-                    f"DirectSampling: n_neighbors dict keys must match TI "
-                    f"variables {ti.variables!r}. Missing: {sorted(missing)}, "
-                    f"extra: {sorted(extra)}."
-                )
-            for k, v in n_neighbors.items():
-                if int(v) < 1:
-                    raise ValueError(
-                        f"DirectSampling: n_neighbors[{k!r}] must be >= 1, got {v!r}"
-                    )
-        elif int(n_neighbors) < 1:
-            raise ValueError(
-                f"DirectSampling: n_neighbors must be >= 1, got {n_neighbors!r}"
-            )
+        DirectSampling._validate_n_neighbors(n_neighbors, ti)  # raises on invalid
         if not (0 < float(scan_fraction) <= 1):
             raise ValueError(
                 f"DirectSampling: scan_fraction must be in (0, 1], "
@@ -969,23 +981,9 @@ class DirectSampling(Field):
                 f"DirectSampling: max_radius must be a positive float, "
                 f"got {max_radius!r}"
             )
-        if ti.multivariate:
-            # Variable names become stored field names (Field.post_field), so
-            # they must be valid identifiers and not clash with Field attributes.
-            for v in ti.variables:
-                if not v.isidentifier() or (v != "field" and v in dir(self)):
-                    raise ValueError(
-                        f"DirectSampling: variable name {v!r} cannot be used as "
-                        f"a field name; use a valid Python identifier that does "
-                        f"not collide with an existing attribute."
-                    )
         super().__init__(model=None, dim=ti.ndim, value_type="scalar")
         self._ti = ti
-        self._n_neighbors = (
-            {k: int(v) for k, v in n_neighbors.items()}
-            if isinstance(n_neighbors, dict)
-            else int(n_neighbors)
-        )
+        self._n_neighbors = DirectSampling._validate_n_neighbors(n_neighbors, ti)
         self._scan_fraction = float(scan_fraction)
         self._threshold = float(threshold)
         self._cond_weight = float(cond_weight)
@@ -997,6 +995,19 @@ class DirectSampling(Field):
         self._cond_pos = None
         self._cond_val = None
         self.rng = RNG(None if np.isnan(seed) else int(seed))
+        # Mirror post_field's own name-collision guard (base.py) exactly.
+        # Runs after super().__init__() so self.field_names is available —
+        # avoids the hardcoded v != "field" workaround.
+        if ti.multivariate:
+            for v in ti.variables:
+                if not v.isidentifier() or (
+                    v not in self.field_names and v in dir(self)
+                ):
+                    raise ValueError(
+                        f"DirectSampling: variable name {v!r} cannot be used as "
+                        f"a field name; use a valid Python identifier that does "
+                        f"not collide with an existing attribute."
+                    )
 
     def __call__(
         self,
@@ -1117,14 +1128,7 @@ class DirectSampling(Field):
             candidates = {}  # idx -> (val_dict, dist_sq)
             n_cond = len(next(iter(self._cond_val.values())))
             for k in range(n_cond):
-                idx = tuple(
-                    int(np.argmin(np.abs(axes[d] - self._cond_pos[d][k])))
-                    for d in range(self.dim)
-                )
-                dist_sq = sum(
-                    (axes[d][idx[d]] - self._cond_pos[d][k]) ** 2
-                    for d in range(self.dim)
-                )
+                idx, dist_sq = self._snap_to_nearest(axes, k)
                 val_dict = {
                     v: float(self._cond_val[v][k])
                     for v in self._cond_val
@@ -1136,17 +1140,22 @@ class DirectSampling(Field):
         # univariate (unchanged)
         candidates = {}  # idx -> (val, dist_sq)
         for k in range(self._cond_val.shape[0]):
-            idx = tuple(
-                int(np.argmin(np.abs(axes[d] - self._cond_pos[d][k])))
-                for d in range(self.dim)
-            )
-            dist_sq = sum(
-                (axes[d][idx[d]] - self._cond_pos[d][k]) ** 2
-                for d in range(self.dim)
-            )
+            idx, dist_sq = self._snap_to_nearest(axes, k)
             if idx not in candidates or dist_sq < candidates[idx][1]:
                 candidates[idx] = (self._cond_val[k], dist_sq)
         return {idx: val for idx, (val, _) in candidates.items()}
+
+    def _snap_to_nearest(self, axes, k):
+        """Return (grid_index_tuple, dist_sq) for the k-th conditioning point."""
+        idx = tuple(
+            int(np.argmin(np.abs(axes[d] - self._cond_pos[d][k])))
+            for d in range(self.dim)
+        )
+        dist_sq = sum(
+            (axes[d][idx[d]] - self._cond_pos[d][k]) ** 2
+            for d in range(self.dim)
+        )
+        return idx, dist_sq
 
     def set_condition(self, cond_pos, cond_val, cond_weight=None):
         """Set the conditioning data for the simulation.
@@ -1209,32 +1218,7 @@ class DirectSampling(Field):
 
     @n_neighbors.setter
     def n_neighbors(self, value):
-        if isinstance(value, dict):
-            if not self._ti.multivariate:
-                raise ValueError(
-                    "DirectSampling: dict n_neighbors is only valid for "
-                    "multivariate TrainingImages."
-                )
-            missing = set(self._ti.variables) - set(value)
-            extra = set(value) - set(self._ti.variables)
-            if missing or extra:
-                raise ValueError(
-                    f"DirectSampling: n_neighbors dict keys must match TI "
-                    f"variables {self._ti.variables!r}. Missing: {sorted(missing)}, "
-                    f"extra: {sorted(extra)}."
-                )
-            for k, v in value.items():
-                if int(v) < 1:
-                    raise ValueError(
-                        f"DirectSampling: n_neighbors[{k!r}] must be >= 1, got {v!r}"
-                    )
-            self._n_neighbors = {k: int(v) for k, v in value.items()}
-        else:
-            if int(value) < 1:
-                raise ValueError(
-                    f"DirectSampling: n_neighbors must be >= 1, got {value!r}"
-                )
-            self._n_neighbors = int(value)
+        self._n_neighbors = DirectSampling._validate_n_neighbors(value, self._ti)
 
     @property
     def scan_fraction(self):
