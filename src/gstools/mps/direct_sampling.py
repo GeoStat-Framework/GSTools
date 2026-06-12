@@ -16,7 +16,9 @@ import numpy as np
 
 from gstools import config
 from gstools.field.base import Field
+from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
+from gstools.tools.geometric import matrix_isometrize, set_angles, set_anis
 
 __all__ = ["DirectSampling"]
 
@@ -27,6 +29,27 @@ _VALID_BOUNDARY = ("strict", "partial")
 # greedy DS scan does not overcompute far past the first accepted match.
 # This is a call-overhead-amortization constant, not a cache-tuned one.
 _SCAN_BLOCK = 4096
+
+
+def _resolve_nonstationary_map(param, sim_shape):
+    """Return ``None`` or an array broadcastable to ``sim_shape``.
+
+    Scalars and 0-d arrays are broadcast. For 3-D grids with per-node angle
+    vectors the map may have shape ``(*sim_shape, n)``; indexing ``m[i, j, k]``
+    then yields the per-node vector.
+    """
+    if param is None:
+        return None
+    arr = np.asarray(param, dtype=np.float64)
+    if arr.ndim == 0 or arr.size == 1:
+        return np.full(sim_shape, float(arr.flat[0]))
+    if arr.shape[: len(sim_shape)] == tuple(sim_shape):
+        return arr
+    raise ValueError(
+        f"Non-stationary map shape {arr.shape!r} is incompatible with "
+        f"simulation grid shape {tuple(sim_shape)!r}. Pass a scalar for a "
+        f"stationary value or an array whose leading dimensions match the grid."
+    )
 
 
 def _precompute_offsets(shape, max_offset=None):
@@ -200,6 +223,8 @@ def ds_simulate(
     boundary="strict",
     max_radius=None,
     num_threads=None,
+    rotation_map=None,
+    anis_map=None,
 ):
     """Direct Sampling univariate simulation (Mariethoz2010, Juda2022).
 
@@ -233,6 +258,13 @@ def ds_simulate(
     num_threads : int or None, optional
         Number of threads for outer DAG parallelism. ``None`` defaults to
         ``config.NUM_THREADS``.
+    rotation_map : numpy.ndarray or None, optional
+        Per-node rotation angles, shape matching the simulation grid. ``None``
+        → no rotation (stationary). Use ``DirectSampling.set_nonstationary``
+        to produce this array from user-facing scalar or array inputs.
+    anis_map : numpy.ndarray or None, optional
+        Per-node anisotropy ratios, shape matching the simulation grid.
+        ``None`` → isotropic (stationary). All values must be positive.
 
     Returns
     -------
@@ -241,6 +273,7 @@ def ds_simulate(
     ti_data = training_image.data
     ti_shape = np.array(ti_data.shape)
     sim_shape_arr = np.array(sim_shape)
+    dim = len(sim_shape)
     sg = np.full(sim_shape, np.nan)
     is_cond = np.zeros(sim_shape, dtype=bool)
     informed = np.zeros(sim_shape, dtype=bool)
@@ -359,18 +392,36 @@ def ds_simulate(
         cond_mask = is_cond[tuple(nbrs.T)]  # (k,)
         lag_norms = np.linalg.norm(lags, axis=1)  # (k,)
 
+        # Geometric transform: express SG lags in the TI's own frame.
+        # matrix_isometrize = derotate + isotropify (Mariethoz2010 §6.2).
+        # lags_ti feeds TI-side operations only; original lags/lag_norms/
+        # data_event_sim remain authoritative for all SG-side operations.
+        if rotation_map is not None or anis_map is not None:
+            angles_i = set_angles(
+                dim,
+                rotation_map[tuple(x_i)] if rotation_map is not None else 0.0,
+            )
+            anis_i = set_anis(
+                dim,
+                anis_map[tuple(x_i)] if anis_map is not None else 1.0,
+            )
+            M = matrix_isometrize(dim, angles_i, anis_i)
+            lags_ti = np.rint(lags @ M.T)  # lags are integer-valued (grid offsets)
+        else:
+            lags_ti = lags
+
         if boundary == "strict":
             # Search window Y(L_i) — Juda2022 Eq. 5, Mariethoz2010 §3 ¶19
-            win_lo = np.maximum(0, np.ceil(-lags.min(axis=0))).astype(int)
+            win_lo = np.maximum(0, np.ceil(-lags_ti.min(axis=0))).astype(int)
             win_hi = np.minimum(
-                ti_shape - 1, np.floor(ti_shape - 1 - lags.max(axis=0))
+                ti_shape - 1, np.floor(ti_shape - 1 - lags_ti.max(axis=0))
             ).astype(int)
             if np.any(win_lo > win_hi):
                 return _rand_ti(node_rng)
             best_v, best_de_ti = _scan_ti(
                 win_lo,
                 tuple(win_hi - win_lo + 1),
-                lags,
+                lags_ti,
                 data_event_sim,
                 cond_mask,
                 lag_norms,
@@ -385,12 +436,14 @@ def ds_simulate(
             # Drop farthest neighbours one at a time until the bounding box of
             # the remaining data event fits inside the TI, per the paper's
             # "ignore until it becomes possible to scan" directive (§6.2).
+            # Drop-ranking uses original lag order (SG geometry); window check
+            # uses lags_ti (TI frame), so both sides stay self-consistent.
             valid_count = len(lags)
             while valid_count > 0:
-                lags_p = lags[:valid_count]
-                sw_lo = np.maximum(0, np.ceil(-lags_p.min(axis=0))).astype(int)
+                lags_ti_p = lags_ti[:valid_count]
+                sw_lo = np.maximum(0, np.ceil(-lags_ti_p.min(axis=0))).astype(int)
                 sw_hi = np.minimum(
-                    ti_shape - 1, np.floor(ti_shape - 1 - lags_p.max(axis=0))
+                    ti_shape - 1, np.floor(ti_shape - 1 - lags_ti_p.max(axis=0))
                 ).astype(int)
                 if np.all(sw_lo <= sw_hi):
                     break
@@ -398,22 +451,16 @@ def ds_simulate(
             else:
                 # No subset of the data event fits inside the TI (the closest
                 # neighbour's lag already exceeds the TI in some dimension).
-                # Recover like the empty-window case in strict mode rather than
-                # aborting the whole simulation.
                 return _rand_ti(node_rng)
             best_v, best_de_ti = _scan_ti(
                 sw_lo,
                 tuple(sw_hi - sw_lo + 1),
-                lags_p,
+                lags_ti[:valid_count],
                 data_event_sim[:valid_count],
                 cond_mask[:valid_count],
                 lag_norms[:valid_count],
                 node_rng,
             )
-            # For variation distance, adjust_value uses the mean of the
-            # truncated data event (valid_count neighbours), not the full
-            # neighbourhood mean.  This is intentional — the mean-shift
-            # must be consistent with the lags actually used in the scan.
             return training_image.adjust_value(
                 best_v, data_event_sim[:valid_count], best_de_ti
             )
@@ -531,6 +578,8 @@ def ds_simulate_mv(
     boundary="strict",
     max_radius=None,
     num_threads=None,
+    rotation_map=None,
+    anis_map=None,
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
 
@@ -569,6 +618,13 @@ def ds_simulate_mv(
         Euclidean cap on neighbour selection.
     num_threads : int or None, optional
         Threads for the node-wise DAG. ``None`` -> ``config.NUM_THREADS``.
+    rotation_map : numpy.ndarray or None, optional
+        Per-node rotation angles, shape matching the simulation grid. ``None``
+        → no rotation (stationary). Use ``DirectSampling.set_nonstationary``
+        to produce this array from user-facing scalar or array inputs.
+    anis_map : numpy.ndarray or None, optional
+        Per-node anisotropy ratios, shape matching the simulation grid.
+        ``None`` → isotropic (stationary). All values must be positive.
 
     Returns
     -------
@@ -730,6 +786,25 @@ def ds_simulate_mv(
                 lnv = np.concatenate([[0.0], lnv])
             lags_v[var], de_v[var], cm_v[var], ln_v[var] = lv, dv, cv, lnv
 
+        # Geometric transform: map all per-variable SG lags into TI frame.
+        # de_v / cm_v / ln_v stay on original SG geometry for SG-side ops.
+        # dict(lags_v) creates a shallow-copy dict so partial-mode truncation
+        # of lags_ti_v does not alias back into lags_v.
+        if rotation_map is not None or anis_map is not None:
+            angles_i = set_angles(
+                dim,
+                rotation_map[tuple(x_i)] if rotation_map is not None else 0.0,
+            )
+            anis_i = set_anis(
+                dim,
+                anis_map[tuple(x_i)] if anis_map is not None else 1.0,
+            )
+            M = matrix_isometrize(dim, angles_i, anis_i)
+            # lags are integer-valued (grid offsets), so rint is lossless
+            lags_ti_v = {v: np.rint(lags_v[v] @ M.T) for v in variables}
+        else:
+            lags_ti_v = dict(lags_v)
+
         if all(len(lags_v[v]) == 0 for v in variables):
             return _rand_fallback(targets, node_rng)
 
@@ -738,22 +813,24 @@ def ds_simulate_mv(
         win_lo = np.zeros(dim, dtype=int)
         win_hi = ti_shape - 1
         for var in variables:
-            lv = lags_v[var]
-            nz = np.flatnonzero(np.any(lv != 0, axis=1))
+            lv_ti = lags_ti_v[var]
+            # h=0 rows (collocated, or SG lag that rounded to 0 in TI space)
+            # do not constrain the window.
+            nz = np.flatnonzero(np.any(lv_ti != 0, axis=1))
             if not len(nz):
                 continue
             if boundary == "strict":
-                lv_nz = lv[nz]
+                lv_nz = lv_ti[nz]
                 lo = np.maximum(0, np.ceil(-lv_nz.min(axis=0))).astype(int)
                 hi = np.minimum(
                     ti_shape - 1, np.floor(ti_shape - 1 - lv_nz.max(axis=0))
                 ).astype(int)
                 if np.any(lo > hi):
                     return _rand_fallback(targets, node_rng)
-            else:  # "partial" — drop farthest neighbours until the box fits
-                keep = len(lv)
+            else:  # "partial" — drop farthest until TI box fits
+                keep = len(lv_ti)
                 while keep > 0:
-                    lv_k = lv[:keep]
+                    lv_k = lv_ti[:keep]
                     nzk = lv_k[np.any(lv_k != 0, axis=1)]
                     if not len(nzk):
                         lo = np.zeros(dim, dtype=int)
@@ -768,7 +845,10 @@ def ds_simulate_mv(
                     keep -= 1
                 else:
                     return _rand_fallback(targets, node_rng)
-                lags_v[var] = lv[:keep]
+                # Truncate TI-frame and original arrays to the same keep count.
+                # lags_ti_v uses a separate dict so this does not affect lags_v.
+                lags_ti_v[var] = lv_ti[:keep]
+                lags_v[var] = lags_v[var][:keep]
                 de_v[var] = de_v[var][:keep]
                 cm_v[var] = cm_v[var][:keep]
                 ln_v[var] = ln_v[var][:keep]
@@ -781,9 +861,9 @@ def ds_simulate_mv(
         # Integer lags per variable (already exact integers as float64, incl.
         # the 0.0 h=0 row); reused for the scan and the mean-shift gather.
         int_lags = {
-            v: lags_v[v].astype(int)
+            v: lags_ti_v[v].astype(int)
             for v in variables
-            if len(lags_v[v])
+            if len(lags_ti_v[v])
         }
         y = _joint_scan(
             win_lo,
@@ -994,6 +1074,11 @@ class DirectSampling(Field):
         self._num_threads = num_threads
         self._cond_pos = None
         self._cond_val = None
+        self._mv_mean = {}
+        self._mv_normalizer = {}
+        self._mv_trend = {}
+        self._rotation = None
+        self._anis = None
         self.rng = RNG(None if np.isnan(seed) else int(seed))
         # Mirror post_field's own name-collision guard (base.py) exactly.
         # Runs after super().__init__() so self.field_names is available —
@@ -1055,6 +1140,8 @@ class DirectSampling(Field):
             )
         name, save = self.get_store_config(store)
         pos, shape = self.pre_pos(pos, mesh_type)
+        rotation_map = _resolve_nonstationary_map(self._rotation, shape)
+        anis_map = _resolve_nonstationary_map(self._anis, shape)
         conditions = self._conditions_to_grid(self.pos)
         if not np.isnan(seed):
             self.rng.seed = int(seed)
@@ -1074,19 +1161,35 @@ class DirectSampling(Field):
                 boundary=self._boundary,
                 max_radius=self._max_radius,
                 num_threads=self._num_threads,
+                rotation_map=rotation_map,
+                anis_map=anis_map,
             )
             # Equal treatment: every variable is a first-class named field
             # (no privileged primary). Returned as a dict keyed by variable name.
-            # TODO: per-variable post-processing. post_field applies the single
-            # inherited mean/normalizer/trend to all variables identically; true
-            # per-variable transforms would need per-variable transform storage
-            # (or a direct apply_mean_norm_trend call). Deferred feature.
-            return {
-                v: self.post_field(
-                    result[v], name=v, process=post_process, save=save
-                )
-                for v in self._ti.variables
-            }
+            # Per-variable transforms (mean/normalizer/trend) are applied here
+            # using the dicts set via set_mv_transforms(); variables absent from
+            # those dicts fall back to the inherited self.mean/normalizer/trend.
+            # post_field is then called with process=False to handle storage only.
+            out = {}
+            for v in self._ti.variables:
+                fld = result[v]
+                if post_process:
+                    mv_mean = self._mv_mean.get(v, self.mean)
+                    mv_norm = self._mv_normalizer.get(v, self.normalizer)
+                    mv_trend = self._mv_trend.get(v, self.trend)
+                    fld = apply_mean_norm_trend(
+                        pos=self.pos,
+                        field=fld,
+                        mesh_type=self.mesh_type,
+                        value_type=self.value_type,
+                        mean=mv_mean,
+                        normalizer=mv_norm,
+                        trend=mv_trend,
+                        check_shape=False,
+                        stacked=False,
+                    )
+                out[v] = self.post_field(fld, name=v, process=False, save=save)
+            return out
         field = ds_simulate(
             training_image=self._ti,
             sim_shape=shape,
@@ -1099,6 +1202,8 @@ class DirectSampling(Field):
             boundary=self._boundary,
             max_radius=self._max_radius,
             num_threads=self._num_threads,
+            rotation_map=rotation_map,
+            anis_map=anis_map,
         )
         return self.post_field(field, name, post_process, save)
 
@@ -1206,6 +1311,73 @@ class DirectSampling(Field):
                 cond_pos, cond_val, self.dim
             )
 
+    def set_mv_transforms(self, mean=None, normalizer=None, trend=None):
+        """Set per-variable post-processing transforms for multivariate simulations.
+
+        Only meaningful when the training image is multivariate. Variables not
+        listed here fall back to the instance-level ``self.mean``,
+        ``self.normalizer``, and ``self.trend``.
+
+        Parameters
+        ----------
+        mean : dict of {str: scalar or callable}, optional
+            Per-variable mean.
+        normalizer : dict of {str: Normalizer}, optional
+            Per-variable normalizer.
+        trend : dict of {str: scalar or callable}, optional
+            Per-variable trend (applied after denormalization).
+        """
+        from gstools.field.base import _set_mean_trend
+        from gstools.normalizer.tools import _check_normalizer
+
+        if mean is not None:
+            self._mv_mean = {
+                v: _set_mean_trend(m, self.dim) for v, m in mean.items()
+            }
+        if normalizer is not None:
+            self._mv_normalizer = {
+                v: _check_normalizer(n) for v, n in normalizer.items()
+            }
+        if trend is not None:
+            self._mv_trend = {
+                v: _set_mean_trend(t, self.dim) for v, t in trend.items()
+            }
+
+    def set_nonstationary(self, rotation=None, anis=None):
+        """Set per-node geometric transform for non-stationary simulation.
+
+        Transforms lag vectors from the simulation-grid frame into the training
+        image's own frame before each TI scan (Mariethoz2010 §6.2). Enables
+        spatially varying orientation and anisotropy without modifying the TI.
+
+        Parameters
+        ----------
+        rotation : float or numpy.ndarray, optional
+            Rotation angle(s) in radians. Scalar → stationary (same angle at
+            every node). Array whose leading dimensions match the simulation
+            grid shape → per-node angles. Convention matches
+            :class:`gstools.CovModel` ``angles`` (2-D: one angle; 3-D:
+            Tait–Bryan yaw/pitch/roll). ``None`` → no rotation applied.
+        anis : float or numpy.ndarray, optional
+            Anisotropy ratio(s). Scalar → stationary. Array → per-node. Values
+            less than 1 compress the TI search in transversal directions.
+            Convention matches :class:`gstools.CovModel` ``anis``.
+            ``None`` → isotropic.
+        """
+        self._rotation = (
+            None if rotation is None else np.asarray(rotation, dtype=np.float64)
+        )
+        if anis is not None:
+            anis_arr = np.asarray(anis, dtype=np.float64)
+            if np.any(anis_arr <= 0):
+                raise ValueError(
+                    f"DirectSampling: anis must be positive everywhere, "
+                    f"got minimum value {float(anis_arr.min())!r}"
+                )
+            self._anis = anis_arr
+        else:
+            self._anis = None
+
     @property
     def ti(self):
         """TrainingImage: The training image model."""
@@ -1305,10 +1477,17 @@ class DirectSampling(Field):
         self._num_threads = None if value is None else int(value)
 
     def __repr__(self):
-        return (
-            f"DirectSampling(dim={self.dim}, "
-            f"n_neighbors={self.n_neighbors}, "
-            f"scan_fraction={self.scan_fraction}, "
-            f"threshold={self.threshold}, "
-            f"boundary={self.boundary!r})"
-        )
+        parts = [
+            f"DirectSampling(dim={self.dim}, ",
+            f"n_neighbors={self.n_neighbors}, ",
+            f"scan_fraction={self.scan_fraction}, ",
+            f"threshold={self.threshold}, ",
+            f"boundary={self.boundary!r}",
+        ]
+        if self._rotation is not None:
+            rot_val = float(self._rotation) if self._rotation.ndim == 0 else self._rotation
+            parts.append(f", rotation={rot_val!r}")
+        if self._anis is not None:
+            anis_val = float(self._anis) if self._anis.ndim == 0 else self._anis
+            parts.append(f", anis={anis_val!r}")
+        return "".join(parts) + ")"

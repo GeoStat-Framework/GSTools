@@ -1114,5 +1114,129 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         np.testing.assert_array_equal(field["b"], field["a"] + 100)
 
 
+class TestNonstationarity(unittest.TestCase):
+    """Geometric non-stationarity for DirectSampling (set_nonstationary)."""
+
+    def _make_ds(self, ti_shape=(20, 20), **kw):
+        rng = np.random.default_rng(0)
+        data = rng.integers(0, 3, ti_shape)
+        ti = gs.mps.TrainingImage(data)
+        defaults = dict(n_neighbors=4, scan_fraction=0.2)
+        defaults.update(kw)
+        return gs.mps.DirectSampling(ti, **defaults), ti
+
+    def test_scalar_rotation_valid_values(self):
+        ds, ti = self._make_ds()
+        ds.set_nonstationary(rotation=np.pi / 4)
+        pos = [np.arange(8, dtype=float)] * 2
+        field = ds(pos, seed=0)
+        self.assertEqual(field.shape, (8, 8))
+        self.assertTrue(np.all(np.isin(field, [0, 1, 2])))
+
+    def test_rotation_changes_output(self):
+        ds_plain, ti = self._make_ds(ti_shape=(30, 30), n_neighbors=8)
+        pos = [np.arange(10, dtype=float)] * 2
+        f_plain = ds_plain(pos, seed=7)
+
+        ds_rot = gs.mps.DirectSampling(ti, n_neighbors=8, scan_fraction=0.2)
+        ds_rot.set_nonstationary(rotation=np.pi / 4)
+        f_rot = ds_rot(pos, seed=7)
+        self.assertFalse(np.array_equal(f_plain, f_rot))
+
+    def test_array_rotation_map_runs(self):
+        ds, _ = self._make_ds()
+        angle_map = np.linspace(0, np.pi / 2, 64).reshape(8, 8)
+        ds.set_nonstationary(rotation=angle_map)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=1)
+        self.assertEqual(field.shape, (8, 8))
+        self.assertTrue(np.all(np.isin(field, [0, 1, 2])))
+
+    def test_anis_changes_output(self):
+        ds_plain, ti = self._make_ds(ti_shape=(30, 30), n_neighbors=8)
+        pos = [np.arange(10, dtype=float)] * 2
+        f_plain = ds_plain(pos, seed=3)
+
+        ds_anis = gs.mps.DirectSampling(ti, n_neighbors=8, scan_fraction=0.2)
+        ds_anis.set_nonstationary(anis=0.5)
+        f_anis = ds_anis(pos, seed=3)
+        self.assertFalse(np.array_equal(f_plain, f_anis))
+
+    def test_combined_rotation_anis_runs(self):
+        ds, _ = self._make_ds()
+        ds.set_nonstationary(rotation=np.pi / 6, anis=0.5)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=2)
+        self.assertEqual(field.shape, (8, 8))
+        self.assertTrue(np.all(np.isin(field, [0, 1, 2])))
+
+    def test_conditioning_preserved(self):
+        ds, _ = self._make_ds(scan_fraction=0.3)
+        ds.set_nonstationary(rotation=np.pi / 4)
+        ds.set_condition([[4.0], [4.0]], [2])
+        field = ds([np.arange(8, dtype=float)] * 2, seed=0)
+        self.assertEqual(int(field[4, 4]), 2)
+
+    def test_partial_boundary_runs(self):
+        ds, _ = self._make_ds(boundary="partial")
+        ds.set_nonstationary(rotation=np.pi / 4)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=0)
+        self.assertTrue(np.all(np.isin(field, [0, 1, 2])))
+
+    def test_3d_rotation_runs(self):
+        rng = np.random.default_rng(0)
+        data = rng.integers(0, 2, (12, 12, 12))
+        ti = gs.mps.TrainingImage(data)
+        ds = gs.mps.DirectSampling(ti, n_neighbors=4, scan_fraction=0.1)
+        ds.set_nonstationary(rotation=np.pi / 4)
+        field = ds([np.arange(5, dtype=float)] * 3, seed=0)
+        self.assertEqual(field.shape, (5, 5, 5))
+        self.assertTrue(np.all(np.isin(field, [0, 1])))
+
+    def test_collapsed_window_fallback(self):
+        # 90° rotation on a tiny TI can force all windows to collapse.
+        # Output must be finite and within TI values — no crash, no NaN.
+        rng = np.random.default_rng(0)
+        data = rng.integers(0, 2, (4, 4))
+        ti = gs.mps.TrainingImage(data)
+        ds = gs.mps.DirectSampling(ti, n_neighbors=8, scan_fraction=1.0)
+        ds.set_nonstationary(rotation=np.pi / 2)
+        field = ds([np.arange(6, dtype=float)] * 2, seed=0)
+        self.assertTrue(np.all(np.isfinite(field)))
+        self.assertTrue(np.all(np.isin(field, [0, 1])))
+
+    def test_identity_matches_no_transform(self):
+        # θ=0, anis=1 must produce bit-identical output to the plain path.
+        ds_plain, ti = self._make_ds(ti_shape=(20, 20), n_neighbors=8)
+        pos = [np.arange(8, dtype=float)] * 2
+        f_plain = ds_plain(pos, seed=5)
+
+        ds_id = gs.mps.DirectSampling(ti, n_neighbors=8, scan_fraction=0.2)
+        ds_id.set_nonstationary(rotation=0.0, anis=1.0)
+        f_id = ds_id(pos, seed=5)
+        np.testing.assert_array_equal(f_plain, f_id)
+
+    def test_multivariate_rotation_valid_output(self):
+        # Exercises the ds_simulate_mv transform path: shape, value subsets,
+        # and that rotation changes output vs no rotation (same seed).
+        rng = np.random.default_rng(0)
+        ti = gs.mps.TrainingImage(
+            {"a": rng.integers(0, 3, (20, 20)), "b": rng.random((20, 20))},
+            categorical={"a": True, "b": False},
+        )
+        pos = [np.arange(8, dtype=float)] * 2
+
+        ds_plain = gs.mps.DirectSampling(ti, n_neighbors=4, scan_fraction=0.2)
+        result_plain = ds_plain(pos, seed=9)
+
+        ds_rot = gs.mps.DirectSampling(ti, n_neighbors=4, scan_fraction=0.2)
+        ds_rot.set_nonstationary(rotation=np.pi / 4)
+        result_rot = ds_rot(pos, seed=9)
+
+        self.assertEqual(result_rot["a"].shape, (8, 8))
+        self.assertEqual(result_rot["b"].shape, (8, 8))
+        self.assertTrue(np.all(np.isin(result_rot["a"], [0, 1, 2])))
+        self.assertTrue(np.all(np.isfinite(result_rot["b"])))
+        self.assertFalse(np.array_equal(result_plain["a"], result_rot["a"]))
+
+
 if __name__ == "__main__":
     unittest.main()
