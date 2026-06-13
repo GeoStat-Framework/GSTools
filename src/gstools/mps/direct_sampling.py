@@ -16,13 +16,38 @@ import numpy as np
 
 from gstools import config
 from gstools.field.base import Field
+from gstools.mps.distance import compute_node_weights
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
 from gstools.tools.geometric import matrix_isometrize, set_angles, set_anis
 
+try:  # pragma: no cover - exercised only when the Rust backend is installed
+    import gstools_core as _gstools_core
+except ImportError:  # pragma: no cover
+    _gstools_core = None
+
 __all__ = ["DirectSampling"]
 
+
+def _use_core():
+    """Whether the gstools_core MPS kernels should handle the inner loops.
+
+    Gated on the runtime ``config`` flags (user-toggleable) and a feature
+    check, so an older ``gstools_core`` without the MPS kernels falls back to
+    the authoritative pure-Python path.
+    """
+    return (
+        _gstools_core is not None
+        and config.USE_GSTOOLS_CORE
+        and config._GSTOOLS_CORE_AVAIL
+        and hasattr(_gstools_core, "mps_scan_ti")
+    )
+
+
 _VALID_BOUNDARY = ("strict", "partial")
+
+# Shared read-only var-weights for the univariate scan kernel (one variable).
+_UNIT_VAR_WEIGHTS = np.array([1.0])
 
 # DS-mode scan block size.  Large enough that per-call NumPy overhead is
 # negligible (essentially full vectorization speed), small enough that the
@@ -79,6 +104,53 @@ def _precompute_offsets(shape, max_offset=None):
 
 
 def _select_neighbors(
+    x_i,
+    offset_arr,
+    sim_shape_arr,
+    sim_shape,
+    path_pos_map,
+    curr_idx,
+    informed,
+    max_radius,
+    n_neighbors,
+):
+    """Closest valid neighbours of ``x_i`` — gstools_core kernel or Python.
+
+    Dispatches to :func:`gstools_core.mps_select_neighbors` when the Rust
+    backend is active, else to the authoritative :func:`_select_neighbors_py`.
+    The Rust kernel uses a *flat* informed mask and a *squared* radius, so the
+    2-D ``informed`` grid is raveled (a view, no copy) and ``max_radius`` is
+    squared here. See :func:`_select_neighbors_py` for the full contract.
+    """
+    if _use_core():
+        inf_flat = (
+            None if informed is None else np.ascontiguousarray(informed).ravel()
+        )
+        r_sq = None if max_radius is None else float(max_radius) ** 2
+        return _gstools_core.mps_select_neighbors(
+            np.ascontiguousarray(x_i, dtype=np.int64),
+            np.ascontiguousarray(offset_arr, dtype=np.int64),
+            np.ascontiguousarray(sim_shape_arr, dtype=np.int64),
+            np.ascontiguousarray(path_pos_map, dtype=np.int64),
+            int(curr_idx),
+            inf_flat,
+            r_sq,
+            int(n_neighbors),
+        )
+    return _select_neighbors_py(
+        x_i,
+        offset_arr,
+        sim_shape_arr,
+        sim_shape,
+        path_pos_map,
+        curr_idx,
+        informed,
+        max_radius,
+        n_neighbors,
+    )
+
+
+def _select_neighbors_py(
     x_i,
     offset_arr,
     sim_shape_arr,
@@ -165,6 +237,30 @@ def _build_dag_base(path, sim_shape, offset_arr, vmap_dict, n_k_dict, max_radius
     """
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
+
+    if _use_core() and N:
+        # Batched DAG build in Rust (parallel neighbour search + CSR assembly),
+        # then CSR -> (indegree dict, out_edges) in the executor's format.  The
+        # ``key`` order of ``vmap_dict`` fixes the variable index used by the
+        # kernel, so edge order matches the pure-Python builder exactly.
+        keys = list(vmap_dict)
+        r_sq = None if max_radius is None else float(max_radius) ** 2
+        indeg, indptr, edge_node, edge_var = _gstools_core.mps_build_dag(
+            np.ascontiguousarray(path, dtype=np.int64),
+            np.ascontiguousarray(sim_shape_arr, dtype=np.int64),
+            np.ascontiguousarray(offset_arr, dtype=np.int64),
+            [np.ascontiguousarray(vmap_dict[k], dtype=np.int64) for k in keys],
+            [int(n_k_dict[k]) for k in keys],
+            r_sq,
+            None,
+        )
+        indegree = {k: indeg[v].astype(np.int32) for v, k in enumerate(keys)}
+        out_edges = [[] for _ in range(N)]
+        for j in range(N):
+            for c in range(int(indptr[j]), int(indptr[j + 1])):
+                out_edges[j].append((int(edge_node[c]), keys[edge_var[c]]))
+        return indegree, out_edges
+
     indegree = {k: np.zeros(N, dtype=np.int32) for k in vmap_dict}
     out_edges = [[] for _ in range(N)]
     for i in range(N):
@@ -272,6 +368,11 @@ def ds_simulate(
     """
     ti_data = training_image.data
     ti_shape = np.array(ti_data.shape)
+    # Flat, C-contiguous TI for the gstools_core scan kernel (built once per
+    # simulation, not per node).  ``_use_core()`` may be False, in which case
+    # these are simply unused.
+    ti_flat = np.ascontiguousarray(ti_data, dtype=np.float64).ravel()
+    ti_shape_k = np.asarray(ti_data.shape, dtype=np.int64)
     sim_shape_arr = np.array(sim_shape)
     dim = len(sim_shape)
     sg = np.full(sim_shape, np.nan)
@@ -327,6 +428,38 @@ def ds_simulate(
         win_size = int(np.prod(win_shape))
         max_scan = max(1, int(scan_fraction * win_size))
         start = int(node_rng.randint(0, win_size))
+
+        # Rust scan: ``start`` is drawn above so the RNG stream is identical to
+        # the pure-Python path.  The kernel returns the flat window position of
+        # the winning candidate; reconstruct its TI anchor and data event here
+        # so the caller's ``adjust_value`` is unchanged.
+        if _use_core():
+            code, d_max, p = training_image.distance_spec()
+            w = compute_node_weights(
+                len(de_sim), ln, training_image.distance_power, cm, cond_weight
+            )
+            int_lags = np.ascontiguousarray(lags, dtype=np.int64)
+            win_pos, _ = _gstools_core.mps_scan_ti(
+                [ti_flat],
+                ti_shape_k,
+                [int_lags],
+                [np.ascontiguousarray(de_sim, dtype=np.float64)],
+                [w],
+                _UNIT_VAR_WEIGHTS,
+                [code],
+                np.array([[d_max, p]], dtype=np.float64),
+                np.ascontiguousarray(lo, dtype=np.int64),
+                np.ascontiguousarray(win_shape, dtype=np.int64),
+                float(threshold),
+                max_scan,
+                start,
+                None,
+            )
+            y = np.asarray(lo) + np.array(
+                np.unravel_index(int(win_pos), tuple(win_shape))
+            )
+            best_de_ti = ti_data[tuple((y + int_lags).T)]
+            return ti_data[tuple(y)], best_de_ti
 
         # All scan positions in visit order — shape (max_scan,)
         positions = (start + np.arange(max_scan)) % win_size
@@ -692,6 +825,13 @@ def ds_simulate_mv(
     # Hoist TI variable arrays once — avoids repeated method-call overhead
     # inside the per-node scan loop; all inner closures read from this dict.
     ti_vars = {v: training_image.variable(v) for v in variables}
+    # Flat, C-contiguous per-variable TIs + i64 shape for the gstools_core
+    # scan kernel (built once; unused when ``_use_core()`` is False).
+    ti_flat_v = {
+        v: np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
+        for v in variables
+    }
+    ti_shape_k = np.asarray(ti_shape, dtype=np.int64)
 
     def _rand_fallback(targets, node_rng):
         # Single random TI cell supplies the whole node-vector (preserves the
@@ -709,6 +849,52 @@ def ds_simulate_mv(
         win_size = int(np.prod(win_shape))
         max_scan = max(1, int(scan_fraction * win_size))
         start = int(node_rng.randint(0, win_size))
+
+        # Rust joint scan: only active variables (those present in int_lags)
+        # are passed; the kernel renormalises by their weight sum exactly as
+        # ``_dist_block`` does.  ``start`` is drawn above so the RNG stream is
+        # backend-independent.  Returns the winning TI cell coordinate ``y``.
+        if _use_core():
+            active = [v for v in variables if v in int_lags]
+            ti_list, lag_list, de_list, w_list = [], [], [], []
+            codes, params, var_w = [], [], []
+            for v in active:
+                code, d_max, p = training_image.distance_spec_var(v)
+                ti_list.append(ti_flat_v[v])
+                lag_list.append(np.ascontiguousarray(int_lags[v], dtype=np.int64))
+                de_list.append(np.ascontiguousarray(de_v[v], dtype=np.float64))
+                w_list.append(
+                    compute_node_weights(
+                        len(de_v[v]),
+                        ln_v[v],
+                        training_image.distance_power,
+                        cm_v[v],
+                        cond_weight,
+                    )
+                )
+                codes.append(code)
+                params.append([d_max, p])
+                var_w.append(weights[v])
+            win_pos, _ = _gstools_core.mps_scan_ti(
+                ti_list,
+                ti_shape_k,
+                lag_list,
+                de_list,
+                w_list,
+                np.asarray(var_w, dtype=np.float64),
+                codes,
+                np.asarray(params, dtype=np.float64),
+                np.ascontiguousarray(lo, dtype=np.int64),
+                np.ascontiguousarray(win_shape, dtype=np.int64),
+                float(threshold),
+                max_scan,
+                start,
+                None,
+            )
+            return np.asarray(lo) + np.array(
+                np.unravel_index(int(win_pos), tuple(win_shape))
+            )
+
         positions = (start + np.arange(max_scan)) % win_size
         y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
 
