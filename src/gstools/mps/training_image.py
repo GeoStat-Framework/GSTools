@@ -61,9 +61,9 @@ class TrainingImage:
         self,
         data,
         categorical=True,
-        weights=None,
         distance="l1",
         distance_power=0.0,
+        weights=None,
     ):
         self._distance_power = float(distance_power)
         if self._distance_power < 0:
@@ -74,13 +74,6 @@ class TrainingImage:
             return
 
         # ---- univariate (unchanged behaviour) ----
-        if weights is not None:
-            raise TypeError(
-                "TrainingImage: 'weights' is only valid for multivariate "
-                "(dict) TIs. Did you mean to pass 'distance'? "
-                "Use a keyword argument: "
-                "TrainingImage(data, categorical, distance='variation')."
-            )
         self._multivariate = False
         self._variables = None
         self._weights = None
@@ -464,7 +457,7 @@ class TrainingImage:
             data_event_sim, all_de_ti, w, self._d_max, self._variation_p_norm
         )
 
-    def adjust_value(self, ti_val, data_event_sim, data_event_ti):
+    def adjust_value(self, ti_val, data_event_sim, data_event_ti, var=None):
         """Adjust matched TI value before assignment to SG.
 
         For ``distance="variation"``, applies the mean-shift correction
@@ -479,12 +472,21 @@ class TrainingImage:
             SG data event (used to compute Z̄(x_i)).
         data_event_ti : array-like
             TI data event (used to compute Z̄(y)).
+        var : str, optional
+            Variable name for multivariate TIs. When ``None``, uses the
+            univariate attributes.
 
         Returns
         -------
         float
         """
-        if self._variation_p_norm is None or self._categorical:
+        if var is None:
+            categorical = self._categorical
+            vp_norm = self._variation_p_norm
+        else:
+            categorical = self._categorical[var]
+            vp_norm = self._variation_p_norm[var]
+        if vp_norm is None or categorical:
             return ti_val
         data_event_sim = np.asarray(data_event_sim, dtype=np.float64)
         data_event_ti = np.asarray(data_event_ti, dtype=np.float64)
@@ -525,6 +527,7 @@ class TrainingImage:
         cond_mask=None,
         cond_weight=1.0,
         lag_norms=None,
+        weights=None,
     ):
         """Vectorized distance for one variable over all TI scan candidates.
 
@@ -539,6 +542,9 @@ class TrainingImage:
         cond_mask : array-like of bool, optional
         cond_weight : float, optional
         lag_norms : array-like, shape (n,), optional
+        weights : numpy.ndarray, optional
+            Pre-computed node weights. If given, skips the internal
+            ``compute_node_weights`` call.
 
         Returns
         -------
@@ -550,8 +556,12 @@ class TrainingImage:
         n = len(de_sim)
         if n == 0:
             return np.zeros(len(all_de_ti))
-        w = compute_node_weights(
-            n, lag_norms, self._distance_power, cond_mask, cond_weight
+        w = (
+            weights
+            if weights is not None
+            else compute_node_weights(
+                n, lag_norms, self._distance_power, cond_mask, cond_weight
+            )
         )
         if self._categorical[var]:
             return vec_categorical_dist(de_sim, all_de_ti, w)
@@ -565,35 +575,6 @@ class TrainingImage:
         return vec_variation_dist(
             de_sim, all_de_ti, w, dmax, self._variation_p_norm[var]
         )
-
-    def adjust_value_var(self, var, ti_val, de_sim, de_ti):
-        """Mean-shift correction for one variable (variation distance only).
-
-        Returns *ti_val* unchanged for categorical / Lp variables, or when the
-        data event is empty (no neighbours to anchor the mean shift).
-
-        Parameters
-        ----------
-        var : str
-            Variable name.
-        ti_val : float
-            Raw value at the matched TI node for this variable.
-        de_sim : array-like
-            SG data event for this variable (used to compute the SG mean).
-        de_ti : array-like
-            TI data event for this variable (used to compute the TI mean).
-
-        Returns
-        -------
-        float
-        """
-        if self._categorical[var] or self._variation_p_norm[var] is None:
-            return ti_val
-        de_sim = np.asarray(de_sim, dtype=np.float64)
-        de_ti = np.asarray(de_ti, dtype=np.float64)
-        if de_sim.size == 0 or de_ti.size == 0:
-            return ti_val
-        return float(ti_val - de_ti.mean() + de_sim.mean())
 
     def __repr__(self):
         return (

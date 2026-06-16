@@ -59,21 +59,29 @@ _SCAN_BLOCK = 4096
 def _resolve_nonstationary_map(param, sim_shape):
     """Return ``None`` or an array broadcastable to ``sim_shape``.
 
-    Scalars and 0-d arrays are broadcast. For 3-D grids with per-node angle
-    vectors the map may have shape ``(*sim_shape, n)``; indexing ``m[i, j, k]``
-    then yields the per-node vector.
+    Scalars and 0-d arrays are broadcast. A 1-D vector shorter than the
+    simulation grid (e.g. a 3-element Tait–Bryan angle triple for a 3-D grid)
+    is returned as-is so the caller's ``set_angles``/``set_anis`` can normalise
+    it to the expected length. A full per-node map must have leading dimensions
+    equal to ``sim_shape``.
     """
     if param is None:
         return None
     arr = np.asarray(param, dtype=np.float64)
     if arr.ndim == 0 or arr.size == 1:
         return np.full(sim_shape, float(arr.flat[0]))
+    if arr.ndim == 1:
+        # Stationary multi-component value (e.g. angle triple, anis vector).
+        # Return as-is; the caller passes it through set_angles/set_anis which
+        # normalise the length, then broadcasts the resulting scalar or vector.
+        return arr
     if arr.shape[: len(sim_shape)] == tuple(sim_shape):
         return arr
     raise ValueError(
         f"Non-stationary map shape {arr.shape!r} is incompatible with "
-        f"simulation grid shape {tuple(sim_shape)!r}. Pass a scalar for a "
-        f"stationary value or an array whose leading dimensions match the grid."
+        f"simulation grid shape {tuple(sim_shape)!r}. Pass a scalar or "
+        f"1-D vector for a stationary value, or an array whose leading "
+        f"dimensions match the grid."
     )
 
 
@@ -307,6 +315,80 @@ def _build_dag(
     return indegree_d[""], [[i for i, _ in es] for es in out_edges_d]
 
 
+def _transform_lags(lags, M, *arrays):
+    """Apply geometric transform M and deduplicate collapsed lags.
+
+    Parameters
+    ----------
+    lags : numpy.ndarray, shape (k, dim)
+        Integer SG lag offsets (float64).
+    M : numpy.ndarray, shape (dim, dim)
+        Isometrization matrix from :func:`matrix_isometrize`.
+    *arrays : numpy.ndarray
+        Parallel arrays of length k to slice by the same keep_idx.
+
+    Returns
+    -------
+    lags_ti : numpy.ndarray, shape (k', dim)
+        Transformed lags (rounded to nearest integer, deduped).
+    *sliced : numpy.ndarray
+        Input arrays sliced to keep_idx.
+    """
+    lags_ti = np.rint(lags @ M.T)
+    if len(lags_ti):
+        _, keep_idx = np.unique(lags_ti, axis=0, return_index=True)
+        keep_idx = np.sort(keep_idx)
+        if len(keep_idx) < len(lags_ti):
+            lags_ti = lags_ti[keep_idx]
+            arrays = tuple(a[keep_idx] for a in arrays)
+    return (lags_ti,) + arrays
+
+
+def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
+    """Chunked vectorized TI window scan (pure-Python path).
+
+    Parameters
+    ----------
+    lo : numpy.ndarray
+        Lower-left anchor of the search window in TI coordinates.
+    win_shape : tuple of int
+        Shape of the search window.
+    start : int
+        Starting position (flat index into window) for the random scan order.
+    max_scan : int
+        Maximum number of candidates to evaluate.
+    threshold : float
+        Distance threshold for early exit (DS mode). ``<= 0`` → DSBC (no early exit).
+    dist_fn : callable
+        ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
+        anchor coordinates ``y_blk`` of shape ``(b, dim)``.
+
+    Returns
+    -------
+    y : numpy.ndarray, shape (dim,)
+        Coordinate of the best matching TI anchor.
+    """
+    win_size = int(np.prod(win_shape))
+    positions = (start + np.arange(max_scan)) % win_size
+    y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
+
+    if threshold <= 0:
+        return y_all[int(np.argmin(dist_fn(y_all)))]
+
+    best_d, best_y = np.inf, None
+    for b0 in range(0, max_scan, _SCAN_BLOCK):
+        y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
+        d_blk = dist_fn(y_blk)
+        under = d_blk <= threshold
+        if np.any(under):
+            return y_blk[int(np.argmax(under))]
+        k = int(np.argmin(d_blk))
+        if d_blk[k] < best_d:
+            best_d = float(d_blk[k])
+            best_y = y_blk[k]
+    return best_y
+
+
 def ds_simulate(
     training_image,
     sim_shape,
@@ -368,11 +450,6 @@ def ds_simulate(
     """
     ti_data = training_image.data
     ti_shape = np.array(ti_data.shape)
-    # Flat, C-contiguous TI for the gstools_core scan kernel (built once per
-    # simulation, not per node).  ``_use_core()`` may be False, in which case
-    # these are simply unused.
-    ti_flat = np.ascontiguousarray(ti_data, dtype=np.float64).ravel()
-    ti_shape_k = np.asarray(ti_data.shape, dtype=np.int64)
     sim_shape_arr = np.array(sim_shape)
     dim = len(sim_shape)
     sg = np.full(sim_shape, np.nan)
@@ -434,6 +511,8 @@ def ds_simulate(
         # the winning candidate; reconstruct its TI anchor and data event here
         # so the caller's ``adjust_value`` is unchanged.
         if _use_core():
+            ti_flat = np.ascontiguousarray(ti_data, dtype=np.float64).ravel()
+            ti_shape_k = np.asarray(ti_data.shape, dtype=np.int64)
             code, d_max, p = training_image.distance_spec()
             w = compute_node_weights(
                 len(de_sim), ln, training_image.distance_power, cm, cond_weight
@@ -461,12 +540,6 @@ def ds_simulate(
             best_de_ti = ti_data[tuple((y + int_lags).T)]
             return ti_data[tuple(y)], best_de_ti
 
-        # All scan positions in visit order — shape (max_scan,)
-        positions = (start + np.arange(max_scan)) % win_size
-        # Anchor coordinates for each position — shape (max_scan, dim)
-        y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
-
-        # lags are integer-valued float64; cast once, reuse for all candidates
         int_lags = lags.astype(int)  # (k, dim)
 
         def _de_ti(y_rows):
@@ -474,46 +547,12 @@ def ds_simulate(
             coords = y_rows[:, None, :] + int_lags[None, :, :]
             return ti_data[tuple(coords.transpose(2, 0, 1))]
 
-        # DSBC (threshold == 0): no early exit is possible — the global minimum
-        # over the whole scan is required — so evaluate every candidate in a
-        # single vectorized call.  This is the fastest path and stays exact.
-        if threshold <= 0:
-            all_de_ti = _de_ti(y_all)
-            all_dists = training_image.vec_distance(
-                de_sim, all_de_ti, cm, cond_weight, ln
-            )
-            best_k = int(np.argmin(all_dists))
-            return ti_data[tuple(y_all[best_k])], all_de_ti[best_k]
-
-        # DS (threshold > 0): chunked vectorized scan with an early-exit
-        # checkpoint between blocks.  Each block is a full vectorized distance
-        # call (so the per-element cost matches the single-call version); only
-        # the threshold test runs per block.  Blocks advance in scan order, so
-        # the first under-threshold candidate found is the first one globally —
-        # identical to the unchunked argmax(under) result.
-        best_d = np.inf
-        best_y = None
-        best_de = None
-        for b0 in range(0, max_scan, _SCAN_BLOCK):
-            y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
-            de_blk = _de_ti(y_blk)
-            d_blk = training_image.vec_distance(
-                de_sim, de_blk, cm, cond_weight, ln
-            )
-            under = d_blk <= threshold
-            if np.any(under):
-                k = int(np.argmax(under))
-                return ti_data[tuple(y_blk[k])], de_blk[k]
-            # No acceptable match in this block.  Track the running best with a
-            # strict ``<`` test so that, if no candidate ever falls below the
-            # threshold, the returned fallback equals the global argmin with the
-            # same first-occurrence tie-break as the unchunked version.
-            k = int(np.argmin(d_blk))
-            if d_blk[k] < best_d:
-                best_d = float(d_blk[k])
-                best_y = y_blk[k]
-                best_de = de_blk[k]
-        return ti_data[tuple(best_y)], best_de
+        y = _scan_window_py(
+            lo, win_shape, start, max_scan, threshold,
+            lambda y_blk: training_image.vec_distance(de_sim, _de_ti(y_blk), cm, cond_weight, ln),
+        )
+        best_de_ti = _de_ti(y[np.newaxis])[0]
+        return ti_data[tuple(y)], best_de_ti
 
     def _simulate_node(x_i, node_rng, sg_in, informed_in):
         nbrs = _get_neighbors(x_i, informed_in)
@@ -532,14 +571,18 @@ def ds_simulate(
         if rotation_map is not None or anis_map is not None:
             angles_i = set_angles(
                 dim,
-                rotation_map[tuple(x_i)] if rotation_map is not None else 0.0,
+                (rotation_map if rotation_map.ndim == 1 else rotation_map[tuple(x_i)])
+                if rotation_map is not None else 0.0,
             )
             anis_i = set_anis(
                 dim,
-                anis_map[tuple(x_i)] if anis_map is not None else 1.0,
+                (anis_map if anis_map.ndim == 1 else anis_map[tuple(x_i)])
+                if anis_map is not None else 1.0,
             )
             M = matrix_isometrize(dim, angles_i, anis_i)
-            lags_ti = np.rint(lags @ M.T)  # lags are integer-valued (grid offsets)
+            lags_ti, lags, data_event_sim, cond_mask, lag_norms = _transform_lags(
+                lags, M, lags, data_event_sim, cond_mask, lag_norms
+            )
         else:
             lags_ti = lags
 
@@ -674,31 +717,6 @@ def ds_simulate(
     return sg
 
 
-def _build_dag_mv(
-    path,
-    variables,
-    n_k,
-    sim_shape,
-    offset_arr,
-    vmap,
-    max_radius=None,
-):
-    """Node-vertex dependency DAG for node-wise multivariate simulation.
-
-    Thin wrapper around :func:`_build_dag_base`.  Per-variable in-degrees and
-    ``(node, variable)`` out-edges are returned directly from the base builder.
-
-    Returns
-    -------
-    indegree : dict of {str: numpy.ndarray}
-        ``indegree[v][i]`` is node ``i``'s dependency count for variable ``v``.
-    out_edges : list of list of (int, str)
-        ``out_edges[j]`` holds ``(i, v)`` pairs: completing node ``j`` decrements
-        ``indegree[v][i]``.
-    """
-    return _build_dag_base(path, sim_shape, offset_arr, vmap, n_k, max_radius)
-
-
 def ds_simulate_mv(
     training_image,
     sim_shape,
@@ -825,13 +843,6 @@ def ds_simulate_mv(
     # Hoist TI variable arrays once — avoids repeated method-call overhead
     # inside the per-node scan loop; all inner closures read from this dict.
     ti_vars = {v: training_image.variable(v) for v in variables}
-    # Flat, C-contiguous per-variable TIs + i64 shape for the gstools_core
-    # scan kernel (built once; unused when ``_use_core()`` is False).
-    ti_flat_v = {
-        v: np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
-        for v in variables
-    }
-    ti_shape_k = np.asarray(ti_shape, dtype=np.int64)
 
     def _rand_fallback(targets, node_rng):
         # Single random TI cell supplies the whole node-vector (preserves the
@@ -855,6 +866,11 @@ def ds_simulate_mv(
         # ``_dist_block`` does.  ``start`` is drawn above so the RNG stream is
         # backend-independent.  Returns the winning TI cell coordinate ``y``.
         if _use_core():
+            ti_flat_v = {
+                v: np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
+                for v in variables
+            }
+            ti_shape_k = np.asarray(ti_shape, dtype=np.int64)
             active = [v for v in variables if v in int_lags]
             ti_list, lag_list, de_list, w_list = [], [], [], []
             codes, params, var_w = [], [], []
@@ -895,45 +911,35 @@ def ds_simulate_mv(
                 np.unravel_index(int(win_pos), tuple(win_shape))
             )
 
-        positions = (start + np.arange(max_scan)) % win_size
-        y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
+        active_vars = [v for v in variables if v in int_lags]
+        active_w_total = sum(weights[v] for v in active_vars)
+        precomp_w = {
+            v: compute_node_weights(
+                len(de_v[v]), ln_v[v],
+                training_image.distance_power, cm_v[v], cond_weight,
+            )
+            for v in active_vars
+        }
 
         def _dist_block(y_blk):
             d = np.zeros(len(y_blk))
-            active_w = 0.0
-            for v in variables:
-                il = int_lags.get(v)
-                if il is None:
-                    continue
+            for v in active_vars:
+                il = int_lags[v]
                 coords = y_blk[:, None, :] + il[None, :, :]
                 all_de_ti = ti_vars[v][tuple(coords.transpose(2, 0, 1))]
                 d += weights[v] * training_image.vec_distance_var(
-                    v, de_v[v], all_de_ti, cm_v[v], cond_weight, ln_v[v]
+                    v, de_v[v], all_de_ti, cm_v[v], cond_weight, ln_v[v],
+                    weights=precomp_w[v],
                 )
-                active_w += weights[v]
             # Renormalize so the joint distance stays in [0, 1] even when
             # some variables have no data event and are excluded from int_lags.
             # Without this, the threshold fires on a compressed scale and
             # accepts matches that should be rejected.
-            if 0.0 < active_w < 1.0:
-                d /= active_w
+            if 0.0 < active_w_total < 1.0:
+                d /= active_w_total
             return d
 
-        if threshold <= 0:
-            return y_all[int(np.argmin(_dist_block(y_all)))]
-
-        best_d, best_y = np.inf, None
-        for b0 in range(0, max_scan, _SCAN_BLOCK):
-            y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
-            d_blk = _dist_block(y_blk)
-            under = d_blk <= threshold
-            if np.any(under):
-                return y_blk[int(np.argmax(under))]
-            k = int(np.argmin(d_blk))
-            if d_blk[k] < best_d:
-                best_d = float(d_blk[k])
-                best_y = y_blk[k]
-        return best_y
+        return _scan_window_py(lo, win_shape, start, max_scan, threshold, _dist_block)
 
     def _simulate_node_mv(curr_idx, x_i, node_rng):
         x_i_t = tuple(int(c) for c in x_i)
@@ -979,15 +985,21 @@ def ds_simulate_mv(
         if rotation_map is not None or anis_map is not None:
             angles_i = set_angles(
                 dim,
-                rotation_map[tuple(x_i)] if rotation_map is not None else 0.0,
+                (rotation_map if rotation_map.ndim == 1 else rotation_map[tuple(x_i)])
+                if rotation_map is not None else 0.0,
             )
             anis_i = set_anis(
                 dim,
-                anis_map[tuple(x_i)] if anis_map is not None else 1.0,
+                (anis_map if anis_map.ndim == 1 else anis_map[tuple(x_i)])
+                if anis_map is not None else 1.0,
             )
             M = matrix_isometrize(dim, angles_i, anis_i)
-            # lags are integer-valued (grid offsets), so rint is lossless
-            lags_ti_v = {v: np.rint(lags_v[v] @ M.T) for v in variables}
+            lags_ti_v = {}
+            for v in variables:
+                lv_ti, lags_v[v], de_v[v], cm_v[v], ln_v[v] = _transform_lags(
+                    lags_v[v], M, lags_v[v], de_v[v], cm_v[v], ln_v[v]
+                )
+                lags_ti_v[v] = lv_ti
         else:
             lags_ti_v = dict(lags_v)
 
@@ -1071,8 +1083,8 @@ def ds_simulate_mv(
                 if il is not None
                 else np.empty(0)
             )
-            result[v] = training_image.adjust_value_var(
-                v, ti_val, de_v[v], de_ti_v
+            result[v] = training_image.adjust_value(
+                ti_val, de_v[v], de_ti_v, var=v
             )
         return result
 
@@ -1087,8 +1099,8 @@ def ds_simulate_mv(
 
     try:
         if executor is not None:
-            indegree, out_edges = _build_dag_mv(
-                path, variables, n_k, sim_shape, offset_arr, vmap, max_radius
+            indegree, out_edges = _build_dag_base(
+                path, sim_shape, offset_arr, vmap, n_k, max_radius
             )
             # Running ready-queue over nodes: a node is dispatched the instant
             # every variable's neighbourhood has committed (all per-variable
@@ -1225,7 +1237,6 @@ class DirectSampling(Field):
                 f"DirectSampling: boundary must be one of {_VALID_BOUNDARY!r}, "
                 f"got {boundary!r}"
             )
-        DirectSampling._validate_n_neighbors(n_neighbors, ti)  # raises on invalid
         if not (0 < float(scan_fraction) <= 1):
             raise ValueError(
                 f"DirectSampling: scan_fraction must be in (0, 1], "
@@ -1266,14 +1277,9 @@ class DirectSampling(Field):
         self._rotation = None
         self._anis = None
         self.rng = RNG(None if np.isnan(seed) else int(seed))
-        # Mirror post_field's own name-collision guard (base.py) exactly.
-        # Runs after super().__init__() so self.field_names is available —
-        # avoids the hardcoded v != "field" workaround.
         if ti.multivariate:
             for v in ti.variables:
-                if not v.isidentifier() or (
-                    v not in self.field_names and v in dir(self)
-                ):
+                if not v.isidentifier() or v in dir(self):
                     raise ValueError(
                         f"DirectSampling: variable name {v!r} cannot be used as "
                         f"a field name; use a valid Python identifier that does "
@@ -1550,9 +1556,8 @@ class DirectSampling(Field):
             Convention matches :class:`gstools.CovModel` ``anis``.
             ``None`` → isotropic.
         """
-        self._rotation = (
-            None if rotation is None else np.asarray(rotation, dtype=np.float64)
-        )
+        if rotation is not None:
+            self._rotation = np.asarray(rotation, dtype=np.float64)
         if anis is not None:
             anis_arr = np.asarray(anis, dtype=np.float64)
             if np.any(anis_arr <= 0):
@@ -1561,8 +1566,6 @@ class DirectSampling(Field):
                     f"got minimum value {float(anis_arr.min())!r}"
                 )
             self._anis = anis_arr
-        else:
-            self._anis = None
 
     @property
     def ti(self):

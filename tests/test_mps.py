@@ -431,13 +431,6 @@ class TestTrainingImage(unittest.TestCase):
         )
         self.assertGreater(w_c[0], w[0])
 
-    def test_weights_positional_arg_guard(self):
-        # Passing a string as the 3rd positional arg (the old `distance` slot)
-        # must raise TypeError with a helpful message, not silently use "l1".
-        with self.assertRaises(TypeError):
-            TrainingImage(np.zeros((4, 4), dtype=int), True, "variation")
-
-
 class TestDirectSampling(unittest.TestCase):
     def setUp(self):
         # 1-D categorical TI: alternating 0/1, length 20
@@ -738,7 +731,7 @@ class TestMultivariateTrainingImage(unittest.TestCase):
         with self.assertRaises(TypeError):
             uni.variable("a")
 
-    def test_adjust_value_var(self):
+    def test_adjust_value_multivariate(self):
         ti = TrainingImage(
             {"v": np.linspace(0, 100, 16).reshape(4, 4),
              "c": np.zeros((4, 4), dtype=int)},
@@ -747,17 +740,17 @@ class TestMultivariateTrainingImage(unittest.TestCase):
         )
         # variation: Z(y) - mean(de_ti) + mean(de_sim) = 50 - 50 + 20 = 20
         self.assertAlmostEqual(
-            ti.adjust_value_var("v", 50.0, np.array([10.0, 20.0, 30.0]),
-                                np.array([40.0, 50.0, 60.0])),
+            ti.adjust_value(50.0, np.array([10.0, 20.0, 30.0]),
+                            np.array([40.0, 50.0, 60.0]), var="v"),
             20.0,
         )
         # categorical variable: returned unchanged
         self.assertEqual(
-            ti.adjust_value_var("c", 1.0, np.array([0, 1]), np.array([1, 0])), 1.0
+            ti.adjust_value(1.0, np.array([0, 1]), np.array([1, 0]), var="c"), 1.0
         )
         # empty data event: returned unchanged even for variation
         self.assertAlmostEqual(
-            ti.adjust_value_var("v", 7.0, np.array([]), np.array([])), 7.0
+            ti.adjust_value(7.0, np.array([]), np.array([]), var="v"), 7.0
         )
 
     def test_weights_unknown_variable(self):
@@ -1236,6 +1229,59 @@ class TestNonstationarity(unittest.TestCase):
         self.assertTrue(np.all(np.isin(result_rot["a"], [0, 1, 2])))
         self.assertTrue(np.all(np.isfinite(result_rot["b"])))
         self.assertFalse(np.array_equal(result_plain["a"], result_rot["a"]))
+
+
+class TestBackendEquivalence(unittest.TestCase):
+    """Rust kernel and pure-Python path must produce bit-identical output."""
+
+    def _run_both(self, ds_factory, pos, seed):
+        import gstools.config as cfg
+        orig = cfg.USE_GSTOOLS_CORE
+        try:
+            cfg.USE_GSTOOLS_CORE = True
+            result_rust = ds_factory()(pos, seed=seed)
+            cfg.USE_GSTOOLS_CORE = False
+            result_py = ds_factory()(pos, seed=seed)
+        finally:
+            cfg.USE_GSTOOLS_CORE = orig
+        return result_rust, result_py
+
+    def test_univariate_equivalence(self):
+        rng = np.random.default_rng(0)
+        ti = TrainingImage(rng.integers(0, 3, (20, 20)))
+        pos = [np.arange(8, dtype=float)] * 2
+        r, p = self._run_both(
+            lambda: DirectSampling(ti, n_neighbors=8, scan_fraction=0.5),
+            pos, seed=42
+        )
+        np.testing.assert_array_equal(r, p)
+
+    def test_multivariate_equivalence(self):
+        rng = np.random.default_rng(1)
+        ti = TrainingImage({
+            "a": rng.integers(0, 3, (20, 20)),
+            "b": rng.integers(0, 2, (20, 20)),
+        })
+        pos = [np.arange(8, dtype=float)] * 2
+        r, p = self._run_both(
+            lambda: DirectSampling(ti, n_neighbors=4, scan_fraction=0.5),
+            pos, seed=42
+        )
+        np.testing.assert_array_equal(r["a"], p["a"])
+        np.testing.assert_array_equal(r["b"], p["b"])
+
+    def test_nonstationary_equivalence(self):
+        rng = np.random.default_rng(2)
+        ti = TrainingImage(rng.integers(0, 3, (20, 20)))
+        pos = [np.arange(8, dtype=float)] * 2
+
+        def factory():
+            ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.5)
+            ds.set_nonstationary(rotation=np.pi / 4)
+            return ds
+
+        r, p = self._run_both(factory, pos, seed=7)
+        np.testing.assert_array_equal(r, p)
 
 
 if __name__ == "__main__":
