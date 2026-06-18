@@ -13,6 +13,7 @@ Multiple Point Statistics
 """
 
 from gstools.mps.direct_sampling import DirectSampling
+from gstools.mps.model import MPSModel
 from gstools.mps.training_image import TrainingImage
 
-__all__ = ["DirectSampling", "TrainingImage"]
+__all__ = ["DirectSampling", "MPSModel", "TrainingImage"]

@@ -17,6 +17,7 @@ import numpy as np
 from gstools import config
 from gstools.field.base import Field
 from gstools.mps.distance import compute_node_weights
+from gstools.mps.training_image import TrainingImage
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
 from gstools.tools.geometric import matrix_isometrize, set_angles, set_anis
@@ -45,6 +46,9 @@ def _use_core():
 
 
 _VALID_BOUNDARY = ("strict", "partial")
+
+# Sentinel variable name used when wrapping a univariate TI for the MV engine.
+_MV_VAR = "_v"
 
 # Shared read-only var-weights for the univariate scan kernel (one variable).
 _UNIT_VAR_WEIGHTS = np.array([1.0])
@@ -395,6 +399,146 @@ def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
     return best_y
 
 
+def _window_bounds(lags_ti, ti_shape, boundary):
+    """Compute the TI search window for a set of lag vectors.
+
+    h=0 rows (collocated constraints) do not constrain the window — they map
+    anchor ``y`` to ``y`` itself so every window position is valid for them.
+
+    Parameters
+    ----------
+    lags_ti : numpy.ndarray, shape (k, dim)
+        Lag vectors in TI frame (integer-valued float64).  May include h=0 rows.
+    ti_shape : numpy.ndarray, shape (dim,)
+        TI shape as an integer array.
+    boundary : str
+        ``"strict"`` or ``"partial"``.
+
+    Returns
+    -------
+    win_lo : numpy.ndarray, shape (dim,), dtype int
+    win_hi : numpy.ndarray, shape (dim,), dtype int
+    valid_count : int
+        Number of lags to use (``lags_ti[:valid_count]``).  ``-1`` signals that
+        no subset of the data event fits inside the TI; the caller should draw a
+        random TI value instead of scanning.
+    """
+    ti_shape_arr = np.asarray(ti_shape, dtype=int)
+    dim = len(ti_shape_arr)
+    nz = np.flatnonzero(np.any(lags_ti != 0, axis=1))
+    if not len(nz):
+        return np.zeros(dim, dtype=int), ti_shape_arr - 1, len(lags_ti)
+
+    lags_nz = lags_ti[nz]
+    if boundary == "strict":
+        win_lo = np.maximum(0, np.ceil(-lags_nz.min(axis=0))).astype(int)
+        win_hi = np.minimum(
+            ti_shape_arr - 1,
+            np.floor(ti_shape_arr - 1 - lags_nz.max(axis=0)),
+        ).astype(int)
+        if np.all(win_lo <= win_hi):
+            return win_lo, win_hi, len(lags_ti)
+
+    keep = len(lags_ti)
+    while keep > 0:
+        lv_k = lags_ti[:keep]
+        nzk = lv_k[np.any(lv_k != 0, axis=1)]
+        if not len(nzk):
+            return np.zeros(dim, dtype=int), ti_shape_arr - 1, keep
+        sw_lo = np.maximum(0, np.ceil(-nzk.min(axis=0))).astype(int)
+        sw_hi = np.minimum(
+            ti_shape_arr - 1,
+            np.floor(ti_shape_arr - 1 - nzk.max(axis=0)),
+        ).astype(int)
+        if np.all(sw_lo <= sw_hi):
+            return sw_lo, sw_hi, keep
+        keep -= 1
+    return None, None, -1
+
+
+def _marshal_ffi(ti_list, ti_shape_k, lag_list, de_list, w_list, var_w,
+                 codes, params, lo, win_shape, threshold, max_scan, start):
+    """Call the Rust MPS scan kernel and return the winning TI anchor ``y``.
+
+    All list/array arguments must be pre-assembled by the caller with the
+    correct dtypes and contiguity.  ``start`` must be drawn by the caller
+    before this call so that both backends consume the same RNG state.
+
+    Returns
+    -------
+    y : numpy.ndarray, shape (dim,)
+        Coordinate of the best matching TI anchor.
+    """
+    win_pos, _ = _gstools_core.mps_scan_ti(
+        ti_list,
+        ti_shape_k,
+        lag_list,
+        de_list,
+        w_list,
+        np.asarray(var_w, dtype=np.float64),
+        codes,
+        np.asarray(params, dtype=np.float64),
+        np.ascontiguousarray(lo, dtype=np.int64),
+        np.ascontiguousarray(win_shape, dtype=np.int64),
+        float(threshold),
+        int(max_scan),
+        int(start),
+        None,
+    )
+    return np.asarray(lo) + np.array(np.unravel_index(int(win_pos), tuple(win_shape)))
+
+
+def _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, dist_fn):
+    """Dispatch the TI window scan to the Rust or pure-Python kernel.
+
+    ``start`` must be drawn by the caller (outside this function) so that both
+    backends consume the same RNG state regardless of which branch is taken.
+
+    Parameters
+    ----------
+    lo : array-like
+        Lower-left anchor of the search window in TI coordinates.
+    win_shape : tuple of int
+        Shape of the search window.
+    start : int
+        Starting flat-window position, drawn from the caller's per-node RNG.
+    max_scan : int
+        Maximum candidates to evaluate.
+    threshold : float
+        Early-exit distance threshold.  ``<= 0`` → DSBC (no early exit).
+    ffi_args : tuple or None
+        Pre-assembled args for :func:`_marshal_ffi`:
+        ``(ti_list, ti_shape_k, lag_list, de_list, w_list, var_w, codes, params)``.
+        Pass ``None`` to force the pure-Python path.
+    dist_fn : callable
+        ``dist_fn(y_blk) → 1-D distance array`` for the pure-Python path.
+
+    Returns
+    -------
+    y : numpy.ndarray, shape (dim,)
+        Coordinate of the best matching TI anchor.
+    """
+    if ffi_args is not None and _use_core():
+        return _marshal_ffi(*ffi_args, lo, win_shape, threshold, max_scan, start)
+    return _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn)
+
+
+def _univar_as_mv_ti(ti):
+    """Wrap a univariate TrainingImage as a single-variable multivariate TI.
+
+    The resulting TI is bit-identical to a hand-crafted single-variable MV TI
+    using the same data and distance parameters.  Used by ``ds_simulate`` and
+    ``DirectSampling.__call__`` to route univariate work through the unified
+    ``ds_simulate_mv`` engine.
+    """
+    return TrainingImage(
+        {_MV_VAR: ti.data},
+        categorical={_MV_VAR: ti.categorical},
+        distance={_MV_VAR: ti.distance_type},
+        distance_power=ti.distance_power,
+    )
+
+
 def _make_progress(progress, total, desc):
     """Build ``(update, close)`` callbacks for an optional progress display.
 
@@ -519,284 +663,99 @@ def ds_simulate(
     -------
     numpy.ndarray
     """
-    ti_data = training_image.data
-    ti_shape = np.array(ti_data.shape)
-    sim_shape_arr = np.array(sim_shape)
-    dim = len(sim_shape)
-    sg = np.full(sim_shape, np.nan)
-    is_cond = np.zeros(sim_shape, dtype=bool)
-    informed = np.zeros(sim_shape, dtype=bool)
-
-    if conditions:
-        for idx, val in conditions.items():
-            sg[idx] = val
-            is_cond[idx] = True
-            informed[idx] = True
-
-    n_threads = (
-        num_threads if num_threads is not None else (config.NUM_THREADS or 1)
+    mv_ti = _univar_as_mv_ti(training_image)
+    mv_cond = (
+        {idx: {_MV_VAR: val} for idx, val in conditions.items()}
+        if conditions
+        else None
     )
-    executor = (
-        ThreadPoolExecutor(max_workers=n_threads) if n_threads > 1 else None
+    result = ds_simulate_mv(
+        mv_ti,
+        sim_shape,
+        n_neighbors,
+        threshold,
+        scan_fraction,
+        rng,
+        conditions=mv_cond,
+        cond_weight=cond_weight,
+        boundary=boundary,
+        max_radius=max_radius,
+        num_threads=num_threads,
+        rotation_map=rotation_map,
+        anis_map=anis_map,
+        progress=progress,
     )
-    max_off_int = int(np.ceil(max_radius)) if max_radius is not None else None
-    offset_arr = _precompute_offsets(sim_shape, max_off_int)
+    return result[_MV_VAR]
 
-    path = np.argwhere(np.isnan(sg))
-    path = path[rng.permutation(len(path))]
-    node_seeds = rng.randint(0, 2**32, size=len(path), dtype=np.int64)
 
-    path_flat = np.ravel_multi_index(path.T, sim_shape)
-    path_pos_map = np.full(int(np.prod(sim_shape)), -1, dtype=np.intp)
-    path_pos_map[path_flat] = np.arange(len(path_flat))
 
-    def _rand_ti(node_rng):
-        return ti_data[tuple(node_rng.randint(0, s) for s in ti_shape)]
 
-    def _get_neighbors(x_i, informed_in):
-        curr_idx = path_pos_map[
-            int(np.ravel_multi_index(tuple(x_i), sim_shape))
-        ]
-        coords, _ = _select_neighbors(
-            x_i,
-            offset_arr,
-            sim_shape_arr,
-            sim_shape,
-            path_pos_map,
-            curr_idx,
-            informed_in,
-            max_radius,
-            n_neighbors,
+def _run_path(
+    path,
+    node_seeds,
+    simulate_fn,
+    write_fn,
+    update_fn,
+    executor,
+    offset_arr,
+    vmap,
+    n_k,
+    sim_shape,
+    max_radius,
+):
+    """Dispatch the node simulation path: serial or parallel DAG.
+
+    simulate_fn(i, x_i, node_rng) → result dict
+    write_fn(node_tuple, result) → None
+    update_fn() → None
+
+    Extracted so a future syn-processing path strategy (which re-opens
+    simulated nodes) can replace this function without touching the scan
+    kernel.  Note: syn-processing is incompatible with DAG parallelism;
+    replace the whole _run_path, not just the serial branch.
+    """
+    variables = list(vmap)
+
+    if executor is not None:
+        indegree, out_edges = _build_dag_base(
+            path, sim_shape, offset_arr, vmap, n_k, max_radius
         )
-        return coords
+        remaining = {v: indegree[v].copy() for v in variables}
+        submitted = np.zeros(len(path), dtype=bool)
+        done_q = queue.Queue()
+        counts = {"submitted": 0, "done": 0}
 
-    def _scan_ti(lo, win_shape, lags, de_sim, cm, ln, node_rng):
-        # Precondition: win_size >= 1 (callers guarantee win_lo <= win_hi on all axes).
-        # Also captures scan_fraction, ti_data, threshold, cond_weight from outer scope.
-        win_size = int(np.prod(win_shape))
-        # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
-        # the valid search window so we never wrap around and re-scan anchors.
-        max_scan = max(1, min(win_size, int(scan_fraction * ti_data.size)))
-        start = int(node_rng.randint(0, win_size))
+        def _ready(i):
+            return all(remaining[v][i] == 0 for v in variables)
 
-        # Rust scan: ``start`` is drawn above so the RNG stream is identical to
-        # the pure-Python path.  The kernel returns the flat window position of
-        # the winning candidate; reconstruct its TI anchor and data event here
-        # so the caller's ``adjust_value`` is unchanged.
-        if _use_core():
-            ti_flat = np.ascontiguousarray(ti_data, dtype=np.float64).ravel()
-            ti_shape_k = np.asarray(ti_data.shape, dtype=np.int64)
-            code, d_max, p = training_image.distance_spec()
-            w = compute_node_weights(
-                len(de_sim), ln, training_image.distance_power, cm, cond_weight
-            )
-            int_lags = np.ascontiguousarray(lags, dtype=np.int64)
-            win_pos, _ = _gstools_core.mps_scan_ti(
-                [ti_flat],
-                ti_shape_k,
-                [int_lags],
-                [np.ascontiguousarray(de_sim, dtype=np.float64)],
-                [w],
-                _UNIT_VAR_WEIGHTS,
-                [code],
-                np.array([[d_max, p]], dtype=np.float64),
-                np.ascontiguousarray(lo, dtype=np.int64),
-                np.ascontiguousarray(win_shape, dtype=np.int64),
-                float(threshold),
-                max_scan,
-                start,
-                None,
-            )
-            y = np.asarray(lo) + np.array(
-                np.unravel_index(int(win_pos), tuple(win_shape))
-            )
-            best_de_ti = ti_data[tuple((y + int_lags).T)]
-            return ti_data[tuple(y)], best_de_ti
+        def _run(i):
+            return i, simulate_fn(i, path[i], RNG(int(node_seeds[i])).random)
 
-        int_lags = lags.astype(int)  # (k, dim)
+        def _submit(i):
+            if submitted[i]:
+                return
+            submitted[i] = True
+            executor.submit(_run, i).add_done_callback(done_q.put)
+            counts["submitted"] += 1
 
-        def _de_ti(y_rows):
-            # TI data events for the given anchor rows — shape (len(y_rows), k)
-            coords = y_rows[:, None, :] + int_lags[None, :, :]
-            return ti_data[tuple(coords.transpose(2, 0, 1))]
+        for i in range(len(path)):
+            if _ready(i):
+                _submit(i)
 
-        y = _scan_window_py(
-            lo, win_shape, start, max_scan, threshold,
-            lambda y_blk: training_image.vec_distance(de_sim, _de_ti(y_blk), cm, cond_weight, ln),
-        )
-        best_de_ti = _de_ti(y[np.newaxis])[0]
-        return ti_data[tuple(y)], best_de_ti
-
-    def _simulate_node(x_i, node_rng, sg_in, informed_in):
-        nbrs = _get_neighbors(x_i, informed_in)
-        if len(nbrs) == 0:
-            return _rand_ti(node_rng)
-
-        lags = (nbrs - x_i).astype(np.float64)  # (k, dim)
-        data_event_sim = sg_in[tuple(nbrs.T)]  # (k,)
-        cond_mask = is_cond[tuple(nbrs.T)]  # (k,)
-        lag_norms = np.linalg.norm(lags, axis=1)  # (k,)
-
-        # Geometric transform: express SG lags in the TI's own frame.
-        # matrix_isometrize = derotate + isotropify (Mariethoz2010 §6.2).
-        # lags_ti feeds TI-side operations only; original lags/lag_norms/
-        # data_event_sim remain authoritative for all SG-side operations.
-        if rotation_map is not None or anis_map is not None:
-            angles_i = set_angles(
-                dim,
-                (rotation_map if rotation_map.ndim == 1 else rotation_map[tuple(x_i)])
-                if rotation_map is not None else 0.0,
-            )
-            anis_i = set_anis(
-                dim,
-                (anis_map if anis_map.ndim == 1 else anis_map[tuple(x_i)])
-                if anis_map is not None else 1.0,
-            )
-            M = matrix_isometrize(dim, angles_i, anis_i)
-            lags_ti, lags, data_event_sim, cond_mask, lag_norms = _transform_lags(
-                lags, M, lags, data_event_sim, cond_mask, lag_norms
-            )
-        else:
-            lags_ti = lags
-
-        if boundary == "strict":
-            # Search window Y(L_i) — Juda2022 Eq. 5, Mariethoz2010 §3 ¶19.
-            # Strict keeps all n neighbours when the full data event fits in the
-            # TI; if it does not (TI smaller than the data-event extent), it
-            # auto-falls back to partial reduction (checklist §2, Me13 Known
-            # Issue 10) rather than discarding the node with a random draw.
-            win_lo = np.maximum(0, np.ceil(-lags_ti.min(axis=0))).astype(int)
-            win_hi = np.minimum(
-                ti_shape - 1, np.floor(ti_shape - 1 - lags_ti.max(axis=0))
-            ).astype(int)
-            if np.all(win_lo <= win_hi):
-                best_v, best_de_ti = _scan_ti(
-                    win_lo,
-                    tuple(win_hi - win_lo + 1),
-                    lags_ti,
-                    data_event_sim,
-                    cond_mask,
-                    lag_norms,
-                    node_rng,
-                )
-                return training_image.adjust_value(
-                    best_v, data_event_sim, best_de_ti
-                )
-            # else: fall through to partial reduction below.
-
-        # "partial" mode (or strict auto-fallback): Mariethoz2010 §6.2 global
-        # template reduction.  Lags are distance-sorted (closest first) because
-        # offset_arr is.  Drop farthest neighbours one at a time until the
-        # bounding box of the remaining data event fits inside the TI, per the
-        # paper's "ignore until it becomes possible to scan" directive (§6.2).
-        # Drop-ranking uses original lag order (SG geometry); window check uses
-        # lags_ti (TI frame), so both sides stay self-consistent.
-        valid_count = len(lags)
-        while valid_count > 0:
-            lags_ti_p = lags_ti[:valid_count]
-            sw_lo = np.maximum(0, np.ceil(-lags_ti_p.min(axis=0))).astype(int)
-            sw_hi = np.minimum(
-                ti_shape - 1, np.floor(ti_shape - 1 - lags_ti_p.max(axis=0))
-            ).astype(int)
-            if np.all(sw_lo <= sw_hi):
-                break
-            valid_count -= 1
-        else:
-            # No subset of the data event fits inside the TI (the closest
-            # neighbour's lag already exceeds the TI in some dimension).
-            return _rand_ti(node_rng)
-        best_v, best_de_ti = _scan_ti(
-            sw_lo,
-            tuple(sw_hi - sw_lo + 1),
-            lags_ti[:valid_count],
-            data_event_sim[:valid_count],
-            cond_mask[:valid_count],
-            lag_norms[:valid_count],
-            node_rng,
-        )
-        return training_image.adjust_value(
-            best_v, data_event_sim[:valid_count], best_de_ti
-        )
-
-    update_progress, close_progress = _make_progress(progress, len(path), "DS")
-
-    try:
-        if executor is not None:
-            indegree, out_edges = _build_dag(
-                path,
-                n_neighbors,
-                sim_shape,
-                offset_arr,
-                path_pos_map,
-                max_radius,
-            )
-            # Running ready-queue: a node is dispatched the instant its last
-            # dependency completes (no per-wave barrier).  Workers read the
-            # live sg / informed arrays; this is safe because (1) a node is
-            # only submitted once all its dependencies are written, so the
-            # values it reads are final, and (2) all shared-state mutation
-            # (sg, informed, in-degree, submission) happens on this main
-            # thread — workers only read.  Each numpy access holds the GIL for
-            # its duration, so element reads never tear against the writes.
-            # The result of every node depends only on its seed and its
-            # (final) neighbour values, so the output is independent of
-            # completion order and stays identical to the serial run.
-            done_q = queue.Queue()
-            counts = {"submitted": 0, "done": 0}
-
-            def _run(i):
-                return i, _simulate_node(
-                    path[i],
-                    RNG(int(node_seeds[i])).random,
-                    sg,
-                    informed,
-                )
-
-            def _submit(i):
-                executor.submit(_run, i).add_done_callback(done_q.put)
-                counts["submitted"] += 1
-
-            for i in range(len(path)):
-                if indegree[i] == 0:
-                    _submit(i)
-
-            while counts["done"] < counts["submitted"]:
-                i, val = done_q.get().result()
-                counts["done"] += 1
-                x_i_t = tuple(path[i])
-                if np.isnan(val):
-                    raise ValueError(
-                        f"Simulation produced NaN at {path[i]}. Check TI data."
-                    )
-                sg[x_i_t] = val
-                informed[x_i_t] = True
-                update_progress()
-                for j in out_edges[i]:
-                    indegree[j] -= 1
-                    if indegree[j] == 0:
-                        _submit(j)
-        else:
-            for i, x_i in enumerate(path):
-                x_i_t = tuple(x_i)
-                val = _simulate_node(
-                    x_i,
-                    RNG(int(node_seeds[i])).random,
-                    sg,
-                    informed,
-                )
-                if np.isnan(val):
-                    raise ValueError(
-                        f"Simulation produced NaN at {x_i}. Check TI data."
-                    )
-                sg[x_i_t] = val
-                informed[x_i_t] = True
-                update_progress()
-    finally:
-        close_progress()
-        if executor is not None:
-            executor.shutdown(wait=True)
-
-    return sg
+        while counts["done"] < counts["submitted"]:
+            i, result = done_q.get().result()
+            counts["done"] += 1
+            write_fn(tuple(int(c) for c in path[i]), result)
+            update_fn()
+            for j, v in out_edges[i]:
+                remaining[v][j] -= 1
+                if _ready(j):
+                    _submit(j)
+    else:
+        for i in range(len(path)):
+            result = simulate_fn(i, path[i], RNG(int(node_seeds[i])).random)
+            write_fn(tuple(int(c) for c in path[i]), result)
+            update_fn()
 
 
 def ds_simulate_mv(
@@ -950,60 +909,14 @@ def ds_simulate_mv(
         # the valid search window so we never wrap around and re-scan anchors.
         ti_size = int(np.prod(ti_shape))
         max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
+        # ``start`` is drawn before the backend dispatch so both paths consume
+        # the same RNG state (RNG invariant: never move below the ffi_args block).
         start = int(node_rng.randint(0, win_size))
-
-        # Rust joint scan: only active variables (those present in int_lags)
-        # are passed; the kernel renormalises by their weight sum exactly as
-        # ``_dist_block`` does.  ``start`` is drawn above so the RNG stream is
-        # backend-independent.  Returns the winning TI cell coordinate ``y``.
-        if _use_core():
-            ti_flat_v = {
-                v: np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
-                for v in variables
-            }
-            ti_shape_k = np.asarray(ti_shape, dtype=np.int64)
-            active = [v for v in variables if v in int_lags]
-            ti_list, lag_list, de_list, w_list = [], [], [], []
-            codes, params, var_w = [], [], []
-            for v in active:
-                code, d_max, p = training_image.distance_spec_var(v)
-                ti_list.append(ti_flat_v[v])
-                lag_list.append(np.ascontiguousarray(int_lags[v], dtype=np.int64))
-                de_list.append(np.ascontiguousarray(de_v[v], dtype=np.float64))
-                w_list.append(
-                    compute_node_weights(
-                        len(de_v[v]),
-                        ln_v[v],
-                        training_image.distance_power,
-                        cm_v[v],
-                        cond_weight,
-                    )
-                )
-                codes.append(code)
-                params.append([d_max, p])
-                var_w.append(weights[v])
-            win_pos, _ = _gstools_core.mps_scan_ti(
-                ti_list,
-                ti_shape_k,
-                lag_list,
-                de_list,
-                w_list,
-                np.asarray(var_w, dtype=np.float64),
-                codes,
-                np.asarray(params, dtype=np.float64),
-                np.ascontiguousarray(lo, dtype=np.int64),
-                np.ascontiguousarray(win_shape, dtype=np.int64),
-                float(threshold),
-                max_scan,
-                start,
-                None,
-            )
-            return np.asarray(lo) + np.array(
-                np.unravel_index(int(win_pos), tuple(win_shape))
-            )
 
         active_vars = [v for v in variables if v in int_lags]
         active_w_total = sum(weights[v] for v in active_vars)
+        # Compute node weights once; reused by both the Rust ffi_args and the
+        # pure-Python _dist_block to avoid duplicate work.
         precomp_w = {
             v: compute_node_weights(
                 len(de_v[v]), ln_v[v],
@@ -1011,6 +924,30 @@ def ds_simulate_mv(
             )
             for v in active_vars
         }
+
+        # Rust joint scan: only active variables (those present in int_lags)
+        # are passed; the kernel renormalises by their weight sum exactly as
+        # ``_dist_block`` does.  ``start`` is drawn above so the RNG stream is
+        # backend-independent.  Returns the winning TI cell coordinate ``y``.
+        ffi_args = None
+        if _use_core():
+            ti_shape_k = np.asarray(ti_shape, dtype=np.int64)
+            ti_list, lag_list, de_list, w_list = [], [], [], []
+            codes, params, var_w = [], [], []
+            for v in active_vars:
+                code, d_max, p = training_image.distance_spec_var(v)
+                ti_list.append(
+                    np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
+                )
+                lag_list.append(np.ascontiguousarray(int_lags[v], dtype=np.int64))
+                de_list.append(np.ascontiguousarray(de_v[v], dtype=np.float64))
+                w_list.append(precomp_w[v])
+                codes.append(code)
+                params.append([d_max, p])
+                var_w.append(weights[v])
+            ffi_args = (
+                ti_list, ti_shape_k, lag_list, de_list, w_list, var_w, codes, params,
+            )
 
         def _dist_block(y_blk):
             d = np.zeros(len(y_blk))
@@ -1030,7 +967,7 @@ def ds_simulate_mv(
                 d /= active_w_total
             return d
 
-        return _scan_window_py(lo, win_shape, start, max_scan, threshold, _dist_block)
+        return _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, _dist_block)
 
     def _simulate_node_mv(curr_idx, x_i, node_rng):
         x_i_t = tuple(int(c) for c in x_i)
@@ -1097,53 +1034,24 @@ def ds_simulate_mv(
         if all(len(lags_v[v]) == 0 for v in variables):
             return _rand_fallback(targets, node_rng)
 
-        # Per-variable search window, intersected.  h=0 lags are excluded — they
-        # map to y itself and never constrain the window.
+        # Per-variable search window computed via _window_bounds, then intersected.
+        # h=0 lags are excluded inside _window_bounds — they map to y itself and
+        # never constrain the window.
         win_lo = np.zeros(dim, dtype=int)
         win_hi = ti_shape - 1
         for var in variables:
             lv_ti = lags_ti_v[var]
-            # h=0 rows (collocated, or SG lag that rounded to 0 in TI space)
-            # do not constrain the window.
-            nz = np.flatnonzero(np.any(lv_ti != 0, axis=1))
-            if not len(nz):
-                continue
-            # Strict keeps all neighbours when the full event fits; otherwise it
-            # auto-falls back to partial reduction for this variable (checklist
-            # §2, Me13 Known Issue 10) rather than aborting the whole node.
-            reduced = False
-            if boundary == "strict":
-                lv_nz = lv_ti[nz]
-                lo = np.maximum(0, np.ceil(-lv_nz.min(axis=0))).astype(int)
-                hi = np.minimum(
-                    ti_shape - 1, np.floor(ti_shape - 1 - lv_nz.max(axis=0))
-                ).astype(int)
-                reduced = bool(np.any(lo > hi))
-            if boundary == "partial" or reduced:  # drop farthest until TI fits
-                keep = len(lv_ti)
-                while keep > 0:
-                    lv_k = lv_ti[:keep]
-                    nzk = lv_k[np.any(lv_k != 0, axis=1)]
-                    if not len(nzk):
-                        lo = np.zeros(dim, dtype=int)
-                        hi = ti_shape - 1
-                        break
-                    lo = np.maximum(0, np.ceil(-nzk.min(axis=0))).astype(int)
-                    hi = np.minimum(
-                        ti_shape - 1, np.floor(ti_shape - 1 - nzk.max(axis=0))
-                    ).astype(int)
-                    if np.all(lo <= hi):
-                        break
-                    keep -= 1
-                else:
-                    return _rand_fallback(targets, node_rng)
+            lo, hi, valid_count = _window_bounds(lv_ti, ti_shape, boundary)
+            if valid_count == -1:
+                return _rand_fallback(targets, node_rng)
+            if valid_count < len(lv_ti):
                 # Truncate TI-frame and original arrays to the same keep count.
                 # lags_ti_v uses a separate dict so this does not affect lags_v.
-                lags_ti_v[var] = lv_ti[:keep]
-                lags_v[var] = lags_v[var][:keep]
-                de_v[var] = de_v[var][:keep]
-                cm_v[var] = cm_v[var][:keep]
-                ln_v[var] = ln_v[var][:keep]
+                lags_ti_v[var] = lv_ti[:valid_count]
+                lags_v[var] = lags_v[var][:valid_count]
+                de_v[var] = de_v[var][:valid_count]
+                cm_v[var] = cm_v[var][:valid_count]
+                ln_v[var] = ln_v[var][:valid_count]
             win_lo = np.maximum(win_lo, lo)
             win_hi = np.minimum(win_hi, hi)
 
@@ -1194,57 +1102,19 @@ def ds_simulate_mv(
     update_progress, close_progress = _make_progress(progress, len(path), "DS")
 
     try:
-        if executor is not None:
-            indegree, out_edges = _build_dag_base(
-                path, sim_shape, offset_arr, vmap, n_k, max_radius
-            )
-            # Running ready-queue over nodes: a node is dispatched the instant
-            # every variable's neighbourhood has committed (all per-variable
-            # in-degrees zero).  Workers only read the live sg / informed dicts;
-            # all mutation happens on this main thread.  A node's whole vector
-            # depends only on its seed and its (final) neighbour vectors, so the
-            # output is identical to the serial run for the same master seed,
-            # regardless of completion order.
-            remaining = {v: indegree[v].copy() for v in variables}
-            submitted = np.zeros(len(path), dtype=bool)
-            done_q = queue.Queue()
-            counts = {"submitted": 0, "done": 0}
-
-            def _ready(i):
-                return all(remaining[v][i] == 0 for v in variables)
-
-            def _run(i):
-                return i, _simulate_node_mv(
-                    i, path[i], RNG(int(node_seeds[i])).random
-                )
-
-            def _submit(i):
-                if submitted[i]:
-                    return
-                submitted[i] = True
-                executor.submit(_run, i).add_done_callback(done_q.put)
-                counts["submitted"] += 1
-
-            for i in range(len(path)):
-                if _ready(i):
-                    _submit(i)
-
-            while counts["done"] < counts["submitted"]:
-                i, result = done_q.get().result()
-                counts["done"] += 1
-                _write_result(tuple(int(c) for c in path[i]), result)
-                update_progress()
-                for j, v in out_edges[i]:
-                    remaining[v][j] -= 1
-                    if _ready(j):
-                        _submit(j)
-        else:
-            for i in range(len(path)):
-                result = _simulate_node_mv(
-                    i, path[i], RNG(int(node_seeds[i])).random
-                )
-                _write_result(tuple(int(c) for c in path[i]), result)
-                update_progress()
+        _run_path(
+            path,
+            node_seeds,
+            lambda i, x_i, rng: _simulate_node_mv(i, x_i, rng),
+            _write_result,
+            update_progress,
+            executor,
+            offset_arr,
+            vmap,
+            n_k,
+            sim_shape,
+            max_radius,
+        )
     finally:
         close_progress()
         if executor is not None:
@@ -1322,52 +1192,51 @@ class DirectSampling(Field):
 
     def __init__(
         self,
-        ti,
-        n_neighbors=32,
-        scan_fraction=1,
-        threshold=0.0,
-        cond_weight=1.0,
-        boundary="strict",
-        max_radius=None,
-        num_threads=None,
+        model_or_ti,
         seed=np.nan,
+        **back_compat_kwargs,
     ):
-        if boundary not in _VALID_BOUNDARY:
-            raise ValueError(
-                f"DirectSampling: boundary must be one of {_VALID_BOUNDARY!r}, "
-                f"got {boundary!r}"
-            )
-        if not (0 < float(scan_fraction) <= 1):
-            raise ValueError(
-                f"DirectSampling: scan_fraction must be in (0, 1], "
-                f"got {scan_fraction!r}"
-            )
-        if float(threshold) < 0:
-            raise ValueError(
-                f"DirectSampling: threshold must be >= 0, got {threshold!r}"
-            )
-        if float(threshold) > 1.0:
-            import warnings
+        from gstools.mps.model import MPSModel as _MPSModel
 
-            warnings.warn(
-                "threshold > 1.0 guarantees the first candidate is always accepted.",
-                stacklevel=2,
-            )
-        if max_radius is not None and float(max_radius) <= 0:
-            raise ValueError(
-                f"DirectSampling: max_radius must be a positive float, "
-                f"got {max_radius!r}"
-            )
-        super().__init__(model=None, dim=ti.ndim, value_type="scalar")
-        self._ti = ti
-        self._n_neighbors = DirectSampling._validate_n_neighbors(n_neighbors, ti)
-        self._scan_fraction = float(scan_fraction)
-        self._threshold = float(threshold)
-        self._cond_weight = float(cond_weight)
-        self._boundary = boundary
-        self._max_radius = (
-            float(max_radius) if max_radius is not None else None
-        )
+        num_threads = None
+
+        if isinstance(model_or_ti, _MPSModel):
+            if back_compat_kwargs:
+                raise TypeError(
+                    f"DirectSampling: keyword arguments are not accepted when "
+                    f"passing an MPSModel; got: {list(back_compat_kwargs)}"
+                )
+            model = model_or_ti
+        else:
+            algo_kw = {
+                k: back_compat_kwargs.pop(k)
+                for k in (
+                    "n_neighbors",
+                    "scan_fraction",
+                    "threshold",
+                    "cond_weight",
+                    "boundary",
+                    "max_radius",
+                )
+                if k in back_compat_kwargs
+            }
+            num_threads = back_compat_kwargs.pop("num_threads", None)
+            if back_compat_kwargs:
+                raise TypeError(
+                    f"DirectSampling: unexpected keyword arguments: "
+                    f"{list(back_compat_kwargs)}"
+                )
+            model = _MPSModel(model_or_ti, **algo_kw)
+
+        self._model = model
+        super().__init__(model=None, dim=model.ti.ndim, value_type="scalar")
+        self._ti = model.ti
+        self._n_neighbors = model.n_neighbors
+        self._scan_fraction = model.scan_fraction
+        self._threshold = model.threshold
+        self._cond_weight = model.cond_weight
+        self._boundary = model.boundary
+        self._max_radius = model.max_radius
         self._num_threads = num_threads
         self._cond_pos = None
         self._cond_val = None
@@ -1377,8 +1246,8 @@ class DirectSampling(Field):
         self._rotation = None
         self._anis = None
         self.rng = RNG(None if np.isnan(seed) else int(seed))
-        if ti.multivariate:
-            for v in ti.variables:
+        if model.ti.multivariate:
+            for v in model.ti.variables:
                 if not v.isidentifier() or v in dir(self):
                     raise ValueError(
                         f"DirectSampling: variable name {v!r} cannot be used as "
@@ -1394,6 +1263,7 @@ class DirectSampling(Field):
         post_process=True,
         store=True,
         progress=None,
+        num_threads=None,
     ):
         """Generate the spatial random field via Direct Sampling.
 
@@ -1447,6 +1317,8 @@ class DirectSampling(Field):
         # np.random): draw a child seed from the master, then use that child's
         # RandomState for the path permutation and per-node seeds.
         rng = RNG(int(self.rng.random.randint(0, 2**32, dtype=np.int64))).random
+        # Call-time num_threads overrides the instance default.
+        n_threads = num_threads if num_threads is not None else self._num_threads
         if self._ti.multivariate:
             result = ds_simulate_mv(
                 training_image=self._ti,
@@ -1459,7 +1331,7 @@ class DirectSampling(Field):
                 cond_weight=self._cond_weight,
                 boundary=self._boundary,
                 max_radius=self._max_radius,
-                num_threads=self._num_threads,
+                num_threads=n_threads,
                 rotation_map=rotation_map,
                 anis_map=anis_map,
                 progress=progress,
@@ -1490,23 +1362,29 @@ class DirectSampling(Field):
                     )
                 out[v] = self.post_field(fld, name=v, process=False, save=save)
             return out
-        field = ds_simulate(
-            training_image=self._ti,
+        mv_ti = _univar_as_mv_ti(self._ti)
+        mv_cond = (
+            {idx: {_MV_VAR: val} for idx, val in conditions.items()}
+            if conditions
+            else None
+        )
+        mv_result = ds_simulate_mv(
+            training_image=mv_ti,
             sim_shape=shape,
             n_neighbors=self._n_neighbors,
             threshold=self._threshold,
             scan_fraction=self._scan_fraction,
             rng=rng,
-            conditions=conditions,
+            conditions=mv_cond,
             cond_weight=self._cond_weight,
             boundary=self._boundary,
             max_radius=self._max_radius,
-            num_threads=self._num_threads,
+            num_threads=n_threads,
             rotation_map=rotation_map,
             anis_map=anis_map,
             progress=progress,
         )
-        return self.post_field(field, name, post_process, save)
+        return self.post_field(mv_result[_MV_VAR], name, post_process, save)
 
     def _conditions_to_grid(self, axes):
         """Snap conditioning points to nearest grid nodes (Mariethoz2010 §3 ¶12).
