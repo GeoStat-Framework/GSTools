@@ -63,13 +63,21 @@ def compute_node_weights(
         raw_w[nz] = norms[nz] ** (-distance_power)
 
     if cond_mask is not None:
-        raw_w = raw_w.copy()
+        # ``raw_w`` is a freshly allocated array (np.ones above, modified in
+        # place), so no defensive copy is needed before scaling.
         raw_w[np.asarray(cond_mask, dtype=bool)] *= cond_weight
 
     total = raw_w.sum()
-    if not np.isfinite(total) or total == 0.0:
-        # e.g. all neighbours are conditioning data with cond_weight == 0:
-        # fall back to uniform weights rather than emit NaNs.
+    if total == 0.0:
+        # Every neighbour was zeroed out — the canonical case is an all-
+        # conditioning data event with cond_weight == 0 (δ_c = 0 → conditioning
+        # ignored entirely, Me13 p.323 → unconditional behaviour). Returning
+        # zero weights makes the data event non-informative so the node is drawn
+        # unconditionally, rather than re-weighting the ignored nodes uniformly.
+        return np.zeros(n, dtype=np.float64)
+    if not np.isfinite(total):
+        # Defensive: non-finite weight sum should be unreachable for grid lags
+        # (‖h‖ >= 1) — fall back to uniform rather than emit NaNs.
         return np.full(n, 1.0 / n, dtype=np.float64)
     return raw_w / total
 

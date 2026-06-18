@@ -398,7 +398,12 @@ class TestTrainingImage(unittest.TestCase):
             )
 
     def test_node_weights_zero_cond_weight(self):
-        """All-conditioning event with cond_weight=0 must not yield NaN weights."""
+        """All-conditioning event with cond_weight=0 → ignored (Me13 δ_c=0).
+
+        The conditioning data is dropped from the distance entirely (zero
+        weights, non-informative data event → unconditional behaviour), not
+        re-weighted uniformly. Weights must still be finite (no NaNs).
+        """
         w = compute_node_weights(
             3,
             lag_norms=None,
@@ -407,8 +412,7 @@ class TestTrainingImage(unittest.TestCase):
             cond_weight=0.0,
         )
         self.assertTrue(np.all(np.isfinite(w)))
-        self.assertAlmostEqual(w.sum(), 1.0)
-        np.testing.assert_allclose(w, np.full(3, 1.0 / 3.0))
+        np.testing.assert_allclose(w, np.zeros(3))
 
     def test_node_weights_zero_lag_norm_not_amplified(self):
         """A true zero lag-norm (collocated h=0) must keep the unit baseline
@@ -541,9 +545,9 @@ class TestDirectSampling(unittest.TestCase):
     def test_regression_1d(self):
         ds = DirectSampling(self.ti1d, n_neighbors=4, scan_fraction=1.0)
         field = ds([self.x1d], seed=42)
-        self.assertAlmostEqual(field[0], 1.0)
-        self.assertAlmostEqual(field[5], 0.0)
-        self.assertAlmostEqual(field[9], 0.0)
+        self.assertAlmostEqual(field[0], 0.0)
+        self.assertAlmostEqual(field[5], 1.0)
+        self.assertAlmostEqual(field[9], 1.0)
 
     def test_regression_2d(self):
         ds = DirectSampling(self.ti2d, n_neighbors=4, scan_fraction=1.0)
@@ -565,7 +569,7 @@ class TestDirectSampling(unittest.TestCase):
         # Pin two values for seed=99; stable across NumPy versions because DS
         # uses RandomState (MT19937) throughout, matching the rest of GSTools.
         self.assertAlmostEqual(fa[0, 0], 0.0)
-        self.assertAlmostEqual(fa[3, 4], 1.0)
+        self.assertAlmostEqual(fa[3, 4], 0.0)
 
     def test_conditioning_honored(self):
         ds = DirectSampling(self.ti1d, n_neighbors=4, scan_fraction=1.0)

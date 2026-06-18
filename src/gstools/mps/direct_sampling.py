@@ -372,14 +372,20 @@ def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
     positions = (start + np.arange(max_scan)) % win_size
     y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
 
-    if threshold <= 0:
-        return y_all[int(np.argmin(dist_fn(y_all)))]
+    # DSBC (threshold <= 0) has no threshold-based early exit, but an exact
+    # match d == 0 is the best attainable candidate, so accept it immediately
+    # (retained for categorical, where d == 0 is common — Juda2022 §2). Both
+    # modes therefore scan in blocks of ``_SCAN_BLOCK`` and track the running
+    # best, so a full-window DSBC scan never materialises one giant distance
+    # array. Block argmin + strict ``<`` keep the first-in-scan-order winner,
+    # matching a single ``argmin`` over the whole window.
+    accept = threshold if threshold > 0 else 0.0
 
     best_d, best_y = np.inf, None
     for b0 in range(0, max_scan, _SCAN_BLOCK):
         y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
         d_blk = dist_fn(y_blk)
-        under = d_blk <= threshold
+        under = d_blk <= accept
         if np.any(under):
             return y_blk[int(np.argmax(under))]
         k = int(np.argmin(d_blk))
@@ -387,6 +393,65 @@ def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
             best_d = float(d_blk[k])
             best_y = y_blk[k]
     return best_y
+
+
+def _make_progress(progress, total, desc):
+    """Build ``(update, close)`` callbacks for an optional progress display.
+
+    Parameters
+    ----------
+    progress : bool or callable or None
+        ``None``/``False`` disables it. ``True`` shows a :mod:`tqdm` bar when
+        ``tqdm`` is importable, otherwise prints the percentage at 5 % steps on
+        a single overwritten line. A callable is invoked as
+        ``progress(n_done, total)`` once per completed simulation node.
+    total : int
+        Number of nodes that will be simulated (``len(path)``).
+    desc : str
+        Short label for the bar (e.g. ``"DS"``).
+
+    Returns
+    -------
+    update : callable
+        Call (no arguments) once per completed node.
+    close : callable
+        Call once when the simulation finishes.
+    """
+    if not progress or total <= 0:
+        return (lambda: None), (lambda: None)
+    if callable(progress):
+        state = {"done": 0}
+
+        def update():
+            state["done"] += 1
+            progress(state["done"], total)
+
+        return update, (lambda: None)
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        tqdm = None
+    if tqdm is not None:
+        bar = tqdm(total=total, desc=desc, unit="node")
+        return (lambda: bar.update(1)), bar.close
+    # Dependency-free fallback: overwrite a single line at 5 % steps.
+    state = {"done": 0, "last": -1}
+
+    def update():
+        state["done"] += 1
+        pct = 5 * (state["done"] * 20 // total)
+        if pct != state["last"]:
+            state["last"] = pct
+            print(
+                f"\r{desc}: {pct:3d}% ({state['done']}/{total})",
+                end="",
+                flush=True,
+            )
+
+    def close():
+        print()
+
+    return update, close
 
 
 def ds_simulate(
@@ -403,6 +468,7 @@ def ds_simulate(
     num_threads=None,
     rotation_map=None,
     anis_map=None,
+    progress=None,
 ):
     """Direct Sampling univariate simulation (Mariethoz2010, Juda2022).
 
@@ -419,9 +485,9 @@ def ds_simulate(
         Distance threshold for early acceptance (Juda2022 §2).
         ``0.0`` → DSBC mode.
     scan_fraction : float
-        Fraction of the per-node search window to scan (Mariethoz2010 §3 ¶24).
-        Evaluates at most ``floor(f · |window|)`` candidates per node.
-        ``1.0`` → full window scan.
+        Fraction of the TI to scan per node (Mariethoz2010 §3 ¶24, Juda2022 §2).
+        Evaluates at most ``floor(f · |TI|)`` candidates, capped at the valid
+        search window ``|Y(L)|``. ``1.0`` → full window scan.
     rng : numpy.random.RandomState
         Random number generator.
     conditions : dict, optional
@@ -443,6 +509,11 @@ def ds_simulate(
     anis_map : numpy.ndarray or None, optional
         Per-node anisotropy ratios, shape matching the simulation grid.
         ``None`` → isotropic (stationary). All values must be positive.
+    progress : bool or callable or None, optional
+        Show simulation progress. ``True`` displays a :mod:`tqdm` bar (or a
+        plain percentage line if ``tqdm`` is not installed); a callable is
+        invoked as ``progress(n_done, n_total)`` once per completed node.
+        ``None``/``False`` (default) disables it.
 
     Returns
     -------
@@ -503,7 +574,9 @@ def ds_simulate(
         # Precondition: win_size >= 1 (callers guarantee win_lo <= win_hi on all axes).
         # Also captures scan_fraction, ti_data, threshold, cond_weight from outer scope.
         win_size = int(np.prod(win_shape))
-        max_scan = max(1, int(scan_fraction * win_size))
+        # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
+        # the valid search window so we never wrap around and re-scan anchors.
+        max_scan = max(1, min(win_size, int(scan_fraction * ti_data.size)))
         start = int(node_rng.randint(0, win_size))
 
         # Rust scan: ``start`` is drawn above so the RNG stream is identical to
@@ -587,59 +660,65 @@ def ds_simulate(
             lags_ti = lags
 
         if boundary == "strict":
-            # Search window Y(L_i) — Juda2022 Eq. 5, Mariethoz2010 §3 ¶19
+            # Search window Y(L_i) — Juda2022 Eq. 5, Mariethoz2010 §3 ¶19.
+            # Strict keeps all n neighbours when the full data event fits in the
+            # TI; if it does not (TI smaller than the data-event extent), it
+            # auto-falls back to partial reduction (checklist §2, Me13 Known
+            # Issue 10) rather than discarding the node with a random draw.
             win_lo = np.maximum(0, np.ceil(-lags_ti.min(axis=0))).astype(int)
             win_hi = np.minimum(
                 ti_shape - 1, np.floor(ti_shape - 1 - lags_ti.max(axis=0))
             ).astype(int)
-            if np.any(win_lo > win_hi):
-                return _rand_ti(node_rng)
-            best_v, best_de_ti = _scan_ti(
-                win_lo,
-                tuple(win_hi - win_lo + 1),
-                lags_ti,
-                data_event_sim,
-                cond_mask,
-                lag_norms,
-                node_rng,
-            )
-            return training_image.adjust_value(
-                best_v, data_event_sim, best_de_ti
-            )
+            if np.all(win_lo <= win_hi):
+                best_v, best_de_ti = _scan_ti(
+                    win_lo,
+                    tuple(win_hi - win_lo + 1),
+                    lags_ti,
+                    data_event_sim,
+                    cond_mask,
+                    lag_norms,
+                    node_rng,
+                )
+                return training_image.adjust_value(
+                    best_v, data_event_sim, best_de_ti
+                )
+            # else: fall through to partial reduction below.
 
-        else:  # "partial" — Mariethoz2010 §6.2: global template reduction
-            # Lags are distance-sorted (closest first) because offset_arr is.
-            # Drop farthest neighbours one at a time until the bounding box of
-            # the remaining data event fits inside the TI, per the paper's
-            # "ignore until it becomes possible to scan" directive (§6.2).
-            # Drop-ranking uses original lag order (SG geometry); window check
-            # uses lags_ti (TI frame), so both sides stay self-consistent.
-            valid_count = len(lags)
-            while valid_count > 0:
-                lags_ti_p = lags_ti[:valid_count]
-                sw_lo = np.maximum(0, np.ceil(-lags_ti_p.min(axis=0))).astype(int)
-                sw_hi = np.minimum(
-                    ti_shape - 1, np.floor(ti_shape - 1 - lags_ti_p.max(axis=0))
-                ).astype(int)
-                if np.all(sw_lo <= sw_hi):
-                    break
-                valid_count -= 1
-            else:
-                # No subset of the data event fits inside the TI (the closest
-                # neighbour's lag already exceeds the TI in some dimension).
-                return _rand_ti(node_rng)
-            best_v, best_de_ti = _scan_ti(
-                sw_lo,
-                tuple(sw_hi - sw_lo + 1),
-                lags_ti[:valid_count],
-                data_event_sim[:valid_count],
-                cond_mask[:valid_count],
-                lag_norms[:valid_count],
-                node_rng,
-            )
-            return training_image.adjust_value(
-                best_v, data_event_sim[:valid_count], best_de_ti
-            )
+        # "partial" mode (or strict auto-fallback): Mariethoz2010 §6.2 global
+        # template reduction.  Lags are distance-sorted (closest first) because
+        # offset_arr is.  Drop farthest neighbours one at a time until the
+        # bounding box of the remaining data event fits inside the TI, per the
+        # paper's "ignore until it becomes possible to scan" directive (§6.2).
+        # Drop-ranking uses original lag order (SG geometry); window check uses
+        # lags_ti (TI frame), so both sides stay self-consistent.
+        valid_count = len(lags)
+        while valid_count > 0:
+            lags_ti_p = lags_ti[:valid_count]
+            sw_lo = np.maximum(0, np.ceil(-lags_ti_p.min(axis=0))).astype(int)
+            sw_hi = np.minimum(
+                ti_shape - 1, np.floor(ti_shape - 1 - lags_ti_p.max(axis=0))
+            ).astype(int)
+            if np.all(sw_lo <= sw_hi):
+                break
+            valid_count -= 1
+        else:
+            # No subset of the data event fits inside the TI (the closest
+            # neighbour's lag already exceeds the TI in some dimension).
+            return _rand_ti(node_rng)
+        best_v, best_de_ti = _scan_ti(
+            sw_lo,
+            tuple(sw_hi - sw_lo + 1),
+            lags_ti[:valid_count],
+            data_event_sim[:valid_count],
+            cond_mask[:valid_count],
+            lag_norms[:valid_count],
+            node_rng,
+        )
+        return training_image.adjust_value(
+            best_v, data_event_sim[:valid_count], best_de_ti
+        )
+
+    update_progress, close_progress = _make_progress(progress, len(path), "DS")
 
     try:
         if executor is not None:
@@ -691,6 +770,7 @@ def ds_simulate(
                     )
                 sg[x_i_t] = val
                 informed[x_i_t] = True
+                update_progress()
                 for j in out_edges[i]:
                     indegree[j] -= 1
                     if indegree[j] == 0:
@@ -710,7 +790,9 @@ def ds_simulate(
                     )
                 sg[x_i_t] = val
                 informed[x_i_t] = True
+                update_progress()
     finally:
+        close_progress()
         if executor is not None:
             executor.shutdown(wait=True)
 
@@ -731,6 +813,7 @@ def ds_simulate_mv(
     num_threads=None,
     rotation_map=None,
     anis_map=None,
+    progress=None,
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
 
@@ -756,7 +839,7 @@ def ds_simulate_mv(
     threshold : float
         Distance threshold (Juda2022 §2). ``0.0`` -> DSBC mode.
     scan_fraction : float
-        Fraction of the per-node search window to scan.
+        Fraction of the TI to scan per node, capped at the valid search window.
     rng : numpy.random.RandomState
         Master RNG (path permutation + per-component seeds).
     conditions : dict, optional
@@ -776,6 +859,11 @@ def ds_simulate_mv(
     anis_map : numpy.ndarray or None, optional
         Per-node anisotropy ratios, shape matching the simulation grid.
         ``None`` → isotropic (stationary). All values must be positive.
+    progress : bool or callable or None, optional
+        Show simulation progress. ``True`` displays a :mod:`tqdm` bar (or a
+        plain percentage line if ``tqdm`` is not installed); a callable is
+        invoked as ``progress(n_done, n_total)`` once per completed node.
+        ``None``/``False`` (default) disables it.
 
     Returns
     -------
@@ -858,7 +946,10 @@ def ds_simulate_mv(
         # boxes, so every ``y + lag`` is in bounds and the gather needs no
         # clipping; the h=0 lag maps to ``y`` itself.
         win_size = int(np.prod(win_shape))
-        max_scan = max(1, int(scan_fraction * win_size))
+        # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
+        # the valid search window so we never wrap around and re-scan anchors.
+        ti_size = int(np.prod(ti_shape))
+        max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
         start = int(node_rng.randint(0, win_size))
 
         # Rust joint scan: only active variables (those present in int_lags)
@@ -1017,15 +1108,18 @@ def ds_simulate_mv(
             nz = np.flatnonzero(np.any(lv_ti != 0, axis=1))
             if not len(nz):
                 continue
+            # Strict keeps all neighbours when the full event fits; otherwise it
+            # auto-falls back to partial reduction for this variable (checklist
+            # §2, Me13 Known Issue 10) rather than aborting the whole node.
+            reduced = False
             if boundary == "strict":
                 lv_nz = lv_ti[nz]
                 lo = np.maximum(0, np.ceil(-lv_nz.min(axis=0))).astype(int)
                 hi = np.minimum(
                     ti_shape - 1, np.floor(ti_shape - 1 - lv_nz.max(axis=0))
                 ).astype(int)
-                if np.any(lo > hi):
-                    return _rand_fallback(targets, node_rng)
-            else:  # "partial" — drop farthest until TI box fits
+                reduced = bool(np.any(lo > hi))
+            if boundary == "partial" or reduced:  # drop farthest until TI fits
                 keep = len(lv_ti)
                 while keep > 0:
                     lv_k = lv_ti[:keep]
@@ -1097,6 +1191,8 @@ def ds_simulate_mv(
             sg[v][node] = val
             informed[v][node] = True
 
+    update_progress, close_progress = _make_progress(progress, len(path), "DS")
+
     try:
         if executor is not None:
             indegree, out_edges = _build_dag_base(
@@ -1137,6 +1233,7 @@ def ds_simulate_mv(
                 i, result = done_q.get().result()
                 counts["done"] += 1
                 _write_result(tuple(int(c) for c in path[i]), result)
+                update_progress()
                 for j, v in out_edges[i]:
                     remaining[v][j] -= 1
                     if _ready(j):
@@ -1147,7 +1244,9 @@ def ds_simulate_mv(
                     i, path[i], RNG(int(node_seeds[i])).random
                 )
                 _write_result(tuple(int(c) for c in path[i]), result)
+                update_progress()
     finally:
+        close_progress()
         if executor is not None:
             executor.shutdown(wait=True)
 
@@ -1169,7 +1268,8 @@ class DirectSampling(Field):
         name (multivariate TIs only); an int broadcasts to all variables.
         Default: 32.
     scan_fraction : float, optional
-        Fraction of the per-node search window to scan. Default: 1.
+        Fraction of the TI to scan per node (capped at the valid search
+        window). Default: 1.
     threshold : float, optional
         Distance threshold. 0.0 -> DSBC mode. Default: 0.0.
     cond_weight : float, optional
@@ -1293,6 +1393,7 @@ class DirectSampling(Field):
         mesh_type="structured",
         post_process=True,
         store=True,
+        progress=None,
     ):
         """Generate the spatial random field via Direct Sampling.
 
@@ -1316,6 +1417,11 @@ class DirectSampling(Field):
             Whether to store the field (``True``), not store it (``False``),
             or store it under a custom name (string).
             Default: :any:`True`
+        progress : :class:`bool` or callable or None, optional
+            Show simulation progress. ``True`` displays a :mod:`tqdm` bar (or a
+            plain percentage line if ``tqdm`` is not installed); a callable is
+            invoked as ``progress(n_done, n_total)`` once per completed node.
+            ``None``/``False`` (default) disables it.
 
         Returns
         -------
@@ -1337,9 +1443,10 @@ class DirectSampling(Field):
         conditions = self._conditions_to_grid(self.pos)
         if not np.isnan(seed):
             self.rng.seed = int(seed)
-        rng = np.random.RandomState(
-            int(self.rng.random.randint(0, 2**32, dtype=np.int64))
-        )
+        # Derive an independent per-call stream through gstools' RNG (never raw
+        # np.random): draw a child seed from the master, then use that child's
+        # RandomState for the path permutation and per-node seeds.
+        rng = RNG(int(self.rng.random.randint(0, 2**32, dtype=np.int64))).random
         if self._ti.multivariate:
             result = ds_simulate_mv(
                 training_image=self._ti,
@@ -1355,6 +1462,7 @@ class DirectSampling(Field):
                 num_threads=self._num_threads,
                 rotation_map=rotation_map,
                 anis_map=anis_map,
+                progress=progress,
             )
             # Equal treatment: every variable is a first-class named field
             # (no privileged primary). Returned as a dict keyed by variable name.
@@ -1396,6 +1504,7 @@ class DirectSampling(Field):
             num_threads=self._num_threads,
             rotation_map=rotation_map,
             anis_map=anis_map,
+            progress=progress,
         )
         return self.post_field(field, name, post_process, save)
 
@@ -1583,7 +1692,7 @@ class DirectSampling(Field):
 
     @property
     def scan_fraction(self):
-        """:class:`float`: Fraction of the per-node search window to scan."""
+        """:class:`float`: Fraction of the TI to scan per node (capped at the search window)."""
         return self._scan_fraction
 
     @scan_fraction.setter

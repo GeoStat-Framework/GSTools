@@ -4,13 +4,14 @@ Adapted for GSTools.
 """
 
 import os
+import time
 import urllib.request
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
 
-from gstools import mps
+from gstools import config, mps
 
 # 1. Load TI
 TI_URL = (
@@ -41,15 +42,40 @@ N_NEIGH = 30
 SCAN_F = 0.1
 THRESH = 0.01
 
-ds = mps.DirectSampling(
-    ti_model, n_neighbors=N_NEIGH, scan_fraction=SCAN_F, threshold=THRESH
-)
-ds.set_condition(cond_pos, cond_val)
-
-print("Starting simulation (this may take a moment)...")
 x = np.arange(SG_SIZE, dtype=float)
 y = np.arange(SG_SIZE, dtype=float)
-sg = ds([x, y], seed=42).astype(int)
+
+
+def simulate(use_core):
+    """Run one identical simulation with the chosen backend; return (field, secs)."""
+    config.USE_GSTOOLS_CORE = use_core
+    ds = mps.DirectSampling(
+        ti_model, n_neighbors=N_NEIGH, scan_fraction=SCAN_F, threshold=THRESH
+    )
+    ds.set_condition(cond_pos, cond_val)
+    t0 = time.perf_counter()
+    field = ds([x, y], seed=42, progress=True).astype(int)
+    return field, time.perf_counter() - t0
+
+
+# Same seed and parameters under both backends -> the Rust path is bit-identical
+# to the pure-Python reference, so the only difference is wall-clock time.
+print("Simulating with pure-Python backend ...")
+sg_py, t_py = simulate(False)
+
+if config._GSTOOLS_CORE_AVAIL:
+    print("Simulating with gstools-core (Rust) backend ...")
+    sg, t_rs = simulate(True)
+    identical = np.array_equal(sg, sg_py)
+    print(
+        f"\nBackend timing  python={t_py:6.2f}s  rust={t_rs:6.2f}s  "
+        f"speedup={t_py / t_rs:4.1f}x  identical={identical}"
+    )
+else:
+    print("\ngstools-core not installed -> Rust backend unavailable "
+          "(pure-Python only).")
+    sg, t_rs = sg_py, t_py
+    print(f"python={t_py:6.2f}s")
 
 honored = (sg[cond_row, cond_col] == cond_val.astype(int)).sum()
 print(f"Simulation complete. Conditioning: {honored}/{N_COND} honored")
