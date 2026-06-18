@@ -17,6 +17,8 @@ import numpy as np
 from gstools import config
 from gstools.field.base import Field
 from gstools.mps.distance import compute_node_weights
+from gstools.mps.model import _VALID_BOUNDARY, MPSModel
+from gstools.mps.model import _validate_n_neighbors as _mv_validate_n_neighbors
 from gstools.mps.training_image import TrainingImage
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
@@ -45,13 +47,8 @@ def _use_core():
     )
 
 
-_VALID_BOUNDARY = ("strict", "partial")
-
 # Sentinel variable name used when wrapping a univariate TI for the MV engine.
 _MV_VAR = "_v"
-
-# Shared read-only var-weights for the univariate scan kernel (one variable).
-_UNIT_VAR_WEIGHTS = np.array([1.0])
 
 # DS-mode scan block size.  Large enough that per-call NumPy overhead is
 # negligible (essentially full vectorization speed), small enough that the
@@ -293,30 +290,6 @@ def _build_dag_base(path, sim_shape, offset_arr, vmap_dict, n_k_dict, max_radius
                 indegree[key][i] += 1
                 out_edges[int(j)].append((i, key))
     return indegree, out_edges
-
-
-def _build_dag(
-    path,
-    n_neighbors,
-    sim_shape,
-    offset_arr,
-    path_pos_map,
-    max_radius=None,
-):
-    """Build the univariate simulation dependency DAG.
-
-    Thin wrapper around :func:`_build_dag_base` that converts the result back
-    to the univariate format (scalar indegree array, list-of-int out_edges).
-    """
-    indegree_d, out_edges_d = _build_dag_base(
-        path,
-        sim_shape,
-        offset_arr,
-        {"": path_pos_map},
-        {"": n_neighbors},
-        max_radius,
-    )
-    return indegree_d[""], [[i for i, _ in es] for es in out_edges_d]
 
 
 def _transform_lags(lags, M, *arrays):
@@ -1162,33 +1135,7 @@ class DirectSampling(Field):
     @staticmethod
     def _validate_n_neighbors(value, ti):
         """Validate and normalise *n_neighbors*; return ``int`` or ``dict of int``."""
-        if isinstance(value, dict):
-            if not ti.multivariate:
-                raise ValueError(
-                    "DirectSampling: dict n_neighbors is only valid for "
-                    "multivariate TrainingImages."
-                )
-            missing = set(ti.variables) - set(value)
-            extra = set(value) - set(ti.variables)
-            if missing or extra:
-                raise ValueError(
-                    f"DirectSampling: n_neighbors dict keys must match TI "
-                    f"variables {ti.variables!r}. Missing: {sorted(missing)}, "
-                    f"extra: {sorted(extra)}."
-                )
-            for k, v in value.items():
-                if int(v) < 1:
-                    raise ValueError(
-                        f"DirectSampling: n_neighbors[{k!r}] must be >= 1, "
-                        f"got {v!r}"
-                    )
-            return {k: int(v) for k, v in value.items()}
-        else:
-            if int(value) < 1:
-                raise ValueError(
-                    f"DirectSampling: n_neighbors must be >= 1, got {value!r}"
-                )
-            return int(value)
+        return _mv_validate_n_neighbors(value, ti)
 
     def __init__(
         self,
@@ -1196,11 +1143,7 @@ class DirectSampling(Field):
         seed=np.nan,
         **back_compat_kwargs,
     ):
-        from gstools.mps.model import MPSModel as _MPSModel
-
-        num_threads = None
-
-        if isinstance(model_or_ti, _MPSModel):
+        if isinstance(model_or_ti, MPSModel):
             if back_compat_kwargs:
                 raise TypeError(
                     f"DirectSampling: keyword arguments are not accepted when "
@@ -1226,7 +1169,7 @@ class DirectSampling(Field):
                     f"DirectSampling: unexpected keyword arguments: "
                     f"{list(back_compat_kwargs)}"
                 )
-            model = _MPSModel(model_or_ti, **algo_kw)
+            model = MPSModel(model_or_ti, **algo_kw)
 
         self._model = model
         super().__init__(model=None, dim=model.ti.ndim, value_type="scalar")
