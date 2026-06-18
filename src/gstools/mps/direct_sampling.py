@@ -13,6 +13,7 @@ import queue
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+import numpy.random as _npr
 
 from gstools import config
 from gstools.field.base import Field
@@ -649,6 +650,7 @@ def ds_simulate(
         threshold,
         scan_fraction,
         rng,
+        rng,
         conditions=mv_cond,
         cond_weight=cond_weight,
         boundary=boundary,
@@ -665,7 +667,8 @@ def ds_simulate(
 
 def _run_path(
     path,
-    node_seeds,
+    u_start,
+    u_fallback,
     simulate_fn,
     write_fn,
     update_fn,
@@ -678,7 +681,7 @@ def _run_path(
 ):
     """Dispatch the node simulation path: serial or parallel DAG.
 
-    simulate_fn(i, x_i, node_rng) → result dict
+    simulate_fn(i, x_i, u_start_i, u_fallback_i) → result dict
     write_fn(node_tuple, result) → None
     update_fn() → None
 
@@ -702,7 +705,7 @@ def _run_path(
             return all(remaining[v][i] == 0 for v in variables)
 
         def _run(i):
-            return i, simulate_fn(i, path[i], RNG(int(node_seeds[i])).random)
+            return i, simulate_fn(i, path[i], u_start[i], u_fallback[i])
 
         def _submit(i):
             if submitted[i]:
@@ -726,7 +729,7 @@ def _run_path(
                     _submit(j)
     else:
         for i in range(len(path)):
-            result = simulate_fn(i, path[i], RNG(int(node_seeds[i])).random)
+            result = simulate_fn(i, path[i], u_start[i], u_fallback[i])
             write_fn(tuple(int(c) for c in path[i]), result)
             update_fn()
 
@@ -737,7 +740,8 @@ def ds_simulate_mv(
     n_neighbors,
     threshold,
     scan_fraction,
-    rng,
+    rng_path,
+    rng_nodes,
     conditions=None,
     cond_weight=1.0,
     boundary="strict",
@@ -839,8 +843,10 @@ def ds_simulate_mv(
     for v in variables:
         unknown |= np.isnan(sg[v])
     path = np.argwhere(unknown)
-    path = path[rng.permutation(len(path))]
-    node_seeds = rng.randint(0, 2**32, size=len(path), dtype=np.int64)
+    path = path[rng_path.permutation(len(path))]
+    n_nodes = len(path)
+    u_start    = rng_nodes.uniform(size=n_nodes)
+    u_fallback = rng_nodes.uniform(size=(n_nodes, dim))
 
     sg_size = int(np.prod(sim_shape))
     path_flat = (
@@ -864,13 +870,13 @@ def ds_simulate_mv(
     # inside the per-node scan loop; all inner closures read from this dict.
     ti_vars = {v: training_image.variable(v) for v in variables}
 
-    def _rand_fallback(targets, node_rng):
+    def _rand_fallback(targets, u_fb_i):
         # Single random TI cell supplies the whole node-vector (preserves the
         # joint relationship); never an independent draw per variable.
-        cell = tuple(int(node_rng.randint(0, s)) for s in ti_shape)
+        cell = tuple(int(u_fb_i[d] * s) for d, s in enumerate(ti_shape))
         return {v: float(ti_vars[v][cell]) for v in targets}
 
-    def _joint_scan(lo, win_shape, int_lags, de_v, cm_v, ln_v, node_rng):
+    def _joint_scan(lo, win_shape, int_lags, de_v, cm_v, ln_v, u_start_i):
         # Mirrors _scan_ti: full vectorized argmin for DSBC (threshold <= 0),
         # chunked first-under-threshold for DS (threshold > 0).  Returns the
         # single best TI cell coordinate ``y``; the caller copies TI[v][y] to all
@@ -884,7 +890,7 @@ def ds_simulate_mv(
         max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
         # ``start`` is drawn before the backend dispatch so both paths consume
         # the same RNG state (RNG invariant: never move below the ffi_args block).
-        start = int(node_rng.randint(0, win_size))
+        start = int(u_start_i * win_size)
 
         active_vars = [v for v in variables if v in int_lags]
         active_w_total = sum(weights[v] for v in active_vars)
@@ -942,7 +948,7 @@ def ds_simulate_mv(
 
         return _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, _dist_block)
 
-    def _simulate_node_mv(curr_idx, x_i, node_rng):
+    def _simulate_node_mv(curr_idx, x_i, u_start_i, u_fallback_i):
         x_i_t = tuple(int(c) for c in x_i)
         targets = [v for v in variables if np.isnan(sg[v][x_i_t])]
 
@@ -1005,7 +1011,7 @@ def ds_simulate_mv(
             lags_ti_v = dict(lags_v)
 
         if all(len(lags_v[v]) == 0 for v in variables):
-            return _rand_fallback(targets, node_rng)
+            return _rand_fallback(targets, u_fallback_i)
 
         # Per-variable search window computed via _window_bounds, then intersected.
         # h=0 lags are excluded inside _window_bounds — they map to y itself and
@@ -1016,7 +1022,7 @@ def ds_simulate_mv(
             lv_ti = lags_ti_v[var]
             lo, hi, valid_count = _window_bounds(lv_ti, ti_shape, boundary)
             if valid_count == -1:
-                return _rand_fallback(targets, node_rng)
+                return _rand_fallback(targets, u_fallback_i)
             if valid_count < len(lv_ti):
                 # Truncate TI-frame and original arrays to the same keep count.
                 # lags_ti_v uses a separate dict so this does not affect lags_v.
@@ -1029,7 +1035,7 @@ def ds_simulate_mv(
             win_hi = np.minimum(win_hi, hi)
 
         if np.any(win_lo > win_hi):
-            return _rand_fallback(targets, node_rng)
+            return _rand_fallback(targets, u_fallback_i)
 
         # Integer lags per variable (already exact integers as float64, incl.
         # the 0.0 h=0 row); reused for the scan and the mean-shift gather.
@@ -1045,7 +1051,7 @@ def ds_simulate_mv(
             de_v,
             cm_v,
             ln_v,
-            node_rng,
+            u_start_i,
         )
         y_t = tuple(int(c) for c in y)
         # Copy the single matched cell's vector to every uninformed variable.
@@ -1077,8 +1083,9 @@ def ds_simulate_mv(
     try:
         _run_path(
             path,
-            node_seeds,
-            lambda i, x_i, rng: _simulate_node_mv(i, x_i, rng),
+            u_start,
+            u_fallback,
+            lambda i, x_i, u_st, u_fb: _simulate_node_mv(i, x_i, u_st, u_fb),
             _write_result,
             update_progress,
             executor,
@@ -1202,6 +1209,8 @@ class DirectSampling(Field):
         self,
         pos=None,
         seed=np.nan,
+        path_seed=np.nan,
+        node_seed=np.nan,
         mesh_type="structured",
         post_process=True,
         store=True,
@@ -1219,6 +1228,17 @@ class DirectSampling(Field):
             directions. Only structured grids are supported.
         seed : :class:`int`, optional
             Seed for the RNG. If ``np.nan``, the current seed is kept.
+            Default: ``np.nan``
+        path_seed : :class:`int` or :any:`numpy.nan`, optional
+            Seed controlling the order in which simulation grid nodes are
+            visited. If ``np.nan`` (default), derived from the master RNG
+            together with ``node_seed``. Fix this while varying ``node_seed``
+            to study the effect of TI search randomness under a constant
+            visit order, or vice versa.
+            Default: ``np.nan``
+        node_seed : :class:`int` or :any:`numpy.nan`, optional
+            Seed controlling the TI scan entry point and fallback cell for
+            every node. If ``np.nan`` (default), derived from the master RNG.
             Default: ``np.nan``
         mesh_type : :class:`str`, optional
             Grid type. Must be ``"structured"``.
@@ -1256,10 +1276,16 @@ class DirectSampling(Field):
         conditions = self._conditions_to_grid(self.pos)
         if not np.isnan(seed):
             self.rng.seed = int(seed)
-        # Derive an independent per-call stream through gstools' RNG (never raw
-        # np.random): draw a child seed from the master, then use that child's
-        # RandomState for the path permutation and per-node seeds.
-        rng = RNG(int(self.rng.random.randint(0, 2**32, dtype=np.int64))).random
+        rng_path = (
+            self.rng.random
+            if np.isnan(path_seed)
+            else _npr.RandomState(int(path_seed))
+        )
+        rng_nodes = (
+            self.rng.random
+            if np.isnan(node_seed)
+            else _npr.RandomState(int(node_seed))
+        )
         # Call-time num_threads overrides the instance default.
         n_threads = num_threads if num_threads is not None else self._num_threads
         if self._ti.multivariate:
@@ -1269,7 +1295,8 @@ class DirectSampling(Field):
                 n_neighbors=self._n_neighbors,
                 threshold=self._threshold,
                 scan_fraction=self._scan_fraction,
-                rng=rng,
+                rng_path=rng_path,
+                rng_nodes=rng_nodes,
                 conditions=conditions,
                 cond_weight=self._cond_weight,
                 boundary=self._boundary,
@@ -1317,7 +1344,8 @@ class DirectSampling(Field):
             n_neighbors=self._n_neighbors,
             threshold=self._threshold,
             scan_fraction=self._scan_fraction,
-            rng=rng,
+            rng_path=rng_path,
+            rng_nodes=rng_nodes,
             conditions=mv_cond,
             cond_weight=self._cond_weight,
             boundary=self._boundary,

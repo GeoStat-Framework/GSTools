@@ -546,9 +546,9 @@ class TestDirectSampling(unittest.TestCase):
     def test_regression_1d(self):
         ds = DirectSampling(self.ti1d, n_neighbors=4, scan_fraction=1.0)
         field = ds([self.x1d], seed=42)
-        self.assertAlmostEqual(field[0], 0.0)
-        self.assertAlmostEqual(field[5], 1.0)
-        self.assertAlmostEqual(field[9], 1.0)
+        self.assertAlmostEqual(field[0], 1.0)
+        self.assertAlmostEqual(field[5], 0.0)
+        self.assertAlmostEqual(field[9], 0.0)
 
     def test_regression_2d(self):
         ds = DirectSampling(self.ti2d, n_neighbors=4, scan_fraction=1.0)
@@ -1327,7 +1327,7 @@ class TestFullArraySnapshot(unittest.TestCase):
             ds = DirectSampling(self.ti1d, n_neighbors=4, scan_fraction=1.0)
             f = ds([self.x1d], seed=42)
             np.testing.assert_array_equal(
-                f, [0., 1., 0., 1., 0., 1., 0., 1., 0., 1.],
+                f, [1., 0., 1., 0., 1., 0., 1., 0., 1., 0.],
                 err_msg="snap_uni_1d seed=42",
             )
             # seed=99
@@ -1368,12 +1368,12 @@ class TestFullArraySnapshot(unittest.TestCase):
             f = ds3([self.x2d, self.y2d], seed=42)
             np.testing.assert_array_equal(
                 f,
-                [[1., 0., 1., 2., 1., 1.],
-                 [1., 1., 1., 1., 0., 1.],
-                 [2., 2., 0., 0., 2., 0.],
-                 [0., 2., 1., 0., 2., 1.],
-                 [1., 2., 2., 0., 2., 2.],
-                 [2., 0., 1., 2., 2., 0.]],
+                [[2., 0., 1., 2., 2., 1.],
+                 [1., 0., 0., 2., 1., 2.],
+                 [2., 2., 0., 0., 2., 2.],
+                 [2., 0., 1., 2., 0., 0.],
+                 [2., 2., 1., 2., 0., 1.],
+                 [2., 1., 2., 2., 2., 0.]],
                 err_msg="snap_uni_rand seed=42",
             )
 
@@ -1382,22 +1382,22 @@ class TestFullArraySnapshot(unittest.TestCase):
             res = ds_mv([self.x2d, self.y2d], seed=42)
             np.testing.assert_array_equal(
                 res["a"],
-                [[2., 2., 1., 1., 0., 0.],
-                 [2., 1., 2., 1., 1., 2.],
-                 [2., 2., 1., 0., 1., 2.],
-                 [0., 1., 2., 0., 2., 1.],
-                 [2., 2., 2., 2., 1., 0.],
-                 [1., 0., 0., 0., 1., 1.]],
+                [[0., 1., 0., 2., 0., 1.],
+                 [2., 2., 1., 2., 1., 2.],
+                 [1., 0., 1., 1., 1., 1.],
+                 [2., 2., 0., 0., 1., 0.],
+                 [0., 1., 2., 2., 2., 2.],
+                 [0., 1., 1., 0., 0., 0.]],
                 err_msg="snap_mv var=a seed=42",
             )
             np.testing.assert_array_equal(
                 res["b"],
-                [[1., 1., 1., 1., 0., 0.],
-                 [1., 0., 1., 1., 1., 0.],
-                 [1., 1., 0., 0., 0., 0.],
-                 [1., 0., 1., 1., 0., 0.],
-                 [1., 1., 0., 0., 1., 1.],
-                 [1., 1., 0., 0., 1., 1.]],
+                [[1., 1., 0., 0., 1., 1.],
+                 [0., 0., 0., 1., 0., 0.],
+                 [0., 1., 0., 0., 0., 0.],
+                 [1., 1., 1., 1., 0., 0.],
+                 [0., 0., 0., 1., 0., 0.],
+                 [0., 1., 0., 1., 1., 1.]],
                 err_msg="snap_mv var=b seed=42",
             )
         finally:
@@ -1410,6 +1410,42 @@ class TestFullArraySnapshot(unittest.TestCase):
 
     def test_snapshot_numpy_backend(self):
         self._run_for_backend(use_core=False)
+
+
+class TestDSSeedControl(unittest.TestCase):
+    def setUp(self):
+        rng = np.random.default_rng(0)
+        data = rng.integers(0, 3, (20, 20))
+        self.ti = TrainingImage(data.astype(float))
+        self.pos = [np.arange(8, dtype=float)] * 2
+
+    def test_fixed_path_seed_different_node_seed(self):
+        # Same visit order, different TI search → different output
+        ds = DirectSampling(self.ti, n_neighbors=4, scan_fraction=0.3)
+        fa = ds(self.pos, path_seed=1, node_seed=10)
+        fb = ds(self.pos, path_seed=1, node_seed=99)
+        self.assertFalse(np.array_equal(fa, fb))
+
+    def test_fixed_node_seed_different_path_seed(self):
+        # Same TI search, different visit order → different output
+        ds = DirectSampling(self.ti, n_neighbors=4, scan_fraction=0.3)
+        fa = ds(self.pos, path_seed=1,  node_seed=10)
+        fb = ds(self.pos, path_seed=99, node_seed=10)
+        self.assertFalse(np.array_equal(fa, fb))
+
+    def test_both_seeds_fixed_reproducible(self):
+        # Explicit seeds on both → fully reproducible across calls
+        ds = DirectSampling(self.ti, n_neighbors=4, scan_fraction=0.3)
+        fa = ds(self.pos, path_seed=7, node_seed=42)
+        fb = ds(self.pos, path_seed=7, node_seed=42)
+        self.assertTrue(np.array_equal(fa, fb))
+
+    def test_default_still_reproducible(self):
+        # No explicit seeds → same seed= value still reproducible
+        ds = DirectSampling(self.ti, n_neighbors=4, scan_fraction=0.3)
+        fa = ds(self.pos, seed=5)
+        fb = ds(self.pos, seed=5)
+        self.assertTrue(np.array_equal(fa, fb))
 
 
 class TestUnivarEqualsSingleVarMv(unittest.TestCase):
@@ -1457,7 +1493,8 @@ class TestUnivarEqualsSingleVarMv(unittest.TestCase):
                 n_neighbors=8,
                 threshold=0.0,
                 scan_fraction=1.0,
-                rng=mv_rng,
+                rng_path=mv_rng,
+                rng_nodes=mv_rng,
             )
             result_mv = result_mv_dict["_v"]
 
