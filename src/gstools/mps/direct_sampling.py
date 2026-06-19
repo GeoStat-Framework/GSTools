@@ -13,7 +13,6 @@ import queue
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-import numpy.random as _npr
 
 from gstools import config
 from gstools.field.base import Field
@@ -502,8 +501,7 @@ def _univar_as_mv_ti(ti):
 
     The resulting TI is bit-identical to a hand-crafted single-variable MV TI
     using the same data and distance parameters.  Used by ``ds_simulate`` and
-    ``DirectSampling.__call__`` to route univariate work through the unified
-    ``ds_simulate_mv`` engine.
+    ``DirectSampling.__call__`` to route univariate work through ``ds_simulate``.
     """
     return TrainingImage(
         {_MV_VAR: ti.data},
@@ -571,96 +569,6 @@ def _make_progress(progress, total, desc):
 
     return update, close
 
-
-def ds_simulate(
-    training_image,
-    sim_shape,
-    n_neighbors,
-    threshold,
-    scan_fraction,
-    rng,
-    conditions=None,
-    cond_weight=1.0,
-    boundary="strict",
-    max_radius=None,
-    num_threads=None,
-    rotation_map=None,
-    anis_map=None,
-    progress=None,
-):
-    """Direct Sampling univariate simulation (Mariethoz2010, Juda2022).
-
-    Parameters
-    ----------
-    training_image : TrainingImage
-        Training image; provides ``training_image.distance()`` and
-        ``training_image.adjust_value()``.
-    sim_shape : tuple
-        Simulation grid shape.
-    n_neighbors : int
-        Maximum number of neighbours in the data event (Juda2022 §2).
-    threshold : float
-        Distance threshold for early acceptance (Juda2022 §2).
-        ``0.0`` → DSBC mode.
-    scan_fraction : float
-        Fraction of the TI to scan per node (Mariethoz2010 §3 ¶24, Juda2022 §2).
-        Evaluates at most ``floor(f · |TI|)`` candidates, capped at the valid
-        search window ``|Y(L)|``. ``1.0`` → full window scan.
-    rng : numpy.random.RandomState
-        Random number generator.
-    conditions : dict, optional
-        ``{tuple_index: value}`` mapping of conditioning data.
-    cond_weight : float, optional
-        Weight δ for conditioning nodes (Mariethoz2010 §3 ¶26).
-    boundary : str, optional
-        Search-window strategy: ``"strict"`` (default) or ``"partial"``.
-    max_radius : float, optional
-        If set, SG neighbours beyond this Euclidean distance are excluded
-        from the data event (Mariethoz2010 §3 ¶19).
-    num_threads : int or None, optional
-        Number of threads for outer DAG parallelism. ``None`` defaults to
-        ``config.NUM_THREADS``.
-    rotation_map : numpy.ndarray or None, optional
-        Per-node rotation angles, shape matching the simulation grid. ``None``
-        → no rotation (stationary). Use ``DirectSampling.set_nonstationary``
-        to produce this array from user-facing scalar or array inputs.
-    anis_map : numpy.ndarray or None, optional
-        Per-node anisotropy ratios, shape matching the simulation grid.
-        ``None`` → isotropic (stationary). All values must be positive.
-    progress : bool or callable or None, optional
-        Show simulation progress. ``True`` displays a :mod:`tqdm` bar (or a
-        plain percentage line if ``tqdm`` is not installed); a callable is
-        invoked as ``progress(n_done, n_total)`` once per completed node.
-        ``None``/``False`` (default) disables it.
-
-    Returns
-    -------
-    numpy.ndarray
-    """
-    mv_ti = _univar_as_mv_ti(training_image)
-    mv_cond = (
-        {idx: {_MV_VAR: val} for idx, val in conditions.items()}
-        if conditions
-        else None
-    )
-    result = ds_simulate_mv(
-        mv_ti,
-        sim_shape,
-        n_neighbors,
-        threshold,
-        scan_fraction,
-        rng,
-        rng,
-        conditions=mv_cond,
-        cond_weight=cond_weight,
-        boundary=boundary,
-        max_radius=max_radius,
-        num_threads=num_threads,
-        rotation_map=rotation_map,
-        anis_map=anis_map,
-        progress=progress,
-    )
-    return result[_MV_VAR]
 
 
 
@@ -734,7 +642,7 @@ def _run_path(
             update_fn()
 
 
-def ds_simulate_mv(
+def ds_simulate(
     training_image,
     sim_shape,
     n_neighbors,
@@ -776,8 +684,10 @@ def ds_simulate_mv(
         Distance threshold (Juda2022 §2). ``0.0`` -> DSBC mode.
     scan_fraction : float
         Fraction of the TI to scan per node, capped at the valid search window.
-    rng : numpy.random.RandomState
-        Master RNG (path permutation + per-component seeds).
+    rng_path : numpy.random.RandomState
+        RandomState controlling the simulation path (node visit order).
+    rng_nodes : numpy.random.RandomState
+        RandomState controlling TI scan entry points and fallback cells.
     conditions : dict, optional
         ``{node_index: {variable: value}}`` conditioning data.
     cond_weight : float, optional
@@ -1279,17 +1189,17 @@ class DirectSampling(Field):
         rng_path = (
             self.rng.random
             if np.isnan(path_seed)
-            else _npr.RandomState(int(path_seed))
+            else RNG(int(path_seed)).random
         )
         rng_nodes = (
             self.rng.random
             if np.isnan(node_seed)
-            else _npr.RandomState(int(node_seed))
+            else RNG(int(node_seed)).random
         )
         # Call-time num_threads overrides the instance default.
         n_threads = num_threads if num_threads is not None else self._num_threads
         if self._ti.multivariate:
-            result = ds_simulate_mv(
+            result = ds_simulate(
                 training_image=self._ti,
                 sim_shape=shape,
                 n_neighbors=self._n_neighbors,
@@ -1338,7 +1248,7 @@ class DirectSampling(Field):
             if conditions
             else None
         )
-        mv_result = ds_simulate_mv(
+        mv_result = ds_simulate(
             training_image=mv_ti,
             sim_shape=shape,
             n_neighbors=self._n_neighbors,

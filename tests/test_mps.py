@@ -10,8 +10,8 @@ from gstools import config as gs_config
 from gstools.mps.direct_sampling import (
     DirectSampling,
     _precompute_offsets,
+    _univar_as_mv_ti,
     ds_simulate,
-    ds_simulate_mv,
 )
 from gstools.mps.distance import (
     categorical_dist,
@@ -640,17 +640,18 @@ class TestDirectSampling(unittest.TestCase):
         self.assertTrue(np.all(field <= 1.0))
 
     def test_ds_simulate_direct(self):
+        rng = np.random.RandomState(7)
         result = ds_simulate(
-            self.ti1d,
+            _univar_as_mv_ti(self.ti1d),
             sim_shape=(8,),
             n_neighbors=4,
             threshold=0.0,
             scan_fraction=1.0,
-            rng=np.random.RandomState(7),
-        )
+            rng_path=rng,
+            rng_nodes=rng,
+        )["_v"]
         self.assertEqual(result.shape, (8,))
         self.assertFalse(np.any(np.isnan(result)))
-        # Check values — seeded values for ds_simulate(seed=7) with ti1d
         self.assertTrue(set(np.unique(result)).issubset({0.0, 1.0}))
 
     def test_empty_search_window_recovery(self):
@@ -1474,20 +1475,21 @@ class TestUnivarEqualsSingleVarMv(unittest.TestCase):
             gs_config.USE_GSTOOLS_CORE = use_core
             rng_seed = 42
 
-            # univariate path
+            # univariate TI wrapped as single-var mv
             uni_rng = np.random.RandomState(rng_seed)
             result_uni = ds_simulate(
-                self.ti_uni,
+                _univar_as_mv_ti(self.ti_uni),
                 sim_shape=self.sim_shape,
                 n_neighbors=8,
                 threshold=0.0,
                 scan_fraction=1.0,
-                rng=uni_rng,
-            )
+                rng_path=uni_rng,
+                rng_nodes=uni_rng,
+            )["_v"]
 
-            # single-variable multivariate path
+            # native single-variable mv TI
             mv_rng = np.random.RandomState(rng_seed)
-            result_mv_dict = ds_simulate_mv(
+            result_mv = ds_simulate(
                 self.ti_mv1,
                 sim_shape=self.sim_shape,
                 n_neighbors=8,
@@ -1495,13 +1497,12 @@ class TestUnivarEqualsSingleVarMv(unittest.TestCase):
                 scan_fraction=1.0,
                 rng_path=mv_rng,
                 rng_nodes=mv_rng,
-            )
-            result_mv = result_mv_dict["_v"]
+            )["_v"]
 
             np.testing.assert_array_equal(
                 result_uni,
                 result_mv,
-                err_msg=f"univariate != single-var-mv (use_core={use_core})",
+                err_msg=f"_univar_as_mv_ti != native single-var mv (use_core={use_core})",
             )
         finally:
             gs_config.USE_GSTOOLS_CORE = orig
