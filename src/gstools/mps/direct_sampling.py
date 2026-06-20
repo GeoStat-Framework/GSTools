@@ -10,6 +10,7 @@ The following classes and functions are provided
 """
 
 import queue
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -104,6 +105,13 @@ def _precompute_offsets(shape, max_offset=None):
     dim = len(shape)
     if max_offset is None:
         max_offset = max(shape)
+    estimated_elements = (2 * max_offset + 1) ** dim
+    if estimated_elements > 5_000_000:
+        raise ValueError(
+            f"_precompute_offsets would allocate ~{estimated_elements * dim * 8 // 1_000_000} MB "
+            f"(max_offset={max_offset}, dim={dim}). Set max_radius to bound the "
+            "neighbourhood search radius."
+        )
     rng_vals = np.arange(-max_offset, max_offset + 1)
     grid = np.array(np.meshgrid(*[rng_vals] * dim, indexing="ij"))
     offsets = grid.reshape(dim, -1).T
@@ -133,7 +141,9 @@ def _select_neighbors(
     """
     if _use_core():
         inf_flat = (
-            None if informed is None else np.ascontiguousarray(informed).ravel()
+            None
+            if informed is None
+            else np.ascontiguousarray(informed).ravel()
         )
         r_sq = None if max_radius is None else float(max_radius) ** 2
         return _gstools_core.mps_select_neighbors(
@@ -228,7 +238,9 @@ def _select_neighbors_py(
     )
 
 
-def _build_dag_base(path, sim_shape, offset_arr, vmap_dict, n_k_dict, max_radius=None):
+def _build_dag_base(
+    path, sim_shape, offset_arr, vmap_dict, n_k_dict, max_radius=None
+):
     """Unified dependency-DAG builder for both univariate and multivariate DS.
 
     Parameters
@@ -316,12 +328,25 @@ def _transform_lags(lags, M, *arrays):
         _, keep_idx = np.unique(lags_ti, axis=0, return_index=True)
         keep_idx = np.sort(keep_idx)
         if len(keep_idx) < len(lags_ti):
+            # Constant message (no per-call count) so the stdlib default
+            # "once per location" filter collapses the routine anisotropic case
+            # to a single warning per session instead of one per node.
+            warnings.warn(
+                "Anisotropy/rotation transform collapsed neighbour lag(s) onto "
+                "duplicate TI positions; the duplicates are excluded from the "
+                "data event. Reduce the anisotropy ratio or rotation to retain "
+                "them.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
             lags_ti = lags_ti[keep_idx]
             arrays = tuple(a[keep_idx] for a in arrays)
     return (lags_ti,) + arrays
 
 
-def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
+def _scan_window_py(
+    lo, win_shape, start, max_scan, threshold, dist_fn, u_fallback, ti_shape
+):
     """Chunked vectorized TI window scan (pure-Python path).
 
     Parameters
@@ -339,6 +364,11 @@ def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
     dist_fn : callable
         ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
         anchor coordinates ``y_blk`` of shape ``(b, dim)``.
+    u_fallback : numpy.ndarray, shape (dim,)
+        Pre-drawn uniform [0, 1) values for fallback cell selection when all
+        distances are NaN.
+    ti_shape : numpy.ndarray or tuple
+        Training image shape for fallback cell generation.
 
     Returns
     -------
@@ -358,17 +388,27 @@ def _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn):
     # matching a single ``argmin`` over the whole window.
     accept = threshold if threshold > 0 else 0.0
 
+    # DS mode (threshold > 0): strict acceptance d < t (Mariethoz2010 ¶23).
+    # DSBC mode (threshold <= 0, accept == 0): accept the exact match d == 0,
+    # i.e. d <= 0, since distances are non-negative (Juda2022 §2).
+    dsbc = threshold <= 0
     best_d, best_y = np.inf, None
     for b0 in range(0, max_scan, _SCAN_BLOCK):
         y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
         d_blk = dist_fn(y_blk)
-        under = d_blk <= accept
+        under = d_blk <= accept if dsbc else d_blk < accept
         if np.any(under):
             return y_blk[int(np.argmax(under))]
         k = int(np.argmin(d_blk))
         if d_blk[k] < best_d:
             best_d = float(d_blk[k])
             best_y = y_blk[k]
+    if best_y is None:
+        # M10 para [15]: empty-neighbourhood fallback — draw uniformly from TI
+        best_y = np.array(
+            [int(u_fb * s) for u_fb, s in zip(u_fallback, ti_shape)],
+            dtype=int,
+        )
     return best_y
 
 
@@ -411,6 +451,16 @@ def _window_bounds(lags_ti, ti_shape, boundary):
         ).astype(int)
         if np.all(win_lo <= win_hi):
             return win_lo, win_hi, len(lags_ti)
+        # Strict window infeasible (TI too small for the full data event).
+        # Fall through to partial truncation, but do not do so silently.
+        warnings.warn(
+            "boundary='strict' could not fit the full data event inside the "
+            "TI; falling back to partial mode (dropping the furthest "
+            "neighbour(s)). Ensure the TI is at least as large as the data "
+            "event extent to enforce strict mode.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
     keep = len(lags_ti)
     while keep > 0:
@@ -429,13 +479,34 @@ def _window_bounds(lags_ti, ti_shape, boundary):
     return None, None, -1
 
 
-def _marshal_ffi(ti_list, ti_shape_k, lag_list, de_list, w_list, var_w,
-                 codes, params, lo, win_shape, threshold, max_scan, start):
+def _marshal_ffi(
+    ti_list,
+    ti_shape_k,
+    lag_list,
+    de_list,
+    w_list,
+    var_w,
+    codes,
+    params,
+    lo,
+    win_shape,
+    threshold,
+    max_scan,
+    start,
+    u_fallback,
+    ti_shape,
+):
     """Call the Rust MPS scan kernel and return the winning TI anchor ``y``.
 
     All list/array arguments must be pre-assembled by the caller with the
     correct dtypes and contiguity.  ``start`` must be drawn by the caller
     before this call so that both backends consume the same RNG state.
+
+    A returned window position ``< 0`` signals that every scanned candidate
+    had a non-finite (NaN) distance, i.e. the empty-neighbourhood fallback
+    (M10 para [15]): the cell is then drawn uniformly from the TI marginal
+    using ``u_fallback``, exactly as the pure-Python ``_scan_window_py`` does,
+    so the Rust and Python backends stay bit-identical.
 
     Returns
     -------
@@ -458,10 +529,28 @@ def _marshal_ffi(ti_list, ti_shape_k, lag_list, de_list, w_list, var_w,
         int(start),
         None,
     )
-    return np.asarray(lo) + np.array(np.unravel_index(int(win_pos), tuple(win_shape)))
+    win_pos = int(win_pos)
+    if win_pos < 0:
+        return np.array(
+            [int(u_fb * s) for u_fb, s in zip(u_fallback, ti_shape)],
+            dtype=int,
+        )
+    return np.asarray(lo) + np.array(
+        np.unravel_index(win_pos, tuple(win_shape))
+    )
 
 
-def _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, dist_fn):
+def _scan_window(
+    lo,
+    win_shape,
+    start,
+    max_scan,
+    threshold,
+    ffi_args,
+    dist_fn,
+    u_fallback,
+    ti_shape,
+):
     """Dispatch the TI window scan to the Rust or pure-Python kernel.
 
     ``start`` must be drawn by the caller (outside this function) so that both
@@ -485,6 +574,11 @@ def _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, dist_fn):
         Pass ``None`` to force the pure-Python path.
     dist_fn : callable
         ``dist_fn(y_blk) → 1-D distance array`` for the pure-Python path.
+    u_fallback : numpy.ndarray, shape (dim,)
+        Pre-drawn uniform [0, 1) values for fallback cell selection when all
+        distances are NaN.
+    ti_shape : numpy.ndarray or tuple
+        Training image shape for fallback cell generation.
 
     Returns
     -------
@@ -492,8 +586,26 @@ def _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, dist_fn):
         Coordinate of the best matching TI anchor.
     """
     if ffi_args is not None and _use_core():
-        return _marshal_ffi(*ffi_args, lo, win_shape, threshold, max_scan, start)
-    return _scan_window_py(lo, win_shape, start, max_scan, threshold, dist_fn)
+        return _marshal_ffi(
+            *ffi_args,
+            lo,
+            win_shape,
+            threshold,
+            max_scan,
+            start,
+            u_fallback,
+            ti_shape,
+        )
+    return _scan_window_py(
+        lo,
+        win_shape,
+        start,
+        max_scan,
+        threshold,
+        dist_fn,
+        u_fallback,
+        ti_shape,
+    )
 
 
 def _univar_as_mv_ti(ti):
@@ -568,9 +680,6 @@ def _make_progress(progress, total, desc):
         print()
 
     return update, close
-
-
-
 
 
 def _run_path(
@@ -717,7 +826,9 @@ def ds_simulate(
         ``{variable: numpy.ndarray}`` — one simulated field per variable.
     """
     variables = training_image.variables
-    weights = training_image.weights  # hoisted once (avoid per-block dict copy)
+    weights = (
+        training_image.weights
+    )  # hoisted once (avoid per-block dict copy)
     ti_shape = np.array(training_image.shape)
     sim_shape_arr = np.array(sim_shape)
     dim = len(sim_shape)
@@ -755,7 +866,7 @@ def ds_simulate(
     path = np.argwhere(unknown)
     path = path[rng_path.permutation(len(path))]
     n_nodes = len(path)
-    u_start    = rng_nodes.uniform(size=n_nodes)
+    u_start = rng_nodes.uniform(size=n_nodes)
     u_fallback = rng_nodes.uniform(size=(n_nodes, dim))
 
     sg_size = int(np.prod(sim_shape))
@@ -786,7 +897,9 @@ def ds_simulate(
         cell = tuple(int(u_fb_i[d] * s) for d, s in enumerate(ti_shape))
         return {v: float(ti_vars[v][cell]) for v in targets}
 
-    def _joint_scan(lo, win_shape, int_lags, de_v, cm_v, ln_v, u_start_i):
+    def _joint_scan(
+        lo, win_shape, int_lags, de_v, cm_v, ln_v, u_start_i, u_fallback_i
+    ):
         # Mirrors _scan_ti: full vectorized argmin for DSBC (threshold <= 0),
         # chunked first-under-threshold for DS (threshold > 0).  Returns the
         # single best TI cell coordinate ``y``; the caller copies TI[v][y] to all
@@ -808,8 +921,11 @@ def ds_simulate(
         # pure-Python _dist_block to avoid duplicate work.
         precomp_w = {
             v: compute_node_weights(
-                len(de_v[v]), ln_v[v],
-                training_image.distance_power, cm_v[v], cond_weight,
+                len(de_v[v]),
+                ln_v[v],
+                training_image.distance_power,
+                cm_v[v],
+                cond_weight,
             )
             for v in active_vars
         }
@@ -828,14 +944,23 @@ def ds_simulate(
                 ti_list.append(
                     np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
                 )
-                lag_list.append(np.ascontiguousarray(int_lags[v], dtype=np.int64))
+                lag_list.append(
+                    np.ascontiguousarray(int_lags[v], dtype=np.int64)
+                )
                 de_list.append(np.ascontiguousarray(de_v[v], dtype=np.float64))
                 w_list.append(precomp_w[v])
                 codes.append(code)
                 params.append([d_max, p])
                 var_w.append(weights[v])
             ffi_args = (
-                ti_list, ti_shape_k, lag_list, de_list, w_list, var_w, codes, params,
+                ti_list,
+                ti_shape_k,
+                lag_list,
+                de_list,
+                w_list,
+                var_w,
+                codes,
+                params,
             )
 
         def _dist_block(y_blk):
@@ -845,7 +970,12 @@ def ds_simulate(
                 coords = y_blk[:, None, :] + il[None, :, :]
                 all_de_ti = ti_vars[v][tuple(coords.transpose(2, 0, 1))]
                 d += weights[v] * training_image.vec_distance_var(
-                    v, de_v[v], all_de_ti, cm_v[v], cond_weight, ln_v[v],
+                    v,
+                    de_v[v],
+                    all_de_ti,
+                    cm_v[v],
+                    cond_weight,
+                    ln_v[v],
                     weights=precomp_w[v],
                 )
             # Renormalize so the joint distance stays in [0, 1] even when
@@ -856,7 +986,17 @@ def ds_simulate(
                 d /= active_w_total
             return d
 
-        return _scan_window(lo, win_shape, start, max_scan, threshold, ffi_args, _dist_block)
+        return _scan_window(
+            lo,
+            win_shape,
+            start,
+            max_scan,
+            threshold,
+            ffi_args,
+            _dist_block,
+            u_fallback_i,
+            ti_shape,
+        )
 
     def _simulate_node_mv(curr_idx, x_i, u_start_i, u_fallback_i):
         x_i_t = tuple(int(c) for c in x_i)
@@ -902,13 +1042,19 @@ def ds_simulate(
         if rotation_map is not None or anis_map is not None:
             angles_i = set_angles(
                 dim,
-                (rotation_map if rotation_map.ndim == 1 else rotation_map[tuple(x_i)])
-                if rotation_map is not None else 0.0,
+                (
+                    rotation_map
+                    if rotation_map.ndim == 1
+                    else rotation_map[tuple(x_i)]
+                )
+                if rotation_map is not None
+                else 0.0,
             )
             anis_i = set_anis(
                 dim,
                 (anis_map if anis_map.ndim == 1 else anis_map[tuple(x_i)])
-                if anis_map is not None else 1.0,
+                if anis_map is not None
+                else 1.0,
             )
             M = matrix_isometrize(dim, angles_i, anis_i)
             lags_ti_v = {}
@@ -950,9 +1096,7 @@ def ds_simulate(
         # Integer lags per variable (already exact integers as float64, incl.
         # the 0.0 h=0 row); reused for the scan and the mean-shift gather.
         int_lags = {
-            v: lags_ti_v[v].astype(int)
-            for v in variables
-            if len(lags_ti_v[v])
+            v: lags_ti_v[v].astype(int) for v in variables if len(lags_ti_v[v])
         }
         y = _joint_scan(
             win_lo,
@@ -962,6 +1106,7 @@ def ds_simulate(
             cm_v,
             ln_v,
             u_start_i,
+            u_fallback_i,
         )
         y_t = tuple(int(c) for c in y)
         # Copy the single matched cell's vector to every uninformed variable.
@@ -1054,6 +1199,35 @@ class DirectSampling(Field):
         """Validate and normalise *n_neighbors*; return ``int`` or ``dict of int``."""
         return _mv_validate_n_neighbors(value, ti)
 
+    @staticmethod
+    def _validate_variation_n_neighbors(n_neighbors, ti):
+        """Reject variation distance with a single-neighbour data event.
+
+        The variation distance (Mariethoz2010 Eq. 9) compares each event to its
+        own local mean. With ``n_neighbors == 1`` the local mean equals the sole
+        value, so every deviation is zero and every TI candidate matches — the
+        scan degenerates to a random draw. Fail fast instead.
+        """
+        dist_type = ti.distance_type
+        if isinstance(dist_type, dict):
+            dist_map = dist_type
+            n_map = (
+                n_neighbors
+                if isinstance(n_neighbors, dict)
+                else {v: n_neighbors for v in dist_map}
+            )
+        else:
+            dist_map = {None: dist_type}
+            n_map = {None: n_neighbors}
+        for var, dt in dist_map.items():
+            if isinstance(dt, str) and dt.lower().startswith("variation"):
+                if int(n_map[var]) < 2:
+                    where = "" if var is None else f" for variable {var!r}"
+                    raise ValueError(
+                        f"distance='variation' requires n_neighbors >= 2{where}: "
+                        "a single-point data event has no local mean deviation."
+                    )
+
     def __init__(
         self,
         model_or_ti,
@@ -1092,6 +1266,9 @@ class DirectSampling(Field):
         super().__init__(model=None, dim=model.ti.ndim, value_type="scalar")
         self._ti = model.ti
         self._n_neighbors = model.n_neighbors
+        DirectSampling._validate_variation_n_neighbors(
+            self._n_neighbors, self._ti
+        )
         self._scan_fraction = model.scan_fraction
         self._threshold = model.threshold
         self._cond_weight = model.cond_weight
@@ -1197,7 +1374,9 @@ class DirectSampling(Field):
             else RNG(int(node_seed)).random
         )
         # Call-time num_threads overrides the instance default.
-        n_threads = num_threads if num_threads is not None else self._num_threads
+        n_threads = (
+            num_threads if num_threads is not None else self._num_threads
+        )
         if self._ti.multivariate:
             result = ds_simulate(
                 training_image=self._ti,
@@ -1272,11 +1451,11 @@ class DirectSampling(Field):
 
         Univariate returns ``{idx: value}``; multivariate returns
         ``{idx: {variable: value}}`` with non-finite (NaN) entries skipped. When
-        two points snap to the same node, the one closer to the node centre wins
-        for all of its variables.
-        When the closer point carries ``NaN`` for a variable, that variable is
-        not conditioned at the node even if a farther colliding point had a
-        finite value there.
+        two points snap to the same node, the conflict is resolved
+        **per variable**: for each variable the closest colliding point with a
+        finite value wins. A farther point therefore still contributes its
+        finite values for any variable the closer point left ``NaN``, so valid
+        conditioning data is never silently discarded.
 
         Parameters
         ----------
@@ -1290,18 +1469,26 @@ class DirectSampling(Field):
         if self._cond_pos is None:
             return {}
         if self._ti.multivariate and isinstance(self._cond_val, dict):
-            candidates = {}  # idx -> (val_dict, dist_sq)
+            if not self._cond_val:
+                raise ValueError("cond_val must not be empty")
+            # idx -> {variable: (value, dist_sq)}; the closest finite value per
+            # variable wins, so a farther point fills variables the closer one
+            # left NaN (per-variable collision resolution).
+            candidates = {}
             n_cond = len(next(iter(self._cond_val.values())))
             for k in range(n_cond):
                 idx, dist_sq = self._snap_to_nearest(axes, k)
-                val_dict = {
-                    v: float(self._cond_val[v][k])
-                    for v in self._cond_val
-                    if np.isfinite(self._cond_val[v][k])
-                }
-                if idx not in candidates or dist_sq < candidates[idx][1]:
-                    candidates[idx] = (val_dict, dist_sq)
-            return {idx: vd for idx, (vd, _) in candidates.items()}
+                var_best = candidates.setdefault(idx, {})
+                for v in self._cond_val:
+                    val = self._cond_val[v][k]
+                    if not np.isfinite(val):
+                        continue
+                    if v not in var_best or dist_sq < var_best[v][1]:
+                        var_best[v] = (float(val), dist_sq)
+            return {
+                idx: {v: val for v, (val, _) in var_best.items()}
+                for idx, var_best in candidates.items()
+            }
         # univariate (unchanged)
         candidates = {}  # idx -> (val, dist_sq)
         for k in range(self._cond_val.shape[0]):
@@ -1340,6 +1527,14 @@ class DirectSampling(Field):
         if cond_weight is not None:
             self._cond_weight = float(cond_weight)
         if self._ti.multivariate and isinstance(cond_val, dict):
+            if not cond_val:
+                raise ValueError("cond_val must not be empty")
+            unknown = set(cond_val) - set(self._ti.variables)
+            if unknown:
+                raise ValueError(
+                    f"cond_val contains unknown variable(s): {sorted(unknown)}. "
+                    f"TI variables are: {sorted(self._ti.variables)}"
+                )
             cond_pos_arr = np.asarray(cond_pos, dtype=np.double).reshape(
                 self.dim, -1
             )
@@ -1447,7 +1642,9 @@ class DirectSampling(Field):
 
     @n_neighbors.setter
     def n_neighbors(self, value):
-        self._n_neighbors = DirectSampling._validate_n_neighbors(value, self._ti)
+        validated = DirectSampling._validate_n_neighbors(value, self._ti)
+        DirectSampling._validate_variation_n_neighbors(validated, self._ti)
+        self._n_neighbors = validated
 
     @property
     def scan_fraction(self):
@@ -1542,9 +1739,15 @@ class DirectSampling(Field):
             f"boundary={self.boundary!r}",
         ]
         if self._rotation is not None:
-            rot_val = float(self._rotation) if self._rotation.ndim == 0 else self._rotation
+            rot_val = (
+                float(self._rotation)
+                if self._rotation.ndim == 0
+                else self._rotation
+            )
             parts.append(f", rotation={rot_val!r}")
         if self._anis is not None:
-            anis_val = float(self._anis) if self._anis.ndim == 0 else self._anis
+            anis_val = (
+                float(self._anis) if self._anis.ndim == 0 else self._anis
+            )
             parts.append(f", anis={anis_val!r}")
         return "".join(parts) + ")"
