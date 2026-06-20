@@ -25,27 +25,7 @@ from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
 from gstools.tools.geometric import matrix_isometrize, set_angles, set_anis
 
-try:  # pragma: no cover - exercised only when the Rust backend is installed
-    import gstools_core as _gstools_core
-except ImportError:  # pragma: no cover
-    _gstools_core = None
-
 __all__ = ["DirectSampling"]
-
-
-def _use_core():
-    """Whether the gstools_core MPS kernels should handle the inner loops.
-
-    Gated on the runtime ``config`` flags (user-toggleable) and a feature
-    check, so an older ``gstools_core`` without the MPS kernels falls back to
-    the authoritative pure-Python path.
-    """
-    return (
-        _gstools_core is not None
-        and config.USE_GSTOOLS_CORE
-        and config._GSTOOLS_CORE_AVAIL
-        and hasattr(_gstools_core, "mps_scan_ti")
-    )
 
 
 # Sentinel variable name used when wrapping a univariate TI for the MV engine.
@@ -131,31 +111,8 @@ def _select_neighbors(
     max_radius,
     n_neighbors,
 ):
-    """Closest valid neighbours of ``x_i`` — gstools_core kernel or Python.
-
-    Dispatches to :func:`gstools_core.mps_select_neighbors` when the Rust
-    backend is active, else to the authoritative :func:`_select_neighbors_py`.
-    The Rust kernel uses a *flat* informed mask and a *squared* radius, so the
-    2-D ``informed`` grid is raveled (a view, no copy) and ``max_radius`` is
-    squared here. See :func:`_select_neighbors_py` for the full contract.
-    """
-    if _use_core():
-        inf_flat = (
-            None
-            if informed is None
-            else np.ascontiguousarray(informed).ravel()
-        )
-        r_sq = None if max_radius is None else float(max_radius) ** 2
-        return _gstools_core.mps_select_neighbors(
-            np.ascontiguousarray(x_i, dtype=np.int64),
-            np.ascontiguousarray(offset_arr, dtype=np.int64),
-            np.ascontiguousarray(sim_shape_arr, dtype=np.int64),
-            np.ascontiguousarray(path_pos_map, dtype=np.int64),
-            int(curr_idx),
-            inf_flat,
-            r_sq,
-            int(n_neighbors),
-        )
+    """Closest valid neighbours of ``x_i`` — see :func:`_select_neighbors_py`
+    for the full contract."""
     return _select_neighbors_py(
         x_i,
         offset_arr,
@@ -258,29 +215,6 @@ def _build_dag_base(
     """
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
-
-    if _use_core() and N:
-        # Batched DAG build in Rust (parallel neighbour search + CSR assembly),
-        # then CSR -> (indegree dict, out_edges) in the executor's format.  The
-        # ``key`` order of ``vmap_dict`` fixes the variable index used by the
-        # kernel, so edge order matches the pure-Python builder exactly.
-        keys = list(vmap_dict)
-        r_sq = None if max_radius is None else float(max_radius) ** 2
-        indeg, indptr, edge_node, edge_var = _gstools_core.mps_build_dag(
-            np.ascontiguousarray(path, dtype=np.int64),
-            np.ascontiguousarray(sim_shape_arr, dtype=np.int64),
-            np.ascontiguousarray(offset_arr, dtype=np.int64),
-            [np.ascontiguousarray(vmap_dict[k], dtype=np.int64) for k in keys],
-            [int(n_k_dict[k]) for k in keys],
-            r_sq,
-            None,
-        )
-        indegree = {k: indeg[v].astype(np.int32) for v, k in enumerate(keys)}
-        out_edges = [[] for _ in range(N)]
-        for j in range(N):
-            for c in range(int(indptr[j]), int(indptr[j + 1])):
-                out_edges[j].append((int(edge_node[c]), keys[edge_var[c]]))
-        return indegree, out_edges
 
     indegree = {k: np.zeros(N, dtype=np.int32) for k in vmap_dict}
     out_edges = [[] for _ in range(N)]
@@ -477,135 +411,6 @@ def _window_bounds(lags_ti, ti_shape, boundary):
             return sw_lo, sw_hi, keep
         keep -= 1
     return None, None, -1
-
-
-def _marshal_ffi(
-    ti_list,
-    ti_shape_k,
-    lag_list,
-    de_list,
-    w_list,
-    var_w,
-    codes,
-    params,
-    lo,
-    win_shape,
-    threshold,
-    max_scan,
-    start,
-    u_fallback,
-    ti_shape,
-):
-    """Call the Rust MPS scan kernel and return the winning TI anchor ``y``.
-
-    All list/array arguments must be pre-assembled by the caller with the
-    correct dtypes and contiguity.  ``start`` must be drawn by the caller
-    before this call so that both backends consume the same RNG state.
-
-    A returned window position ``< 0`` signals that every scanned candidate
-    had a non-finite (NaN) distance, i.e. the empty-neighbourhood fallback
-    (M10 para [15]): the cell is then drawn uniformly from the TI marginal
-    using ``u_fallback``, exactly as the pure-Python ``_scan_window_py`` does,
-    so the Rust and Python backends stay bit-identical.
-
-    Returns
-    -------
-    y : numpy.ndarray, shape (dim,)
-        Coordinate of the best matching TI anchor.
-    """
-    win_pos, _ = _gstools_core.mps_scan_ti(
-        ti_list,
-        ti_shape_k,
-        lag_list,
-        de_list,
-        w_list,
-        np.asarray(var_w, dtype=np.float64),
-        codes,
-        np.asarray(params, dtype=np.float64),
-        np.ascontiguousarray(lo, dtype=np.int64),
-        np.ascontiguousarray(win_shape, dtype=np.int64),
-        float(threshold),
-        int(max_scan),
-        int(start),
-        None,
-    )
-    win_pos = int(win_pos)
-    if win_pos < 0:
-        return np.array(
-            [int(u_fb * s) for u_fb, s in zip(u_fallback, ti_shape)],
-            dtype=int,
-        )
-    return np.asarray(lo) + np.array(
-        np.unravel_index(win_pos, tuple(win_shape))
-    )
-
-
-def _scan_window(
-    lo,
-    win_shape,
-    start,
-    max_scan,
-    threshold,
-    ffi_args,
-    dist_fn,
-    u_fallback,
-    ti_shape,
-):
-    """Dispatch the TI window scan to the Rust or pure-Python kernel.
-
-    ``start`` must be drawn by the caller (outside this function) so that both
-    backends consume the same RNG state regardless of which branch is taken.
-
-    Parameters
-    ----------
-    lo : array-like
-        Lower-left anchor of the search window in TI coordinates.
-    win_shape : tuple of int
-        Shape of the search window.
-    start : int
-        Starting flat-window position, drawn from the caller's per-node RNG.
-    max_scan : int
-        Maximum candidates to evaluate.
-    threshold : float
-        Early-exit distance threshold.  ``<= 0`` → DSBC (no early exit).
-    ffi_args : tuple or None
-        Pre-assembled args for :func:`_marshal_ffi`:
-        ``(ti_list, ti_shape_k, lag_list, de_list, w_list, var_w, codes, params)``.
-        Pass ``None`` to force the pure-Python path.
-    dist_fn : callable
-        ``dist_fn(y_blk) → 1-D distance array`` for the pure-Python path.
-    u_fallback : numpy.ndarray, shape (dim,)
-        Pre-drawn uniform [0, 1) values for fallback cell selection when all
-        distances are NaN.
-    ti_shape : numpy.ndarray or tuple
-        Training image shape for fallback cell generation.
-
-    Returns
-    -------
-    y : numpy.ndarray, shape (dim,)
-        Coordinate of the best matching TI anchor.
-    """
-    if ffi_args is not None and _use_core():
-        return _marshal_ffi(
-            *ffi_args,
-            lo,
-            win_shape,
-            threshold,
-            max_scan,
-            start,
-            u_fallback,
-            ti_shape,
-        )
-    return _scan_window_py(
-        lo,
-        win_shape,
-        start,
-        max_scan,
-        threshold,
-        dist_fn,
-        u_fallback,
-        ti_shape,
-    )
 
 
 def _univar_as_mv_ti(ti):
@@ -911,14 +716,11 @@ def ds_simulate(
         # the valid search window so we never wrap around and re-scan anchors.
         ti_size = int(np.prod(ti_shape))
         max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
-        # ``start`` is drawn before the backend dispatch so both paths consume
-        # the same RNG state (RNG invariant: never move below the ffi_args block).
         start = int(u_start_i * win_size)
 
         active_vars = [v for v in variables if v in int_lags]
         active_w_total = sum(weights[v] for v in active_vars)
-        # Compute node weights once; reused by both the Rust ffi_args and the
-        # pure-Python _dist_block to avoid duplicate work.
+        # Compute node weights once; reused across the _dist_block scan.
         precomp_w = {
             v: compute_node_weights(
                 len(de_v[v]),
@@ -929,39 +731,6 @@ def ds_simulate(
             )
             for v in active_vars
         }
-
-        # Rust joint scan: only active variables (those present in int_lags)
-        # are passed; the kernel renormalises by their weight sum exactly as
-        # ``_dist_block`` does.  ``start`` is drawn above so the RNG stream is
-        # backend-independent.  Returns the winning TI cell coordinate ``y``.
-        ffi_args = None
-        if _use_core():
-            ti_shape_k = np.asarray(ti_shape, dtype=np.int64)
-            ti_list, lag_list, de_list, w_list = [], [], [], []
-            codes, params, var_w = [], [], []
-            for v in active_vars:
-                code, d_max, p = training_image.distance_spec_var(v)
-                ti_list.append(
-                    np.ascontiguousarray(ti_vars[v], dtype=np.float64).ravel()
-                )
-                lag_list.append(
-                    np.ascontiguousarray(int_lags[v], dtype=np.int64)
-                )
-                de_list.append(np.ascontiguousarray(de_v[v], dtype=np.float64))
-                w_list.append(precomp_w[v])
-                codes.append(code)
-                params.append([d_max, p])
-                var_w.append(weights[v])
-            ffi_args = (
-                ti_list,
-                ti_shape_k,
-                lag_list,
-                de_list,
-                w_list,
-                var_w,
-                codes,
-                params,
-            )
 
         def _dist_block(y_blk):
             d = np.zeros(len(y_blk))
@@ -986,13 +755,12 @@ def ds_simulate(
                 d /= active_w_total
             return d
 
-        return _scan_window(
+        return _scan_window_py(
             lo,
             win_shape,
             start,
             max_scan,
             threshold,
-            ffi_args,
             _dist_block,
             u_fallback_i,
             ti_shape,

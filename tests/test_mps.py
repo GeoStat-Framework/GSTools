@@ -1388,70 +1388,12 @@ class TestNonstationarity(unittest.TestCase):
         self.assertFalse(np.array_equal(result_plain["a"], result_rot["a"]))
 
 
-class TestBackendEquivalence(unittest.TestCase):
-    """Rust kernel and pure-Python path must produce bit-identical output."""
-
-    def _run_both(self, ds_factory, pos, seed):
-        import gstools.config as cfg
-
-        orig = cfg.USE_GSTOOLS_CORE
-        try:
-            cfg.USE_GSTOOLS_CORE = True
-            result_rust = ds_factory()(pos, seed=seed)
-            cfg.USE_GSTOOLS_CORE = False
-            result_py = ds_factory()(pos, seed=seed)
-        finally:
-            cfg.USE_GSTOOLS_CORE = orig
-        return result_rust, result_py
-
-    def test_univariate_equivalence(self):
-        rng = np.random.default_rng(0)
-        ti = TrainingImage(rng.integers(0, 3, (20, 20)))
-        pos = [np.arange(8, dtype=float)] * 2
-        r, p = self._run_both(
-            lambda: DirectSampling(ti, n_neighbors=8, scan_fraction=0.5),
-            pos,
-            seed=42,
-        )
-        np.testing.assert_array_equal(r, p)
-
-    def test_multivariate_equivalence(self):
-        rng = np.random.default_rng(1)
-        ti = TrainingImage(
-            {
-                "a": rng.integers(0, 3, (20, 20)),
-                "b": rng.integers(0, 2, (20, 20)),
-            }
-        )
-        pos = [np.arange(8, dtype=float)] * 2
-        r, p = self._run_both(
-            lambda: DirectSampling(ti, n_neighbors=4, scan_fraction=0.5),
-            pos,
-            seed=42,
-        )
-        np.testing.assert_array_equal(r["a"], p["a"])
-        np.testing.assert_array_equal(r["b"], p["b"])
-
-    def test_nonstationary_equivalence(self):
-        rng = np.random.default_rng(2)
-        ti = TrainingImage(rng.integers(0, 3, (20, 20)))
-        pos = [np.arange(8, dtype=float)] * 2
-
-        def factory():
-            ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.5)
-            ds.set_nonstationary(rotation=np.pi / 4)
-            return ds
-
-        r, p = self._run_both(factory, pos, seed=7)
-        np.testing.assert_array_equal(r, p)
-
-
 class TestFullArraySnapshot(unittest.TestCase):
     """Bit-identical full-array regression pins — the step-by-step acceptance gate.
 
     These arrays are captured from the pre-refactoring engine with fixed seeds and
     must remain bit-identical (np.testing.assert_array_equal) after every
-    refactoring step, across both Rust and NumPy backends.
+    refactoring step.
     """
 
     # --- Reference TIs (seeded deterministically) ---
@@ -1478,114 +1420,96 @@ class TestFullArraySnapshot(unittest.TestCase):
         cls.x2d = np.arange(6, dtype=float)
         cls.y2d = np.arange(6, dtype=float)
 
-    def _run_for_backend(self, use_core):
-        orig = gs_config.USE_GSTOOLS_CORE
-        try:
-            gs_config.USE_GSTOOLS_CORE = use_core
+    def test_snapshot(self):
+        # --- univariate 1D, seed=42 ---
+        ds = DirectSampling(self.ti1d, n_neighbors=4, scan_fraction=1.0)
+        f = ds([self.x1d], seed=42)
+        np.testing.assert_array_equal(
+            f,
+            [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+            err_msg="snap_uni_1d seed=42",
+        )
+        # seed=99
+        f = ds([self.x1d], seed=99)
+        np.testing.assert_array_equal(
+            f,
+            [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+            err_msg="snap_uni_1d seed=99",
+        )
 
-            # --- univariate 1D, seed=42 ---
-            ds = DirectSampling(self.ti1d, n_neighbors=4, scan_fraction=1.0)
-            f = ds([self.x1d], seed=42)
-            np.testing.assert_array_equal(
-                f,
-                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                err_msg="snap_uni_1d seed=42",
-            )
-            # seed=99
-            f = ds([self.x1d], seed=99)
-            np.testing.assert_array_equal(
-                f,
-                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                err_msg="snap_uni_1d seed=99",
-            )
+        # --- univariate 2D checkerboard, seed=42 ---
+        ds2 = DirectSampling(self.ti2d, n_neighbors=4, scan_fraction=1.0)
+        f = ds2([self.x2d, self.y2d], seed=42)
+        np.testing.assert_array_equal(
+            f,
+            [
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+            ],
+            err_msg="snap_uni_2d_checker seed=42",
+        )
+        # seed=99
+        f = ds2([self.x2d, self.y2d], seed=99)
+        np.testing.assert_array_equal(
+            f,
+            [
+                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+            ],
+            err_msg="snap_uni_2d_checker seed=99",
+        )
 
-            # --- univariate 2D checkerboard, seed=42 ---
-            ds2 = DirectSampling(self.ti2d, n_neighbors=4, scan_fraction=1.0)
-            f = ds2([self.x2d, self.y2d], seed=42)
-            np.testing.assert_array_equal(
-                f,
-                [
-                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                ],
-                err_msg="snap_uni_2d_checker seed=42",
-            )
-            # seed=99
-            f = ds2([self.x2d, self.y2d], seed=99)
-            np.testing.assert_array_equal(
-                f,
-                [
-                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                ],
-                err_msg="snap_uni_2d_checker seed=99",
-            )
+        # --- univariate 2D random TI, seed=42 ---
+        ds3 = DirectSampling(self.ti2d_rand, n_neighbors=8, scan_fraction=0.5)
+        f = ds3([self.x2d, self.y2d], seed=42)
+        np.testing.assert_array_equal(
+            f,
+            [
+                [2.0, 0.0, 1.0, 2.0, 2.0, 1.0],
+                [1.0, 0.0, 0.0, 2.0, 1.0, 2.0],
+                [2.0, 2.0, 0.0, 0.0, 2.0, 2.0],
+                [2.0, 0.0, 1.0, 2.0, 0.0, 0.0],
+                [2.0, 2.0, 1.0, 2.0, 0.0, 1.0],
+                [2.0, 1.0, 2.0, 2.0, 2.0, 0.0],
+            ],
+            err_msg="snap_uni_rand seed=42",
+        )
 
-            # --- univariate 2D random TI, seed=42 ---
-            ds3 = DirectSampling(
-                self.ti2d_rand, n_neighbors=8, scan_fraction=0.5
-            )
-            f = ds3([self.x2d, self.y2d], seed=42)
-            np.testing.assert_array_equal(
-                f,
-                [
-                    [2.0, 0.0, 1.0, 2.0, 2.0, 1.0],
-                    [1.0, 0.0, 0.0, 2.0, 1.0, 2.0],
-                    [2.0, 2.0, 0.0, 0.0, 2.0, 2.0],
-                    [2.0, 0.0, 1.0, 2.0, 0.0, 0.0],
-                    [2.0, 2.0, 1.0, 2.0, 0.0, 1.0],
-                    [2.0, 1.0, 2.0, 2.0, 2.0, 0.0],
-                ],
-                err_msg="snap_uni_rand seed=42",
-            )
-
-            # --- multivariate 2D, seed=42 ---
-            ds_mv = DirectSampling(
-                self.ti_mv, n_neighbors=4, scan_fraction=0.5
-            )
-            res = ds_mv([self.x2d, self.y2d], seed=42)
-            np.testing.assert_array_equal(
-                res["a"],
-                [
-                    [0.0, 1.0, 0.0, 2.0, 0.0, 1.0],
-                    [2.0, 2.0, 1.0, 2.0, 1.0, 2.0],
-                    [1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
-                    [2.0, 2.0, 0.0, 0.0, 1.0, 0.0],
-                    [0.0, 1.0, 2.0, 2.0, 2.0, 2.0],
-                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
-                ],
-                err_msg="snap_mv var=a seed=42",
-            )
-            np.testing.assert_array_equal(
-                res["b"],
-                [
-                    [1.0, 1.0, 0.0, 0.0, 1.0, 1.0],
-                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-                    [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 1.0, 1.0, 1.0],
-                ],
-                err_msg="snap_mv var=b seed=42",
-            )
-        finally:
-            gs_config.USE_GSTOOLS_CORE = orig
-
-    def test_snapshot_rust_backend(self):
-        if not gs_config._GSTOOLS_CORE_AVAIL:
-            self.skipTest("gstools_core not available")
-        self._run_for_backend(use_core=True)
-
-    def test_snapshot_numpy_backend(self):
-        self._run_for_backend(use_core=False)
+        # --- multivariate 2D, seed=42 ---
+        ds_mv = DirectSampling(self.ti_mv, n_neighbors=4, scan_fraction=0.5)
+        res = ds_mv([self.x2d, self.y2d], seed=42)
+        np.testing.assert_array_equal(
+            res["a"],
+            [
+                [0.0, 1.0, 0.0, 2.0, 0.0, 1.0],
+                [2.0, 2.0, 1.0, 2.0, 1.0, 2.0],
+                [1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
+                [2.0, 2.0, 0.0, 0.0, 1.0, 0.0],
+                [0.0, 1.0, 2.0, 2.0, 2.0, 2.0],
+                [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
+            ],
+            err_msg="snap_mv var=a seed=42",
+        )
+        np.testing.assert_array_equal(
+            res["b"],
+            [
+                [1.0, 1.0, 0.0, 0.0, 1.0, 1.0],
+                [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 1.0, 1.0, 1.0],
+            ],
+            err_msg="snap_mv var=b seed=42",
+        )
 
 
 class TestDSSeedControl(unittest.TestCase):
@@ -1648,51 +1572,38 @@ class TestUnivarEqualsSingleVarMv(unittest.TestCase):
         cls.pos = [np.arange(8, dtype=float)] * 2
         cls.sim_shape = (8, 8)
 
-    def _check_both_equal(self, use_core):
-        orig = gs_config.USE_GSTOOLS_CORE
-        try:
-            gs_config.USE_GSTOOLS_CORE = use_core
-            rng_seed = 42
+    def test_equality(self):
+        rng_seed = 42
 
-            # univariate TI wrapped as single-var mv
-            uni_rng = np.random.RandomState(rng_seed)
-            result_uni = ds_simulate(
-                _univar_as_mv_ti(self.ti_uni),
-                sim_shape=self.sim_shape,
-                n_neighbors=8,
-                threshold=0.0,
-                scan_fraction=1.0,
-                rng_path=uni_rng,
-                rng_nodes=uni_rng,
-            )["_v"]
+        # univariate TI wrapped as single-var mv
+        uni_rng = np.random.RandomState(rng_seed)
+        result_uni = ds_simulate(
+            _univar_as_mv_ti(self.ti_uni),
+            sim_shape=self.sim_shape,
+            n_neighbors=8,
+            threshold=0.0,
+            scan_fraction=1.0,
+            rng_path=uni_rng,
+            rng_nodes=uni_rng,
+        )["_v"]
 
-            # native single-variable mv TI
-            mv_rng = np.random.RandomState(rng_seed)
-            result_mv = ds_simulate(
-                self.ti_mv1,
-                sim_shape=self.sim_shape,
-                n_neighbors=8,
-                threshold=0.0,
-                scan_fraction=1.0,
-                rng_path=mv_rng,
-                rng_nodes=mv_rng,
-            )["_v"]
+        # native single-variable mv TI
+        mv_rng = np.random.RandomState(rng_seed)
+        result_mv = ds_simulate(
+            self.ti_mv1,
+            sim_shape=self.sim_shape,
+            n_neighbors=8,
+            threshold=0.0,
+            scan_fraction=1.0,
+            rng_path=mv_rng,
+            rng_nodes=mv_rng,
+        )["_v"]
 
-            np.testing.assert_array_equal(
-                result_uni,
-                result_mv,
-                err_msg=f"_univar_as_mv_ti != native single-var mv (use_core={use_core})",
-            )
-        finally:
-            gs_config.USE_GSTOOLS_CORE = orig
-
-    def test_equality_numpy_backend(self):
-        self._check_both_equal(use_core=False)
-
-    def test_equality_rust_backend(self):
-        if not gs_config._GSTOOLS_CORE_AVAIL:
-            self.skipTest("gstools_core not available")
-        self._check_both_equal(use_core=True)
+        np.testing.assert_array_equal(
+            result_uni,
+            result_mv,
+            err_msg="_univar_as_mv_ti != native single-var mv",
+        )
 
 
 class TestTransformLagsCollapse(unittest.TestCase):

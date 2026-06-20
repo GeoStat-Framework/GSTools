@@ -276,47 +276,6 @@ class TrainingImage:
         return self._distance_power
 
     # ------------------------------------------------------------------
-    # Distance kernel dispatch metadata
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _spec(categorical, p_norm, variation_p_norm, d_max):
-        """Map a distance configuration to ``(code, d_max, p)``.
-
-        ``code`` matches the gstools_core ``mps_scan_ti`` kernel: 0 categorical,
-        1 L1, 2 L2, 3 Lp, 4 variation. Single source of truth shared with the
-        :meth:`vec_distance` dispatch chain; ``d_max``/``p`` are unused for
-        categorical (returned as ``1.0``/``nan``).
-        """
-        if categorical:
-            return 0, 1.0, float("nan")
-        if p_norm == 1.0:
-            return 1, d_max, 1.0
-        if p_norm == 2.0:
-            return 2, d_max, 2.0
-        if p_norm is not None:
-            return 3, d_max, p_norm
-        return 4, d_max, variation_p_norm
-
-    def distance_spec(self):
-        """Return ``(code, d_max, p)`` for the univariate scan kernel."""
-        return self._spec(
-            self._categorical,
-            self._p_norm,
-            self._variation_p_norm,
-            self._d_max,
-        )
-
-    def distance_spec_var(self, var):
-        """Return ``(code, d_max, p)`` for one multivariate component."""
-        return self._spec(
-            self._categorical[var],
-            self._p_norm[var],
-            self._variation_p_norm[var],
-            self._d_max[var],
-        )
-
-    # ------------------------------------------------------------------
     # Distance
     # ------------------------------------------------------------------
 
