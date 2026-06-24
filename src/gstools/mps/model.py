@@ -9,6 +9,47 @@ __all__ = ["MPSModel"]
 _VALID_BOUNDARY = ("strict", "partial")
 
 
+def _validate_boundary(value):
+    """Validate boundary; return normalized value or raise ValueError."""
+    if value not in _VALID_BOUNDARY:
+        raise ValueError(
+            f"MPSModel: boundary must be one of {_VALID_BOUNDARY!r}, "
+            f"got {value!r}"
+        )
+    return value
+
+
+def _validate_scan_fraction(value):
+    """Validate scan_fraction in (0, 1]; return float or raise ValueError."""
+    if not (0 < float(value) <= 1):
+        raise ValueError(
+            f"MPSModel: scan_fraction must be in (0, 1], got {value!r}"
+        )
+    return float(value)
+
+
+def _validate_threshold(value):
+    """Validate threshold >= 0, warn if > 1; return float or raise ValueError."""
+    if float(value) < 0:
+        raise ValueError(f"MPSModel: threshold must be >= 0, got {value!r}")
+    if float(value) > 1.0:
+        warnings.warn(
+            "threshold > 1.0 guarantees the first candidate is always accepted.",
+            UserWarning,
+            stacklevel=3,
+        )
+    return float(value)
+
+
+def _validate_max_radius(value):
+    """Validate max_radius is positive or None; return float/None or raise ValueError."""
+    if value is not None and float(value) <= 0:
+        raise ValueError(
+            f"MPSModel: max_radius must be a positive float, got {value!r}"
+        )
+    return float(value) if value is not None else None
+
+
 def _validate_n_neighbors(value, ti):
     """Validate and normalise *n_neighbors*; return ``int`` or ``dict of int``."""
     if isinstance(value, dict):
@@ -81,37 +122,13 @@ class MPSModel:
             raise TypeError(
                 f"MPSModel: ti must be a TrainingImage, got {type(ti)!r}"
             )
-        if boundary not in _VALID_BOUNDARY:
-            raise ValueError(
-                f"MPSModel: boundary must be one of {_VALID_BOUNDARY!r}, "
-                f"got {boundary!r}"
-            )
-        if not (0 < float(scan_fraction) <= 1):
-            raise ValueError(
-                f"MPSModel: scan_fraction must be in (0, 1], "
-                f"got {scan_fraction!r}"
-            )
-        if float(threshold) < 0:
-            raise ValueError(
-                f"MPSModel: threshold must be >= 0, got {threshold!r}"
-            )
-        if float(threshold) > 1.0:
-            warnings.warn(
-                "threshold > 1.0 guarantees the first candidate is always accepted.",
-                stacklevel=2,
-            )
-        if max_radius is not None and float(max_radius) <= 0:
-            raise ValueError(
-                f"MPSModel: max_radius must be a positive float, "
-                f"got {max_radius!r}"
-            )
         self._ti = ti
         self._n_neighbors = _validate_n_neighbors(n_neighbors, ti)
-        self._scan_fraction = float(scan_fraction)
-        self._threshold = float(threshold)
+        self._scan_fraction = _validate_scan_fraction(scan_fraction)
+        self._threshold = _validate_threshold(threshold)
         self._cond_weight = float(cond_weight)
-        self._boundary = boundary
-        self._max_radius = float(max_radius) if max_radius is not None else None
+        self._boundary = _validate_boundary(boundary)
+        self._max_radius = _validate_max_radius(max_radius)
 
     @property
     def ti(self):

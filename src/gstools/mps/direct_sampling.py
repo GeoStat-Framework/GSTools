@@ -18,12 +18,23 @@ import numpy as np
 from gstools import config
 from gstools.field.base import Field
 from gstools.mps.distance import compute_node_weights
-from gstools.mps.model import _VALID_BOUNDARY, MPSModel
+from gstools.mps.model import MPSModel
+from gstools.mps.model import _validate_boundary as _mv_validate_boundary
+from gstools.mps.model import _validate_max_radius as _mv_validate_max_radius
 from gstools.mps.model import _validate_n_neighbors as _mv_validate_n_neighbors
+from gstools.mps.model import (
+    _validate_scan_fraction as _mv_validate_scan_fraction,
+)
+from gstools.mps.model import _validate_threshold as _mv_validate_threshold
 from gstools.mps.training_image import TrainingImage
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
-from gstools.tools.geometric import matrix_isometrize, set_angles, set_anis
+from gstools.tools.geometric import (
+    matrix_isometrize,
+    no_of_angles,
+    set_angles,
+    set_anis,
+)
 
 __all__ = ["DirectSampling"]
 
@@ -38,14 +49,32 @@ _MV_VAR = "_v"
 _SCAN_BLOCK = 4096
 
 
-def _resolve_nonstationary_map(param, sim_shape):
+def _resolve_nonstationary_map(param, sim_shape, n_stationary):
     """Return ``None`` or an array broadcastable to ``sim_shape``.
 
-    Scalars and 0-d arrays are broadcast. A 1-D vector shorter than the
-    simulation grid (e.g. a 3-element Tait–Bryan angle triple for a 3-D grid)
-    is returned as-is so the caller's ``set_angles``/``set_anis`` can normalise
-    it to the expected length. A full per-node map must have leading dimensions
-    equal to ``sim_shape``.
+    Scalars and 0-d arrays are broadcast to the grid. A 1-D vector is a
+    *stationary* multi-component value (e.g. a 3-element Tait–Bryan angle triple
+    for a 3-D grid) and is accepted only when its length equals
+    ``n_stationary`` — the number of components a stationary value has for this
+    parameter and grid dimension. A *per-node* map must have leading dimensions
+    equal to ``sim_shape`` (i.e. a full-shape array, not a flattened vector).
+
+    Parameters
+    ----------
+    param : scalar or array-like or None
+        User-supplied rotation/anis value.
+    sim_shape : tuple
+        Simulation grid shape.
+    n_stationary : int
+        Component count of a stationary value for this parameter/dimension
+        (``no_of_angles(dim)`` for rotation, ``dim - 1`` for anis).
+
+    Raises
+    ------
+    ValueError
+        If a 1-D vector matches neither a stationary value nor the grid — the
+        common cause is a per-node map passed *flattened* instead of shaped
+        like the grid, which would otherwise silently apply only element [0].
     """
     if param is None:
         return None
@@ -53,10 +82,19 @@ def _resolve_nonstationary_map(param, sim_shape):
     if arr.ndim == 0 or arr.size == 1:
         return np.full(sim_shape, float(arr.flat[0]))
     if arr.ndim == 1:
-        # Stationary multi-component value (e.g. angle triple, anis vector).
-        # Return as-is; the caller passes it through set_angles/set_anis which
-        # normalise the length, then broadcasts the resulting scalar or vector.
-        return arr
+        # Only a genuine stationary multi-component value is accepted as 1-D.
+        # A per-node map is multi-dimensional (leading dims == grid); a 1-D
+        # array of any other length is almost certainly a flattened per-node
+        # map and would silently degrade to its first element — reject it.
+        if arr.size == n_stationary:
+            return arr
+        raise ValueError(
+            f"1-D non-stationary value of length {arr.size} matches neither a "
+            f"stationary value ({n_stationary} component(s) for a "
+            f"{len(sim_shape)}-D grid) nor a per-node map. For per-node values "
+            f"pass an array shaped like the grid {tuple(sim_shape)!r}, not a "
+            f"flattened vector."
+        )
     if arr.shape[: len(sim_shape)] == tuple(sim_shape):
         return arr
     raise ValueError(
@@ -69,6 +107,13 @@ def _resolve_nonstationary_map(param, sim_shape):
 
 def _precompute_offsets(shape, max_offset=None):
     """Neighbour offsets from the origin, sorted by Euclidean distance.
+
+    Among equidistant offsets the order is a **canonical lexicographic**
+    tie-break (by squared distance, then by each coordinate). This is
+    platform- and NumPy-version-independent — unlike the default ``argsort``
+    (unstable quicksort), whose tie order is implementation-defined — so that
+    ``n_neighbors`` cutting mid-shell yields the same neighbour subset, and the
+    simulation is reproducible across machines.
 
     Parameters
     ----------
@@ -96,37 +141,15 @@ def _precompute_offsets(shape, max_offset=None):
     grid = np.array(np.meshgrid(*[rng_vals] * dim, indexing="ij"))
     offsets = grid.reshape(dim, -1).T
     offsets = offsets[np.any(offsets != 0, axis=1)]
-    idx = np.argsort(np.sum(offsets**2, axis=1))
+    dist_sq = np.sum(offsets**2, axis=1)
+    # lexsort: last key is primary. Primary = squared distance; ties broken by
+    # coordinate 0, then 1, ... for a deterministic, portable ordering.
+    keys = [offsets[:, d] for d in range(dim - 1, -1, -1)] + [dist_sq]
+    idx = np.lexsort(keys)
     return offsets[idx]
 
 
 def _select_neighbors(
-    x_i,
-    offset_arr,
-    sim_shape_arr,
-    sim_shape,
-    path_pos_map,
-    curr_idx,
-    informed,
-    max_radius,
-    n_neighbors,
-):
-    """Closest valid neighbours of ``x_i`` — see :func:`_select_neighbors_py`
-    for the full contract."""
-    return _select_neighbors_py(
-        x_i,
-        offset_arr,
-        sim_shape_arr,
-        sim_shape,
-        path_pos_map,
-        curr_idx,
-        informed,
-        max_radius,
-        n_neighbors,
-    )
-
-
-def _select_neighbors_py(
     x_i,
     offset_arr,
     sim_shape_arr,
@@ -278,7 +301,7 @@ def _transform_lags(lags, M, *arrays):
     return (lags_ti,) + arrays
 
 
-def _scan_window_py(
+def _scan_window(
     lo, win_shape, start, max_scan, threshold, dist_fn, u_fallback, ti_shape
 ):
     """Chunked vectorized TI window scan (pure-Python path).
@@ -299,15 +322,18 @@ def _scan_window_py(
         ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
         anchor coordinates ``y_blk`` of shape ``(b, dim)``.
     u_fallback : numpy.ndarray, shape (dim,)
-        Pre-drawn uniform [0, 1) values for fallback cell selection when all
-        distances are NaN.
+        Unused (retained for signature stability); the no-candidate fallback is
+        now handled by the caller, which draws a *defined* TI cell.
     ti_shape : numpy.ndarray or tuple
-        Training image shape for fallback cell generation.
+        Unused (retained for signature stability).
 
     Returns
     -------
-    y : numpy.ndarray, shape (dim,)
-        Coordinate of the best matching TI anchor.
+    y : numpy.ndarray, shape (dim,) or None
+        Coordinate of the best matching TI anchor, or ``None`` when no candidate
+        in the window has a finite distance (every candidate excluded — e.g. an
+        all-undefined window on a masked TI). The caller treats ``None`` as the
+        empty-neighbourhood case and draws a defined TI cell.
     """
     win_size = int(np.prod(win_shape))
     positions = (start + np.arange(max_scan)) % win_size
@@ -337,13 +363,68 @@ def _scan_window_py(
         if d_blk[k] < best_d:
             best_d = float(d_blk[k])
             best_y = y_blk[k]
-    if best_y is None:
-        # M10 para [15]: empty-neighbourhood fallback — draw uniformly from TI
-        best_y = np.array(
-            [int(u_fb * s) for u_fb, s in zip(u_fallback, ti_shape)],
-            dtype=int,
-        )
+    # ``best_y is None`` means every candidate had a non-finite (excluded)
+    # distance — only reachable on a masked TI where the whole window is
+    # undefined. Signal the caller to fall back to a defined TI draw (M10
+    # para [15] empty-neighbourhood handling). For a fully-defined TI the loop
+    # always sets best_y, so this returns a real anchor unchanged.
     return best_y
+
+
+def _reduce_to_fit(lags_ti, ti_shape, *arrays):
+    """Globally reduce an over-large (transformed) data event to fit the TI.
+
+    Implements Mariethoz2010 para [43]: *"rotation or affinity may result in
+    large data events that do not fit in the TI. In such cases, the data event
+    nodes located outside of the TI are ignored until it becomes possible to
+    scan the TI with this new, reduced data event."*
+
+    The most-outside node — the one with the largest ``|lag|`` in the
+    most-violating dimension — is dropped first and the test repeated, until a
+    non-empty TI scan window exists for the reduced event. Nodes are dropped by
+    being *outside the TI* (geometry), **regardless of SG neighbour rank**,
+    which is the explicit distinction from :func:`_window_bounds` partial mode
+    (furthest-first). The reduction is **global** — computed once per simulation
+    node from the transformed lags and the TI shape alone, independent of which
+    TI cell is being scanned. The collocated ``h=0`` row is never dropped.
+
+    A window over a lag set exists iff, including the anchor at the origin, the
+    per-dimension extent ``max(0, max h_d) - min(0, min h_d)`` is at most
+    ``ti_shape_d - 1`` (a single lag with ``|h_d| > ti_d - 1`` therefore does
+    not fit and is reduced away).
+
+    Parameters
+    ----------
+    lags_ti : numpy.ndarray, shape (k, dim)
+        Transformed (TI-frame) integer lag vectors.
+    ti_shape : array-like, shape (dim,)
+        Training image shape.
+    *arrays : numpy.ndarray
+        Parallel arrays of length ``k`` sliced identically to ``lags_ti``.
+
+    Returns
+    -------
+    tuple
+        ``(reduced_lags_ti, *reduced_arrays)``.
+    """
+    ti1 = np.asarray(ti_shape) - 1
+    idx = np.arange(len(lags_ti))
+    while len(idx):
+        sub = lags_ti[idx]
+        nzmask = np.any(sub != 0, axis=1)
+        if not nzmask.any():
+            break
+        nz = sub[nzmask]
+        # Include the anchor (origin) so a lone far lag is correctly infeasible.
+        extent = np.maximum(0, nz.max(axis=0)) - np.minimum(0, nz.min(axis=0))
+        over = extent - ti1
+        if np.all(over <= 0):
+            break
+        d = int(np.argmax(over))  # most-violating dimension
+        cand = np.flatnonzero(nzmask)
+        drop = cand[int(np.argmax(np.abs(sub[cand, d])))]
+        idx = np.delete(idx, drop)
+    return (lags_ti[idx],) + tuple(a[idx] for a in arrays)
 
 
 def _window_bounds(lags_ti, ti_shape, boundary):
@@ -419,13 +500,19 @@ def _univar_as_mv_ti(ti):
     The resulting TI is bit-identical to a hand-crafted single-variable MV TI
     using the same data and distance parameters.  Used by ``ds_simulate`` and
     ``DirectSampling.__call__`` to route univariate work through ``ds_simulate``.
+
+    Re-wraps the *same* data the user already constructed, so any NaN/masked-TI
+    warning was already raised at the user's construction; suppress the
+    duplicate here.
     """
-    return TrainingImage(
-        {_MV_VAR: ti.data},
-        categorical={_MV_VAR: ti.categorical},
-        distance={_MV_VAR: ti.distance_type},
-        distance_power=ti.distance_power,
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        return TrainingImage(
+            {_MV_VAR: ti.data},
+            categorical={_MV_VAR: ti.categorical},
+            distance={_MV_VAR: ti.distance_type},
+            distance_power=ti.distance_power,
+        )
 
 
 def _make_progress(progress, total, desc):
@@ -696,14 +783,51 @@ def ds_simulate(
     # inside the per-node scan loop; all inner closures read from this dict.
     ti_vars = {v: training_image.variable(v) for v in variables}
 
+    # Masked-TI support: NaN cells are undefined. When present, distances
+    # exclude them per-position and fallback draws are restricted to cells that
+    # are defined in *every* variable (so a joint draw never yields NaN). The
+    # ``ti_has_nan`` gate keeps the fully-defined path byte-identical.
+    ti_has_nan = any(
+        np.issubdtype(a.dtype, np.floating) and np.isnan(a).any()
+        for a in ti_vars.values()
+    )
+    if ti_has_nan:
+        finite_all = np.ones(ti_shape, dtype=bool)
+        for a in ti_vars.values():
+            if np.issubdtype(a.dtype, np.floating):
+                finite_all &= ~np.isnan(a)
+        finite_flat = np.flatnonzero(finite_all.reshape(-1))
+        if finite_flat.size == 0:
+            raise ValueError(
+                "TrainingImage has no cell defined in all variables (every "
+                "cell is NaN in at least one variable); cannot simulate."
+            )
+    else:
+        finite_flat = None
+
     def _rand_fallback(targets, u_fb_i):
         # Single random TI cell supplies the whole node-vector (preserves the
-        # joint relationship); never an independent draw per variable.
-        cell = tuple(int(u_fb_i[d] * s) for d, s in enumerate(ti_shape))
+        # joint relationship); never an independent draw per variable. On a
+        # masked TI the draw is restricted to cells defined in every variable.
+        if ti_has_nan:
+            flat = finite_flat[int(u_fb_i[0] * len(finite_flat))]
+            cell = tuple(
+                int(c) for c in np.unravel_index(flat, tuple(ti_shape))
+            )
+        else:
+            cell = tuple(int(u_fb_i[d] * s) for d, s in enumerate(ti_shape))
         return {v: float(ti_vars[v][cell]) for v in targets}
 
     def _joint_scan(
-        lo, win_shape, int_lags, de_v, cm_v, ln_v, u_start_i, u_fallback_i
+        lo,
+        win_shape,
+        int_lags,
+        de_v,
+        cm_v,
+        ln_v,
+        u_start_i,
+        u_fallback_i,
+        scan_targets,
     ):
         # Mirrors _scan_ti: full vectorized argmin for DSBC (threshold <= 0),
         # chunked first-under-threshold for DS (threshold > 0).  Returns the
@@ -746,6 +870,7 @@ def ds_simulate(
                     cond_weight,
                     ln_v[v],
                     weights=precomp_w[v],
+                    has_nan=ti_has_nan,
                 )
             # Renormalize so the joint distance stays in [0, 1] even when
             # some variables have no data event and are excluded from int_lags.
@@ -753,9 +878,19 @@ def ds_simulate(
             # accepts matches that should be rejected.
             if 0.0 < active_w_total < 1.0:
                 d /= active_w_total
+            if ti_has_nan:
+                # Never select an anchor whose pasted value would be undefined:
+                # the matched cell must be defined in every target variable.
+                center_ok = np.ones(len(y_blk), dtype=bool)
+                ys = tuple(y_blk.T)
+                for v in scan_targets:
+                    cv = ti_vars[v][ys]
+                    if np.issubdtype(cv.dtype, np.floating):
+                        center_ok &= np.isfinite(cv)
+                d = np.where(center_ok, d, np.inf)
             return d
 
-        return _scan_window_py(
+        return _scan_window(
             lo,
             win_shape,
             start,
@@ -830,6 +965,13 @@ def ds_simulate(
                 lv_ti, lags_v[v], de_v[v], cm_v[v], ln_v[v] = _transform_lags(
                     lags_v[v], M, lags_v[v], de_v[v], cm_v[v], ln_v[v]
                 )
+                # M10 para [43]: globally reduce an over-large transformed event
+                # to fit the TI, dropping the most-outside node first (by TI
+                # extent, regardless of SG rank). One reduction per simulation
+                # node, independent of the TI scan position.
+                lv_ti, lags_v[v], de_v[v], cm_v[v], ln_v[v] = _reduce_to_fit(
+                    lv_ti, ti_shape, lags_v[v], de_v[v], cm_v[v], ln_v[v]
+                )
                 lags_ti_v[v] = lv_ti
         else:
             lags_ti_v = dict(lags_v)
@@ -875,7 +1017,14 @@ def ds_simulate(
             ln_v,
             u_start_i,
             u_fallback_i,
+            targets,
         )
+        if y is None:
+            # No candidate in the window was defined (masked TI): treat as the
+            # empty-neighbourhood case and draw a defined TI cell. Avoids the
+            # ``y + lag`` gather below, which an unconstrained cell could send
+            # out of bounds.
+            return _rand_fallback(targets, u_fallback_i)
         y_t = tuple(int(c) for c in y)
         # Copy the single matched cell's vector to every uninformed variable.
         result = {}
@@ -961,11 +1110,6 @@ class DirectSampling(Field):
     """
 
     default_field_names = ["field"]
-
-    @staticmethod
-    def _validate_n_neighbors(value, ti):
-        """Validate and normalise *n_neighbors*; return ``int`` or ``dict of int``."""
-        return _mv_validate_n_neighbors(value, ti)
 
     @staticmethod
     def _validate_variation_n_neighbors(n_neighbors, ti):
@@ -1124,10 +1268,26 @@ class DirectSampling(Field):
             raise ValueError(
                 "DirectSampling: only structured grids are supported."
             )
+        if self._ti.multivariate and isinstance(store, str):
+            # A multivariate run produces one field per variable; there is no
+            # single privileged field to store under a custom name. Reject it
+            # explicitly rather than silently dropping the name (the fields are
+            # always stored under their variable names).
+            raise ValueError(
+                "DirectSampling: a custom store name is not supported for "
+                "multivariate training images; each variable is stored under "
+                "its own name. Use store=True/False instead."
+            )
         name, save = self.get_store_config(store)
         pos, shape = self.pre_pos(pos, mesh_type)
-        rotation_map = _resolve_nonstationary_map(self._rotation, shape)
-        anis_map = _resolve_nonstationary_map(self._anis, shape)
+        # Stationary component counts disambiguate a 1-D value from a flattened
+        # per-node map: rotation has no_of_angles(dim) angles, anis has dim-1.
+        rotation_map = _resolve_nonstationary_map(
+            self._rotation, shape, no_of_angles(len(shape))
+        )
+        anis_map = _resolve_nonstationary_map(
+            self._anis, shape, max(len(shape) - 1, 1)
+        )
         conditions = self._conditions_to_grid(self.pos)
         if not np.isnan(seed):
             self.rng.seed = int(seed)
@@ -1410,7 +1570,7 @@ class DirectSampling(Field):
 
     @n_neighbors.setter
     def n_neighbors(self, value):
-        validated = DirectSampling._validate_n_neighbors(value, self._ti)
+        validated = _mv_validate_n_neighbors(value, self._ti)
         DirectSampling._validate_variation_n_neighbors(validated, self._ti)
         self._n_neighbors = validated
 
@@ -1421,11 +1581,7 @@ class DirectSampling(Field):
 
     @scan_fraction.setter
     def scan_fraction(self, value):
-        if not (0 < float(value) <= 1):
-            raise ValueError(
-                f"DirectSampling: scan_fraction must be in (0, 1], got {value!r}"
-            )
-        self._scan_fraction = float(value)
+        self._scan_fraction = _mv_validate_scan_fraction(value)
 
     @property
     def threshold(self):
@@ -1434,18 +1590,7 @@ class DirectSampling(Field):
 
     @threshold.setter
     def threshold(self, value):
-        if float(value) < 0:
-            raise ValueError(
-                f"DirectSampling: threshold must be >= 0, got {value!r}"
-            )
-        if float(value) > 1.0:
-            import warnings
-
-            warnings.warn(
-                "threshold > 1.0 guarantees the first candidate is always accepted.",
-                stacklevel=2,
-            )
-        self._threshold = float(value)
+        self._threshold = _mv_validate_threshold(value)
 
     @property
     def cond_weight(self):
@@ -1463,12 +1608,7 @@ class DirectSampling(Field):
 
     @boundary.setter
     def boundary(self, value):
-        if value not in _VALID_BOUNDARY:
-            raise ValueError(
-                f"DirectSampling: boundary must be one of {_VALID_BOUNDARY!r}, "
-                f"got {value!r}"
-            )
-        self._boundary = value
+        self._boundary = _mv_validate_boundary(value)
 
     @property
     def max_radius(self):
@@ -1482,12 +1622,7 @@ class DirectSampling(Field):
 
     @max_radius.setter
     def max_radius(self, value):
-        if value is not None and float(value) <= 0:
-            raise ValueError(
-                f"DirectSampling: max_radius must be a positive float, "
-                f"got {value!r}"
-            )
-        self._max_radius = float(value) if value is not None else None
+        self._max_radius = _mv_validate_max_radius(value)
 
     @property
     def num_threads(self):

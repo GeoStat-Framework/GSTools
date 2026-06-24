@@ -11,7 +11,8 @@ from gstools import config as gs_config
 from gstools.mps.direct_sampling import (
     DirectSampling,
     _precompute_offsets,
-    _scan_window_py,
+    _reduce_to_fit,
+    _scan_window,
     _transform_lags,
     _univar_as_mv_ti,
     _window_bounds,
@@ -113,7 +114,7 @@ class TestDirectSamplingParallel(unittest.TestCase):
             self.assertTrue(np.all(np.isin(field, [0, 1, 2, 3])))
 
     def test_all_nan_ti_no_typeerror(self):
-        # Regression test for _scan_window_py None return on all-NaN TI.
+        # Regression test for _scan_window None return on all-NaN TI.
         # When every candidate distance is NaN, best_y stays None without
         # the fallback. Verify the fallback is triggered and no TypeError occurs
         # (ValueError from NaN output is acceptable for all-NaN TI).
@@ -1263,6 +1264,34 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         self.assertFalse(np.any(np.isnan(field["b"])))
         np.testing.assert_array_equal(field["b"], field["a"] + 100)
 
+    def test_mv_custom_store_name_raises(self):
+        # Finding #6: a custom store name has no single field to bind to for a
+        # multivariate run; reject it instead of silently dropping it.
+        rng = np.random.default_rng(0)
+        ti = TrainingImage(
+            {
+                "a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20)),
+            }
+        )
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        with self.assertRaisesRegex(ValueError, "custom store name"):
+            ds([np.arange(6, dtype=float)] * 2, seed=0, store="myrun")
+
+    def test_mv_store_false_not_stored(self):
+        # store=False must still work for MV (no fields persisted on the model).
+        rng = np.random.default_rng(0)
+        ti = TrainingImage(
+            {
+                "a": rng.integers(0, 2, (20, 20)),
+                "b": rng.integers(0, 2, (20, 20)),
+            }
+        )
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        out = ds([np.arange(6, dtype=float)] * 2, seed=0, store=False)
+        self.assertEqual(set(out), {"a", "b"})
+        self.assertEqual(list(ds.field_names), [])
+
 
 class TestNonstationarity(unittest.TestCase):
     """Geometric non-stationarity for DirectSampling (set_nonstationary)."""
@@ -1387,6 +1416,25 @@ class TestNonstationarity(unittest.TestCase):
         self.assertTrue(np.all(np.isfinite(result_rot["b"])))
         self.assertFalse(np.array_equal(result_plain["a"], result_rot["a"]))
 
+    def test_flattened_rotation_map_raises(self):
+        # Finding #5: a per-node map passed flattened (length Nx*Ny) on a 2-D
+        # grid must raise, not silently apply only element [0].
+        ds, _ = self._make_ds(ti_shape=(20, 20))
+        ds.set_nonstationary(rotation=np.linspace(0, np.pi, 25))
+        with self.assertRaisesRegex(ValueError, "flattened|per-node"):
+            ds([np.arange(5, dtype=float)] * 2, seed=0)
+
+    def test_3d_stationary_rotation_triple_runs(self):
+        # A genuine stationary multi-component value (3 Tait-Bryan angles for a
+        # 3-D grid) is still accepted (length == no_of_angles(3) == 3).
+        rng = np.random.default_rng(0)
+        ti = gs.mps.TrainingImage(rng.integers(0, 2, (12, 12, 12)))
+        ds = gs.mps.DirectSampling(ti, n_neighbors=4, scan_fraction=0.1)
+        ds.set_nonstationary(rotation=np.array([0.1, 0.2, 0.3]))
+        field = ds([np.arange(5, dtype=float)] * 3, seed=0)
+        self.assertEqual(field.shape, (5, 5, 5))
+        self.assertTrue(np.all(np.isin(field, [0, 1])))
+
 
 class TestFullArraySnapshot(unittest.TestCase):
     """Bit-identical full-array regression pins — the step-by-step acceptance gate.
@@ -1474,7 +1522,7 @@ class TestFullArraySnapshot(unittest.TestCase):
             f,
             [
                 [2.0, 0.0, 1.0, 2.0, 2.0, 1.0],
-                [1.0, 0.0, 0.0, 2.0, 1.0, 2.0],
+                [1.0, 0.0, 1.0, 1.0, 2.0, 0.0],
                 [2.0, 2.0, 0.0, 0.0, 2.0, 2.0],
                 [2.0, 0.0, 1.0, 2.0, 0.0, 0.0],
                 [2.0, 2.0, 1.0, 2.0, 0.0, 1.0],
@@ -1489,24 +1537,24 @@ class TestFullArraySnapshot(unittest.TestCase):
         np.testing.assert_array_equal(
             res["a"],
             [
-                [0.0, 1.0, 0.0, 2.0, 0.0, 1.0],
+                [1.0, 1.0, 0.0, 2.0, 2.0, 0.0],
                 [2.0, 2.0, 1.0, 2.0, 1.0, 2.0],
-                [1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
-                [2.0, 2.0, 0.0, 0.0, 1.0, 0.0],
-                [0.0, 1.0, 2.0, 2.0, 2.0, 2.0],
-                [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
+                [2.0, 1.0, 1.0, 1.0, 1.0, 2.0],
+                [2.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 2.0, 2.0, 2.0, 2.0],
+                [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
             ],
             err_msg="snap_mv var=a seed=42",
         )
         np.testing.assert_array_equal(
             res["b"],
             [
-                [1.0, 1.0, 0.0, 0.0, 1.0, 1.0],
-                [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
                 [1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 1.0, 1.0, 1.0],
+                [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
             ],
             err_msg="snap_mv var=b seed=42",
         )
@@ -1629,6 +1677,57 @@ class TestTransformLagsCollapse(unittest.TestCase):
         self.assertEqual(len(lags_ti), 2)
 
 
+class TestReduceToFit(unittest.TestCase):
+    """M10 para [43]: global reduce-to-fit, drop most-outside node by rank (#3)."""
+
+    def test_drops_oob_regardless_of_rank(self):
+        # The near (low-rank) lag maps out of a 4x4 TI; the far (high-rank) lag
+        # is feasible. para [43] keeps the feasible one and drops the OOB one —
+        # the opposite of partial-mode furthest-first truncation.
+        lags_ti = np.array([[0.0, 10.0], [1.0, 0.0]])
+        de = np.array([5.0, 9.0])
+        out_lags, out_de = _reduce_to_fit(lags_ti, (4, 4), de)
+        np.testing.assert_array_equal(out_lags, [[1.0, 0.0]])
+        np.testing.assert_array_equal(
+            out_de, [9.0]
+        )  # parallel array sliced too
+
+    def test_both_extremes_overspan_reduced(self):
+        # Two lags each fit alone but jointly over-span a 4-wide TI (ti-1==3):
+        # extent 3-(-3)=6 > 3. One outermost node is dropped until it fits.
+        lags_ti = np.array([[0.0, 3.0], [0.0, -3.0]])
+        (out_lags,) = _reduce_to_fit(lags_ti, (4, 4))
+        self.assertEqual(len(out_lags), 1)
+
+    def test_collocated_never_dropped_and_inbounds_kept(self):
+        # h=0 and an in-bounds lag survive; the over-long lag is removed.
+        lags_ti = np.array([[0.0, 0.0], [3.0, 0.0], [9.0, 0.0]])
+        (out_lags,) = _reduce_to_fit(lags_ti, (4, 4))  # ti-1 == 3
+        self.assertIn([0.0, 0.0], out_lags.tolist())  # collocated kept
+        self.assertNotIn([9.0, 0.0], out_lags.tolist())  # most-outside dropped
+
+    def test_already_fits_is_noop(self):
+        lags_ti = np.array([[1.0, 0.0], [0.0, -1.0]])
+        (out_lags,) = _reduce_to_fit(lags_ti, (20, 20))
+        np.testing.assert_array_equal(out_lags, lags_ti)
+
+    def test_empty(self):
+        (out,) = _reduce_to_fit(np.empty((0, 2)), (4, 4))
+        self.assertEqual(out.size, 0)
+
+    def test_strong_anis_retains_pattern_neighbour(self):
+        # End to end: strong anisotropy on a small TI used to collapse the
+        # window to a random draw; with para [43] the feasible neighbour is
+        # retained, so output stays valid and finite (no crash, no NaN).
+        rng = np.random.default_rng(0)
+        ti = gs.mps.TrainingImage(rng.integers(0, 2, (6, 6)))
+        ds = gs.mps.DirectSampling(ti, n_neighbors=8, scan_fraction=1.0)
+        ds.set_nonstationary(anis=0.1)
+        field = ds([np.arange(8, dtype=float)] * 2, seed=0)
+        self.assertTrue(np.all(np.isfinite(field)))
+        self.assertTrue(set(np.unique(field)).issubset({0.0, 1.0}))
+
+
 class TestVariationNNeighbors(unittest.TestCase):
     def test_variation_n1_raises_at_construction(self):
         ti = TrainingImage(
@@ -1698,7 +1797,7 @@ class TestScanWindowThreshold(unittest.TestCase):
         def dist_fn(y_blk):
             return dists[: len(y_blk)]
 
-        y = _scan_window_py(
+        y = _scan_window(
             lo, win_shape, 0, 2, 0.1, dist_fn, u_fallback, ti_shape
         )
         self.assertEqual(int(y[0]), 1)  # the 0.05 candidate, not the 0.1 one
@@ -1714,10 +1813,76 @@ class TestScanWindowThreshold(unittest.TestCase):
         def dist_fn(y_blk):
             return dists[: len(y_blk)]
 
-        y = _scan_window_py(
+        y = _scan_window(
             lo, win_shape, 0, 2, 0.0, dist_fn, u_fallback, ti_shape
         )
         self.assertEqual(int(y[0]), 0)  # the exact-match candidate
+
+
+class TestNaNTrainingImage(unittest.TestCase):
+    """Masked / incomplete TIs: NaN cells are undefined (warn + handle).
+
+    Contract: NaN cells are treated as undefined. They are (a) excluded from
+    the continuous data range ``d_max``, (b) excluded per-position from every
+    candidate distance, and (c) never pasted into the field. Construction warns
+    once. A TI with no fully-defined cell cannot be simulated and raises.
+    """
+
+    def test_nan_excluded_from_dmax(self):
+        # Finding #1: a NaN must not collapse d_max to the 1.0 fallback.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ti = TrainingImage(
+                np.array([0.0, np.nan, 100.0]),
+                categorical=False,
+                distance="l1",
+            )
+        self.assertAlmostEqual(ti._d_max, 100.0)
+
+    def test_construction_warns_on_nan(self):
+        with self.assertWarns(UserWarning):
+            TrainingImage(
+                np.array([0.0, np.nan, 1.0]), categorical=False, distance="l1"
+            )
+
+    def test_partial_nan_continuous_runs_finite(self):
+        # Finding #2: a NaN patch must not crash (was IndexError) and must
+        # produce finite output within the defined data range.
+        data = np.random.RandomState(0).rand(20, 20)
+        data[5:8, 5:8] = np.nan
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ti = TrainingImage(data, categorical=False, distance="l1")
+        ds = DirectSampling(ti, n_neighbors=8, scan_fraction=1.0)
+        field = ds([np.arange(15, dtype=float)] * 2, seed=1)
+        self.assertEqual(field.shape, (15, 15))
+        self.assertTrue(np.all(np.isfinite(field)))
+        self.assertGreaterEqual(field.min(), np.nanmin(data))
+        self.assertLessEqual(field.max(), np.nanmax(data))
+
+    def test_partial_nan_categorical_runs_subset(self):
+        # Finding #2: categorical NaN patch must not crash (was "produced NaN"
+        # ValueError) and output must be a subset of the *defined* categories.
+        data = np.random.RandomState(0).randint(0, 2, (20, 20)).astype(float)
+        data[5:8, 5:8] = np.nan
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ti = TrainingImage(data, categorical=True)
+        ds = DirectSampling(ti, n_neighbors=8, scan_fraction=1.0)
+        field = ds([np.arange(15, dtype=float)] * 2, seed=1)
+        self.assertTrue(np.all(np.isfinite(field)))
+        self.assertTrue(set(np.unique(field)).issubset({0.0, 1.0}))
+
+    def test_all_nan_ti_raises(self):
+        # No fully-defined cell → cannot paste any value → clear error.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ti = TrainingImage(
+                np.full((5, 5), np.nan), categorical=False, distance="l2"
+            )
+        ds = DirectSampling(ti, n_neighbors=2, scan_fraction=1.0)
+        with self.assertRaises(ValueError):
+            ds([np.arange(3, dtype=float)] * 2, seed=0)
 
 
 class TestPrecomputeOffsetsGuard(unittest.TestCase):
@@ -1738,6 +1903,177 @@ class TestPrecomputeOffsetsGuard(unittest.TestCase):
         # small 2-D grid stays under threshold
         off = _precompute_offsets((20, 20))
         self.assertFalse(np.any(np.all(off == 0, axis=1)))
+
+
+class TestStatisticalValidity(unittest.TestCase):
+    """Core correctness contract: relaxed thresholds and large TIs must reproduce TI statistics."""
+
+    def test_categorical_histogram_reproduced(self):
+        """Simulated category proportions must stay within 0.08 of the TI proportions."""
+        rng = np.random.default_rng(0)
+        data = rng.choice(
+            [0, 1, 2], size=(100, 100), p=[0.5, 0.3, 0.2]
+        ).astype(float)
+        ti = TrainingImage(data, categorical=True)
+        ti_props = np.array([np.mean(data == v) for v in [0, 1, 2]])
+
+        ds = DirectSampling(
+            ti,
+            n_neighbors=16,
+            scan_fraction=1.0,
+            threshold=0.0,
+        )
+        pos = [np.arange(50, dtype=float)] * 2
+        field = ds(pos, seed=0)
+
+        # (a) every category must appear — collapse to a single value is a bug
+        self.assertEqual(
+            set(np.unique(field)),
+            {0.0, 1.0, 2.0},
+            msg="At least one TI category is missing from the simulated field.",
+        )
+
+        # (b) per-category proportions within 0.08 of TI proportions
+        sim_props = np.array([np.mean(field == v) for v in [0, 1, 2]])
+        np.testing.assert_allclose(
+            sim_props,
+            ti_props,
+            atol=0.08,
+            err_msg="Simulated category proportions deviate more than 0.08 from TI.",
+        )
+
+    def test_continuous_mean_preserved(self):
+        """Simulated mean and std must be within 0.25 / 0.30 of the TI values."""
+        rng = np.random.default_rng(0)
+        data = rng.standard_normal((100, 100))
+        ti = TrainingImage(data, categorical=False, distance="l2")
+        ti_mean = float(data.mean())
+        ti_std = float(data.std())
+
+        ds = DirectSampling(
+            ti,
+            n_neighbors=12,
+            scan_fraction=1.0,
+            threshold=0.05,
+        )
+        pos = [np.arange(40, dtype=float)] * 2
+        field = ds(pos, seed=0)
+
+        self.assertAlmostEqual(
+            float(field.mean()),
+            ti_mean,
+            delta=0.25,
+            msg="Simulated field mean deviates by more than 0.25 from TI mean.",
+        )
+        self.assertAlmostEqual(
+            float(field.std()),
+            ti_std,
+            delta=0.30,
+            msg="Simulated field std deviates by more than 0.30 from TI std.",
+        )
+
+
+class TestMVTransformsAndReporting(unittest.TestCase):
+    """Behaviour tests for set_mv_transforms, post_process, progress, and cond_weight."""
+
+    @classmethod
+    def setUpClass(cls):
+        rng = np.random.default_rng(0)
+        cls.mv_data = {
+            "a": rng.integers(0, 3, (20, 20)).astype(float),
+            "b": rng.integers(0, 2, (20, 20)).astype(float),
+        }
+        cls.mv_ti = TrainingImage(cls.mv_data)
+        cls.pos = [np.arange(6, dtype=float)] * 2
+
+    def test_set_mv_transforms_mean_applied(self):
+        """set_mv_transforms(mean={'a': 100.0}) must shift variable 'a' by 100."""
+        ds = DirectSampling(self.mv_ti, n_neighbors=4, scan_fraction=0.3)
+        ds.set_mv_transforms(mean={"a": 100.0})
+
+        field_pp = ds(self.pos, seed=5)
+        field_raw = ds(self.pos, seed=5, post_process=False)
+
+        # post-processed 'a' == raw 'a' + 100 everywhere
+        np.testing.assert_allclose(
+            field_pp["a"],
+            field_raw["a"] + 100.0,
+            err_msg="Post-processed 'a' should equal raw 'a' + 100.",
+        )
+        # variable 'b' has no transform — must be unaffected
+        np.testing.assert_array_equal(
+            field_pp["b"],
+            field_raw["b"],
+            err_msg="Variable 'b' should be unaffected by the 'a' mean transform.",
+        )
+
+    def test_post_process_false_returns_raw(self):
+        """post_process=False must return values that are a subset of TI categories."""
+        ds = DirectSampling(self.mv_ti, n_neighbors=4, scan_fraction=0.3)
+        ds.set_mv_transforms(mean={"a": 100.0})
+        field_raw = ds(self.pos, seed=7, post_process=False)
+
+        ti_a_values = set(np.unique(self.mv_data["a"]))
+        sim_a_values = set(np.unique(field_raw["a"]))
+        self.assertTrue(
+            sim_a_values.issubset(ti_a_values),
+            msg=f"post_process=False 'a' values {sim_a_values} are not a subset of TI values {ti_a_values}.",
+        )
+
+    def test_progress_callback_invoked(self):
+        """progress callable must be called exactly n_nodes times; final call done == total == n_nodes."""
+        rng = np.random.default_rng(1)
+        data = rng.integers(0, 3, (20, 20)).astype(float)
+        ti = TrainingImage(data)
+        ds = DirectSampling(ti, n_neighbors=4, scan_fraction=0.3)
+        pos = [np.arange(6, dtype=float)] * 2
+        n_nodes = 6 * 6
+
+        calls = []
+
+        def cb(done, total):
+            calls.append((done, total))
+
+        ds(pos, seed=0, progress=cb)
+
+        self.assertEqual(
+            len(calls),
+            n_nodes,
+            msg=f"Progress callback should be called {n_nodes} times, got {len(calls)}.",
+        )
+        last_done, last_total = calls[-1]
+        self.assertEqual(last_done, n_nodes)
+        self.assertEqual(last_total, n_nodes)
+
+    def test_cond_weight_changes_output(self):
+        """Different cond_weight values must yield different fields while honoring the conditioned node."""
+        rng = np.random.default_rng(2)
+        data = rng.integers(0, 3, (20, 20)).astype(float)
+        ti = TrainingImage(data)
+        pos = [np.arange(8, dtype=float)] * 2
+        cond_pos = [[4.0], [4.0]]
+        cond_val = [2]
+
+        ds1 = DirectSampling(
+            ti, n_neighbors=8, scan_fraction=0.3, cond_weight=1.0
+        )
+        ds1.set_condition(cond_pos, cond_val)
+        f1 = ds1(pos, seed=0)
+
+        ds5 = DirectSampling(
+            ti, n_neighbors=8, scan_fraction=0.3, cond_weight=5.0
+        )
+        ds5.set_condition(cond_pos, cond_val)
+        f5 = ds5(pos, seed=0)
+
+        # the two fields must differ (cond_weight propagates through the distance)
+        self.assertFalse(
+            np.array_equal(f1, f5),
+            msg="cond_weight=1.0 and cond_weight=5.0 produced identical output; cond_weight has no effect.",
+        )
+        # the conditioned node must keep its value in both runs
+        self.assertEqual(int(f1[4, 4]), 2)
+        self.assertEqual(int(f5[4, 4]), 2)
 
 
 if __name__ == "__main__":
