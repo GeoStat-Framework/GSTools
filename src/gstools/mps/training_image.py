@@ -14,12 +14,7 @@ import warnings
 import numpy as np
 
 from gstools.mps.distance import (
-    categorical_dist,
     compute_node_weights,
-    l1_dist,
-    l2_dist,
-    lp_dist,
-    variation_dist,
     vec_categorical_dist,
     vec_l1_dist,
     vec_l2_dist,
@@ -312,12 +307,11 @@ class TrainingImage:
         vp_norm,
         d_max,
         de_sim,
-        de_ti,
+        all_de_ti,
         w,
-        vectorized,
         has_nan=False,
     ):
-        """Select and call the right distance function.
+        """Select and call the right vectorized distance function.
 
         Parameters
         ----------
@@ -325,173 +319,30 @@ class TrainingImage:
         p_norm : float or None
         vp_norm : float or None
         d_max : float or None
-        de_sim : numpy.ndarray
-        de_ti : numpy.ndarray
-        w : numpy.ndarray
-        vectorized : bool
-            When True uses the vec_* variants (de_ti is 2-D); when False the
-            scalar variants (de_ti is 1-D).
+        de_sim : numpy.ndarray, shape (n,)
+        all_de_ti : numpy.ndarray, shape (max_scan, n)
+        w : numpy.ndarray, shape (n,)
         has_nan : bool, optional
-            Forwarded to the vec_* variants to enable per-row NaN exclusion
-            (ignored for the scalar variants). Default ``False``.
-
-        Returns
-        -------
-        float or numpy.ndarray
-        """
-        if vectorized:
-            cat, l1, l2, lp, var = (
-                vec_categorical_dist,
-                vec_l1_dist,
-                vec_l2_dist,
-                vec_lp_dist,
-                vec_variation_dist,
-            )
-            extra = {"has_nan": has_nan}
-        else:
-            cat, l1, l2, lp, var = (
-                categorical_dist,
-                l1_dist,
-                l2_dist,
-                lp_dist,
-                variation_dist,
-            )
-            extra = {}
-        if categorical:
-            return cat(de_sim, de_ti, w, **extra)
-        if p_norm == 1.0:
-            return l1(de_sim, de_ti, w, d_max, **extra)
-        if p_norm == 2.0:
-            return l2(de_sim, de_ti, w, d_max, **extra)
-        if p_norm is not None:
-            return lp(de_sim, de_ti, w, d_max, p_norm, **extra)
-        return var(de_sim, de_ti, w, d_max, vp_norm, **extra)
-
-    def distance(
-        self,
-        data_event_sim,
-        data_event_ti,
-        cond_mask=None,
-        cond_weight=1.0,
-        lag_norms=None,
-    ):
-        """Distance between two data events.
-
-        Applies spatial-decay weights (Mariethoz2010 Eq. 3) to all
-        distance types when ``distance_power > 0``.
-
-        Parameters
-        ----------
-        data_event_sim : array-like, shape (n,)
-            Values at SG neighbourhood nodes.
-        data_event_ti : array-like, shape (n,)
-            Values at TI neighbourhood nodes.
-        cond_mask : array-like of bool, optional
-            True where the neighbour is a conditioning datum.
-        cond_weight : float, optional
-            Weight multiplier δ for conditioning nodes
-            (Mariethoz2010 §3 ¶26). Default: ``1.0``.
-        lag_norms : array-like, shape (n,), optional
-            Euclidean norms ``‖h_i‖`` of each lag vector. Required for
-            spatial-decay weighting (``distance_power > 0``).
-
-        Returns
-        -------
-        float
-            Distance in [0, 1].
-        """
-        if self._multivariate:
-            total = 0.0
-            for k in self._variables:
-                lns = (
-                    lag_norms.get(k)
-                    if isinstance(lag_norms, dict)
-                    else lag_norms
-                )
-                cms = (
-                    cond_mask.get(k)
-                    if isinstance(cond_mask, dict)
-                    else cond_mask
-                )
-                total += self._weights[k] * self._distance_var(
-                    k,
-                    data_event_sim[k],
-                    data_event_ti[k],
-                    cms,
-                    cond_weight,
-                    lns,
-                )
-            return total
-
-        data_event_sim = np.asarray(data_event_sim, dtype=np.float64)
-        data_event_ti = np.asarray(data_event_ti, dtype=np.float64)
-        n = len(data_event_sim)
-        if n == 0:
-            return 0.0
-
-        w = compute_node_weights(
-            n, lag_norms, self._distance_power, cond_mask, cond_weight
-        )
-
-        return self._dispatch_metric(
-            self._categorical,
-            self._p_norm,
-            self._variation_p_norm,
-            self._d_max,
-            data_event_sim,
-            data_event_ti,
-            w,
-            vectorized=False,
-        )
-
-    def vec_distance(
-        self,
-        data_event_sim,
-        all_de_ti,
-        cond_mask=None,
-        cond_weight=1.0,
-        lag_norms=None,
-    ):
-        """Vectorized distance between SG data event and all TI candidates.
-
-        Same maths as :meth:`distance` but operates on all TI scan candidates
-        at once, returning a distance per candidate instead of a scalar.
-
-        Parameters
-        ----------
-        data_event_sim : array-like, shape (n,)
-            Values at SG neighbourhood nodes.
-        all_de_ti : array-like, shape (max_scan, n)
-            TI data events for every scan candidate.
-        cond_mask : array-like of bool, optional
-            True where the neighbour is a conditioning datum.
-        cond_weight : float, optional
-            Weight multiplier δ for conditioning nodes. Default: ``1.0``.
-        lag_norms : array-like, shape (n,), optional
-            Euclidean norms of each lag vector.
+            Enable per-row exclusion of undefined (NaN) TI positions, with
+            per-row weight renormalization. Default ``False``.
 
         Returns
         -------
         numpy.ndarray, shape (max_scan,)
             Distance in [0, 1] for each candidate.
         """
-        data_event_sim = np.asarray(data_event_sim, dtype=np.float64)
-        all_de_ti = np.asarray(all_de_ti, dtype=np.float64)
-        n = len(data_event_sim)
-        if n == 0:
-            return np.zeros(len(all_de_ti))
-        w = compute_node_weights(
-            n, lag_norms, self._distance_power, cond_mask, cond_weight
-        )
-        return self._dispatch_metric(
-            self._categorical,
-            self._p_norm,
-            self._variation_p_norm,
-            self._d_max,
-            data_event_sim,
-            all_de_ti,
-            w,
-            vectorized=True,
+        if categorical:
+            return vec_categorical_dist(de_sim, all_de_ti, w, has_nan=has_nan)
+        if p_norm == 1.0:
+            return vec_l1_dist(de_sim, all_de_ti, w, d_max, has_nan=has_nan)
+        if p_norm == 2.0:
+            return vec_l2_dist(de_sim, all_de_ti, w, d_max, has_nan=has_nan)
+        if p_norm is not None:
+            return vec_lp_dist(
+                de_sim, all_de_ti, w, d_max, p_norm, has_nan=has_nan
+            )
+        return vec_variation_dist(
+            de_sim, all_de_ti, w, d_max, vp_norm, has_nan=has_nan
         )
 
     def adjust_value(self, ti_val, data_event_sim, data_event_ti, var=None):
@@ -539,29 +390,6 @@ class TrainingImage:
             else 0.0
         )
         return float(ti_val - ti_mean + np.nanmean(data_event_sim))
-
-    def _distance_var(
-        self, var, de_sim, de_ti, cond_mask, cond_weight, lag_norms
-    ):
-        """Scalar distance for one variable (multivariate component)."""
-        de_sim = np.asarray(de_sim, dtype=np.float64)
-        de_ti = np.asarray(de_ti, dtype=np.float64)
-        n = len(de_sim)
-        if n == 0:
-            return 0.0
-        w = compute_node_weights(
-            n, lag_norms, self._distance_power, cond_mask, cond_weight
-        )
-        return self._dispatch_metric(
-            self._categorical[var],
-            self._p_norm[var],
-            self._variation_p_norm[var],
-            self._d_max[var],
-            de_sim,
-            de_ti,
-            w,
-            vectorized=False,
-        )
 
     def vec_distance_var(
         self,
@@ -619,7 +447,6 @@ class TrainingImage:
             de_sim,
             all_de_ti,
             w,
-            vectorized=True,
             has_nan=has_nan,
         )
 

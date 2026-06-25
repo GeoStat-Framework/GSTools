@@ -61,7 +61,9 @@ cond_val = ti_arr[cond_x.astype(int), cond_y.astype(int)]
 ###############################################################################
 # Simulate with DSBC-style parameters (best-candidate + partial scan).
 
-ds = gs.DirectSampling(ti, n_neighbors=30, scan_fraction=0.2, threshold=0.0)
+ds = gs.DirectSampling(
+    gs.MPSModel(ti, n_neighbors=30, scan_fraction=0.2, threshold=0.0)
+)
 ds.set_condition([cond_x, cond_y], cond_val)
 field = ds([np.arange(sg_size, dtype=float)] * 2, seed=42)
 

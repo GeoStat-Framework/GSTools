@@ -44,7 +44,9 @@ print(ti)
 # (standard DS), which is faster than the exhaustive best-candidate search for
 # continuous variables.
 
-ds = gs.DirectSampling(ti, n_neighbors=12, scan_fraction=0.3, threshold=0.03)
+ds = gs.DirectSampling(
+    gs.MPSModel(ti, n_neighbors=12, scan_fraction=0.3, threshold=0.03)
+)
 field = ds([np.arange(32, dtype=float)] * 2, seed=3)
 
 ###############################################################################

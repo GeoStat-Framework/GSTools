@@ -9,6 +9,7 @@ Multiple Point Statistics
    :toctree:
 
    DirectSampling
+   MPSModel
    TrainingImage
 """
 
