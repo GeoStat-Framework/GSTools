@@ -101,9 +101,20 @@ def _scan_for_match(
     vec_distance_var,
     ti_has_nan,
 ):
-    """Joint multivariate scan: return the best TI anchor ``y`` (or ``None``)."""
+    """Joint multivariate DS scan over a TI search window.
+
+    Scans candidates in randomized order (greedy DS early-exit when the first
+    candidate with distance ``< threshold`` is found; DSBC running-best argmin
+    when ``threshold <= 0``).  The window is the per-variable intersection so
+    every ``y + lag`` is in bounds and the gather needs no clipping; the h=0
+    lag maps to ``y`` itself.  Returns the single best TI anchor coordinate
+    ``y``, or ``None`` when every candidate in the window is undefined (masked
+    TI — caller falls back to a random defined cell).
+    """
     win_size = int(np.prod(win_shape))
     ti_size = int(np.prod(ti_shape))
+    # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
+    # the valid search window so we never wrap around and re-scan anchors.
     max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
     start = int(u_start_i * win_size)
 
@@ -132,9 +143,15 @@ def _scan_for_match(
                 weights=precomp_w[v],
                 has_nan=ti_has_nan,
             )
+        # Renormalize so the joint distance stays in [0, 1] even when
+        # some variables have no data event and are excluded from int_lags.
+        # Without this, the threshold fires on a compressed scale and
+        # accepts matches that should be rejected.
         if 0.0 < active_w_total < 1.0:
             d /= active_w_total
         if ti_has_nan:
+            # Never select an anchor whose pasted value would be undefined:
+            # the matched cell must be defined in every target variable.
             center_ok = np.ones(len(y_blk), dtype=bool)
             ys = tuple(y_blk.T)
             for v in scan_targets:

@@ -29,6 +29,13 @@ def _build_dag_base(
     indegree : dict of {key: numpy.ndarray of int32, shape (N,)}
     out_edges : list of list of (int, key)
         ``out_edges[j]`` → ``(i, key)`` pairs to process when node ``j`` completes.
+
+    Notes
+    -----
+    Dependencies must be computed via the same :func:`neighbors._select_neighbors`
+    call the engine uses per node, so the DAG edges exactly match the actual
+    simulation neighbour relation — this is the invariant that makes parallel
+    execution produce bit-identical output to the serial path.
     """
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
@@ -130,10 +137,38 @@ def _run_path(
 ):
     """Dispatch the node simulation path: serial or parallel DAG.
 
-    simulate_fn(i, x_i, u_start_i, u_fallback_i) → result dict
-    write_fn(node_tuple, result) → None
-    update_fn() → None
+    Parameters
+    ----------
+    path : numpy.ndarray, shape (N, dim)
+        Ordered sequence of grid coordinates to simulate.
+    u_start : numpy.ndarray, shape (N,)
+        Per-node uniform random values controlling TI scan entry points.
+    u_fallback : numpy.ndarray, shape (N, dim)
+        Per-node uniform random values for fallback cell draws.
+    simulate_fn : callable
+        ``simulate_fn(i, x_i, u_start_i, u_fallback_i)`` → result dict
+        mapping variable names to simulated values for node ``i``.
+    write_fn : callable
+        ``write_fn(node_tuple, result)`` → None.  Writes the result dict
+        into the simulation grid and marks the node informed.
+    update_fn : callable
+        ``update_fn()`` → None.  Called once per completed node (progress).
+    executor : concurrent.futures.ThreadPoolExecutor or None
+        If not ``None``, nodes are dispatched in parallel over the DAG built
+        by :func:`_build_dag_base`.  ``None`` → strictly serial execution.
+    offset_arr : numpy.ndarray, shape (M, dim)
+        Distance-sorted neighbour offsets from :func:`neighbors._precompute_offsets`.
+    vmap : dict of {str: numpy.ndarray}
+        Per-variable position maps (path index or ``-1`` for conditioning).
+    n_k : dict of {str: int}
+        Maximum neighbour count per variable.
+    sim_shape : tuple
+        Simulation grid shape.
+    max_radius : float or None
+        Euclidean cap on neighbour selection; ``None`` → unlimited.
 
+    Notes
+    -----
     Extracted so a future syn-processing path strategy (which re-opens
     simulated nodes) can replace this function without touching the scan
     kernel.  Note: syn-processing is incompatible with DAG parallelism;

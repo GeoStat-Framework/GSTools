@@ -292,6 +292,29 @@ def _lag_transform_matrix(dim, rotation_map, anis_map, x_i):
 
     Mirrors the inline build in the engine: a 1-D map is a stationary value
     broadcast to all nodes; a full-shape map is indexed at ``x_i``.
+
+    Parameters
+    ----------
+    dim : int
+        Spatial dimensionality of the simulation grid.
+    rotation_map : numpy.ndarray or None
+        Rotation angle(s).  ``None`` → no rotation (identity contribution).
+        A 1-D array is a stationary multi-component angle vector applied to
+        every node; a full-shape array is indexed at ``x_i`` for per-node
+        angles.
+    anis_map : numpy.ndarray or None
+        Anisotropy ratio(s).  ``None`` → isotropic (ratio 1.0 in all
+        transversal directions).  Same broadcast rules as ``rotation_map``.
+    x_i : numpy.ndarray, shape (dim,)
+        Integer grid coordinates of the current simulation node.  Used to
+        index into per-node maps; ignored when the maps are stationary (1-D).
+
+    Returns
+    -------
+    M : numpy.ndarray, shape (dim, dim)
+        Isometrization matrix from :func:`gstools.tools.geometric.matrix_isometrize`.
+        Apply as ``lags_ti = lags_sg @ M.T`` to transform SG lag vectors into
+        the TI frame.
     """
     angles_i = set_angles(
         dim,
