@@ -19,19 +19,12 @@ from abc import ABC, abstractmethod
 from copy import deepcopy as dcp
 
 import numpy as np
-from gstools_cython.field import summate as summate_c
-from gstools_cython.field import summate_fourier as summate_fourier_c
-from gstools_cython.field import summate_incompr as summate_incompr_c
+from gstools_core import summate, summate_fourier, summate_incompr
 
 from gstools import config
 from gstools.covmodel.base import CovModel
 from gstools.random.rng import RNG
 from gstools.tools.geometric import generate_grid
-
-if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
-    from gstools_core import summate as summate_gsc
-    from gstools_core import summate_fourier as summate_fourier_gsc
-    from gstools_core import summate_incompr as summate_incompr_gsc
 
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth", "Fourier"]
 
@@ -41,11 +34,7 @@ SAMPLING = ["auto", "inversion", "mcmc"]
 
 def _summate(cov_samples, z_1, z_2, pos, num_threads=None):
     """A wrapper function for calling the randomization algorithms."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        summate_fct = summate_gsc
-    else:
-        summate_fct = summate_c
-    return summate_fct(cov_samples, z_1, z_2, pos, num_threads)
+    return summate(cov_samples, z_1, z_2, pos, num_threads)
 
 
 def _summate_incompr(
@@ -57,22 +46,12 @@ def _summate_incompr(
 ):
     """A wrapper function for calling the incompr. randomization algorithms."""
 
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        summate_incompr_fct = summate_incompr_gsc
-    else:
-        summate_incompr_fct = summate_incompr_c
-    return summate_incompr_fct(cov_samples, z_1, z_2, pos, num_threads)
+    return summate_incompr(cov_samples, z_1, z_2, pos, num_threads)
 
 
 def _summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads=None):
     """A wrapper function for calling the Fourier algorithms."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        summate_fourier_fct = summate_fourier_gsc
-    else:
-        summate_fourier_fct = summate_fourier_c
-    return summate_fourier_fct(
-        spectrum_factor, modes, z_1, z_2, pos, num_threads
-    )
+    return summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads)
 
 
 class Generator(ABC):
@@ -243,7 +222,7 @@ class RandMeth(Generator):
     def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
-        This method  calls the `summate_*` Rust or Cython methods, which are
+        This method  calls the `summate_*` methods from the backend. They are
         the heart of the randomization method.
 
         Parameters
@@ -529,8 +508,8 @@ class IncomprRandMeth(RandMeth):
     def __call__(self, pos, add_nugget=True):
         """Calculate the random modes for the randomization method.
 
-        This method  calls the `summate_incompr_*` Rust or Cython methods,
-        which are the heart of the randomization method.
+        This method  calls the `summate_incompr_*` methods from the backend,
+        They are the heart of the randomization method.
         In this class the method contains a projector to
         ensure the incompressibility of the vector field.
 
@@ -659,7 +638,7 @@ class Fourier(Generator):
     def __call__(self, pos, add_nugget=True):
         """Calculate the modes for the Fourier method.
 
-        This method  calls the `summate_fourier` Cython method, which is the
+        This method  calls the `summate_fourier` method from the backend. It is the
         heart of the Fourier method.
 
         Parameters
@@ -810,7 +789,7 @@ class Fourier(Generator):
         self._z_1 = self._rng.random.normal(size=np.prod(self._mode_no))
         self._z_2 = self._rng.random.normal(size=np.prod(self._mode_no))
         # pre calc. the spectrum for all wave numbers they are handed over to
-        # Cython, which doesn't have access to the CovModel
+        # the backend, which doesn't have access to the CovModel
         if self.zero_var:
             self._spectrum_factor = np.full(np.prod(self._mode_no), 0.0)
         else:

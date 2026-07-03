@@ -16,3 +16,4 @@ and was created by following people.
 - Bane Sullivan, GitHub: [@banesullivan](https://github.com/banesullivan)
 - Tobias Glaubach, GitHub: [@TobiasGlaubach](https://github.com/TobiasGlaubach)
 - Evan Ricketts, GithHub [@EJRicketts](https://github.com/EJRicketts)
+- Niklas Abele, GitHub: [@n0228a](https://github.com/n0228a)

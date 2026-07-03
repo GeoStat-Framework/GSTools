@@ -11,10 +11,10 @@ The following functions are provided
 """
 
 import numpy as np
-from gstools_cython.variogram import directional as directional_c
-from gstools_cython.variogram import ma_structured as ma_structured_c
-from gstools_cython.variogram import structured as structured_c
-from gstools_cython.variogram import unstructured as unstructured_c
+from gstools_core import variogram_directional as directional
+from gstools_core import variogram_ma_structured as ma_structured
+from gstools_core import variogram_structured as structured
+from gstools_core import variogram_unstructured as unstructured
 
 from gstools import config
 from gstools.normalizer.tools import remove_trend_norm_mean
@@ -26,12 +26,6 @@ from gstools.tools.geometric import (
     generate_grid,
 )
 from gstools.variogram.binning import standard_bins
-
-if config._GSTOOLS_CORE_AVAIL:  # pragma: no cover
-    from gstools_core import variogram_directional as directional_gsc
-    from gstools_core import variogram_ma_structured as ma_structured_gsc
-    from gstools_core import variogram_structured as structured_gsc
-    from gstools_core import variogram_unstructured as unstructured_gsc
 
 __all__ = [
     "vario_estimate",
@@ -57,11 +51,7 @@ def _directional(
     num_threads=None,
 ):
     """A wrapper function for calling the directional variogram algorithms."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        directional_fct = directional_gsc
-    else:
-        directional_fct = directional_c
-    return directional_fct(
+    return directional(
         field,
         bin_edges,
         pos,
@@ -83,11 +73,7 @@ def _unstructured(
     num_threads=None,
 ):
     """A wrapper function for calling the unstructured variogram algorithms."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        unstructured_fct = unstructured_gsc
-    else:
-        unstructured_fct = unstructured_c
-    return unstructured_fct(
+    return unstructured(
         field,
         bin_edges,
         pos,
@@ -103,11 +89,7 @@ def _structured(
     num_threads=None,
 ):
     """A wrapper function for calling the structured variogram algorithms."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        structured_fct = structured_gsc
-    else:
-        structured_fct = structured_c
-    return structured_fct(field, estimator_type, num_threads)
+    return structured(field, estimator_type, num_threads)
 
 
 def _ma_structured(
@@ -117,22 +99,18 @@ def _ma_structured(
     num_threads=None,
 ):
     """A wrapper function for calling the masked struct. variogram algorithms."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        ma_structured_fct = ma_structured_gsc
-    else:
-        ma_structured_fct = ma_structured_c
-    return ma_structured_fct(field, mask, estimator_type, num_threads)
+    return ma_structured(field, mask, estimator_type, num_threads)
 
 
 def _set_estimator(estimator):
     """Translate the verbose Python estimator identifier to single char."""
     if estimator.lower() == "matheron":
-        cython_estimator = "m"
+        backend_estimator = "m"
     elif estimator.lower() == "cressie":
-        cython_estimator = "c"
+        backend_estimator = "c"
     else:
         raise ValueError(f"Unknown variogram estimator function: {estimator}")
-    return cython_estimator
+    return backend_estimator
 
 
 def _separate_dirs_test(direction, angles_tol):
@@ -439,7 +417,7 @@ def vario_estimate(
     field = norm_field_out[0] if fit_normalizer else norm_field_out
     norm_out = (norm_field_out[1],) if fit_normalizer else ()
     # select variogram estimator
-    cython_estimator = _set_estimator(estimator)
+    backend_estimator = _set_estimator(estimator)
     # run
     if dir_no == 0:
         # "h"aversine or "e"uclidean distance type
@@ -448,7 +426,7 @@ def vario_estimate(
             field,
             bin_edges,
             pos,
-            estimator_type=cython_estimator,
+            estimator_type=backend_estimator,
             distance_type=distance_type,
             num_threads=config.NUM_THREADS,
         )
@@ -461,7 +439,7 @@ def vario_estimate(
             angles_tol,
             bandwidth,
             separate_dirs=_separate_dirs_test(direction, angles_tol),
-            estimator_type=cython_estimator,
+            estimator_type=backend_estimator,
             num_threads=config.NUM_THREADS,
         )
         if dir_no == 1:
@@ -558,13 +536,15 @@ def vario_estimate_axis(
         mask = mask.swapaxes(0, axis_to_swap)
         mask = mask.reshape((mask.shape[0], -1))
 
-    cython_estimator = _set_estimator(estimator)
+    backend_estimator = _set_estimator(estimator)
 
     if masked:
         return _ma_structured(
-            field, mask, cython_estimator, num_threads=config.NUM_THREADS
+            field, mask, backend_estimator, num_threads=config.NUM_THREADS
         )
-    return _structured(field, cython_estimator, num_threads=config.NUM_THREADS)
+    return _structured(
+        field, backend_estimator, num_threads=config.NUM_THREADS
+    )
 
 
 # for backward compatibility

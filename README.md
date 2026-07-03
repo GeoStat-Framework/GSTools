@@ -41,6 +41,7 @@ GSTools provides geostatistical tools for various purposes:
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
 - plurigaussian field simulations (PGS)
+- collocated cokriging
 - plotting and exporting routines
 
 
@@ -69,9 +70,6 @@ running. Install the package by typing the following command in a command termin
 
 To install the latest development version via pip, see the
 [documentation][doc_install_link].
-One thing to point out is that this way, the non-parallel version of GSTools
-is installed. In case you want the parallel version, follow these easy
-[steps][doc_install_link].
 
 
 ## Citation
@@ -102,7 +100,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [The Covariance Model][tut2_link]
 - [Variogram Estimation][tut3_link]
 - [Random Vector Field Generation][tut4_link]
-- [Kriging][tut5_link]
+- [Kriging (incl. collocated cokriging)][tut5_link]
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
 - [Geographic Coordinates][tut8_link]
