@@ -5,7 +5,7 @@ Intrinsic Collocated Cokriging
 Intrinsic Collocated Cokriging (ICCK) improves variance estimation
 compared to Simple Collocated Cokriging.
 
-This example demonstrates the new correlogram-based API using MarkovModel1.
+This example demonstrates the correlogram-based API using MarkovModel1.
 
 The variance formula is:
 
@@ -15,7 +15,7 @@ Example
 ^^^^^^^
 
 Here we compare Simple Kriging with Intrinsic Collocated Cokriging using the
-new MarkovModel1 correlogram.
+MarkovModel1 correlogram.
 """
 
 import matplotlib.pyplot as plt
@@ -52,7 +52,7 @@ sk_field, sk_var = sk(gridx, return_var=True)
 # Compute cross-correlation from data
 cross_corr = np.corrcoef(cond_val, sec_at_primary)[0, 1]
 
-# Create MarkovModel1 correlogram (NEW API)
+# Create MarkovModel1 correlogram
 correlogram = MarkovModel1(
     primary_model=model,
     cross_corr=cross_corr,
@@ -61,7 +61,7 @@ correlogram = MarkovModel1(
     secondary_mean=np.mean(sec_val),
 )
 
-# Intrinsic Collocated Cokriging with new API
+# Intrinsic Collocated Cokriging
 icck = IntrinsicCollocated(
     correlogram,
     cond_pos=cond_pos,

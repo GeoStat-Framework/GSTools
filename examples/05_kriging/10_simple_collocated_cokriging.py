@@ -5,14 +5,14 @@ Simple Collocated Cokriging
 Simple collocated cokriging uses secondary data at the estimation location
 to improve the primary variable estimate.
 
-This example demonstrates the new correlogram-based API using MarkovModel1,
+This example demonstrates the correlogram-based API using MarkovModel1,
 which encapsulates the Markov Model I (MM1) cross-covariance structure.
 
 Example
 ^^^^^^^
 
 Here we compare Simple Kriging with Simple Collocated Cokriging using the
-new MarkovModel1 correlogram.
+MarkovModel1 correlogram.
 """
 
 import matplotlib.pyplot as plt
@@ -49,7 +49,7 @@ sk_field, sk_var = sk(gridx, return_var=True)
 # Compute cross-correlation from data
 cross_corr = np.corrcoef(cond_val, sec_at_primary)[0, 1]
 
-# Create MarkovModel1 correlogram (NEW API)
+# Create MarkovModel1 correlogram
 correlogram = MarkovModel1(
     primary_model=model,
     cross_corr=cross_corr,
@@ -58,7 +58,7 @@ correlogram = MarkovModel1(
     secondary_mean=np.mean(sec_val),
 )
 
-# Simple Collocated Cokriging with new API
+# Simple Collocated Cokriging
 scck = SimpleCollocated(correlogram, cond_pos=cond_pos, cond_val=cond_val)
 scck_field, scck_var = scck(gridx, secondary_data=sec_grid, return_var=True)
 
