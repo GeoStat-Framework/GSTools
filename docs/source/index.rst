@@ -34,6 +34,7 @@ GSTools provides geostatistical tools for various purposes:
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
 - plurigaussian field simulations (PGS)
+- collocated cokriging
 - plotting and exporting routines
 
 
@@ -158,7 +159,7 @@ showing the most important use cases of GSTools, which are
 - `The Covariance Model <examples/02_cov_model/index.html>`__
 - `Variogram Estimation <examples/03_variogram/index.html>`__
 - `Random Vector Field Generation <examples/04_vector_field/index.html>`__
-- `Kriging <examples/05_kriging/index.html>`__
+- `Kriging (incl. collocated cokriging) <examples/05_kriging/index.html>`__
 - `Conditioned random field generation <examples/06_conditioned_fields/index.html>`__
 - `Field transformations <examples/07_transformations/index.html>`__
 - `Geographic Coordinates <examples/08_geo_coordinates/index.html>`__
