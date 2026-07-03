@@ -8,7 +8,7 @@ import warnings
 
 import numpy as np
 
-from gstools.tools.geometric import matrix_isometrize, set_angles, set_anis
+from gstools.tools.geometric import matrix_detransform, no_of_angles
 
 
 def _precompute_offsets(shape, max_offset=None):
@@ -175,7 +175,7 @@ def _transform_lags(lags, M, *arrays):
     lags : numpy.ndarray, shape (k, dim)
         Integer SG lag offsets (float64).
     M : numpy.ndarray, shape (dim, dim)
-        Isometrization matrix from :func:`matrix_isometrize`.
+        Detransform matrix from :func:`_lag_transform_matrix`.
     *arrays : numpy.ndarray
         Parallel arrays of length k to slice by the same keep_idx.
 
@@ -330,46 +330,40 @@ def _window_bounds(lags_ti, ti_shape, boundary):
     return None, None, -1
 
 
-def _lag_transform_matrix(dim, rotation_map, anis_map, x_i):
-    """Isometrization matrix M for a node's per-node rotation/anisotropy.
+def _lag_transform_matrix(dim, rotation_map, scale_map, x_i):
+    """Detransform matrix M for a node's per-node rotation/scale.
 
-    Mirrors the inline build in the engine: a 1-D map is a stationary value
-    broadcast to all nodes; a full-shape map is indexed at ``x_i``.
+    Consumes the canonical per-node maps produced by
+    :func:`gstools.mps.nonstationary.resolve_spec` — always shaped
+    ``grid_shape + (n_comp,)`` (stationary specs are zero-stride broadcast
+    views), so indexing is uniform and no ndim heuristics exist (B5).
 
     Parameters
     ----------
     dim : int
         Spatial dimensionality of the simulation grid.
     rotation_map : numpy.ndarray or None
-        Rotation angle(s).  ``None`` → no rotation (identity contribution).
-        A 1-D array is a stationary multi-component angle vector applied to
-        every node; a full-shape array is indexed at ``x_i`` for per-node
-        angles.
-    anis_map : numpy.ndarray or None
-        Anisotropy ratio(s).  ``None`` → isotropic (ratio 1.0 in all
-        transversal directions).  Same broadcast rules as ``rotation_map``.
+        Canonical rotation map, shape ``grid_shape + (no_of_angles(dim),)``.
+        ``None`` → no rotation.
+    scale_map : numpy.ndarray or None
+        Canonical scale map, shape ``grid_shape + (dim,)``. ``None`` → no
+        dilation. No axis-0 pin: a uniform value is M10's affinity ``r``.
     x_i : numpy.ndarray, shape (dim,)
-        Integer grid coordinates of the current simulation node.  Used to
-        index into per-node maps; ignored when the maps are stationary (1-D).
+        Integer grid coordinates of the current simulation node.
 
     Returns
     -------
     M : numpy.ndarray, shape (dim, dim)
-        Isometrization matrix from :func:`gstools.tools.geometric.matrix_isometrize`.
-        Lags are stored as **row vectors** (shape ``(k, dim)``), so the SG→TI
-        frame map is applied as ``lags_ti = lags_sg @ M.T`` (right-multiply by
-        the transpose) rather than as a left-multiply column-vector form.
+        ``matrix_detransform(dim, θ(x_i), s(x_i))`` — the SG→TI inverse map
+        (Mariethoz2010 §6.2: simulated structures are θ-rotated and s×-sized
+        relative to the TI, so lags are pulled back by the inverse). Lags are
+        row vectors, applied as ``lags_ti = lags_sg @ M.T``.
     """
-    angles_i = set_angles(
-        dim,
-        (rotation_map if rotation_map.ndim == 1 else rotation_map[tuple(x_i)])
+    idx = tuple(int(c) for c in x_i)
+    angles = (
+        rotation_map[idx]
         if rotation_map is not None
-        else 0.0,
+        else np.zeros(no_of_angles(dim))
     )
-    anis_i = set_anis(
-        dim,
-        (anis_map if anis_map.ndim == 1 else anis_map[tuple(x_i)])
-        if anis_map is not None
-        else 1.0,
-    )
-    return matrix_isometrize(dim, angles_i, anis_i)
+    scale = scale_map[idx] if scale_map is not None else np.ones(dim)
+    return matrix_detransform(dim, angles, scale)

@@ -132,7 +132,8 @@ class _DirectSamplingEngine:
         cond_weight=1.0,
         boundary="strict",
         rotation_map=None,
-        anis_map=None,
+        scale_map=None,
+        stationary_transform=False,
         path="random",
     ):
         self.training_image = training_image
@@ -154,7 +155,23 @@ class _DirectSamplingEngine:
         self.cond_weight = cond_weight
         self.boundary = boundary
         self.rotation_map = rotation_map
-        self.anis_map = anis_map
+        self.scale_map = scale_map
+        # Stationary transform: compute M once per simulation (today's fast
+        # path) instead of rebuilding it per node. For per-node maps, cache
+        # matrices keyed on the (θ..., s...) value tuple — real-world maps
+        # are often piecewise constant, collapsing construction to a dict
+        # lookup (worst case: per-node cost, dominated by the TI scan).
+        self._m_cache = {}
+        self._stationary_M = None
+        if (
+            rotation_map is not None or scale_map is not None
+        ) and stationary_transform:
+            self._stationary_M = _lag_transform_matrix(
+                self.dim,
+                rotation_map,
+                scale_map,
+                np.zeros(self.dim, dtype=int),
+            )
 
         self.n_k = {v.name: v.n_neighbors for v in training_image.variables}
         self.ti_vars = {v.name: v.data for v in training_image.variables}
@@ -280,6 +297,26 @@ class _DirectSamplingEngine:
             )
         return {v: float(self.ti_vars[v][cell]) for v in targets}
 
+    def _node_transform_matrix(self, x_i):
+        """Per-node M with value-tuple caching (dict get/set are GIL-atomic;
+        a rare duplicate computation under threads is benign and value-equal)."""
+        if self._stationary_M is not None:
+            return self._stationary_M
+        idx = tuple(int(c) for c in x_i)
+        ang = self.rotation_map[idx] if self.rotation_map is not None else None
+        sc = self.scale_map[idx] if self.scale_map is not None else None
+        key = (
+            None if ang is None else tuple(ang.tolist()),
+            None if sc is None else tuple(sc.tolist()),
+        )
+        M = self._m_cache.get(key)
+        if M is None:
+            M = _lag_transform_matrix(
+                self.dim, self.rotation_map, self.scale_map, x_i
+            )
+            self._m_cache[key] = M
+        return M
+
     # ------------------------------------------------------------------
     # Simulation pipeline helpers (called only from _simulate_node)
     # ------------------------------------------------------------------
@@ -350,8 +387,8 @@ class _DirectSamplingEngine:
     def _transform_and_reduce_lags(self, x_i, events):
         """Seam 2 — map SG lags into TI frame (non-stationary) or copy (stationary).
 
-        When ``rotation_map`` or ``anis_map`` is set, applies the per-node
-        isometrization matrix, deduplicates collapsed lags
+        When ``rotation_map`` or ``scale_map`` is set, applies the per-node
+        detransform matrix, deduplicates collapsed lags
         (:func:`_transform_lags`), and globally drops lags that cannot fit the
         TI (:func:`_reduce_to_fit`, Mariethoz2010 para [43]).
 
@@ -372,10 +409,8 @@ class _DirectSamplingEngine:
             New events with ``lags_ti`` populated and SG arrays possibly trimmed
             (non-stationary dedup / reduce-to-fit).
         """
-        if self.rotation_map is not None or self.anis_map is not None:
-            M = _lag_transform_matrix(
-                self.dim, self.rotation_map, self.anis_map, x_i
-            )
+        if self.rotation_map is not None or self.scale_map is not None:
+            M = self._node_transform_matrix(x_i)
             out = {}
             for v in self.variables:
                 de = events[v]
@@ -611,7 +646,8 @@ def ds_simulate(
     boundary="strict",
     num_threads=None,
     rotation_map=None,
-    anis_map=None,
+    scale_map=None,
+    stationary_transform=False,
     progress=None,
     path="random",
 ):
@@ -661,12 +697,19 @@ def ds_simulate(
     num_threads : int or None, optional
         Threads for the node-wise DAG. ``None`` -> ``config.NUM_THREADS``.
     rotation_map : numpy.ndarray or None, optional
-        Per-node rotation angles, shape matching the simulation grid. ``None``
-        → no rotation (stationary). Use ``DirectSampling.set_nonstationary``
-        to produce this array from user-facing scalar or array inputs.
-    anis_map : numpy.ndarray or None, optional
-        Per-node anisotropy ratios, shape matching the simulation grid.
-        ``None`` → isotropic (stationary). All values must be positive.
+        Canonical per-node rotation map, shape
+        ``sim_shape + (no_of_angles(dim),)``, as produced by
+        :func:`gstools.mps.nonstationary.resolve_spec`. ``None`` → no
+        rotation (stationary).
+    scale_map : numpy.ndarray or None, optional
+        Canonical per-node scale map, shape ``sim_shape + (dim,)``, as
+        produced by :func:`gstools.mps.nonstationary.resolve_spec`. ``None``
+        → no dilation (stationary). All values must be positive.
+    stationary_transform : bool, optional
+        When ``True`` (and at least one of ``rotation_map``/``scale_map`` is
+        set), the detransform matrix ``M`` is computed once for the whole
+        simulation instead of being resolved per node. Set by the caller when
+        both maps resolved as node-independent. Default: ``False``.
     progress : bool or callable or None, optional
         Show simulation progress. ``True`` prints a plain percentage line
         (no third-party dependency); a callable is invoked as
@@ -689,7 +732,8 @@ def ds_simulate(
         cond_weight=cond_weight,
         boundary=boundary,
         rotation_map=rotation_map,
-        anis_map=anis_map,
+        scale_map=scale_map,
+        stationary_transform=stationary_transform,
         path=path,
     )
     return engine.run(num_threads=num_threads, progress=progress)

@@ -9,72 +9,59 @@ The following classes and functions are provided
    DirectSampling
 """
 
+import warnings
+
 import numpy as np
 
 from gstools.field.base import Field
 from gstools.mps.model import MPSModel
+from gstools.mps.nonstationary import (  # noqa: F401 (build_zone_selector: wired in Task 6)
+    build_zone_selector,
+    resolve_spec,
+)
 from gstools.mps.simulate import ds_simulate
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
-from gstools.tools.geometric import no_of_angles
+from gstools.tools.geometric import generate_grid, no_of_angles
 
 __all__ = ["DirectSampling"]
 
 
-def _resolve_nonstationary_map(param, sim_shape, n_stationary):
-    """Return ``None`` or an array broadcastable to ``sim_shape``.
+def _warn_nonuniform_axes(axes):
+    """Warn when a transform/zonation is active on non-index-like axes.
 
-    Scalars and 0-d arrays are broadcast to the grid. A 1-D vector is a
-    *stationary* multi-component value (e.g. a 3-element Tait–Bryan angle triple
-    for a 3-D grid) and is accepted only when its length equals
-    ``n_stationary`` — the number of components a stationary value has for this
-    parameter and grid dimension. A *per-node* map must have leading dimensions
-    equal to ``sim_shape`` (i.e. a full-shape array, not a flattened vector).
-
-    Parameters
-    ----------
-    param : scalar or array-like or None
-        User-supplied rotation/anis value.
-    sim_shape : tuple
-        Simulation grid shape.
-    n_stationary : int
-        Component count of a stationary value for this parameter/dimension
-        (``no_of_angles(dim)`` for rotation, ``dim - 1`` for anis).
-
-    Raises
-    ------
-    ValueError
-        If a 1-D vector matches neither a stationary value nor the grid — the
-        common cause is a per-node map passed *flattened* instead of shaped
-        like the grid, which would otherwise silently apply only element [0].
+    Rotation/scale act on **index lags** and zone masks are per-cell; for
+    uniformly and equally spaced axes index-space and physical-space geometry
+    coincide (the spacing matrix h·I commutes with rotation). Otherwise a
+    physical-space rotation is not an index-space rotation — warn (MPS-local;
+    Mariethoz2010 §6.2 geometry is defined on cells).
     """
-    if param is None:
-        return None
-    arr = np.asarray(param, dtype=np.float64)
-    if arr.ndim == 0 or arr.size == 1:
-        return np.full(sim_shape, float(arr.flat[0]))
-    if arr.ndim == 1:
-        # Only a genuine stationary multi-component value is accepted as 1-D.
-        # A per-node map is multi-dimensional (leading dims == grid); a 1-D
-        # array of any other length is almost certainly a flattened per-node
-        # map and would silently degrade to its first element — reject it.
-        if arr.size == n_stationary:
-            return arr
-        raise ValueError(
-            f"DirectSampling: 1-D non-stationary value of length {arr.size} matches neither a "
-            f"stationary value ({n_stationary} component(s) for a "
-            f"{len(sim_shape)}-D grid) nor a per-node map. For per-node values "
-            f"pass an array shaped like the grid {tuple(sim_shape)!r}, not a "
-            f"flattened vector."
+    steps = []
+    for d, ax in enumerate(axes):
+        ax = np.asarray(ax, dtype=np.double)
+        if len(ax) < 2:
+            continue
+        diffs = np.diff(ax)
+        if not np.allclose(diffs, diffs[0]):
+            warnings.warn(
+                f"DirectSampling: axis {d} is not uniformly spaced while a "
+                "geometric transform or zonation is active. Rotation/scale "
+                "act on index lags (cell offsets); on non-uniform axes the "
+                "result is not a physical-space transform.",
+                UserWarning,
+                stacklevel=3,
+            )
+            return
+        steps.append(diffs[0])
+    if len(steps) > 1 and not np.allclose(steps, steps[0]):
+        warnings.warn(
+            "DirectSampling: grid axes have unequal spacing while a "
+            "geometric transform or zonation is active. Rotation/scale act "
+            "on index lags (cell offsets); with anisotropic spacing the "
+            "result is not a physical-space transform.",
+            UserWarning,
+            stacklevel=3,
         )
-    if arr.shape[: len(sim_shape)] == tuple(sim_shape):
-        return arr
-    raise ValueError(
-        f"DirectSampling: Non-stationary map shape {arr.shape!r} is incompatible with "
-        f"simulation grid shape {tuple(sim_shape)!r}. Pass a scalar or "
-        f"1-D vector for a stationary value, or an array whose leading "
-        f"dimensions match the grid."
-    )
 
 
 class DirectSampling(Field):
@@ -133,8 +120,6 @@ class DirectSampling(Field):
         self._mv_mean = {}
         self._mv_normalizer = {}
         self._mv_trend = {}
-        self._rotation = None
-        self._anis = None
         self.rng = RNG(None if np.isnan(seed) else int(seed))
         if model.ti.multivariate:
             for v in model.ti.variables:
@@ -236,14 +221,25 @@ class DirectSampling(Field):
             )
         name, save = self.get_store_config(store)
         pos, shape = self.pre_pos(pos, mesh_type)
-        # Stationary component counts disambiguate a 1-D value from a flattened
-        # per-node map: rotation has no_of_angles(dim) angles, anis has dim-1.
-        rotation_map = _resolve_nonstationary_map(
-            self._rotation, shape, no_of_angles(len(shape))
+        dim = len(shape)
+        flat_pos = generate_grid(self.pos)
+        rotation_map, rot_stat = resolve_spec(
+            self._mps_model.rotation,
+            shape,
+            no_of_angles(dim),
+            flat_pos,
+            "rotation",
         )
-        anis_map = _resolve_nonstationary_map(
-            self._anis, shape, max(len(shape) - 1, 1)
+        scale_map, scale_stat = resolve_spec(
+            self._mps_model.scale,
+            shape,
+            dim,
+            flat_pos,
+            "scale",
+            positive=True,
         )
+        if rotation_map is not None or scale_map is not None:
+            _warn_nonuniform_axes(self.pos)
         conditions = self._conditions_to_grid(self.pos)
         if not np.isnan(seed):
             self.rng.seed = int(seed)
@@ -285,7 +281,8 @@ class DirectSampling(Field):
             boundary=self.boundary,
             num_threads=n_threads,
             rotation_map=rotation_map,
-            anis_map=anis_map,
+            scale_map=scale_map,
+            stationary_transform=rot_stat and scale_stat,
             progress=progress,
             path=path,
         )
@@ -471,38 +468,6 @@ class DirectSampling(Field):
                 v: _set_mean_trend(t, self.dim) for v, t in trend.items()
             }
 
-    def set_nonstationary(self, rotation=None, anis=None):
-        """Set per-node geometric transform for non-stationary simulation.
-
-        Transforms lag vectors from the simulation-grid frame into the training
-        image's own frame before each TI scan (Mariethoz2010 §6.2). Enables
-        spatially varying orientation and anisotropy without modifying the TI.
-
-        Parameters
-        ----------
-        rotation : float or numpy.ndarray, optional
-            Rotation angle(s) in radians. Scalar → stationary (same angle at
-            every node). Array whose leading dimensions match the simulation
-            grid shape → per-node angles. Convention matches
-            :class:`gstools.CovModel` ``angles`` (2-D: one angle; 3-D:
-            Tait–Bryan yaw/pitch/roll). ``None`` → no rotation applied.
-        anis : float or numpy.ndarray, optional
-            Anisotropy ratio(s). Scalar → stationary. Array → per-node. Values
-            less than 1 compress the TI search in transversal directions.
-            Convention matches :class:`gstools.CovModel` ``anis``.
-            ``None`` → isotropic.
-        """
-        if rotation is not None:
-            self._rotation = np.asarray(rotation, dtype=np.float64)
-        if anis is not None:
-            anis_arr = np.asarray(anis, dtype=np.float64)
-            if np.any(anis_arr <= 0):
-                raise ValueError(
-                    f"DirectSampling: anis must be positive everywhere, "
-                    f"got minimum value {float(anis_arr.min())!r}"
-                )
-            self._anis = anis_arr
-
     @property
     def mps_model(self):
         """:any:`MPSModel`: the search-parameter configuration (training image + parameters)."""
@@ -579,16 +544,4 @@ class DirectSampling(Field):
             f"threshold={self.threshold}, ",
             f"boundary={self.boundary!r}",
         ]
-        if self._rotation is not None:
-            rot_val = (
-                float(self._rotation)
-                if self._rotation.ndim == 0
-                else self._rotation
-            )
-            parts.append(f", rotation={rot_val!r}")
-        if self._anis is not None:
-            anis_val = (
-                float(self._anis) if self._anis.ndim == 0 else self._anis
-            )
-            parts.append(f", anis={anis_val!r}")
         return "".join(parts) + ")"

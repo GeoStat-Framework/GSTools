@@ -22,6 +22,15 @@ Configuration class bundling a training image with Direct Sampling search parame
 
    MPSModel
 
+Zonation
+^^^^^^^^
+Bind a training image to a region of the simulation grid for zonated Direct Sampling.
+
+.. autosummary::
+   :toctree:
+
+   Zone
+
 Simulation
 ^^^^^^^^^^
 Direct Sampling simulation following the gstools field interface.
@@ -35,5 +44,6 @@ Direct Sampling simulation following the gstools field interface.
 from gstools.mps.direct_sampling import DirectSampling
 from gstools.mps.model import MPSModel
 from gstools.mps.training_image import TrainingImage, Variable
+from gstools.mps.zone import Zone
 
-__all__ = ["DirectSampling", "MPSModel", "TrainingImage", "Variable"]
+__all__ = ["DirectSampling", "MPSModel", "TrainingImage", "Variable", "Zone"]

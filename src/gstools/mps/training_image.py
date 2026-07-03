@@ -93,6 +93,29 @@ def _parse_distance(distance):
     )
 
 
+def _view_variable(var, slices):
+    """Variable sharing ``var``'s configuration with ``data = var.data[slices]``.
+
+    The data is a NumPy **view** (no copy; the parent buffer is already
+    read-only, so the view is too). ``d_max`` is recomputed from the sliced
+    data so per-zone continuous normalization reflects the sub-region.
+    """
+    view = var.data[slices]
+    new = Variable.__new__(Variable)
+    new._name = var._name
+    new._data = view
+    new._categorical = var._categorical
+    new._distance = var._distance
+    new._weight = var._weight
+    new._max_radius = var._max_radius
+    new._has_nan = _any_float_nan(view)
+    new._p_norm = var._p_norm
+    new._variation_p_norm = var._variation_p_norm
+    new._d_max = None if var._categorical else _data_range(view)
+    new._n_neighbors = var._n_neighbors
+    return new
+
+
 _SENTINEL = object()
 
 
@@ -447,6 +470,91 @@ class TrainingImage:
         if name not in self._var_map:
             raise KeyError(f"TrainingImage: no variable named {name!r}.")
         return self._var_map[name]
+
+    def _validate_window_slices(self, slices):
+        """Normalize/validate window slices: unit step, in-bounds, non-degenerate."""
+        if isinstance(slices, slice):
+            slices = (slices,)
+        try:
+            slices = tuple(slices)
+        except TypeError:
+            raise ValueError(
+                f"TrainingImage.window: expected a tuple of {self.ndim} "
+                f"slice objects (one per dimension), got {slices!r}."
+            )
+        if len(slices) != self.ndim or not all(
+            isinstance(s, slice) for s in slices
+        ):
+            raise ValueError(
+                f"TrainingImage.window: expected a tuple of {self.ndim} "
+                f"slice objects (one per dimension), got {slices!r}."
+            )
+        out = []
+        for d, sl in enumerate(slices):
+            if sl.step not in (None, 1):
+                raise ValueError(
+                    f"TrainingImage.window: axis {d} has step {sl.step!r}; "
+                    "only unit-step slices are allowed — a strided slice "
+                    "subsamples the TI and destroys pattern continuity."
+                )
+            start = 0 if sl.start is None else int(sl.start)
+            stop = self._shape[d] if sl.stop is None else int(sl.stop)
+            if start < 0 or stop > self._shape[d]:
+                raise ValueError(
+                    f"TrainingImage.window: slice {start}:{stop} on axis {d} "
+                    f"is out of bounds for TI shape {self._shape!r} "
+                    "(negative indices are not supported)."
+                )
+            if stop - start < 1:
+                raise ValueError(
+                    f"TrainingImage.window: slice {start}:{stop} on axis {d} "
+                    "is degenerate (empty)."
+                )
+            out.append(slice(start, stop))
+        return tuple(out)
+
+    def window(self, slices):
+        """Return a TrainingImage **view** over a sub-region of this TI.
+
+        Supports zonated simulation from sub-regions of one large TI
+        (Mariethoz et al. 2010, para [40]) without copying data.
+
+        Parameters
+        ----------
+        slices : tuple of :class:`slice`
+            One unit-step, in-bounds, non-degenerate slice per dimension,
+            e.g. ``np.s_[:250, 300:]``. A single slice is accepted for 1-D.
+
+        Returns
+        -------
+        TrainingImage
+            A view sharing this TI's data buffers. Per-variable ``d_max`` is
+            recomputed from the sliced data; all other per-variable settings
+            (kind, distance, weight, ``n_neighbors``, ``max_radius``) carry
+            over unchanged.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import gstools as gs
+        >>> ti = gs.TrainingImage(np.zeros((100, 100)))
+        >>> sub = ti.window(np.s_[:50, 25:75])
+        >>> sub.shape
+        (50, 50)
+        """
+        slices = self._validate_window_slices(slices)
+        new_vars = [_view_variable(v, slices) for v in self._variables]
+        ti = TrainingImage.__new__(TrainingImage)
+        ti._distance_power = self._distance_power
+        ti._multivariate = self._multivariate
+        ti._variables = new_vars
+        ti._var_map = {v.name: v for v in new_vars}
+        ti._shape = new_vars[0].data.shape
+        ti._has_nan = any(v.has_nan for v in new_vars)
+        ti._normalized_weights = (
+            dict(self._normalized_weights) if self._multivariate else None
+        )
+        return ti
 
     @property
     def categorical(self):
