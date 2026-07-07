@@ -1692,8 +1692,7 @@ class TestNonstationarity(unittest.TestCase):
 
     def test_scalar_rotation_valid_values(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.2, rotation=np.pi / 4)
         )
@@ -1714,8 +1713,7 @@ class TestNonstationarity(unittest.TestCase):
 
     def test_array_rotation_map_runs(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         angle_map = np.linspace(0, np.pi / 2, 64).reshape(8, 8)
         ds = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.2, rotation=angle_map)
@@ -1737,8 +1735,7 @@ class TestNonstationarity(unittest.TestCase):
 
     def test_combined_rotation_anis_runs(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(
                 ti, scan_fraction=0.2, rotation=np.pi / 6, scale=[1.0, 0.5]
@@ -1750,8 +1747,7 @@ class TestNonstationarity(unittest.TestCase):
 
     def test_conditioning_preserved(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.3, rotation=np.pi / 4)
         )
@@ -1761,8 +1757,7 @@ class TestNonstationarity(unittest.TestCase):
 
     def test_partial_boundary_runs(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(
                 ti, scan_fraction=0.2, boundary="partial", rotation=np.pi / 4
@@ -1848,8 +1843,7 @@ class TestNonstationarity(unittest.TestCase):
         # Finding #5: a per-node map passed flattened (length Nx*Ny) on a 2-D
         # grid must raise, not silently apply only element [0].
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.2, rotation=np.linspace(0, np.pi, 25))
         )
@@ -1864,9 +1858,7 @@ class TestNonstationarity(unittest.TestCase):
             rng.integers(0, 2, (12, 12, 12)), n_neighbors=4
         )
         ds = gs.mps.DirectSampling(
-            MPSModel(
-                ti, scan_fraction=0.1, rotation=np.array([0.1, 0.2, 0.3])
-            )
+            MPSModel(ti, scan_fraction=0.1, rotation=np.array([0.1, 0.2, 0.3]))
         )
         field = ds([np.arange(5, dtype=float)] * 3, seed=0)
         self.assertEqual(field.shape, (5, 5, 5))
@@ -1876,8 +1868,7 @@ class TestNonstationarity(unittest.TestCase):
         # Oracle i: scalar spec (hoisted-M stationary path) vs a
         # hand-materialized constant per-node map (per-node path).
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         pos = [np.arange(8, dtype=float)] * 2
         f_scalar = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.2, rotation=0.3)
@@ -1890,8 +1881,7 @@ class TestNonstationarity(unittest.TestCase):
     def test_callable_vs_materialized_bit_identical(self):
         # Oracle c: callable form vs hand-materialized array of the same field.
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         pos = [np.arange(8, dtype=float)] * 2
 
         def rot(x, y):
@@ -1913,12 +1903,11 @@ class TestNonstationarity(unittest.TestCase):
         # inexpressible) runs, stays in the TI value set, and differs from
         # the identity run.
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (30, 30)),
-                                  n_neighbors=8)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (30, 30)), n_neighbors=8)
         pos = [np.arange(10, dtype=float)] * 2
-        f_id = gs.mps.DirectSampling(
-            MPSModel(ti, scan_fraction=0.2)
-        )(pos, seed=7)
+        f_id = gs.mps.DirectSampling(MPSModel(ti, scan_fraction=0.2))(
+            pos, seed=7
+        )
         f_half = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.2, scale=0.5)
         )(pos, seed=7)
@@ -1928,8 +1917,7 @@ class TestNonstationarity(unittest.TestCase):
     def test_nonuniform_axis_spacing_warns(self):
         # Oracle m: index-space geometry assumption.
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.3, rotation=np.pi / 4)
         )
@@ -1940,22 +1928,19 @@ class TestNonstationarity(unittest.TestCase):
 
     def test_unequal_axis_spacing_warns(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)),
-                                  n_neighbors=4)
-        ds = gs.mps.DirectSampling(
-            MPSModel(ti, scan_fraction=0.3, scale=0.5)
-        )
+        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)), n_neighbors=4)
+        ds = gs.mps.DirectSampling(MPSModel(ti, scan_fraction=0.3, scale=0.5))
         with self.assertWarns(UserWarning):
             ds([np.arange(4.0), 2.0 * np.arange(4.0)], seed=0)
 
     def test_uniform_spacing_no_warning(self):
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.3, rotation=np.pi / 4)
         )
         import warnings as _w
+
         with _w.catch_warnings():
             _w.simplefilter("error", UserWarning)
             ds([np.arange(6.0)] * 2, seed=0)
@@ -2208,15 +2193,11 @@ class TestLagTransformMatrix(unittest.TestCase):
     def test_scale_half_doubles_ti_lags(self):
         # Oracle b: scale=0.5 -> structures half the TI size -> TI-frame lags
         # are 2x the SG lags (lag_ti = (1/s) * R^-1 * lag_sg).
-        scale_map = np.broadcast_to(
-            np.array([0.5, 0.5]), (4, 4, 2)
-        )
+        scale_map = np.broadcast_to(np.array([0.5, 0.5]), (4, 4, 2))
         M = _lag_transform_matrix(2, None, scale_map, np.array([0, 0]))
         lags = np.array([[3.0, 0.0], [0.0, 5.0]])
         lags_ti = np.rint(lags @ M.T)
-        np.testing.assert_array_equal(
-            lags_ti, [[6.0, 0.0], [0.0, 10.0]]
-        )
+        np.testing.assert_array_equal(lags_ti, [[6.0, 0.0], [0.0, 10.0]])
 
     def test_uniform_dilation_isotropic(self):
         # Uniform dilation was inexpressible in the axis-0-pinned anis form.
@@ -2481,9 +2462,7 @@ class TestTrainingImageWindow(unittest.TestCase):
         self.assertTrue(
             np.shares_memory(win.variable().data, ti.variable().data)
         )
-        np.testing.assert_array_equal(
-            win.variable().data, data[5:15, 10:25]
-        )
+        np.testing.assert_array_equal(win.variable().data, data[5:15, 10:25])
 
     def test_window_d_max_from_slice(self):
         # d_max of the view is the range of the SLICED data, not the parent's.
@@ -2499,10 +2478,20 @@ class TestTrainingImageWindow(unittest.TestCase):
         rng = np.random.default_rng(1)
         ti = gs.mps.TrainingImage(
             [
-                Variable("a", rng.integers(0, 3, (12, 12)), weight=2.0,
-                         n_neighbors=7),
-                Variable("b", rng.random((12, 12)), categorical=False,
-                         distance="l2", weight=1.0, max_radius=4.0),
+                Variable(
+                    "a",
+                    rng.integers(0, 3, (12, 12)),
+                    weight=2.0,
+                    n_neighbors=7,
+                ),
+                Variable(
+                    "b",
+                    rng.random((12, 12)),
+                    categorical=False,
+                    distance="l2",
+                    weight=1.0,
+                    max_radius=4.0,
+                ),
             ]
         )
         win = ti.window(np.s_[2:10, 0:6])
@@ -2549,8 +2538,9 @@ class TestTrainingImageWindow(unittest.TestCase):
             ti.window(None)
 
     def test_1d_single_slice(self):
-        ti = gs.mps.TrainingImage(np.arange(50, dtype=float),
-                                  categorical=False)
+        ti = gs.mps.TrainingImage(
+            np.arange(50, dtype=float), categorical=False
+        )
         win = ti.window(np.s_[10:30])
         self.assertEqual(win.shape, (20,))
 
@@ -3385,7 +3375,9 @@ class TestSpecResolver(unittest.TestCase):
     """Exact-shape spec resolution (spec §2; oracle h, i-prep)."""
 
     def test_none_passthrough(self):
-        arr, stat = resolve_spec(None, (4, 4), 1, _flat_pos((4, 4)), "rotation")
+        arr, stat = resolve_spec(
+            None, (4, 4), 1, _flat_pos((4, 4)), "rotation"
+        )
         self.assertIsNone(arr)
         self.assertTrue(stat)
 
@@ -3401,7 +3393,10 @@ class TestSpecResolver(unittest.TestCase):
     def test_stationary_component_vector(self):
         # 3 Tait-Bryan angles on a 3-D grid (n_comp = no_of_angles(3) = 3)
         arr, stat = resolve_spec(
-            np.array([0.1, 0.2, 0.3]), (4, 4, 4), 3, _flat_pos((4, 4, 4)),
+            np.array([0.1, 0.2, 0.3]),
+            (4, 4, 4),
+            3,
+            _flat_pos((4, 4, 4)),
             "rotation",
         )
         self.assertTrue(stat)
@@ -3410,8 +3405,9 @@ class TestSpecResolver(unittest.TestCase):
 
     def test_grid_shape_form_4a(self):
         vals = np.linspace(0, 1, 20).reshape(4, 5)
-        arr, stat = resolve_spec(vals, (4, 5), 2, _flat_pos((4, 5)), "scale",
-                                 positive=False)
+        arr, stat = resolve_spec(
+            vals, (4, 5), 2, _flat_pos((4, 5)), "scale", positive=False
+        )
         self.assertFalse(stat)
         self.assertEqual(arr.shape, (4, 5, 2))
         self.assertEqual(arr[3, 4, 0], arr[3, 4, 1])  # broadcast across comps
@@ -3426,15 +3422,19 @@ class TestSpecResolver(unittest.TestCase):
         # B5 regression (oracle h): flattened (n_nodes,) map on a 2-D grid
         # must raise, never silently degrade to stationary.
         with self.assertRaisesRegex(ValueError, "shape"):
-            resolve_spec(np.linspace(0, 1, 20), (4, 5), 1,
-                         _flat_pos((4, 5)), "rotation")
+            resolve_spec(
+                np.linspace(0, 1, 20), (4, 5), 1, _flat_pos((4, 5)), "rotation"
+            )
 
     def test_collision_n_nodes_equals_n_comp_raises(self):
         # oracle h: 1-D grid of length n_comp — both readings match; must be
         # a loud ValueError naming both interpretations.
-        with self.assertRaisesRegex(ValueError, "stationary.*per-node|per-node.*stationary"):
-            resolve_spec(np.array([0.1, 0.2, 0.3]), (3,), 3, _flat_pos((3,)),
-                         "rotation")
+        with self.assertRaisesRegex(
+            ValueError, "stationary.*per-node|per-node.*stationary"
+        ):
+            resolve_spec(
+                np.array([0.1, 0.2, 0.3]), (3,), 3, _flat_pos((3,)), "rotation"
+            )
 
     def test_per_node_map_on_1d_grid_is_form_4a(self):
         # oracle h: valid per-node maps on 1-D grids are expressible.
@@ -3464,16 +3464,28 @@ class TestSpecResolver(unittest.TestCase):
 
     def test_callable_wrong_shape_raises(self):
         with self.assertRaisesRegex(ValueError, "callable"):
-            resolve_spec(lambda x, y: np.zeros((5,)), (3, 4), 1,
-                         _flat_pos((3, 4)), "rotation")
+            resolve_spec(
+                lambda x, y: np.zeros((5,)),
+                (3, 4),
+                1,
+                _flat_pos((3, 4)),
+                "rotation",
+            )
 
     def test_positive_validation(self):
         with self.assertRaisesRegex(ValueError, "positive|> 0"):
-            resolve_spec(-1.0, (4, 4), 2, _flat_pos((4, 4)), "scale",
-                         positive=True)
+            resolve_spec(
+                -1.0, (4, 4), 2, _flat_pos((4, 4)), "scale", positive=True
+            )
         with self.assertRaisesRegex(ValueError, "positive|> 0"):
-            resolve_spec(np.zeros((4, 4)), (4, 4), 2, _flat_pos((4, 4)),
-                         "scale", positive=True)
+            resolve_spec(
+                np.zeros((4, 4)),
+                (4, 4),
+                2,
+                _flat_pos((4, 4)),
+                "scale",
+                positive=True,
+            )
 
 
 class TestZoneConstruction(unittest.TestCase):
@@ -3524,14 +3536,16 @@ class TestMPSModelNonstationarySpec(unittest.TestCase):
 
     def test_rotation_on_1d_ti_raises(self):
         # oracle k: no_of_angles(1) == 0 — every rotation form is degenerate.
-        ti1d = gs.mps.TrainingImage(np.arange(30, dtype=float),
-                                    categorical=False)
+        ti1d = gs.mps.TrainingImage(
+            np.arange(30, dtype=float), categorical=False
+        )
         with self.assertRaisesRegex(ValueError, "1-D|rotation"):
             MPSModel(ti1d, rotation=0.5)
 
     def test_scale_on_1d_ti_allowed(self):
-        ti1d = gs.mps.TrainingImage(np.arange(30, dtype=float),
-                                    categorical=False)
+        ti1d = gs.mps.TrainingImage(
+            np.arange(30, dtype=float), categorical=False
+        )
         m = MPSModel(ti1d, scale=2.0)  # dilation along the single axis
         self.assertEqual(m.scale, 2.0)
 
@@ -3542,8 +3556,11 @@ class TestMPSModelNonstationarySpec(unittest.TestCase):
             MPSModel(self._ti(), scale=np.full((10, 10), -1.0))
 
     def test_callable_specs_accepted(self):
-        m = MPSModel(self._ti(), rotation=lambda x, y: x * 0.01,
-                     scale=lambda x, y: 1.0 + 0 * x)
+        m = MPSModel(
+            self._ti(),
+            rotation=lambda x, y: x * 0.01,
+            scale=lambda x, y: 1.0 + 0 * x,
+        )
         self.assertTrue(callable(m.rotation))
         self.assertTrue(callable(m.scale))
 
@@ -3587,8 +3604,7 @@ class TestMPSModelNonstationarySpec(unittest.TestCase):
         def my_rot(x, y):
             return x * 0.0
 
-        m1 = MPSModel(self._ti(), rotation=my_rot,
-                      scale=np.ones((10, 10, 2)))
+        m1 = MPSModel(self._ti(), rotation=my_rot, scale=np.ones((10, 10, 2)))
         r = repr(m1)
         self.assertIn("my_rot", r)
         self.assertIn("shape=(10, 10, 2)", r)
@@ -3615,16 +3631,20 @@ class TestWhereAndSelector(unittest.TestCase):
 
     def test_resolve_where_wrong_shape_raises(self):
         with self.assertRaisesRegex(ValueError, "shape"):
-            resolve_where(np.zeros((3, 3), dtype=bool), (4, 4),
-                          _flat_pos((4, 4)))
+            resolve_where(
+                np.zeros((3, 3), dtype=bool), (4, 4), _flat_pos((4, 4))
+            )
 
     def test_selector_values(self):
         ti = gs.mps.TrainingImage(np.zeros((5, 5)))
-        m1 = np.zeros((4, 4), dtype=bool); m1[:2] = True
-        m2 = np.zeros((4, 4), dtype=bool); m2[3:] = True
+        m1 = np.zeros((4, 4), dtype=bool)
+        m1[:2] = True
+        m2 = np.zeros((4, 4), dtype=bool)
+        m2[3:] = True
         sel = build_zone_selector(
             [gs.Zone(ti, where=m1), gs.Zone(ti, where=m2)],
-            (4, 4), _flat_pos((4, 4)),
+            (4, 4),
+            _flat_pos((4, 4)),
         )
         self.assertEqual(sel[0, 0], 1)
         self.assertEqual(sel[3, 0], 2)
@@ -3633,12 +3653,15 @@ class TestWhereAndSelector(unittest.TestCase):
     def test_overlapping_zones_raise(self):
         # oracle k: deterministic — no silent precedence order
         ti = gs.mps.TrainingImage(np.zeros((5, 5)))
-        m1 = np.zeros((4, 4), dtype=bool); m1[:2] = True
-        m2 = np.zeros((4, 4), dtype=bool); m2[1:] = True  # overlaps row 1
+        m1 = np.zeros((4, 4), dtype=bool)
+        m1[:2] = True
+        m2 = np.zeros((4, 4), dtype=bool)
+        m2[1:] = True  # overlaps row 1
         with self.assertRaisesRegex(ValueError, "overlap"):
             build_zone_selector(
                 [gs.Zone(ti, where=m1), gs.Zone(ti, where=m2)],
-                (4, 4), _flat_pos((4, 4)),
+                (4, 4),
+                _flat_pos((4, 4)),
             )
 
 
@@ -3647,10 +3670,12 @@ class TestZonatedSimulation(unittest.TestCase):
 
     def _two_zone_setup(self, sg=10):
         rng = np.random.default_rng(0)
-        ti_a = gs.mps.TrainingImage(rng.integers(0, 3, (15, 15)),
-                                    n_neighbors=4)
-        ti_b = gs.mps.TrainingImage(rng.integers(10, 13, (15, 15)),
-                                    n_neighbors=4)
+        ti_a = gs.mps.TrainingImage(
+            rng.integers(0, 3, (15, 15)), n_neighbors=4
+        )
+        ti_b = gs.mps.TrainingImage(
+            rng.integers(10, 13, (15, 15)), n_neighbors=4
+        )
         gx, _ = np.meshgrid(np.arange(sg), np.arange(sg), indexing="ij")
         zone = gs.Zone(ti_b, where=(gx >= sg // 2))
         model = MPSModel(ti_a, scan_fraction=0.5, zones=[zone])
@@ -3664,18 +3689,22 @@ class TestZonatedSimulation(unittest.TestCase):
         model, pos, sg = self._two_zone_setup()
         field = gs.mps.DirectSampling(model)(pos, seed=0)
         self.assertTrue(np.all(np.isin(field[: sg // 2], [0, 1, 2])))
-        self.assertTrue(np.all(np.isin(field[sg // 2:], [10, 11, 12])))
+        self.assertTrue(np.all(np.isin(field[sg // 2 :], [10, 11, 12])))
 
     def test_zone_thread_count_determinism(self):
         # Oracle e: zones + rotation, varying num_threads -> identical output.
         rng = np.random.default_rng(1)
-        ti_a = gs.mps.TrainingImage(rng.integers(0, 3, (15, 15)),
-                                    n_neighbors=4)
-        ti_b = gs.mps.TrainingImage(rng.integers(10, 13, (15, 15)),
-                                    n_neighbors=4)
+        ti_a = gs.mps.TrainingImage(
+            rng.integers(0, 3, (15, 15)), n_neighbors=4
+        )
+        ti_b = gs.mps.TrainingImage(
+            rng.integers(10, 13, (15, 15)), n_neighbors=4
+        )
         gx, _ = np.meshgrid(np.arange(8), np.arange(8), indexing="ij")
         model = MPSModel(
-            ti_a, scan_fraction=0.5, rotation=np.pi / 6,
+            ti_a,
+            scan_fraction=0.5,
+            rotation=np.pi / 6,
             zones=[gs.Zone(ti_b, where=(gx >= 4))],
         )
         pos = [np.arange(8, dtype=float)] * 2
@@ -3687,8 +3716,10 @@ class TestZonatedSimulation(unittest.TestCase):
         # Oracle k: overlap detected at resolve time in __call__.
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 2, (10, 10)))
-        m1 = np.zeros((6, 6), dtype=bool); m1[:3] = True
-        m2 = np.zeros((6, 6), dtype=bool); m2[2:] = True
+        m1 = np.zeros((6, 6), dtype=bool)
+        m1[:3] = True
+        m2 = np.zeros((6, 6), dtype=bool)
+        m2[2:] = True
         model = MPSModel(
             ti, zones=[gs.Zone(ti, where=m1), gs.Zone(ti, where=m2)]
         )
@@ -3703,15 +3734,23 @@ class TestZonatedSimulation(unittest.TestCase):
         from gstools.random.rng import RNG
 
         rng = np.random.default_rng(0)
-        ti_narrow = gs.mps.TrainingImage(rng.random((10, 10)),
-                                         categorical=False)   # range ~1
-        ti_wide = gs.mps.TrainingImage(rng.random((10, 10)) * 100.0,
-                                       categorical=False)     # range ~100
-        sel = np.zeros((6, 6), dtype=np.intp); sel[3:] = 1
+        ti_narrow = gs.mps.TrainingImage(
+            rng.random((10, 10)), categorical=False
+        )  # range ~1
+        ti_wide = gs.mps.TrainingImage(
+            rng.random((10, 10)) * 100.0, categorical=False
+        )  # range ~100
+        sel = np.zeros((6, 6), dtype=np.intp)
+        sel[3:] = 1
         engine = _DirectSamplingEngine(
-            ti_narrow, (6, 6), threshold=0.1, scan_fraction=1.0,
-            rng_path=RNG(0).random, rng_nodes=RNG(1).random,
-            zone_tis=[ti_wide], zone_selector=sel,
+            ti_narrow,
+            (6, 6),
+            threshold=0.1,
+            scan_fraction=1.0,
+            rng_path=RNG(0).random,
+            rng_nodes=RNG(1).random,
+            zone_tis=[ti_wide],
+            zone_selector=sel,
         )
         d0 = engine.domains[0].scan_config.d_max[None]
         d1 = engine.domains[1].scan_config.d_max[None]
@@ -3728,11 +3767,17 @@ class TestZonatedSimulation(unittest.TestCase):
         from gstools.mps.simulate import _DirectSamplingEngine
         from gstools.random.rng import RNG
 
-        sel = np.zeros((4, 4), dtype=np.intp); sel[2:] = 1
+        sel = np.zeros((4, 4), dtype=np.intp)
+        sel[2:] = 1
         engine = _DirectSamplingEngine(
-            ti, (4, 4), threshold=0.1, scan_fraction=1.0,
-            rng_path=RNG(0).random, rng_nodes=RNG(1).random,
-            zone_tis=[ti.window(np.s_[5:10, 5:10])], zone_selector=sel,
+            ti,
+            (4, 4),
+            threshold=0.1,
+            scan_fraction=1.0,
+            rng_path=RNG(0).random,
+            rng_nodes=RNG(1).random,
+            zone_tis=[ti.window(np.s_[5:10, 5:10])],
+            zone_selector=sel,
         )
         self.assertEqual(engine.domains[1].scan_config.d_max[None], 24.0)
 
@@ -3746,17 +3791,22 @@ class TestZonatedSimulation(unittest.TestCase):
         prim_b = rng.integers(0, 2, (15, 15))
         comp_a = rng.integers(5, 8, (15, 15))
         comp_b = rng.integers(2, 4, (15, 15))
-        primary = gs.mps.TrainingImage([
-            Variable("a", prim_a, n_neighbors=4),
-            Variable("b", prim_b, n_neighbors=4),
-        ])
-        composite = gs.mps.TrainingImage([
-            Variable("a", comp_a, n_neighbors=4),
-            Variable("b", comp_b, n_neighbors=4),
-        ])
+        primary = gs.mps.TrainingImage(
+            [
+                Variable("a", prim_a, n_neighbors=4),
+                Variable("b", prim_b, n_neighbors=4),
+            ]
+        )
+        composite = gs.mps.TrainingImage(
+            [
+                Variable("a", comp_a, n_neighbors=4),
+                Variable("b", comp_b, n_neighbors=4),
+            ]
+        )
         gx, _ = np.meshgrid(np.arange(8), np.arange(8), indexing="ij")
         model = MPSModel(
-            primary, scan_fraction=0.5,
+            primary,
+            scan_fraction=0.5,
             zones=[gs.Zone(composite, where=(gx >= 4))],
         )
         out = gs.mps.DirectSampling(model)(
@@ -3766,8 +3816,7 @@ class TestZonatedSimulation(unittest.TestCase):
         self.assertTrue(np.all(np.isin(za, [5, 6, 7])))
         self.assertTrue(np.all(np.isin(zb, [2, 3])))
         zone_pairs = set(zip(za.ravel().tolist(), zb.ravel().tolist()))
-        ti_pairs = set(zip(comp_a.ravel().tolist(),
-                           comp_b.ravel().tolist()))
+        ti_pairs = set(zip(comp_a.ravel().tolist(), comp_b.ravel().tolist()))
         self.assertTrue(zone_pairs <= ti_pairs)
         self.assertTrue(np.all(np.isin(out["a"][:4], [0, 1, 2])))
 
@@ -3782,12 +3831,11 @@ class TestZonatedSimulation(unittest.TestCase):
     def test_no_zones_unchanged(self):
         # zones=[] must be bit-identical to the pre-zonation engine.
         rng = np.random.default_rng(0)
-        ti = gs.mps.TrainingImage(rng.integers(0, 3, (15, 15)),
-                                  n_neighbors=4)
+        ti = gs.mps.TrainingImage(rng.integers(0, 3, (15, 15)), n_neighbors=4)
         pos = [np.arange(8, dtype=float)] * 2
-        f_plain = gs.mps.DirectSampling(
-            MPSModel(ti, scan_fraction=0.5)
-        )(pos, seed=2)
+        f_plain = gs.mps.DirectSampling(MPSModel(ti, scan_fraction=0.5))(
+            pos, seed=2
+        )
         f_empty = gs.mps.DirectSampling(
             MPSModel(ti, scan_fraction=0.5, zones=[])
         )(pos, seed=2)
