@@ -377,6 +377,24 @@ class TestCovModel(unittest.TestCase):
         self.assertAlmostEqual(cor, model_cov.cor(2.5))
         self.assertAlmostEqual(cor, model_cor.cor(2.5))
 
+    def test_roughness(self):
+        self.assertAlmostEqual(Gaussian().roughness, 2.0)
+        self.assertAlmostEqual(Exponential().roughness, 1.0)
+        self.assertAlmostEqual(Stable(alpha=1.2).roughness, 1.2)
+        self.assertAlmostEqual(Matern(nu=0.4).roughness, 0.8)
+        self.assertAlmostEqual(Integral(nu=0.6).roughness, 0.6)
+        self.assertAlmostEqual(TPLGaussian(hurst=0.4).roughness, 0.8)
+        self.assertAlmostEqual(
+            TPLGaussian(hurst=0.4, len_low=1.0).roughness, 2.0
+        )
+        self.assertAlmostEqual(
+            TPLStable(hurst=0.4, alpha=1.2, len_low=1.0).roughness,
+            1.2,
+        )
+        self.assertAlmostEqual(Gaussian(nugget=0.5).roughness, 0.0)
+        self.assertTrue(np.isinf(Gaussian(var=0.0).roughness))
+        self.assertAlmostEqual(Gau_cor().roughness, 2.0, places=2)
+
     def test_rescale(self):
         model1 = Exponential()
         model2 = Exponential(rescale=2.1)

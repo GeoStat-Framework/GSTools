@@ -15,7 +15,33 @@ import numpy as np
 
 from gstools.tools.geometric import format_struct_pos_dim, generate_grid
 
-__all__ = ["get_fig_ax", "list_format", "eval_func"]
+__all__ = ["derivative", "get_fig_ax", "list_format", "eval_func"]
+
+
+def derivative(f, x, dx=1e-6, order=2):
+    """Central difference formula.
+
+    Parameters
+    ----------
+    f : :any:`callable`
+        Function to differentiate.
+    x : array_like
+        Point(s) where to evaluate the derivative.
+    dx : :class:`float`, optional
+        Step size for the central difference. The default is 1e-6.
+    order : :class:`int`, optional
+        Order of the derivative approximation. Either 1 (forward difference) or
+        2 (central difference). The default is 2.
+
+    Returns
+    -------
+    :class:`numpy.ndarray`
+        Derivative of f at x.
+    """
+    x = np.asarray(x, dtype=np.double)
+    if order == 1:
+        return (f(x + dx) - f(x)) / dx
+    return (f(x + dx) - f(x - dx)) / (2 * dx)
 
 
 def get_fig_ax(fig=None, ax=None, ax_name="rectilinear"):  # pragma: no cover

@@ -15,3 +15,5 @@ and was created by following people.
 - Falk Heße, GitHub: [@fhesze](https://github.com/fhesze), Email: <falk.hesse@ufz.de>
 - Bane Sullivan, GitHub: [@banesullivan](https://github.com/banesullivan)
 - Tobias Glaubach, GitHub: [@TobiasGlaubach](https://github.com/TobiasGlaubach)
+- Evan Ricketts, GithHub [@EJRicketts](https://github.com/EJRicketts)
+- Niklas Abele, GitHub: [@n0228a](https://github.com/n0228a)
