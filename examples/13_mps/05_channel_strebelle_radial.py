@@ -95,8 +95,15 @@ spiral_path = np.column_stack(
 # We use scan_fraction=0.25 and a relaxed threshold=0.05. Perfect matches
 # under continuous rotation/scaling are very rare, so a relaxed threshold
 # prevents the algorithm from picking bad fallbacks.
-ds = gs.DirectSampling(gs.MPSModel(ti, scan_fraction=0.35, threshold=0))
-ds.set_nonstationary(rotation=rotation, anis=anis)
+# rotation/scale are passed directly into MPSModel as model configuration
+# (no post-hoc setter): scale is a full per-axis vector, so axis 0 stays
+# pinned at 1.0 while the affinity map scales axis 1.
+scale = np.stack([np.ones_like(anis), anis], axis=-1)
+ds = gs.DirectSampling(
+    gs.MPSModel(
+        ti, scan_fraction=0.35, threshold=0, rotation=rotation, scale=scale
+    )
+)
 
 print(
     f"Simulating non-stationary field ({sg_size}x{sg_size}) with spiral path..."

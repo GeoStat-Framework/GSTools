@@ -679,6 +679,7 @@ class TrainingImage:
         cond_weight=1.0,
         lag_norms=None,
         weights=None,
+        d_max=None,
         has_nan=False,
     ):
         """Vectorized distance for one variable over all TI scan candidates.
@@ -697,6 +698,10 @@ class TrainingImage:
         weights : numpy.ndarray, optional
             Pre-computed node weights. If given, skips the internal
             ``compute_node_weights`` call.
+        d_max : float or None, optional
+            Override for the normalization range — used by zonated
+            simulation, where ``d_max`` comes from the selected zone TI;
+            ``None`` -> this variable's own ``d_max``.
         has_nan : bool, optional
             Enable per-row exclusion of undefined (NaN) TI positions, with
             per-row weight renormalization. Default ``False``.
@@ -729,7 +734,7 @@ class TrainingImage:
             v.categorical,
             v.p_norm,
             v.variation_p_norm,
-            v.d_max,
+            v.d_max if d_max is None else d_max,
             de_sim,
             all_de_ti,
             w,

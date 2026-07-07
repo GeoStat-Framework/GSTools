@@ -15,10 +15,7 @@ import numpy as np
 
 from gstools.field.base import Field
 from gstools.mps.model import MPSModel
-from gstools.mps.nonstationary import (  # noqa: F401 (build_zone_selector: wired in Task 6)
-    build_zone_selector,
-    resolve_spec,
-)
+from gstools.mps.nonstationary import build_zone_selector, resolve_spec
 from gstools.mps.simulate import ds_simulate
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
@@ -238,7 +235,15 @@ class DirectSampling(Field):
             "scale",
             positive=True,
         )
-        if rotation_map is not None or scale_map is not None:
+        zones = self._mps_model.zones
+        selector = (
+            build_zone_selector(zones, shape, flat_pos) if zones else None
+        )
+        if (
+            rotation_map is not None
+            or scale_map is not None
+            or selector is not None
+        ):
             _warn_nonuniform_axes(self.pos)
         conditions = self._conditions_to_grid(self.pos)
         if not np.isnan(seed):
@@ -285,6 +290,8 @@ class DirectSampling(Field):
             stationary_transform=rot_stat and scale_stat,
             progress=progress,
             path=path,
+            zone_tis=[z.ti for z in zones] if zones else None,
+            zone_selector=selector,
         )
         # Branch only on the return type: multivariate → dict of named arrays;
         # univariate → bare array (unwrap the single None key).

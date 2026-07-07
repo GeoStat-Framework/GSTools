@@ -33,6 +33,8 @@ class _ScanConfig:
     cond_weight: float
     distance_power: float
     vec_distance_var: object
+    d_max: dict  # {var: float or None} — normalization range per variable,
+    # from the domain's (zone) TI; kernel type stays primary's.
     ti_has_nan: bool
 
 
@@ -163,6 +165,7 @@ def _scan_for_match(
                 cfg.cond_weight,
                 ln_v[v],
                 weights=precomp_w[v],
+                d_max=cfg.d_max[v],
                 has_nan=cfg.ti_has_nan,
             )
         # Renormalize so the joint distance stays in [0, 1] even when

@@ -7,6 +7,7 @@ simulation by calling the stateless `neighbors`, `scan`, and `runner` modules.
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from math import prod
 
 import numpy as np
@@ -23,6 +24,25 @@ from gstools.mps.neighbors import (
 )
 from gstools.mps.runner import _make_progress, _run_path
 from gstools.mps.scan import _scan_for_match, _ScanConfig
+
+
+@dataclass(frozen=True)
+class _Domain:
+    """One scan domain: the primary TI or a zone TI, with its precomputations.
+
+    Search hyper-parameters (n_neighbors, max_radius, weights, distance
+    kernel) always come from the PRIMARY TI; the domain contributes the data
+    arrays, shape, per-variable d_max, and NaN bookkeeping (spec §3).
+    """
+
+    ti: object  # TrainingImage
+    ti_shape: object  # numpy.ndarray (dim,)
+    ti_vars: dict  # {var: ndarray}
+    ti_flat: dict
+    ti_strides: dict
+    has_nan: bool
+    finite_flat: object  # ndarray or None
+    scan_config: object  # _ScanConfig
 
 
 def _build_path(unknown, path, rng_path, sim_shape):
@@ -135,6 +155,8 @@ class _DirectSamplingEngine:
         scale_map=None,
         stationary_transform=False,
         path="random",
+        zone_tis=None,
+        zone_selector=None,
     ):
         self.training_image = training_image
         self.variables = [v.name for v in training_image.variables]
@@ -174,24 +196,6 @@ class _DirectSamplingEngine:
             )
 
         self.n_k = {v.name: v.n_neighbors for v in training_image.variables}
-        self.ti_vars = {v.name: v.data for v in training_image.variables}
-
-        # Precompute flat TI arrays and C-order strides for O(1) index arithmetic
-        # in _dist_block.  Invariant: every y + lag is in-bounds by window construction,
-        # so the flat take never needs bounds checking.
-        ti_shape_tuple = tuple(int(s) for s in training_image.shape)
-        _dim = len(ti_shape_tuple)
-        self.ti_strides = {
-            v.name: np.array(
-                [prod(ti_shape_tuple[d + 1 :]) for d in range(_dim)],
-                dtype=np.intp,
-            )
-            for v in training_image.variables
-        }
-        self.ti_flat = {
-            v.name: np.ascontiguousarray(v.data).ravel()
-            for v in training_image.variables
-        }
 
         self.sg = {v: np.full(sim_shape, np.nan) for v in self.variables}
         self.informed = {
@@ -248,54 +252,108 @@ class _DirectSamplingEngine:
             m[np.flatnonzero(self.is_cond[v].reshape(-1))] = -1
             self.vmap[v] = m
 
-        # Masked-TI support: NaN cells are undefined. When present, distances
-        # exclude them per-position and fallback draws are restricted to cells that
-        # are defined in *every* variable (so a joint draw never yields NaN). The
-        # ``ti_has_nan`` gate keeps the fully-defined path byte-identical.
-        self.ti_has_nan = training_image.has_nan
-        if self.ti_has_nan:
-            finite_all = np.ones(self.ti_shape, dtype=bool)
-            for a in self.ti_vars.values():
+        # Domains: index 0 is always the primary TI; zone TIs (if any) follow
+        # in `zones` order (spec: 0 = primary, i+1 = zone_tis[i]). Search
+        # hyper-parameters (n_k, max_radius, weights, distance kernel) stay
+        # engine-level (always the primary's) — only the search domain (TI
+        # shape/data/d_max/NaN bookkeeping) varies per zone.
+        self.zone_selector = zone_selector
+        self.domains = [self._build_domain(training_image)]
+        for zti in zone_tis or []:
+            self.domains.append(self._build_domain(zti))
+        if zone_selector is not None:
+            if zone_selector.shape != tuple(sim_shape):
+                raise ValueError(
+                    f"ds_simulate: zone_selector shape "
+                    f"{zone_selector.shape!r} does not match the simulation "
+                    f"grid shape {tuple(sim_shape)!r}."
+                )
+            smin, smax = int(zone_selector.min()), int(zone_selector.max())
+            if smin < 0 or smax >= len(self.domains):
+                raise ValueError(
+                    f"ds_simulate: zone_selector values must be in "
+                    f"[0, {len(self.domains) - 1}] (0 = primary TI, i + 1 = "
+                    f"zone_tis[i]), got range [{smin}, {smax}]."
+                )
+
+    def _build_domain(self, ti):
+        """Precompute one scan domain (flat arrays, strides, d_max, NaN)."""
+        ti_shape = np.array(ti.shape)
+        ti_shape_tuple = tuple(int(s) for s in ti.shape)
+        _dim = len(ti_shape_tuple)
+        ti_vars = {v.name: v.data for v in ti.variables}
+        ti_strides = {
+            v.name: np.array(
+                [prod(ti_shape_tuple[d + 1 :]) for d in range(_dim)],
+                dtype=np.intp,
+            )
+            for v in ti.variables
+        }
+        ti_flat = {
+            v.name: np.ascontiguousarray(v.data).ravel() for v in ti.variables
+        }
+        has_nan = ti.has_nan
+        if has_nan:
+            finite_all = np.ones(ti_shape_tuple, dtype=bool)
+            for a in ti_vars.values():
                 if np.issubdtype(a.dtype, np.floating):
                     finite_all &= ~np.isnan(a)
-            self.finite_flat = np.flatnonzero(finite_all.reshape(-1))
-            if self.finite_flat.size == 0:
+            finite_flat = np.flatnonzero(finite_all.reshape(-1))
+            if finite_flat.size == 0:
                 raise ValueError(
-                    "TrainingImage has no cell defined in all variables (every "
-                    "cell is NaN in at least one variable); cannot simulate."
+                    "TrainingImage has no cell defined in all variables "
+                    "(every cell is NaN in at least one variable); cannot "
+                    "simulate."
                 )
         else:
-            self.finite_flat = None
-
-        self._scan_config = _ScanConfig(
+            finite_flat = None
+        # Per-domain d_max: the selected zone TI's value range normalizes
+        # continuous distances (spec §3 — threshold/scan_fraction semantics
+        # follow the selected TI). Kernel type stays the primary's
+        # (vec_distance_var is bound to self.training_image).
+        d_max = {v.name: v.d_max for v in ti.variables}
+        scan_config = _ScanConfig(
             variables=self.variables,
             weights=self.weights,
-            ti_vars=self.ti_vars,
-            ti_flat=self.ti_flat,
-            ti_strides=self.ti_strides,
-            ti_shape=self.ti_shape,
+            ti_vars=ti_vars,
+            ti_flat=ti_flat,
+            ti_strides=ti_strides,
+            ti_shape=ti_shape,
             scan_fraction=self.scan_fraction,
             threshold=self.threshold,
             cond_weight=self.cond_weight,
             distance_power=self.training_image.distance_power,
             vec_distance_var=self.training_image.vec_distance_var,
-            ti_has_nan=self.ti_has_nan,
+            d_max=d_max,
+            ti_has_nan=has_nan,
+        )
+        return _Domain(
+            ti=ti,
+            ti_shape=ti_shape,
+            ti_vars=ti_vars,
+            ti_flat=ti_flat,
+            ti_strides=ti_strides,
+            has_nan=has_nan,
+            finite_flat=finite_flat,
+            scan_config=scan_config,
         )
 
-    def _rand_fallback(self, targets, u_fb_i):
+    def _rand_fallback(self, targets, u_fb_i, dom):
         # Single random TI cell supplies the whole node-vector (preserves the
         # joint relationship); never an independent draw per variable. On a
         # masked TI the draw is restricted to cells defined in every variable.
-        if self.ti_has_nan:
-            flat = self.finite_flat[int(u_fb_i[0] * len(self.finite_flat))]
+        # Draws from the SELECTED zone TI's domain, never the primary — this
+        # is what keeps the subset property true on rare fallback draws.
+        if dom.has_nan:
+            flat = dom.finite_flat[int(u_fb_i[0] * len(dom.finite_flat))]
             cell = tuple(
-                int(c) for c in np.unravel_index(flat, tuple(self.ti_shape))
+                int(c) for c in np.unravel_index(flat, tuple(dom.ti_shape))
             )
         else:
             cell = tuple(
-                int(u_fb_i[d] * s) for d, s in enumerate(self.ti_shape)
+                int(u_fb_i[d] * s) for d, s in enumerate(dom.ti_shape)
             )
-        return {v: float(self.ti_vars[v][cell]) for v in targets}
+        return {v: float(dom.ti_vars[v][cell]) for v in targets}
 
     def _node_transform_matrix(self, x_i):
         """Per-node M with value-tuple caching (dict get/set are GIL-atomic;
@@ -384,13 +442,13 @@ class _DirectSamplingEngine:
             events[var] = DataEvent(lv, dv, cv, lnv)
         return events
 
-    def _transform_and_reduce_lags(self, x_i, events):
+    def _transform_and_reduce_lags(self, x_i, events, dom):
         """Seam 2 — map SG lags into TI frame (non-stationary) or copy (stationary).
 
         When ``rotation_map`` or ``scale_map`` is set, applies the per-node
         detransform matrix, deduplicates collapsed lags
         (:func:`_transform_lags`), and globally drops lags that cannot fit the
-        TI (:func:`_reduce_to_fit`, Mariethoz2010 para [43]).
+        selected domain's TI (:func:`_reduce_to_fit`, Mariethoz2010 para [43]).
 
         The stationary fast-path sets ``lags_ti`` to a **copy** of ``lags_sg``
         so partial-mode truncation in seam 3 can never alias back into the SG
@@ -402,6 +460,8 @@ class _DirectSamplingEngine:
             Current node coordinates (used to index per-node maps).
         events : dict[str, DataEvent]
             Output of :meth:`_gather_neighborhood` (``lags_ti is None``).
+        dom : _Domain
+            The domain (primary or zone) selected for this node.
 
         Returns
         -------
@@ -427,7 +487,7 @@ class _DirectSamplingEngine:
                 # extent, regardless of SG rank). One reduction per simulation
                 # node, independent of the TI scan position.
                 lv_ti, lags_sg, values, cond_mask, lag_norms = _reduce_to_fit(
-                    lv_ti, self.ti_shape, lags_sg, values, cond_mask, lag_norms
+                    lv_ti, dom.ti_shape, lags_sg, values, cond_mask, lag_norms
                 )
                 out[v] = DataEvent(
                     lags_sg, values, cond_mask, lag_norms, lv_ti
@@ -439,7 +499,7 @@ class _DirectSamplingEngine:
             for v in self.variables
         }
 
-    def _intersect_search_windows(self, events):
+    def _intersect_search_windows(self, events, dom):
         """Seam 3 — compute and intersect per-variable TI search windows.
 
         Calls :func:`_window_bounds` for every variable, truncates the event to
@@ -454,6 +514,8 @@ class _DirectSamplingEngine:
         ----------
         events : dict[str, DataEvent]
             TI-frame events from :meth:`_transform_and_reduce_lags`.
+        dom : _Domain
+            The domain (primary or zone) selected for this node.
 
         Returns
         -------
@@ -463,11 +525,11 @@ class _DirectSamplingEngine:
             Possibly truncated (only when ``win_lo`` is not ``None``).
         """
         win_lo = np.zeros(self.dim, dtype=int)
-        win_hi = self.ti_shape - 1
+        win_hi = dom.ti_shape - 1
         for var in self.variables:
             de = events[var]
             lo, hi, valid_count = _window_bounds(
-                de.lags_ti, self.ti_shape, self.boundary
+                de.lags_ti, dom.ti_shape, self.boundary
             )
             if valid_count == -1:
                 # Infeasible: no subset of this variable's lags fits the TI.
@@ -485,7 +547,7 @@ class _DirectSamplingEngine:
         return win_lo, win_hi, events
 
     def _scan_and_retrieve(
-        self, win_lo, win_hi, events, targets, u_start_i, u_fallback_i
+        self, win_lo, win_hi, events, targets, u_start_i, u_fallback_i, dom
     ):
         """Seam 4 — scan the TI window and copy the matched cell to targets.
 
@@ -501,6 +563,8 @@ class _DirectSamplingEngine:
         targets : list[str]
         u_start_i : float
         u_fallback_i : numpy.ndarray, shape (dim,)
+        dom : _Domain
+            The domain (primary or zone) selected for this node.
 
         Returns
         -------
@@ -525,19 +589,19 @@ class _DirectSamplingEngine:
             ln_v,
             u_start_i,
             targets,
-            self._scan_config,
+            dom.scan_config,
         )
         if y is None:
             # No candidate in the window was defined (masked TI): treat as the
             # empty-neighbourhood case and draw a defined TI cell.
-            return self._rand_fallback(targets, u_fallback_i)
+            return self._rand_fallback(targets, u_fallback_i, dom)
         y_t = tuple(int(c) for c in y)
         result = {}
         for v in targets:
-            ti_val = float(self.ti_vars[v][y_t])
+            ti_val = float(dom.ti_vars[v][y_t])
             il = int_lags.get(v)
             de_ti_v = (
-                self.ti_vars[v][tuple((y + il).T)]
+                dom.ti_vars[v][tuple((y + il).T)]
                 if il is not None
                 else np.empty(0)
             )
@@ -549,6 +613,14 @@ class _DirectSamplingEngine:
     def _simulate_node(self, curr_idx, x_i, u_start_i, u_fallback_i):
         """Simulate one node: a short pipeline of four named steps."""
         x_i_t = tuple(int(c) for c in x_i)
+        # Zonation selects WHICH search domain this node scans; the data
+        # event is built from SG neighbours regardless of their zones,
+        # which keeps zone boundaries coherent (spec §3 Mechanism).
+        dom = (
+            self.domains[int(self.zone_selector[x_i_t])]
+            if self.zone_selector is not None
+            else self.domains[0]
+        )
         targets = [v for v in self.variables if np.isnan(self.sg[v][x_i_t])]
 
         # Step 1: collect informed neighbours and build per-variable data events.
@@ -556,19 +628,19 @@ class _DirectSamplingEngine:
 
         # Step 2: map SG lags into TI frame (stationary path copies so step 3
         # truncation never aliases back into the SG lags).
-        events = self._transform_and_reduce_lags(x_i, events)
+        events = self._transform_and_reduce_lags(x_i, events, dom)
 
         if all(len(events[v]) == 0 for v in self.variables):
-            return self._rand_fallback(targets, u_fallback_i)
+            return self._rand_fallback(targets, u_fallback_i, dom)
 
         # Step 3: compute and intersect per-variable TI search windows.
-        win_lo, win_hi, events = self._intersect_search_windows(events)
+        win_lo, win_hi, events = self._intersect_search_windows(events, dom)
         if win_lo is None:
-            return self._rand_fallback(targets, u_fallback_i)
+            return self._rand_fallback(targets, u_fallback_i, dom)
 
         # Step 4: scan the TI window and paste the matched cell into targets.
         return self._scan_and_retrieve(
-            win_lo, win_hi, events, targets, u_start_i, u_fallback_i
+            win_lo, win_hi, events, targets, u_start_i, u_fallback_i, dom
         )
 
     def _write_result(self, node, result):
@@ -650,6 +722,8 @@ def ds_simulate(
     stationary_transform=False,
     progress=None,
     path="random",
+    zone_tis=None,
+    zone_selector=None,
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
 
@@ -715,6 +789,20 @@ def ds_simulate(
         (no third-party dependency); a callable is invoked as
         ``progress(n_done, n_total)`` once per completed node.
         ``None``/``False`` (default) disables it.
+    zone_tis : list of TrainingImage or None, optional
+        Zone training images (Mariethoz2010 para [40]): a node inside a
+        zone's region scans that zone's TI instead of the primary one.
+        Indexed by ``zone_selector`` (``0`` = primary, ``i + 1`` =
+        ``zone_tis[i]``). ``None`` (default) → no zonation, exact single-TI
+        behaviour. Produced by :meth:`DirectSampling.__call__` from
+        :attr:`MPSModel.zones`.
+    zone_selector : numpy.ndarray of numpy.intp or None, optional
+        Per-node domain selector, shape ``sim_shape``. ``0`` selects the
+        primary TI, ``i + 1`` selects ``zone_tis[i]``. ``None`` (default) →
+        every node scans the primary TI. Zonation only changes *which* TI a
+        node's scan/window/fallback draw uses; RNG consumption and the DAG
+        are untouched, so output stays deterministic and thread-count
+        invariant regardless of zoning.
 
     Returns
     -------
@@ -735,5 +823,7 @@ def ds_simulate(
         scale_map=scale_map,
         stationary_transform=stationary_transform,
         path=path,
+        zone_tis=zone_tis,
+        zone_selector=zone_selector,
     )
     return engine.run(num_threads=num_threads, progress=progress)
