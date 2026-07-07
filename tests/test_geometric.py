@@ -1,4 +1,6 @@
-"""Tests for the generalized geometric layer in gstools.tools.geometric."""
+"""
+This is the unittest of the geometric tools module.
+"""
 
 import unittest
 
@@ -77,16 +79,12 @@ class TestTransformInverse(unittest.TestCase):
                 scale = rng.uniform(0.2, 5.0, dim)
                 M = matrix_transform(dim, angles, scale)
                 Minv = matrix_detransform(dim, angles, scale)
-                np.testing.assert_allclose(
-                    Minv @ M, np.eye(dim), atol=1e-12
-                )
+                np.testing.assert_allclose(Minv @ M, np.eye(dim), atol=1e-12)
 
     def test_uniform_dilation(self):
         # matrix_scale with a scalar is uniform dilation (M10 affinity r):
         # inexpressible in the axis-0-pinned anis parameterization.
-        np.testing.assert_array_equal(
-            matrix_scale(3, 2.0), 2.0 * np.eye(3)
-        )
+        np.testing.assert_array_equal(matrix_scale(3, 2.0), 2.0 * np.eye(3))
 
 
 class TestWrapperBitIdentical(unittest.TestCase):
