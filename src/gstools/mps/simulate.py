@@ -214,8 +214,16 @@ class _DirectSamplingEngine:
         self.max_radius_per_var = {
             v.name: v.max_radius for v in training_image.variables
         }
-        _radii = [r for r in self.max_radius_per_var.values() if r is not None]
-        global_max_radius = max(_radii) if _radii else None
+        _radii = list(self.max_radius_per_var.values())
+        # None means "unbounded" for that variable (docstring: "None -> no
+        # limit"). offset_arr is shared across variables, so if any variable
+        # is unbounded the shared candidate set must be too -- capping it to
+        # a finite sibling's radius would silently truncate the unbounded
+        # variable's neighbourhood.
+        if any(r is None for r in _radii):
+            global_max_radius = None
+        else:
+            global_max_radius = max(_radii) if _radii else None
         max_off_int = (
             int(np.ceil(global_max_radius))
             if global_max_radius is not None
@@ -409,6 +417,17 @@ class _DirectSamplingEngine:
             # instead of recomputing.  Serial path (cache absent): compute normally.
             if self._neighbor_cache is not None:
                 coords = self._neighbor_cache[curr_idx][var]
+                r = self.max_radius_per_var[var]
+                # The DAG cache was built with the shared (global) radius, a
+                # superset of any variable's own (possibly smaller) radius.
+                # Since _select_neighbors scans offset_arr in strictly
+                # increasing distance order, the first n_k[var] valid hits
+                # under the global radius are a prefix-superset of what this
+                # variable's own radius would find -- re-filtering here
+                # reproduces the serial result exactly (Mariethoz2010 ¶15).
+                if r is not None and len(coords):
+                    d_sq = np.sum((coords - x_i) ** 2, axis=1)
+                    coords = coords[d_sq <= r * r]
             else:
                 coords, _ = _select_neighbors(
                     x_i,
