@@ -433,6 +433,74 @@ class Field:
             fieldname=fieldname,
         )
 
+    def csv_export(self, filename, fields=None):  # pragma: no cover
+        """Export the stored field(s) to csv with unstructured mesh type.
+
+        First columns with be the components of the pos tuple followed by
+        the selected fields.
+
+        Parameters
+        ----------
+        filename : :class:`str`
+            Filename of the file to be saved, including the path.
+        fields : :class:`list` of :class:`str`, optional
+            Fields that should be stored. All by default.
+        """
+        fields = self.field_names if fields is None else fields
+        if not fields:
+            msg = "csv_export: no fields selected"
+            raise ValueError(msg)
+        if not all(field in self for field in fields):
+            unknown = set(fields) - set(self.field_names)
+            msg = f"csv_export: some fields are unknown: {unknown}"
+            raise ValueError(msg)
+        # generate axis names
+        s_dim = self.dim - int(self.temporal)
+        if self.latlon:
+            p_names = ["lat", "lon"]
+        elif self.dim < 4:
+            p_names = ["x", "y", "z"][:s_dim]
+        else:
+            p_names = [f"x{d}" for d in range(s_dim)]
+        if self.temporal:
+            p_names.append("t")
+        # generate fields
+        if self.mesh_type != "unstructured":
+            pos = generate_grid(self.pos)
+            if self.value_type == "vector":
+                out_f = {
+                    f"{f}_{p_names[i]}": self[f][i].reshape(-1)
+                    for f in fields
+                    for i in range(self.dim)
+                }
+            else:
+                out_f = {f: self[f].reshape(-1) for f in fields}
+        else:
+            pos = self.pos
+            if self.value_type == "vector":
+                out_f = {
+                    f"{f}_{p_names[i]}": self[f][i]
+                    for f in fields
+                    for i in range(self.dim)
+                }
+            else:
+                out_f = {f: self[f] for f in fields}
+        # generate output matrix
+        p_names += out_f.keys()
+        data = np.empty((len(pos[0]), len(p_names)), dtype=float)
+        for i, p in enumerate(pos):
+            data[:, i] = p
+        for i, f in enumerate(out_f.values()):
+            data[:, i + self.dim] = f
+        np.savetxt(
+            filename,
+            data,
+            fmt="%s",
+            delimiter=",",
+            header=",".join(p_names),
+            comments="",
+        )
+
     def plot(
         self, field="field", fig=None, ax=None, **kwargs
     ):  # pragma: no cover
