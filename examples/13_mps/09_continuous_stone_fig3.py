@@ -1,9 +1,19 @@
+r"""
+Continuous stone with a left-to-right anisotropy sweep
+--------------------------------------------------------
+
+Reproduces the setup of Mariethoz et al. (2010), Fig. 3 (continuous "stone"
+training image), then adds a non-stationary twist on top: a rotation field
+and an anisotropy (scale) field that both vary smoothly from left to right
+across the simulation grid, so the stone texture fans out and stretches as
+it crosses the domain (:any:`MPSModel`'s ``rotation``/``scale`` arguments).
+"""
+
 import os
 import urllib.request
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.random import weibull
 from PIL import Image
 
 import gstools as gs
@@ -21,15 +31,16 @@ ti_data = np.array(ti_img).astype(float)
 # The paper figure uses a 200x200 grid
 ti_data = ti_data[:200, :200]
 
-# Continuous variable using Distance 4 (Mariethoz Eq. 4, which is "l2" in GSTools)
+# Continuous variable using Mariethoz's Distance 4 (Eq. 4, RMSE), which is
+# "l2" in GSTools' naming (not "l4" -- that would be an actual Lp, p=4 norm).
 ti = gs.TrainingImage(
-    ti_data, categorical=False, distance="l4", n_neighbors=75
+    ti_data, categorical=False, distance="l2", n_neighbors=75
 )
 
 # 2. Setup Conditioning Data
-np.random.seed(3)
-n_cond = 10
-grid_size = 200
+np.random.seed(1)
+n_cond = 50
+grid_size = 300
 
 # Paper: "Conditioning data are 100 values taken in the TI and located at random
 # positions in the simulation."
@@ -37,19 +48,41 @@ cond_x = np.random.uniform(0, grid_size, n_cond)
 cond_y = np.random.uniform(0, grid_size, n_cond)
 
 # Randomly sample 100 values from the TI's marginal distribution
-rand_ti_x = np.random.randint(0, grid_size, n_cond)
-rand_ti_y = np.random.randint(0, grid_size, n_cond)
+rand_ti_x = np.random.randint(0, 200, n_cond)
+rand_ti_y = np.random.randint(0, 200, n_cond)
 cond_val = ti_data[rand_ti_x, rand_ti_y]
 
-# 3. Setup MPS Model
-# From caption: n = 80, t = 0.01. We use scan_fraction=0.5
-model = gs.MPSModel(ti, scan_fraction=0.4, threshold=0.01, cond_weight=2)
+# 3. Non-stationary rotation & anisotropy maps
+# Both vary along the x-axis only (left -> right); the y-axis stays uniform.
+# rotation/scale are per-node arrays passed straight into MPSModel -- shape
+# (grid_size, grid_size) for rotation (2-D has a single rotation angle),
+# and (grid_size, grid_size, dim) for scale (one stretch factor per axis,
+# no implicit axis-0 pin).
+x = y = np.arange(grid_size, dtype=float)
+gx, gy = np.meshgrid(x, y, indexing="ij")
 
-# 4. Run Simulation
+# Orientation fans out from -45 degrees on the left edge to +45 degrees on
+# the right edge.
+rotation = ((gx / grid_size) - 0.5) * (np.pi / 2.0)
+
+# Anisotropy grows from isotropic (1.0) on the left to strongly stretched
+# (2.5x) on the right, so the stone grains elongate left-to-right.
+anis = 0.5
+scale = np.stack([np.ones_like(anis), anis], axis=-1)
+
+# 4. Setup MPS Model
+# From caption: n = 80, t = 0.01. We use scan_fraction=0.4.
+model = gs.MPSModel(
+    ti,
+    scan_fraction=0.4,
+    threshold=0.01,
+    cond_weight=2,
+    # scale=scale,
+)
+
+# 5. Run Simulation
 ds = gs.DirectSampling(model)
 ds.set_condition([cond_x, cond_y], cond_val)
-
-x = y = np.arange(grid_size, dtype=float)
 
 # Spiral outward simulation path. The engine silently drops any conditioned
 # nodes present in an explicit path, so we can pass the full grid in spiral
@@ -67,11 +100,12 @@ spiral_path = np.column_stack(
 )
 
 print(
-    f"Simulating continuous field ({grid_size}x{grid_size}) with 100 cond points..."
+    f"Simulating non-stationary continuous field ({grid_size}x{grid_size}) "
+    "with 10 cond points and a left-to-right rotation/anisotropy sweep..."
 )
-field = ds([x, y], seed=1, num_threads=4, path="sequential")
+field = ds([x, y], seed=2, num_threads=8, path="sequential")
 
-# 5. Plotting
+# 6. Plotting
 # Use a custom GridSpec to match the layout of Figure 3 (two images on top, histogram on bottom)
 fig = plt.figure(figsize=(12, 10))
 ax1 = plt.subplot(221)
@@ -96,7 +130,7 @@ scat = ax2.scatter(
     s=40,
     linewidths=0.5,
 )
-ax2.set_title("b) Simulation")
+ax2.set_title("b) Simulation\n(rotation & anisotropy sweep, left$\\to$right)")
 plt.colorbar(im_b, ax=ax2, fraction=0.046, pad=0.04)
 
 # c) Histogram comparison
@@ -110,5 +144,5 @@ ax3.set_title("c) Comparison of histograms")
 ax3.legend()
 
 fig.tight_layout()
-plt.savefig("mariethoz_fig3_reproduction.png")
-print("Saved mariethoz_fig3_reproduction.png")
+plt.savefig("mariethoz_fig3_nonstationary.png")
+print("Saved mariethoz_fig3_nonstationary.png")
