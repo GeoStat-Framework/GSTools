@@ -1502,6 +1502,40 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         np.testing.assert_array_equal(f_s["a"], f_p["a"])
         np.testing.assert_array_equal(f_s["b"], f_p["b"])
 
+    def test_parallel_matches_serial_mismatched_max_radius(self):
+        # The DAG neighbour cache is built with the shared/global radius (a
+        # superset of any variable's own, possibly smaller, radius) and must
+        # be re-filtered per variable before use in _gather_neighborhood --
+        # otherwise num_threads > 1 silently diverges from serial whenever
+        # variables declare different max_radius values (including an
+        # unbounded None mixed with a finite sibling).
+        rng = np.random.default_rng(23)
+        ti = TrainingImage(
+            [
+                Variable(
+                    "a",
+                    rng.integers(0, 3, (20, 20)),
+                    max_radius=None,
+                    n_neighbors=12,
+                ),
+                Variable(
+                    "b",
+                    rng.integers(0, 2, (20, 20)),
+                    max_radius=3.0,
+                    n_neighbors=12,
+                ),
+            ]
+        )
+        pos = [np.arange(8, dtype=float)] * 2
+        ds_s = DirectSampling(MPSModel(ti, scan_fraction=0.3))
+        ds_s.num_threads = 1
+        ds_p = DirectSampling(MPSModel(ti, scan_fraction=0.3))
+        ds_p.num_threads = 4
+        f_s = ds_s(pos, seed=7)
+        f_p = ds_p(pos, seed=7)
+        np.testing.assert_array_equal(f_s["a"], f_p["a"])
+        np.testing.assert_array_equal(f_s["b"], f_p["b"])
+
     def test_parallel_conditioning_preserved(self):
         rng = np.random.default_rng(6)
         ti = TrainingImage(

@@ -411,10 +411,12 @@ class _DirectSamplingEngine:
         """
         events = {}
         for var in self.variables:
-            # Parallel path: the DAG pass already computed the identical
-            # _select_neighbors result (same call, informed=None, all earlier-
-            # path deps guaranteed informed by DAG ordering). Reuse those coords
-            # instead of recomputing.  Serial path (cache absent): compute normally.
+            # Parallel path: the DAG pass already selected neighbours for this
+            # node/variable (same call, informed=None, all earlier-path deps
+            # guaranteed informed by DAG ordering) using the shared/global
+            # radius, so reuse those coords instead of recomputing -- but
+            # re-filter by this variable's own radius below (see r).  Serial
+            # path (cache absent): compute normally, already per-variable.
             if self._neighbor_cache is not None:
                 coords = self._neighbor_cache[curr_idx][var]
                 r = self.max_radius_per_var[var]

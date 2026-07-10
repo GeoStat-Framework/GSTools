@@ -31,17 +31,24 @@ def _build_dag_base(
         ``out_edges[j]`` → ``(i, key)`` pairs to process when node ``j`` completes.
     coord_cache : list of dict of {key: numpy.ndarray, shape (m, dim)}
         ``coord_cache[i][key]`` are the neighbour coordinates selected for node
-        ``i`` and variable ``key`` during the DAG pass.  These are the
-        bit-identical coordinates that ``_gather_neighborhood`` would select for
-        the same node when all dependencies are informed, so the parallel engine
-        can reuse them directly without a second ``_select_neighbors`` call.
+        ``i`` and variable ``key`` during the DAG pass, using the shared
+        (global) ``max_radius`` -- a superset of any variable's own, possibly
+        smaller, radius. The parallel engine reuses these directly for the
+        DAG edges, but ``_gather_neighborhood`` must re-filter them by each
+        variable's own radius before use; because ``_select_neighbors`` scans
+        ``offset_arr`` in strictly increasing distance order, that filtered
+        result is bit-identical to what a second, per-variable
+        ``_select_neighbors`` call would have produced.
 
     Notes
     -----
     Dependencies must be computed via the same :func:`neighbors._select_neighbors`
-    call the engine uses per node, so the DAG edges exactly match the actual
-    simulation neighbour relation — this is the invariant that makes parallel
-    execution produce bit-identical output to the serial path.
+    call the engine uses per node (with the shared radius, a superset of every
+    variable's own), so the DAG edges are a superset of the actual simulation
+    neighbour relation — extra edges only add scheduling constraints, never
+    incorrectness, and this is the invariant that makes parallel execution
+    produce bit-identical output to the serial path once
+    ``_gather_neighborhood`` re-filters per variable.
     """
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
