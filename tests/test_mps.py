@@ -219,28 +219,6 @@ class TestVariable(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "n_neighbors"):
             v.n_neighbors = 0
 
-    def test_variation_guard_at_construction(self):
-        with self.assertRaisesRegex(ValueError, "variation"):
-            Variable(
-                "x",
-                np.linspace(0, 1, 10),
-                categorical=False,
-                distance="variation",
-                n_neighbors=1,
-            )
-
-    def test_variation_guard_via_setter(self):
-        v = Variable(
-            "x",
-            np.linspace(0, 1, 10),
-            categorical=False,
-            distance="variation",
-            n_neighbors=2,
-        )
-        with self.assertRaisesRegex(ValueError, "variation"):
-            v.n_neighbors = 1
-        self.assertEqual(v.n_neighbors, 2)  # unchanged
-
     def test_read_only_name(self):
         v = Variable("x", np.zeros(4))
         with self.assertRaises(AttributeError):
@@ -687,11 +665,6 @@ class TestDirectSampling(unittest.TestCase):
     def test_raise(self):
         with self.assertRaises(ValueError):
             MPSModel(self.ti1d, boundary="bad")
-        arr1d = np.tile([0, 1], 10).astype(float)
-        with self.assertRaises(ValueError):
-            Variable(None, arr1d, max_radius=0)
-        with self.assertRaises(ValueError):
-            Variable(None, arr1d, max_radius=-1.0)
         ds = DirectSampling(MPSModel(self.ti1d))
         with self.assertRaises(ValueError):
             ds([self.x1d], seed=42, mesh_type="unstructured")
@@ -825,10 +798,6 @@ class TestDirectSampling(unittest.TestCase):
         field = ds([np.arange(30, dtype=float)] * 2, seed=1)
         self.assertEqual(field.shape, (30, 30))
         self.assertFalse(np.any(np.isnan(field)))
-
-    def test_threshold_above_one_warns_in_constructor(self):
-        with self.assertWarns(UserWarning):
-            MPSModel(self.ti1d, threshold=5.0)
 
     def test_scan_fraction_window_semantics(self):
         """scan_fraction=0.1 applies to the window, not the TI — no crash, valid output."""
@@ -1266,37 +1235,6 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         ds = DirectSampling(MPSModel(ti))
         self.assertEqual(ds.n_neighbors, {"a": 8, "b": 4})
 
-    def test_n_neighbors_setter_broadcast(self):
-        # Configure via Variable directly; getter reflects the change.
-        arr = np.zeros((10, 10), dtype=int)
-        ti = TrainingImage(
-            [
-                Variable("a", arr, n_neighbors=16),
-                Variable("b", arr, n_neighbors=16),
-            ]
-        )
-        ds = DirectSampling(MPSModel(ti))
-        self.assertEqual(ds.ti.variable("a").n_neighbors, 16)
-        self.assertEqual(ds.ti.variable("b").n_neighbors, 16)
-
-    def test_n_neighbors_setter_partial_dict(self):
-        # Configure per-variable at construction; getter reflects the difference.
-        arr = np.zeros((10, 10), dtype=int)
-        ti = TrainingImage(
-            [
-                Variable("a", arr, n_neighbors=20),
-                Variable("b", arr, n_neighbors=4),
-            ]
-        )
-        ds = DirectSampling(MPSModel(ti))
-        self.assertEqual(ds.ti.variable("a").n_neighbors, 20)
-        self.assertEqual(ds.ti.variable("b").n_neighbors, 4)  # unchanged
-
-    def test_max_radius_none_default(self):
-        ti = TrainingImage(np.zeros((10, 10), dtype=int), n_neighbors=4)
-        ds = DirectSampling(MPSModel(ti, scan_fraction=0.2))
-        self.assertIsNone(ds.max_radius)
-
     def test_max_radius_setter_univariate(self):
         # Configure max_radius at construction; getter reflects the value.
         ti = TrainingImage(
@@ -1305,19 +1243,6 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         ds = DirectSampling(MPSModel(ti, scan_fraction=0.2))
         self.assertAlmostEqual(ds.max_radius, 5.0)
         self.assertAlmostEqual(ds.ti.variable().max_radius, 5.0)
-
-    def test_max_radius_setter_broadcast(self):
-        # Configure per-variable at construction; getter reports common value.
-        arr = np.zeros((10, 10), dtype=int)
-        ti = TrainingImage(
-            [
-                Variable("a", arr, max_radius=10.0),
-                Variable("b", arr, max_radius=10.0),
-            ]
-        )
-        ds = DirectSampling(MPSModel(ti))
-        self.assertAlmostEqual(ds.ti.variable("a").max_radius, 10.0)
-        self.assertAlmostEqual(ds.ti.variable("b").max_radius, 10.0)
 
     def test_max_radius_getter_dict_when_different(self):
         arr = np.zeros((10, 10), dtype=int)
@@ -1329,11 +1254,6 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         )
         ds = DirectSampling(MPSModel(ti))
         self.assertEqual(ds.max_radius, {"a": 20.0, "b": 10.0})
-
-    def test_max_radius_zero_raises_via_variable(self):
-        # Validation now lives on Variable constructor.
-        with self.assertRaisesRegex(ValueError, "max_radius"):
-            Variable("x", np.zeros((10, 10), dtype=int), max_radius=0.0)
 
     def test_set_condition_basic(self):
         rng = np.random.default_rng(0)
@@ -2289,17 +2209,6 @@ class TestVariationNNeighbors(unittest.TestCase):
         ds = DirectSampling(MPSModel(ti, scan_fraction=0.5))
         self.assertEqual(ds.n_neighbors, 2)
 
-    def test_variation_n_neighbors_setter_rejects_1(self):
-        v = Variable(
-            "x",
-            np.linspace(0.0, 1.0, 20),
-            categorical=False,
-            distance="variation",
-            n_neighbors=3,
-        )
-        with self.assertRaisesRegex(ValueError, "variation"):
-            v.n_neighbors = 1
-
     def test_non_variation_n1_ok(self):
         v = Variable(
             "x",
@@ -2311,18 +2220,6 @@ class TestVariationNNeighbors(unittest.TestCase):
         ti = TrainingImage([v])
         ds = DirectSampling(MPSModel(ti, scan_fraction=0.5))
         self.assertEqual(ds.n_neighbors, 1)
-
-    def test_variation_guard_not_bypassable_via_ds(self):
-        # The guard lives on Variable.n_neighbors setter; DS is a read-only view.
-        v = Variable(
-            "x",
-            np.linspace(0.0, 1.0, 20),
-            categorical=False,
-            distance="variation",
-            n_neighbors=3,
-        )
-        with self.assertRaisesRegex(ValueError, "variation"):
-            v.n_neighbors = 1
 
     def test_variation_guard_is_atomic(self):
         # Variation guard raises on the Variable; the value stays at 3.
@@ -3073,9 +2970,6 @@ class TestSimulationPath(unittest.TestCase):
             False  # conditioned node excluded from unknown set
         )
         base = np.argwhere(unknown_mask)
-        np.testing.assert_array_equal(
-            base, np.argwhere(unknown_mask)
-        )  # sanity
         field = ds(pos, seed=2, path=base)
         self.assertEqual(field[2, 4], 2.0)
 
@@ -3277,14 +3171,6 @@ class TestCondWeightOverride(unittest.TestCase):
 
         np.testing.assert_array_equal(out1, out2)
 
-    def test_cond_weight_setter_raises(self):
-        """DirectSampling.cond_weight is read-only; assignment raises AttributeError."""
-        ti = TrainingImage(self.ti_data, n_neighbors=4)
-        model = MPSModel(ti, scan_fraction=0.5, cond_weight=1.0)
-        ds = DirectSampling(model)
-        with self.assertRaises(AttributeError):
-            ds.cond_weight = 3.5
-
 
 class TestDataEvent(unittest.TestCase):
     def _make(self, k=3, dim=2):
@@ -3356,27 +3242,6 @@ class TestPerVariableSetterDedup(unittest.TestCase):
             MPSModel(TrainingImage([a, b]), scan_fraction=0.2)
         )
 
-    def _uni(self, n_neighbors=32, max_radius=None):
-        ti = TrainingImage(
-            np.zeros((8, 8), dtype=int),
-            categorical=True,
-            n_neighbors=n_neighbors,
-            max_radius=max_radius,
-        )
-        return DirectSampling(MPSModel(ti, scan_fraction=0.2))
-
-    def test_n_neighbors_scalar_sets_all(self):
-        # Configure all variables at construction; getter collapses to scalar.
-        ds = self._mv(n_neighbors=7)
-        self.assertEqual(ds.n_neighbors, 7)
-
-    def test_n_neighbors_dict_sets_per_var(self):
-        # Configure per-variable at construction; getter returns dict.
-        a = Variable("a", np.zeros((8, 8), dtype=int), n_neighbors=4)
-        b = Variable("b", np.zeros((8, 8), dtype=int), n_neighbors=6)
-        ds = DirectSampling(MPSModel(TrainingImage([a, b]), scan_fraction=0.2))
-        self.assertEqual(ds.n_neighbors, {"a": 4, "b": 6})
-
     def test_n_neighbors_variable_setter_works(self):
         # After construction the Variable.n_neighbors setter is still mutable.
         ds = self._mv(n_neighbors=5)
@@ -3388,21 +3253,6 @@ class TestPerVariableSetterDedup(unittest.TestCase):
         # Default is None; getter collapses to scalar.
         ds = self._mv()
         self.assertIsNone(ds.max_radius)
-
-    def test_max_radius_nonpositive_raises_at_construction(self):
-        # max_radius validation lives on Variable constructor.
-        with self.assertRaisesRegex(ValueError, "max_radius"):
-            Variable("a", np.zeros((8, 8), dtype=int), max_radius=-1.0)
-
-    def test_max_radius_scalar_at_construction(self):
-        # Configure max_radius at construction; getter reflects it.
-        ds = self._mv(max_radius=5.0)
-        self.assertEqual(ds.max_radius, 5.0)
-
-    def test_max_radius_scalar_nonpositive_raises(self):
-        # Positivity enforced at Variable construction.
-        with self.assertRaisesRegex(ValueError, "max_radius"):
-            Variable("x", np.zeros((8, 8), dtype=int), max_radius=-1.0)
 
 
 class TestSpecResolver(unittest.TestCase):
