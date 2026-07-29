@@ -3760,18 +3760,26 @@ class TestPenaltyMatrixVariable(unittest.TestCase):
         v_none = Variable("y", np.array([0, 1, 2, 0]))
         self.assertNotIn("penalty_matrix", repr(v_none))
 
-
-class TestPenaltyMatrixWindowView(unittest.TestCase):
-    def test_window_retains_penalty_matrix(self):
+    def test_window_view_retains_penalty_matrix(self):
         t = np.array([[0.0, 0.5, 0.8], [0.3, 0.0, 0.6], [0.9, 0.4, 0.0]])
         rng = np.random.default_rng(2)
         ti = gs.mps.TrainingImage(
-            [
-                Variable("a", rng.integers(0, 3, (12, 12)), penalty_matrix=t),
-            ]
+            [Variable("a", rng.integers(0, 3, (12, 12)), penalty_matrix=t)]
         )
         win = ti.window(np.s_[2:10, 0:6])
         np.testing.assert_array_equal(win.variable("a").penalty_matrix, t)
+
+    def test_simulation_stays_subset_of_ti_codes(self):
+        """End-to-end: a penalty_matrix must not invent values."""
+        t = np.array([[0.0, 0.5, 0.8], [0.3, 0.0, 0.6], [0.9, 0.4, 0.0]])
+        rng = np.random.default_rng(5)
+        ti_data = rng.integers(0, 3, (25, 25)).astype(float)
+        ti = TrainingImage(ti_data, n_neighbors=6, penalty_matrix=t)
+        ds = DirectSampling(MPSModel(ti, scan_fraction=0.5, threshold=0.1))
+        out = ds([np.arange(15, dtype=float)] * 2, seed=42)
+        self.assertTrue(
+            set(np.unique(out).tolist()) <= set(np.unique(ti_data).tolist())
+        )
 
 
 class TestPenaltyMatrixSetCondition(unittest.TestCase):
@@ -3818,22 +3826,6 @@ class TestPenaltyMatrixSetCondition(unittest.TestCase):
         )
         ds = DirectSampling(MPSModel(ti))
         ds.set_condition([[0.0], [0.0]], {"a": [99.0], "b": [0.0]})
-
-
-class TestPenaltyMatrixIntegration(unittest.TestCase):
-    """End-to-end: DirectSampling with a penalty_matrix stays within the TI codes."""
-
-    def test_simulation_subset_of_ti_values(self):
-        t = np.array([[0.0, 0.5, 0.8], [0.3, 0.0, 0.6], [0.9, 0.4, 0.0]])
-        rng = np.random.default_rng(5)
-        ti_data = rng.integers(0, 3, (25, 25)).astype(float)
-        ti = TrainingImage(ti_data, n_neighbors=6, penalty_matrix=t)
-        model = MPSModel(ti, scan_fraction=0.5, threshold=0.1)
-        ds = DirectSampling(model)
-        out = ds([np.arange(15, dtype=float)] * 2, seed=42)
-        ti_vals = set(np.unique(ti_data).tolist())
-        out_vals = set(np.unique(out).tolist())
-        self.assertTrue(out_vals <= ti_vals)
 
 
 class TestPostProcessingParams(unittest.TestCase):
@@ -3911,8 +3903,11 @@ class TestPostProcessingPass(unittest.TestCase):
         np.testing.assert_array_equal(base, noop)
 
     def test_subset_property_after_passes(self):
+        base = self._run(post_processing=0)
         field = self._run(post_processing=2, post_processing_factor=2.0)
         self.assertTrue(np.isin(field, np.unique(self.ti_data)).all())
+        # the passes must actually re-draw, not no-op
+        self.assertFalse(np.array_equal(base, field))
 
     def test_conditioning_preserved_exactly(self):
         cond = (([2.0, 10.0, 21.0], [3.0, 15.0, 8.0]), [1.0, 0.0, 1.0])
@@ -4133,6 +4128,26 @@ class TestPostPassDag(unittest.TestCase):
         )
         return {(a, b) for a, es in enumerate(out_edges) for b, _ in es}
 
+    def _reads(self, i, vmap):
+        """Visit positions node ``i`` selects as neighbours under ``vmap``."""
+        coords, _ = _select_neighbors(
+            self.order[i],
+            self.offsets,
+            np.array(self.shape),
+            self.shape,
+            vmap["v"],
+            i,
+            None,
+            None,
+            self.n_k["v"],
+        )
+        if not len(coords):
+            return []
+        return [
+            int(p)
+            for p in self.pos[np.ravel_multi_index(coords.T, self.shape)]
+        ]
+
     def test_pos_map_none_matches_main_path(self):
         # Default (pos_map=None) must reproduce the pre-existing main-path
         # edge set, which the order-gated vmap already orients for us.
@@ -4145,47 +4160,6 @@ class TestPostPassDag(unittest.TestCase):
         # Acyclicity: the visit order itself is a topological order.
         for a, b in self._edges(self.post_vmap, self.pos):
             self.assertLess(a, b)
-
-    def test_post_pass_orients_anti_dependencies(self):
-        """The first-visited node reads only later-positioned neighbours, and
-        the DAG must order it *before* each of them.
-
-        This is the write-after-read direction the main path never has: node 0
-        reads their pre-pass values, so they may not overwrite them until it
-        is done. Under the order-gated main-path vmap node 0 reads nothing at
-        all, which is the regression this guards.
-        """
-        strides = np.array([5, 1], dtype=np.intp)
-        coords, _ = _select_neighbors(
-            self.order[0],
-            self.offsets,
-            np.array(self.shape),
-            self.shape,
-            self.post_vmap["v"],
-            0,
-            None,
-            None,
-            self.n_k["v"],
-        )
-        read = sorted(int(p) for p in self.pos[coords @ strides])
-        self.assertTrue(read, "node 0 read nothing — not fully informed")
-        self.assertTrue(all(p > 0 for p in read))
-        edges = self._edges(self.post_vmap, self.pos)
-        for p in read:
-            self.assertIn((0, p), edges)
-        # The order-gated vmap leaves node 0 with nothing to read at all.
-        gated, _ = _select_neighbors(
-            self.order[0],
-            self.offsets,
-            np.array(self.shape),
-            self.shape,
-            self.main_vmap["v"],
-            0,
-            None,
-            None,
-            self.n_k["v"],
-        )
-        self.assertEqual(len(gated), 0)
 
     def test_indegree_counts_each_pair_once(self):
         # The read relation is not exactly symmetric (n_neighbors truncation
@@ -4209,27 +4183,24 @@ class TestPostPassDag(unittest.TestCase):
     def test_every_read_pair_is_ordered(self):
         """No unsynchronized pair: each node's own selected neighbours all
         carry an edge with it, which is what makes erasing a node's value
-        inside its worker safe under concurrency."""
+        inside its worker safe under concurrency.
+
+        Node 0 also pins the write-after-read direction the main path never
+        has — it reads only *later*-positioned nodes (their pre-pass values),
+        so the DAG must order it before them. Under the order-gated main-path
+        vmap node 0 would read nothing at all; that is the regression here.
+        """
         edges = self._edges(self.post_vmap, self.pos)
-        strides = np.array([5, 1], dtype=np.intp)
         for i in range(25):
-            coords, _ = _select_neighbors(
-                self.order[i],
-                self.offsets,
-                np.array(self.shape),
-                self.shape,
-                self.post_vmap["v"],
-                i,
-                None,
-                None,
-                self.n_k["v"],
-            )
-            for j in self.pos[coords @ strides]:
-                j = int(j)
+            for j in self._reads(i, self.post_vmap):
                 pair = (j, i) if j < i else (i, j)
                 self.assertIn(
                     pair, edges, f"node {i} reads {j} unsynchronized"
                 )
+        node0 = self._reads(0, self.post_vmap)
+        self.assertTrue(node0, "node 0 read nothing — not fully informed")
+        self.assertTrue(all(p > 0 for p in node0))
+        self.assertEqual(self._reads(0, self.main_vmap), [])
 
 
 class TestPostProcessingPath(unittest.TestCase):
@@ -4293,62 +4264,6 @@ class TestPostProcessingPath(unittest.TestCase):
         half = np.argwhere(np.ones((24, 24), dtype=bool))[:288]
         with self.assertRaises(ValueError):
             self._run(post_processing_path=half)
-
-
-class TestPostProcessingEngine(unittest.TestCase):
-    """ds_simulate-level post-processing behaviour."""
-
-    def _simulate(self, post_processing, seed=7, post_processing_factor=1.0):
-
-        ti_data = np.zeros((30, 30))
-        ti_data[:, 15:] = 1.0
-        ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=6)
-        return ds_simulate(
-            training_image=ti,
-            sim_shape=(15, 15),
-            threshold=0.2,
-            scan_fraction=0.3,
-            rng_path=gs.random.RNG(seed).random,
-            rng_nodes=gs.random.RNG(seed + 1).random,
-            conditions={(0, 0): {None: 1.0}},
-            post_processing=post_processing,
-            post_processing_factor=post_processing_factor,
-        )[None]
-
-    def test_p0_bit_identical_to_omitted(self):
-
-        ti_data = np.zeros((30, 30))
-        ti_data[:, 15:] = 1.0
-        ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=6)
-        kwargs = dict(
-            training_image=ti,
-            sim_shape=(15, 15),
-            threshold=0.2,
-            scan_fraction=0.3,
-        )
-        a = ds_simulate(
-            rng_path=gs.random.RNG(7).random,
-            rng_nodes=gs.random.RNG(8).random,
-            **kwargs,
-        )[None]
-        b = ds_simulate(
-            rng_path=gs.random.RNG(7).random,
-            rng_nodes=gs.random.RNG(8).random,
-            post_processing=0,
-            **kwargs,
-        )[None]
-        np.testing.assert_array_equal(a, b)
-
-    def test_pass_changes_field_but_keeps_subset_and_conditioning(self):
-        base = self._simulate(0)
-        post = self._simulate(1)
-        self.assertEqual(post[0, 0], 1.0)  # conditioning survives
-        self.assertTrue(np.isin(post, [0.0, 1.0]).all())
-        self.assertFalse(np.array_equal(base, post))  # the pass did work
-
-    def test_pf_divides_effort_and_stays_valid(self):
-        post = self._simulate(1, post_processing_factor=4.0)
-        self.assertTrue(np.isin(post, [0.0, 1.0]).all())
 
 
 if __name__ == "__main__":
