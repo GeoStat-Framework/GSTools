@@ -15,13 +15,27 @@ variogram, MPS borrows whole patterns from the TI.
 GSTools provides the **Direct Sampling (DS)** algorithm
 (`Mariethoz et al., 2010 <https://doi.org/10.1029/2008WR007621>`_), together
 with the **Direct Sampling Best Candidate (DSBC)** parametrization
-(`Juda et al., 2022 <https://doi.org/10.1016/j.acags.2022.100091>`_), through
-two classes:
+(`Juda et al., 2022 <https://doi.org/10.1016/j.acags.2022.100091>`_).
 
-* :any:`TrainingImage` — the MPS model: the training image plus the distance
-  used to compare patterns (the analogue of a :any:`CovModel`).
+The three classes you always need:
+
+* :any:`TrainingImage` — the training data plus the distance used to compare
+  patterns (the analogue of a :any:`CovModel`). Multivariate training images
+  are built from a list of :any:`Variable` objects, one per property.
+* :any:`MPSModel` — the algorithm configuration: a training image together
+  with the scan fraction, threshold, conditioning weight, and the optional
+  features below.
 * :any:`DirectSampling` — the generator that produces realizations on a
   structured grid (the analogue of :any:`SRF`).
+
+Optional, passed to :any:`MPSModel`:
+
+* ``rotation=`` / ``scale=`` — geometric non-stationarity, so a stationary
+  training image can produce patterns that rotate and stretch across the grid.
+* :any:`Zone` — bind a different training image (or a
+  :meth:`~gstools.TrainingImage.window` view of one large image) to a region
+  of the simulation grid.
+* ``post_processing=`` — re-simulation passes that remove simulation noise.
 
 The core idea: to fill each grid cell, DS looks at the values already present
 around it (its *data event*), scans the training image for a location whose

@@ -17,6 +17,7 @@ import numpy as np
 from gstools.mps.distance import (
     compute_node_weights,
     vec_categorical_dist,
+    vec_categorical_penalty_dist,
     vec_l1_dist,
     vec_l2_dist,
     vec_lp_dist,
@@ -93,6 +94,32 @@ def _parse_distance(distance):
     )
 
 
+def _check_category_codes(values, n_cat, context):
+    """Validate that every finite value is an integer category code < ``n_cat``.
+
+    A ``penalty_matrix`` is indexed directly by the category codes it meets, so
+    any non-integer or out-of-range code turns into a raw ``IndexError`` deep in
+    the scan loop (or, for a negative code, a silently wrapped lookup). Every
+    array that can reach that indexing — a :class:`Variable`'s own data, the
+    conditioning values, a zone TI's data — must be screened here first.
+    ``context`` prefixes the error message with what was checked.
+    """
+    finite_vals = np.asarray(values, dtype=np.double)
+    finite_vals = finite_vals[np.isfinite(finite_vals)]
+    if not finite_vals.size:
+        return
+    non_integer = finite_vals != np.floor(finite_vals)
+    out_of_range = (finite_vals < 0) | (finite_vals >= n_cat)
+    invalid = non_integer | out_of_range
+    if invalid.any():
+        bad_val = finite_vals[invalid].flat[0]
+        raise ValueError(
+            f"{context}: with a penalty_matrix set, values must be "
+            f"non-negative integer-valued category codes < {n_cat}; found "
+            f"invalid value {bad_val!r}."
+        )
+
+
 def _view_variable(var, slices):
     """Variable sharing ``var``'s configuration with ``data = var.data[slices]``.
 
@@ -106,6 +133,7 @@ def _view_variable(var, slices):
     new._data = view
     new._categorical = var._categorical
     new._distance = var._distance
+    new._penalty_matrix = var._penalty_matrix
     new._weight = var._weight
     new._max_radius = var._max_radius
     new._has_nan = _any_float_nan(view)
@@ -144,6 +172,13 @@ class Variable:
     max_radius : float or None, optional
         Exclude SG neighbours beyond this Euclidean distance from the data
         event. ``None`` → no limit (default).
+    penalty_matrix : numpy.ndarray or None, optional
+        ``(C, C)`` per-category mismatch penalty matrix ``T[u, v]`` for
+        categorical variables (DS_Feature_Checklist §3.3). ``T[u, u] == 0``
+        and ``T[u, v] ∈ (0, 1]`` for ``u != v``; asymmetric matrices are
+        allowed. ``None`` (default) uses the standard binary mismatch.
+        Only valid when ``categorical=True``; ``data`` must then contain
+        non-negative integer-valued codes ``< C`` at every finite cell.
     """
 
     def __init__(
@@ -156,6 +191,7 @@ class Variable:
         weight=None,
         n_neighbors=32,
         max_radius=None,
+        penalty_matrix=None,
     ):
         if name is not None and (
             not isinstance(name, str) or not name.isidentifier()
@@ -191,12 +227,62 @@ class Variable:
             self._p_norm = None
             self._variation_p_norm = None
             self._d_max = None
+        self._penalty_matrix = self._validate_penalty_matrix(penalty_matrix)
         # set via setter so the variation guard runs on construction too
         self._n_neighbors = 32
         self.n_neighbors = n_neighbors
         # Mark the data array read-only: the engine reads it directly and
         # nothing downstream should ever write through .data.
         self._data.flags.writeable = False
+
+    def _validate_penalty_matrix(self, penalty_matrix):
+        """Validate and freeze a per-category penalty matrix, or return None.
+
+        Constraints (DS_Feature_Checklist §3.3): 2-D square, zero diagonal,
+        off-diagonal entries in ``(0, 1]``; asymmetric matrices are allowed.
+        The variable's own data must contain non-negative integer-valued
+        codes ``< C`` at every finite cell.
+        """
+        if penalty_matrix is None:
+            return None
+        if not self._categorical:
+            raise ValueError(
+                f"Variable {self._name!r}: penalty_matrix is only valid for "
+                "categorical variables (categorical=False was given)."
+            )
+        mat = np.array(penalty_matrix, copy=True, dtype=np.float64)
+        if mat.ndim != 2 or mat.shape[0] != mat.shape[1]:
+            raise ValueError(
+                f"Variable {self._name!r}: penalty_matrix must be a 2D square "
+                f"array, got shape {mat.shape!r}."
+            )
+        n_cat = mat.shape[0]
+        diag = np.diagonal(mat)
+        bad_diag = np.flatnonzero(diag != 0.0)
+        if bad_diag.size:
+            raise ValueError(
+                f"Variable {self._name!r}: penalty_matrix diagonal must be all-"
+                f"zero; violated at index/indices {bad_diag.tolist()} "
+                f"(values {diag[bad_diag].tolist()})."
+            )
+        off_diag_mask = ~np.eye(n_cat, dtype=bool)
+        off_vals = mat[off_diag_mask]
+        bad_off = (off_vals <= 0.0) | (off_vals > 1.0)
+        if bad_off.any():
+            off_idx = np.argwhere(off_diag_mask)
+            bad_pairs = off_idx[bad_off]
+            bad_vals = off_vals[bad_off]
+            raise ValueError(
+                f"Variable {self._name!r}: penalty_matrix off-diagonal entries "
+                "must be in (0, 1]; violated at "
+                f"{[tuple(p) for p in bad_pairs.tolist()]} "
+                f"(values {bad_vals.tolist()})."
+            )
+        _check_category_codes(
+            self._data, n_cat, f"Variable {self._name!r} data"
+        )
+        mat.flags.writeable = False
+        return mat
 
     # --- read-only properties ---
 
@@ -255,6 +341,11 @@ class Variable:
         """:class:`float` or None: Maximum neighbour radius, or ``None`` for no limit."""
         return self._max_radius
 
+    @property
+    def penalty_matrix(self):
+        """:class:`numpy.ndarray` of shape (C, C) or None: Per-category mismatch penalties; None uses the default binary mismatch."""
+        return self._penalty_matrix
+
     # --- mutable property ---
 
     @property
@@ -285,6 +376,8 @@ class Variable:
         ]
         if self._max_radius is not None:
             parts.append(f"max_radius={self._max_radius!r}")
+        if self._penalty_matrix is not None:
+            parts.append(f"penalty_matrix={self._penalty_matrix.shape!r}")
         return ", ".join(parts) + ")"
 
 
@@ -314,6 +407,9 @@ class TrainingImage:
         (Mariethoz2010 Eq. 3). Applied to **all** distance types.
         ``0.0`` → uniform weights (oracle-compatible default).
         ``1.0`` → closer neighbours weighted more heavily.
+    penalty_matrix : :class:`numpy.ndarray` or None, optional
+        Per-category mismatch penalty matrix (univariate TIs only; see
+        :class:`Variable`). Default: ``None`` (binary mismatch).
     """
 
     def __init__(
@@ -325,6 +421,7 @@ class TrainingImage:
         n_neighbors=32,
         max_radius=None,
         distance_power=0.0,
+        penalty_matrix=None,
     ):
         self._distance_power = float(distance_power)
         if self._distance_power < 0:
@@ -351,6 +448,7 @@ class TrainingImage:
                 weight=1.0,
                 n_neighbors=n_neighbors,
                 max_radius=max_radius,
+                penalty_matrix=penalty_matrix,
             )
             self._variables = [var]
             self._var_map = {None: var}
@@ -594,6 +692,7 @@ class TrainingImage:
         de_sim,
         all_de_ti,
         w,
+        penalty_matrix=None,
         has_nan=False,
     ):
         """Select and call the right vectorized distance function.
@@ -607,6 +706,9 @@ class TrainingImage:
         de_sim : numpy.ndarray, shape (n,)
         all_de_ti : numpy.ndarray, shape (max_scan, n)
         w : numpy.ndarray, shape (n,)
+        penalty_matrix : numpy.ndarray of shape (C, C) or None, optional
+            Per-category mismatch penalties for categorical variables; ``None``
+            uses the default binary mismatch (:func:`vec_categorical_dist`).
         has_nan : bool, optional
             Enable per-row exclusion of undefined (NaN) TI positions, with
             per-row weight renormalization. Default ``False``.
@@ -620,6 +722,10 @@ class TrainingImage:
         # l1/l2 are explicit fast-paths (not folded into lp) so the specialised
         # BLAS-friendly kernels are always selected for p in {1, 2}.
         if categorical:
+            if penalty_matrix is not None:
+                return vec_categorical_penalty_dist(
+                    de_sim, all_de_ti, w, penalty_matrix, has_nan=has_nan
+                )
             return vec_categorical_dist(de_sim, all_de_ti, w, has_nan=has_nan)
         if p_norm == 1.0:
             return vec_l1_dist(de_sim, all_de_ti, w, d_max, has_nan=has_nan)
@@ -738,6 +844,7 @@ class TrainingImage:
             de_sim,
             all_de_ti,
             w,
+            penalty_matrix=v.penalty_matrix,
             has_nan=has_nan,
         )
 

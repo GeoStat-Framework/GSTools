@@ -40,9 +40,7 @@ print(ti)
 #   (smaller is faster, slightly noisier).
 # * ``threshold=0.0`` — the recommended DSBC mode: always take the best match.
 
-ds = gs.DirectSampling(
-    gs.MPSModel(ti, scan_fraction=0.3, threshold=0.0)
-)
+ds = gs.DirectSampling(gs.MPSModel(ti, scan_fraction=0.3, threshold=0.0))
 field = ds([np.arange(40, dtype=float)] * 2, seed=20250616)
 
 ###############################################################################

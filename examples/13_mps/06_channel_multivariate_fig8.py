@@ -1,26 +1,58 @@
-import numpy as np
+r"""
+Reproducing Mariethoz et al. (2010) Figure 8: non-stationary co-simulation
+-----------------------------------------------------------------------------
+
+Figure 8 co-simulates a channel facies together with an auxiliary orientation
+variable. Both the training image and the simulation grid carry the auxiliary
+variable, so the joint scan is forced to match the local channel direction —
+the auxiliary variable acts as the non-stationarity carrier instead of an
+explicit rotation map.
+"""
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 # 1. Create the Synthetic TI (250x250)
 ti_size = 250
-gx_ti, gy_ti = np.meshgrid(np.arange(ti_size), np.arange(ti_size), indexing="ij")
+gx_ti, gy_ti = np.meshgrid(
+    np.arange(ti_size), np.arange(ti_size), indexing="ij"
+)
 
 # Primary variable: channels rotating as a function of X
 # theta varies from 0 (horizontal) to pi/2 (vertical) along X
 theta_ti = (gx_ti / float(ti_size - 1)) * (np.pi / 2.0)
 # create a simple pattern that rotates
-channels_ti = ((np.sin(gx_ti * np.cos(theta_ti) * 0.5 + gy_ti * np.sin(theta_ti) * 0.5)) > 0).astype(float)
+channels_ti = (
+    (np.sin(gx_ti * np.cos(theta_ti) * 0.5 + gy_ti * np.sin(theta_ti) * 0.5))
+    > 0
+).astype(float)
 
 # Secondary variable: X coordinate normalized
 context_ti = gx_ti / float(ti_size - 1)
 
 # Assemble multivariate TI using Variable list.
 # From paper: n1 = 30 for primary, n2 = 1 for secondary.
-ti = gs.TrainingImage([
-    gs.Variable("channels", channels_ti, categorical=True,  weight=0.5, n_neighbors=30),
-    gs.Variable("context",  context_ti,  categorical=False, weight=0.5, distance="l1", n_neighbors=1),
-])
+ti = gs.TrainingImage(
+    [
+        gs.Variable(
+            "channels",
+            channels_ti,
+            categorical=True,
+            weight=0.5,
+            n_neighbors=30,
+        ),
+        gs.Variable(
+            "context",
+            context_ti,
+            categorical=False,
+            weight=0.5,
+            distance="l1",
+            n_neighbors=1,
+        ),
+    ]
+)
 
 # 2. Setup the MPS Model
 # We use scan_fraction=0.5 (half the TI) and a tight threshold=0.01
@@ -39,13 +71,13 @@ gx_sg, gy_sg = np.meshgrid(xs_sg, ys_sg, indexing="ij")
 # The paper says: zeros are at the bottom, ones are on top.
 context_sg = gy_sg / float(sg_size - 1)
 
-# To use this as an exhaustive secondary variable, we "condition" the simulation 
+# To use this as an exhaustive secondary variable, we "condition" the simulation
 # with the context variable at every single point.
 cond_pos = [gx_sg.flatten(), gy_sg.flatten()]
 cond_val = {
     # np.nan means "unconditioned" for the channels variable
     "channels": np.full(sg_size * sg_size, np.nan),
-    "context": context_sg.flatten()
+    "context": context_sg.flatten(),
 }
 
 ds = gs.DirectSampling(model)

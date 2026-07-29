@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 
-from gstools.mps.training_image import TrainingImage
+from gstools.mps.training_image import TrainingImage, _check_category_codes
 from gstools.mps.zone import Zone
 
 __all__ = ["MPSModel"]
@@ -42,6 +42,26 @@ def _validate_threshold(value):
             stacklevel=3,
         )
     return float(value)
+
+
+def _validate_post_processing(value):
+    """Validate post-processing pass count p >= 0 (Me13 §4)."""
+    v = int(value)
+    if v < 0:
+        raise ValueError(
+            f"MPSModel: post_processing must be >= 0, got {value!r}"
+        )
+    return v
+
+
+def _validate_post_processing_factor(value):
+    """Validate p_f >= 1 (Me13 §4 divides f and n by p_f to SAVE cpu)."""
+    v = float(value)
+    if v < 1.0:
+        raise ValueError(
+            f"MPSModel: post_processing_factor must be >= 1, got {value!r}"
+        )
+    return v
 
 
 def _validate_rotation(rotation, ndim):
@@ -103,7 +123,41 @@ def _validate_zones(zones, primary_ti):
                     f"{'categorical' if kind else 'continuous'} — the "
                     "categorical/continuous kind must match per variable."
                 )
+            # The scan indexes the PRIMARY TI's penalty_matrix with codes read
+            # from the SELECTED domain, so a zone code >= C would raise a raw
+            # IndexError mid-scan (and a negative one would wrap silently).
+            penalty_matrix = primary_ti.variable(name).penalty_matrix
+            if penalty_matrix is not None:
+                label = "data" if name is None else f"variable {name!r} data"
+                _check_category_codes(
+                    z.ti.variable(name).data,
+                    penalty_matrix.shape[0],
+                    f"MPSModel: zones[{i}].ti {label} (checked against the "
+                    "primary TI's penalty_matrix)",
+                )
     return zones
+
+
+_VALID_POST_PATH = ("random", "sequential", "same")
+
+
+def _validate_post_processing_path(value):
+    """None -> inherit main-path mode; str from _VALID_POST_PATH; else (N, dim) array."""
+    if value is None or (isinstance(value, str) and value in _VALID_POST_PATH):
+        return value
+    if isinstance(value, str):
+        raise ValueError(
+            f"MPSModel: post_processing_path must be one of "
+            f"{_VALID_POST_PATH!r}, an (N, dim) integer array, or None "
+            f"(inherit the main path mode), got {value!r}"
+        )
+    arr = np.asarray(value)
+    if arr.ndim != 2:
+        raise ValueError(
+            f"MPSModel: an explicit post_processing_path must be a 2-D "
+            f"(N, dim) array, got shape {arr.shape!r}"
+        )
+    return arr
 
 
 def _spec_repr(val):
@@ -160,6 +214,54 @@ class MPSModel:
         Zonation regions for non-stationary simulation. Each zone TI must
         have the same ``ndim``, variable names, and categorical kind per
         variable as the primary TI. Default: ``[]`` (single-TI simulation).
+
+        A zone contributes **only** its data, shape and continuous range
+        (``d_max``). Every search hyper-parameter and the distance kernel —
+        ``n_neighbors``, ``max_radius``, ``distance``, ``weight``,
+        ``penalty_matrix`` — always come from the primary TI, so setting
+        them on a zone TI has no effect. Configure them on the primary TI.
+    post_processing : :class:`int`, optional
+        Number of post-processing passes p (Meerschman et al. 2013, §4).
+        Each pass re-simulates every non-conditioning node with a fully
+        informed neighbourhood (search parameters divided by
+        ``post_processing_factor``) to remove simulation noise.
+        0 (default) disables post-processing. Me13 §7
+        advises always adding at least one post-processing step (p=1) for
+        categorical simulations, for noise removal.
+
+        **Cost.** Each pass re-visits essentially the whole grid, so ``p``
+        passes mean ``p`` full-grid sweeps. They run over the same dependency
+        DAG as the main path and so honour ``num_threads``, staying
+        bit-identical to serial execution for any thread count.
+    post_processing_factor : :class:`float`, optional
+        Factor p_f >= 1 to divide ``scan_fraction`` and ``n_neighbors``
+        during post-processing passes (Me13 §4). Values > 1 reduce the
+        search effort per pass (cheaper, coarser re-simulation).
+        Default: 1.0 (use original parameters). Me13 finds p_f has little
+        effect in general and recommends p_f=1.
+    post_processing_path : :class:`str`, array-like, or None, optional
+        Visit order for the post-processing passes. This is an
+        implementation extension, not prescribed by the DS papers (Me13 §4
+        does not specify the post-pass order). Accepted forms:
+
+        - ``None`` (default): inherit the main-path mode — a
+          ``"sequential"`` main ``path`` gives sequential post-passes,
+          anything else gives a fresh random permutation per pass. This
+          preserves the pre-existing behaviour exactly.
+        - ``"random"``: fresh random permutation per pass, drawn from the
+          same RNG stream as the main path.
+        - ``"sequential"``: raster order, the same every pass; does not
+          consume the path RNG.
+        - ``"same"``: reuse the main pass's visit order every pass; does
+          not consume the path RNG.
+        - an explicit ``(N, dim)`` integer array: validated the same way as
+          an explicit main ``path`` (duplicate rows and missing nodes raise
+          :class:`ValueError`), but against the *post-pass node set* — every
+          node with at least one non-conditioned variable — rather than the
+          main path's unknown-node set. This means an explicit
+          post-processing path may include already-conditioned nodes (a
+          full-grid raster/spiral works unchanged); such entries are
+          silently dropped.
     """
 
     def __init__(
@@ -172,6 +274,9 @@ class MPSModel:
         rotation=None,
         scale=None,
         zones=None,
+        post_processing=0,
+        post_processing_factor=1.0,
+        post_processing_path=None,
     ):
         if not isinstance(ti, TrainingImage):
             raise TypeError(
@@ -185,6 +290,13 @@ class MPSModel:
         self._rotation = _validate_rotation(rotation, ti.ndim)
         self._scale = _validate_scale(scale)
         self._zones = _validate_zones(zones, ti)
+        self._post_processing = _validate_post_processing(post_processing)
+        self._post_processing_factor = _validate_post_processing_factor(
+            post_processing_factor
+        )
+        self._post_processing_path = _validate_post_processing_path(
+            post_processing_path
+        )
 
     @property
     def ti(self):
@@ -228,6 +340,33 @@ class MPSModel:
         self._boundary = _validate_boundary(value)
 
     @property
+    def post_processing(self):
+        """:class:`int`: Number of post-processing passes p (Me13 §4). 0 = off."""
+        return self._post_processing
+
+    @post_processing.setter
+    def post_processing(self, value):
+        self._post_processing = _validate_post_processing(value)
+
+    @property
+    def post_processing_factor(self):
+        """:class:`float`: p_f — scan_fraction and n_neighbors are divided by this during post-passes."""
+        return self._post_processing_factor
+
+    @post_processing_factor.setter
+    def post_processing_factor(self, value):
+        self._post_processing_factor = _validate_post_processing_factor(value)
+
+    @property
+    def post_processing_path(self):
+        """:class:`str`, array-like, or None: post-pass visit order. ``None`` inherits the main-path mode."""
+        return self._post_processing_path
+
+    @post_processing_path.setter
+    def post_processing_path(self, value):
+        self._post_processing_path = _validate_post_processing_path(value)
+
+    @property
     def rotation(self):
         """Rotation spec (scalar, vector, array, or callable); ``None`` → stationary identity."""
         return self._rotation
@@ -249,6 +388,8 @@ class MPSModel:
             threshold=0.0,
             cond_weight=1.0,
             boundary="strict",
+            post_processing=0,
+            post_processing_factor=1.0,
         )
         for name, default in defaults.items():
             val = getattr(self, f"_{name}")
@@ -260,4 +401,8 @@ class MPSModel:
             args.append(f"scale={_spec_repr(self._scale)}")
         if self._zones:
             args.append(f"zones=[{len(self._zones)} zone(s)]")
+        if self._post_processing_path is not None:
+            ppp = self._post_processing_path
+            val = repr(ppp) if isinstance(ppp, str) else _spec_repr(ppp)
+            args.append(f"post_processing_path={val}")
         return f"MPSModel({', '.join(args)})"

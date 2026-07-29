@@ -1,8 +1,9 @@
 """Execution layer for Direct Sampling.
 
-Drives the node-simulation path either serially or in parallel over a
-dependency DAG (deterministic regardless of thread count), plus the optional
-progress display. Pure stdlib + NumPy; no TrainingImage, no engine import.
+Drives a node visit order — the main simulation path or one post-processing
+pass — either serially or in parallel over a dependency DAG (deterministic
+regardless of thread count), plus the optional progress display. Pure stdlib +
+NumPy; no TrainingImage, no engine import.
 """
 
 import queue
@@ -13,7 +14,13 @@ from gstools.mps.neighbors import _select_neighbors
 
 
 def _build_dag_base(
-    path, sim_shape, offset_arr, vmap_dict, n_k_dict, max_radius=None
+    path,
+    sim_shape,
+    offset_arr,
+    vmap_dict,
+    n_k_dict,
+    max_radius=None,
+    pos_map=None,
 ):
     """Unified dependency-DAG builder for both univariate and multivariate DS.
 
@@ -23,7 +30,15 @@ def _build_dag_base(
         One position map per key.  For univariate DS pass ``{"": path_pos_map}``.
     n_k_dict : dict of {key: int}
         Maximum neighbours per key, matching ``vmap_dict``.
-
+    pos_map : numpy.ndarray of numpy.intp or None, optional
+        Flat-cell → index in ``path`` (``-1`` for cells absent from it), used
+        **only** to orient edges.  ``None`` (default, main simulation path)
+        takes the orientation from the gating index returned by
+        :func:`neighbors._select_neighbors`, which is the pre-existing
+        behaviour.  Pass it when ``vmap_dict`` no longer carries visit order —
+        i.e. for a post-processing pass, whose all-``-1`` vmap makes every
+        informed cell available (Me13 §4 "fully informed neighbourhood") and
+        therefore returns no usable ordering information.  See Notes.
     Returns
     -------
     indegree : dict of {key: numpy.ndarray of int32, shape (N,)}
@@ -49,6 +64,28 @@ def _build_dag_base(
     incorrectness, and this is the invariant that makes parallel execution
     produce bit-identical output to the serial path once
     ``_gather_neighborhood`` re-filters per variable.
+
+    Every edge runs from the lower to the higher visit position, so the graph
+    is acyclic with the visit order itself as a topological order.  Both
+    dependency directions reduce to that one rule:
+
+    * neighbour at position ``< i`` → node ``i`` reads its **new** value, so it
+      must complete first (a read-after-write true dependency — the only kind
+      the main path can have, since its vmap gates candidates to earlier
+      positions).
+    * neighbour at position ``> i`` → node ``i`` reads its **old** value, so
+      ``i`` must complete before that neighbour overwrites it (a
+      write-after-read anti-dependency).  This only arises with ``pos_map``,
+      where an already-simulated grid makes later-positioned cells readable.
+
+    Because the read relation is not exactly symmetric (``n_neighbors``
+    truncation lets a boundary node reach farther than its own neighbours
+    reach back), an edge may be discovered from either endpoint, so ``seen``
+    dedupes before ``indegree`` is counted — counting one pair twice yields a
+    single matching decrement and deadlocks the dispatcher.  With
+    ``pos_map=None`` every selected neighbour is at an earlier position, no
+    duplicate is reachable, and the edge set is identical to the pre-existing
+    one.
     """
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
@@ -56,6 +93,7 @@ def _build_dag_base(
     indegree = {k: np.zeros(N, dtype=np.int32) for k in vmap_dict}
     out_edges = [[] for _ in range(N)]
     coord_cache = [{} for _ in range(N)]
+    seen = set()
     for i in range(N):
         x_i = path[i]
         for key, vmap in vmap_dict.items():
@@ -71,9 +109,23 @@ def _build_dag_base(
                 n_k_dict[key],
             )
             coord_cache[i][key] = coords
-            for j in vidx[vidx >= 0]:
-                indegree[key][i] += 1
-                out_edges[int(j)].append((i, key))
+            # Orientation index: the gating index for the main path, the
+            # visit position for a post-processing pass (all--1 vmap).
+            pos = (
+                vidx
+                if pos_map is None or not len(coords)
+                else pos_map[np.ravel_multi_index(coords.T, sim_shape)]
+            )
+            for j in pos[pos >= 0]:
+                j = int(j)
+                if j == i:
+                    continue
+                lo, hi = (j, i) if j < i else (i, j)
+                if (lo, hi, key) in seen:
+                    continue
+                seen.add((lo, hi, key))
+                indegree[key][hi] += 1
+                out_edges[lo].append((hi, key))
     return indegree, out_edges, coord_cache
 
 
@@ -143,6 +195,7 @@ def _run_path(
     sim_shape,
     max_radius,
     on_cache_ready=None,
+    pos_map=None,
 ):
     """Dispatch the node simulation path: serial or parallel DAG.
 
@@ -184,19 +237,32 @@ def _run_path(
         ``self._neighbor_cache`` so :meth:`_gather_neighborhood` can skip the
         redundant ``_select_neighbors`` call on the parallel path.  ``None`` in
         serial mode (no DAG built, no cache).
+    pos_map : numpy.ndarray of numpy.intp or None, optional
+        Forwarded to :func:`_build_dag_base` to orient edges by visit position
+        rather than by ``vmap``'s gating index.  Required for a
+        post-processing pass, whose all-``-1`` ``vmap`` carries no ordering.
+        ``None`` (default) → main-path behaviour.
 
     Notes
     -----
-    Extracted so a future syn-processing path strategy (which re-opens
-    simulated nodes) can replace this function without touching the scan
-    kernel.  Note: syn-processing is incompatible with DAG parallelism;
-    replace the whole _run_path, not just the serial branch.
+    Drives both the main simulation path and every post-processing pass; the
+    two differ only in the ``vmap``/``pos_map`` pair they hand in (main:
+    order-gated reads, orientation from the gate; post-pass: fully informed
+    reads, orientation from ``pos_map``).  Note that syn-processing — which
+    re-opens *already-decided* nodes mid-path rather than after it — is not
+    expressible this way and would need its own dispatcher.
     """
     variables = list(vmap)
 
     if executor is not None:
         indegree, out_edges, coord_cache = _build_dag_base(
-            path, sim_shape, offset_arr, vmap, n_k, max_radius
+            path,
+            sim_shape,
+            offset_arr,
+            vmap,
+            n_k,
+            max_radius,
+            pos_map,
         )
         if on_cache_ready is not None:
             on_cache_ready(coord_cache)

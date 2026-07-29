@@ -1,5 +1,17 @@
-import numpy as np
+r"""
+Reproducing Mariethoz et al. (2010) Figure 6: the variation distance
+-----------------------------------------------------------------------
+
+Figure 6 contrasts the plain :math:`L_2` pattern distance with Mariethoz's
+"variation" distance (Eq. 9) on a multi-Gaussian training image. The variation
+distance compares the *shape* of a pattern rather than its level, and the
+matched value is mean-shifted on assignment, which lets a stationary TI
+reproduce a field whose local mean drifts.
+"""
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 import gstools as gs
 
 # 1. Create the Training Image (Multi-Gaussian)
@@ -8,7 +20,7 @@ import gstools as gs
 grid_size = 250
 x = y = np.arange(grid_size, dtype=float)
 
-# Note: GSTools len_scale is roughly range / 3 for exponential models, 
+# Note: GSTools len_scale is roughly range / 3 for exponential models,
 # but we'll just set len_scale directly to match the spatial correlation visually.
 cov_model = gs.Exponential(dim=2, var=1.0, len_scale=[35, 25], angles=0)
 srf = gs.SRF(cov_model, mean=0, seed=123)
@@ -16,7 +28,9 @@ ti_data = srf((x, y), mesh_type="structured")
 
 # We create a continuous Training Image and specify distance="variation"
 # This tells GSTools to use the variation-based distance (Mariethoz Eq 9)
-ti = gs.TrainingImage(ti_data, categorical=False, distance="variation", n_neighbors=15)
+ti = gs.TrainingImage(
+    ti_data, categorical=False, distance="variation", n_neighbors=15
+)
 
 # 2. Create the Non-Stationary Conditioning Data
 # 100 points, values ranging from ~99 to ~111 with a spatial trend
@@ -37,19 +51,30 @@ ds = gs.DirectSampling(model)
 ds.set_condition([cond_x, cond_y], cond_val)
 
 # 4. Run the simulation
-print(f"Simulating variation-based field ({grid_size}x{grid_size}) with 100 cond points...")
+print(
+    f"Simulating variation-based field ({grid_size}x{grid_size}) with 100 cond points..."
+)
 field = ds([x, y], seed=42, num_threads=1)
 
 # 5. Plotting
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
 # a) TI
-im_a = axes[0].imshow(ti_data.T, cmap="gray", origin="lower", extent=[0, 250, 0, 250], vmin=-3, vmax=3)
+im_a = axes[0].imshow(
+    ti_data.T,
+    cmap="gray",
+    origin="lower",
+    extent=[0, 250, 0, 250],
+    vmin=-3,
+    vmax=3,
+)
 axes[0].set_title("a) Training image")
 plt.colorbar(im_a, ax=axes[0], fraction=0.046, pad=0.04)
 
 # b) Conditioning data
-im_b = axes[1].scatter(cond_x, cond_y, c=cond_val, cmap="gray", vmin=98, vmax=112, s=20)
+im_b = axes[1].scatter(
+    cond_x, cond_y, c=cond_val, cmap="gray", vmin=98, vmax=112, s=20
+)
 axes[1].set_xlim(0, 250)
 axes[1].set_ylim(0, 250)
 axes[1].set_aspect("equal")
@@ -57,9 +82,18 @@ axes[1].set_title("b) Conditioning data")
 plt.colorbar(im_b, ax=axes[1], fraction=0.046, pad=0.04)
 
 # c) Simulation
-im_c = axes[2].imshow(field.T, cmap="gray", origin="lower", extent=[0, 250, 0, 250], vmin=98, vmax=112)
+im_c = axes[2].imshow(
+    field.T,
+    cmap="gray",
+    origin="lower",
+    extent=[0, 250, 0, 250],
+    vmin=98,
+    vmax=112,
+)
 # Overlay conditioning points as open circles
-axes[2].scatter(cond_x, cond_y, facecolors="none", edgecolors="k", s=40, linewidths=1)
+axes[2].scatter(
+    cond_x, cond_y, facecolors="none", edgecolors="k", s=40, linewidths=1
+)
 axes[2].set_title("c) One simulation")
 plt.colorbar(im_c, ax=axes[2], fraction=0.046, pad=0.04)
 

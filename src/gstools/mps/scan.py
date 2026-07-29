@@ -15,11 +15,14 @@ from gstools.mps.distance import compute_node_weights
 
 @dataclass(frozen=True)
 class _ScanConfig:
-    """Run-constant inputs to :func:`_scan_for_match`, built once per simulation.
+    """Domain-constant inputs to :func:`_scan_for_match`, built once per domain.
 
-    Every field is invariant across the whole node path; only the per-node
-    geometry (``lo``, ``win_shape``, lags, data events, scan-entry offset,
-    targets) is passed positionally to :func:`_scan_for_match`.
+    Every field is invariant across the whole node path *and* across
+    post-processing passes — it describes the domain (TI data, shape,
+    per-variable ``d_max``) and engine-level search configuration, never
+    anything that varies per pass.  ``scan_fraction`` is a per-pass value
+    (Meerschman2013 §4 divides it by ``post_processing_factor``) and is passed
+    to :func:`_scan_for_match` directly instead, from the caller's ``_Pass``.
     """
 
     variables: tuple
@@ -28,7 +31,6 @@ class _ScanConfig:
     ti_flat: dict
     ti_strides: dict
     ti_shape: object
-    scan_fraction: float
     threshold: float
     cond_weight: float
     distance_power: float
@@ -119,6 +121,7 @@ def _scan_for_match(
     ln_v,
     u_start_i,
     scan_targets,
+    scan_fraction,
     cfg,
 ):
     """Joint multivariate DS scan over a TI search window.
@@ -130,12 +133,19 @@ def _scan_for_match(
     lag maps to ``y`` itself.  Returns the single best TI anchor coordinate
     ``y``, or ``None`` when every candidate in the window is undefined (masked
     TI — caller falls back to a random defined cell).
+
+    Parameters
+    ----------
+    scan_fraction : float
+        This pass's scan fraction (main path, or divided by
+        ``post_processing_factor`` for a post-pass) — the one field of the
+        old ``_ScanConfig`` that varies per pass rather than per domain.
     """
     win_size = int(np.prod(win_shape))
     ti_size = int(np.prod(cfg.ti_shape))
     # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
     # the valid search window so we never wrap around and re-scan anchors.
-    max_scan = max(1, min(win_size, int(cfg.scan_fraction * ti_size)))
+    max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
     start = int(u_start_i * win_size)
 
     active_vars = [v for v in cfg.variables if v in int_lags]

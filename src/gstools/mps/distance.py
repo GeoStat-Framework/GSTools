@@ -10,6 +10,7 @@ import numpy as np
 __all__ = [
     "compute_node_weights",
     "vec_categorical_dist",
+    "vec_categorical_penalty_dist",
     "vec_l1_dist",
     "vec_l2_dist",
     "vec_lp_dist",
@@ -143,6 +144,43 @@ def vec_categorical_dist(
     # NaN positions compare unequal, but ``we`` is zero there so they do not
     # contribute to the mismatch sum.
     mism = (we * (data_event_sim != all_de_ti)).sum(axis=1)
+    return _renorm(mism, wsum)
+
+
+def vec_categorical_penalty_dist(
+    data_event_sim, all_de_ti, node_weights, penalty_matrix, has_nan=False
+):
+    """Vectorized per-category penalty-matrix distance over all TI scan candidates.
+
+    Generalizes :func:`vec_categorical_dist` by looking up an asymmetric
+    mismatch cost ``T[u, v]`` instead of a flat binary mismatch (DS_Feature_Checklist
+    §3.3): ``Σ_i w_i * T[Z(x_i), Z(y_i)] / Σ_i w_i``.
+
+    Parameters
+    ----------
+    data_event_sim : numpy.ndarray, shape (n,)
+    all_de_ti : numpy.ndarray, shape (max_scan, n)
+    node_weights : numpy.ndarray, shape (n,)
+    penalty_matrix : numpy.ndarray, shape (C, C)
+        ``T[u, v]``: penalty for TI category ``v`` given SG category ``u``.
+    has_nan : bool, optional
+        Enable per-row NaN exclusion. Default ``False``.
+
+    Returns
+    -------
+    numpy.ndarray, shape (max_scan,)
+        Distance in [0, 1] for each candidate.
+    """
+    if not has_nan:
+        s = data_event_sim.astype(np.intp)
+        t = all_de_ti.astype(np.intp)
+        penalties = penalty_matrix[s, t]
+        return np.dot(penalties, node_weights)
+    valid, we, wsum = _masked_weights(all_de_ti, node_weights)
+    safe_sim = data_event_sim.astype(np.intp)
+    safe_ti = np.where(valid, all_de_ti, 0).astype(np.intp)
+    penalties = penalty_matrix[safe_sim, safe_ti]
+    mism = (we * penalties).sum(axis=1)
     return _renorm(mism, wsum)
 
 

@@ -13,6 +13,7 @@ from gstools.mps.direct_sampling import DirectSampling
 from gstools.mps.distance import (
     compute_node_weights,
     vec_categorical_dist,
+    vec_categorical_penalty_dist,
     vec_l1_dist,
     vec_l2_dist,
     vec_lp_dist,
@@ -23,6 +24,7 @@ from gstools.mps.neighbors import (
     _lag_transform_matrix,
     _precompute_offsets,
     _reduce_to_fit,
+    _select_neighbors,
     _transform_lags,
     _window_bounds,
 )
@@ -31,8 +33,14 @@ from gstools.mps.nonstationary import (
     resolve_spec,
     resolve_where,
 )
+from gstools.mps.runner import _build_dag_base
 from gstools.mps.scan import _scan_window
-from gstools.mps.simulate import ds_simulate
+from gstools.mps.simulate import (
+    _DirectSamplingEngine,
+    _order_positions,
+    _Pass,
+    ds_simulate,
+)
 from gstools.mps.training_image import TrainingImage, Variable
 from gstools.tools.geometric import generate_grid
 
@@ -367,7 +375,7 @@ class TestTrainingImage(unittest.TestCase):
         # L^1 < L^2 for non-uniform diffs
         self.assertLess(_uni_dist(ti_var1, x, y), _uni_dist(ti_var, x, y))
 
-        # variation2 explicit matches variation (regression guard)
+        # variation2 explicit matches variation (default p)
         ti_var2 = TrainingImage(
             np.linspace(0.0, 1.0, 10), categorical=False, distance="variation2"
         )
@@ -810,12 +818,6 @@ class TestDirectSampling(unittest.TestCase):
         self.assertEqual(field.shape, (6, 6))
         self.assertFalse(np.any(np.isnan(field)))
         self.assertTrue(set(np.unique(field)).issubset({0.0, 1.0}))
-
-    def test_max_radius(self):
-        ds = DirectSampling(MPSModel(self.ti2d, scan_fraction=1.0))
-        field = ds([self.x2d, self.y2d], seed=42)
-        self.assertEqual(field.shape, (6, 6))
-        self.assertFalse(np.any(np.isnan(field)))
 
     def test_continuous_ti(self):
         ds = DirectSampling(
@@ -1474,41 +1476,26 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         self.assertEqual(field["a"][3, 3], 1)
         self.assertEqual(field["b"][3, 3], 0)
 
-    def test_set_condition_array_on_multivariate_raises(self):
+    def test_set_condition_validation_errors(self):
         ti = TrainingImage(
             [
                 Variable("a", np.zeros((10, 10), dtype=int)),
                 Variable("b", np.zeros((10, 10), dtype=int)),
             ]
         )
-        ds = DirectSampling(MPSModel(ti, scan_fraction=0.3))
-        with self.assertRaisesRegex(ValueError, "dict"):
-            ds.set_condition([[3.0], [3.0]], np.array([1]))
-
-    def test_set_condition_empty_dict_raises(self):
-        ti = TrainingImage(
-            [
-                Variable("a", np.zeros((10, 10), dtype=int)),
-                Variable("b", np.zeros((10, 10), dtype=int)),
-            ]
-        )
-        ds = DirectSampling(MPSModel(ti, scan_fraction=0.3))
-        with self.assertRaisesRegex(ValueError, "empty"):
-            ds.set_condition([[3.0], [3.0]], {})
-
-    def test_set_condition_unknown_variable_raises(self):
-        ti = TrainingImage(
-            [
-                Variable("a", np.zeros((10, 10), dtype=int)),
-                Variable("b", np.zeros((10, 10), dtype=int)),
-            ]
-        )
-        ds = DirectSampling(MPSModel(ti, scan_fraction=0.3))
-        with self.assertRaisesRegex(ValueError, "unknown variable"):
-            ds.set_condition(
-                [[3.0], [3.0]],
+        cases = {
+            "array_instead_of_dict": (np.array([1]), "dict"),
+            "empty_dict": ({}, "empty"),
+            "unknown_variable": (
                 {"a": np.array([1.0]), "c": np.array([1.0])},
-            )
+                "unknown variable",
+            ),
+        }
+        for label, (cond_val, regex) in cases.items():
+            with self.subTest(label=label):
+                ds = DirectSampling(MPSModel(ti, scan_fraction=0.3))
+                with self.assertRaisesRegex(ValueError, regex):
+                    ds.set_condition([[3.0], [3.0]], cond_val)
 
     def test_set_condition_collision_per_variable_merge(self):
         # Two points snap to node (4,4). The closer point {a:1, b:nan} wins
@@ -1565,8 +1552,8 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         self.assertTrue(np.all(np.isin(field["only"], [0, 1, 2])))
 
     def test_threshold_renormalization_with_empty_variable(self):
-        # Fix 1 regression guard: when variable 'b' has no informed neighbours
-        # (first node on the path), the joint distance must still be renormalized
+        # When variable 'b' has no informed neighbours (first node on the
+        # path), the joint distance must still be renormalized
         # to [0,1] so the threshold comparison is meaningful.
         # Build a TI where 'a' and 'b' are injective: b = a + 100 (same as
         # test_joint_cell_invariant). Use threshold > 0 (DS mode, not DSBC).
@@ -1589,7 +1576,7 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         np.testing.assert_array_equal(field["b"], field["a"] + 100)
 
     def test_mv_custom_store_name_raises(self):
-        # Finding #6: a custom store name has no single field to bind to for a
+        # A custom store name has no single field to bind to for a
         # multivariate run; reject it instead of silently dropping it.
         rng = np.random.default_rng(0)
         ti = TrainingImage(
@@ -1794,8 +1781,8 @@ class TestNonstationarity(unittest.TestCase):
         self.assertFalse(np.array_equal(result_plain["a"], result_rot["a"]))
 
     def test_flattened_rotation_map_raises(self):
-        # Finding #5: a per-node map passed flattened (length Nx*Ny) on a 2-D
-        # grid must raise, not silently apply only element [0].
+        # A per-node map passed flattened (length Nx*Ny) on a 2-D grid must
+        # raise, not silently apply only element [0].
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
@@ -1819,8 +1806,8 @@ class TestNonstationarity(unittest.TestCase):
         self.assertTrue(np.all(np.isin(field, [0, 1])))
 
     def test_scalar_vs_materialized_map_bit_identical(self):
-        # Oracle i: scalar spec (hoisted-M stationary path) vs a
-        # hand-materialized constant per-node map (per-node path).
+        # Scalar spec (hoisted-M stationary path) vs a hand-materialized
+        # constant per-node map (per-node path) must agree exactly.
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         pos = [np.arange(8, dtype=float)] * 2
@@ -1833,7 +1820,7 @@ class TestNonstationarity(unittest.TestCase):
         np.testing.assert_array_equal(f_scalar, f_map)
 
     def test_callable_vs_materialized_bit_identical(self):
-        # Oracle c: callable form vs hand-materialized array of the same field.
+        # Callable form vs a hand-materialized array of the same field must agree exactly.
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 3, (20, 20)), n_neighbors=4)
         pos = [np.arange(8, dtype=float)] * 2
@@ -1853,9 +1840,8 @@ class TestNonstationarity(unittest.TestCase):
         np.testing.assert_array_equal(f_call, f_arr)
 
     def test_uniform_dilation_runs_and_differs(self):
-        # Oracle b (integration): uniform scale=0.5 (pure dilation, formerly
-        # inexpressible) runs, stays in the TI value set, and differs from
-        # the identity run.
+        # Uniform scale=0.5 (pure dilation) runs, stays in the TI value set,
+        # and differs from the identity run.
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 3, (30, 30)), n_neighbors=8)
         pos = [np.arange(10, dtype=float)] * 2
@@ -1869,7 +1855,8 @@ class TestNonstationarity(unittest.TestCase):
         self.assertFalse(np.array_equal(f_id, f_half))
 
     def test_nonuniform_axis_spacing_warns(self):
-        # Oracle m: index-space geometry assumption.
+        # Non-uniform axis spacing breaks the index-space geometry assumption
+        # that lag transforms rely on; must warn rather than silently misfit.
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)), n_neighbors=4)
         ds = gs.mps.DirectSampling(
@@ -2142,10 +2129,10 @@ class TestReduceToFit(unittest.TestCase):
 
 
 class TestLagTransformMatrix(unittest.TestCase):
-    """Canonical-map transform semantics (spec §2; oracles b, g)."""
+    """Canonical-map transform semantics."""
 
     def test_scale_half_doubles_ti_lags(self):
-        # Oracle b: scale=0.5 -> structures half the TI size -> TI-frame lags
+        # scale=0.5 -> structures half the TI size -> TI-frame lags
         # are 2x the SG lags (lag_ti = (1/s) * R^-1 * lag_sg).
         scale_map = np.broadcast_to(np.array([0.5, 0.5]), (4, 4, 2))
         M = _lag_transform_matrix(2, None, scale_map, np.array([0, 0]))
@@ -2177,8 +2164,8 @@ class TestLagTransformMatrix(unittest.TestCase):
         self.assertFalse(np.allclose(M_rot, np.eye(2)))
 
     def test_geometry_drop_ignores_sg_rank(self):
-        # Oracle g (B3 regression): the NEAREST lag (SG rank 0) lands outside
-        # the TI -> IT is dropped (geometry rule), not the furthest (rank rule).
+        # The NEAREST lag (SG rank 0) lands outside the TI -> it is dropped
+        # (geometry rule), not the furthest (rank rule).
         lags_ti = np.array([[9.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
         values = np.array([10.0, 20.0, 30.0])
         out_lags, out_vals = _reduce_to_fit(lags_ti, (5, 5), values)
@@ -2322,7 +2309,7 @@ class TestNaNTrainingImage(unittest.TestCase):
     """
 
     def test_nan_excluded_from_dmax(self):
-        # Finding #1: a NaN must not collapse d_max to the 1.0 fallback.
+        # A NaN must not collapse d_max to the 1.0 fallback.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             ti = TrainingImage(
@@ -2339,8 +2326,8 @@ class TestNaNTrainingImage(unittest.TestCase):
             )
 
     def test_partial_nan_continuous_runs_finite(self):
-        # Finding #2: a NaN patch must not crash (was IndexError) and must
-        # produce finite output within the defined data range.
+        # A NaN patch must not crash and must produce finite output within
+        # the defined data range.
         data = np.random.RandomState(0).rand(20, 20)
         data[5:8, 5:8] = np.nan
         with warnings.catch_warnings():
@@ -2354,8 +2341,8 @@ class TestNaNTrainingImage(unittest.TestCase):
         self.assertLessEqual(field.max(), np.nanmax(data))
 
     def test_partial_nan_categorical_runs_subset(self):
-        # Finding #2: categorical NaN patch must not crash (was "produced NaN"
-        # ValueError) and output must be a subset of the *defined* categories.
+        # A categorical NaN patch must not crash, and output must be a
+        # subset of the *defined* categories.
         data = np.random.RandomState(0).randint(0, 2, (20, 20)).astype(float)
         data[5:8, 5:8] = np.nan
         with warnings.catch_warnings():
@@ -2673,11 +2660,7 @@ class TestMVTransformsAndReporting(unittest.TestCase):
 
 
 class TestReturnTypeContract(unittest.TestCase):
-    """0a — Return-type contract: univariate returns ndarray; MV returns dict.
-
-    These are PHASE 0 regression guards: they must pass on the current code and
-    will catch any refactor that accidentally changes the public return type.
-    """
+    """Return-type contract: univariate returns ndarray; multivariate returns dict."""
 
     @classmethod
     def setUpClass(cls):
@@ -2708,158 +2691,64 @@ class TestReturnTypeContract(unittest.TestCase):
         cls.sim_shape = (5, 5)
 
     # ------------------------------------------------------------------
-    # Univariate: must return a plain numpy.ndarray
+    # Univariate: must return a bare numpy.ndarray, correct shape/dtype,
+    # values a subset of the TI.
     # ------------------------------------------------------------------
 
-    def test_univariate_returns_ndarray(self):
-        """DirectSampling on a univariate TI must return a bare numpy.ndarray."""
+    def test_univariate_contract(self):
         ds = DirectSampling(MPSModel(self.ti_uni, scan_fraction=0.5))
         out = ds(self.pos, seed=101)
-        self.assertIsInstance(
-            out,
-            np.ndarray,
-            msg=(
-                f"Univariate DirectSampling.__call__ returned {type(out)!r}; "
-                "expected numpy.ndarray."
-            ),
-        )
-
-    def test_univariate_correct_shape(self):
-        """Univariate output shape must equal the simulation grid shape."""
-        ds = DirectSampling(MPSModel(self.ti_uni, scan_fraction=0.5))
-        out = ds(self.pos, seed=102)
-        self.assertEqual(
-            out.shape,
-            self.sim_shape,
-            msg=(
-                f"Univariate output shape {out.shape} != "
-                f"expected sim_shape {self.sim_shape}."
-            ),
-        )
-
-    def test_univariate_dtype_numeric(self):
-        """Univariate output must have a numeric (floating or integer) dtype."""
-        ds = DirectSampling(MPSModel(self.ti_uni, scan_fraction=0.5))
-        out = ds(self.pos, seed=103)
-        self.assertTrue(
-            np.issubdtype(out.dtype, np.number),
-            msg=f"Univariate output dtype {out.dtype} is not numeric.",
-        )
-
-    def test_univariate_values_subset_of_ti(self):
-        """Univariate output values must be drawn from the TI — no new values."""
-        ds = DirectSampling(MPSModel(self.ti_uni, scan_fraction=0.5))
-        out = ds(self.pos, seed=104)
+        self.assertIsInstance(out, np.ndarray)
+        self.assertEqual(out.shape, self.sim_shape)
+        self.assertTrue(np.issubdtype(out.dtype, np.number))
         ti_vals = set(np.unique(self.ti_uni.data))
-        sim_vals = set(np.unique(out))
-        self.assertTrue(
-            sim_vals.issubset(ti_vals),
-            msg=(
-                f"Simulated values {sim_vals} are not a subset of TI values "
-                f"{ti_vals}."
-            ),
-        )
+        self.assertTrue(set(np.unique(out)).issubset(ti_vals))
 
     # ------------------------------------------------------------------
-    # Multivariate: must return a dict keyed by variable name
+    # Multivariate: must return a dict keyed by variable name, each value
+    # a correctly-shaped ndarray with values a subset of its own TI variable.
     # ------------------------------------------------------------------
 
-    def test_multivariate_returns_dict(self):
-        """DirectSampling on a multivariate TI must return a dict."""
+    def test_multivariate_contract(self):
         ds = DirectSampling(MPSModel(self.ti_mv, scan_fraction=0.5))
         out = ds(self.pos, seed=105)
-        self.assertIsInstance(
-            out,
-            dict,
-            msg=(
-                f"Multivariate DirectSampling.__call__ returned {type(out)!r}; "
-                "expected dict."
-            ),
-        )
-
-    def test_multivariate_keys_match_ti_variables(self):
-        """MV output dict keys must exactly match the TI variable names."""
-        ds = DirectSampling(MPSModel(self.ti_mv, scan_fraction=0.5))
-        out = ds(self.pos, seed=106)
-        expected_keys = {v.name for v in self.ti_mv.variables}
-        actual_keys = set(out.keys())
-        self.assertEqual(
-            actual_keys,
-            expected_keys,
-            msg=(
-                f"MV output keys {actual_keys} do not match TI variables "
-                f"{expected_keys}."
-            ),
-        )
-
-    def test_multivariate_each_value_is_ndarray(self):
-        """Every value in the MV output dict must be a numpy.ndarray."""
-        ds = DirectSampling(MPSModel(self.ti_mv, scan_fraction=0.5))
-        out = ds(self.pos, seed=107)
-        for var, arr in out.items():
-            self.assertIsInstance(
-                arr,
-                np.ndarray,
-                msg=(
-                    f"MV output[{var!r}] is {type(arr)!r}; expected "
-                    "numpy.ndarray."
-                ),
-            )
-
-    def test_multivariate_each_value_has_sim_shape(self):
-        """Every array in the MV output dict must have the simulation grid shape."""
-        ds = DirectSampling(MPSModel(self.ti_mv, scan_fraction=0.5))
-        out = ds(self.pos, seed=108)
-        for var, arr in out.items():
-            self.assertEqual(
-                arr.shape,
-                self.sim_shape,
-                msg=(
-                    f"MV output[{var!r}].shape == {arr.shape}; expected "
-                    f"sim_shape {self.sim_shape}."
-                ),
-            )
-
-    def test_multivariate_values_subset_of_ti(self):
-        """Every MV output variable must draw values only from the TI."""
-        ds = DirectSampling(MPSModel(self.ti_mv, scan_fraction=0.5))
-        out = ds(self.pos, seed=109)
+        self.assertIsInstance(out, dict)
+        self.assertEqual(set(out), {v.name for v in self.ti_mv.variables})
         for v in self.ti_mv.variables:
+            arr = out[v.name]
+            self.assertIsInstance(arr, np.ndarray)
+            self.assertEqual(arr.shape, self.sim_shape)
             ti_vals = set(np.unique(v.data))
-            sim_vals = set(np.unique(out[v.name]))
-            self.assertTrue(
-                sim_vals.issubset(ti_vals),
-                msg=(
-                    f"MV output[{v.name!r}] contains {sim_vals - ti_vals} which "
-                    "are not in the TI."
-                ),
-            )
+            self.assertTrue(set(np.unique(arr)).issubset(ti_vals))
 
     # ------------------------------------------------------------------
-    # 1-D univariate (n-D generality guard — not hardcoded 2-D)
+    # n-D generality guard — not hardcoded 2-D
     # ------------------------------------------------------------------
 
-    def test_univariate_1d_returns_ndarray_correct_shape(self):
-        """1-D univariate simulation returns ndarray of shape (N,) — n-D guard."""
-        arr1d = np.tile([0.0, 1.0], 10)
-        ti1d = TrainingImage(arr1d, categorical=True)
-        ds = DirectSampling(MPSModel(ti1d, scan_fraction=1.0))
-        pos1d = [np.arange(7, dtype=float)]
-        out = ds(pos1d, seed=110)
-        self.assertIsInstance(out, np.ndarray)
-        self.assertEqual(out.shape, (7,))
-
-    def test_univariate_3d_returns_ndarray_correct_shape(self):
-        """3-D univariate simulation returns ndarray of shape (A,B,C) — n-D guard."""
-        rng = np.random.default_rng(57)
-        ti3d = TrainingImage(
-            rng.integers(0, 2, (8, 8, 8)).astype(float), categorical=True
-        )
-        ds = DirectSampling(MPSModel(ti3d, scan_fraction=0.3))
-        pos3d = [np.arange(4, dtype=float)] * 3
-        out = ds(pos3d, seed=111)
-        self.assertIsInstance(out, np.ndarray)
-        self.assertEqual(out.shape, (4, 4, 4))
+    def test_univariate_nd_returns_ndarray_correct_shape(self):
+        cases = [
+            (
+                np.tile([0.0, 1.0], 10),
+                1.0,
+                [np.arange(7, dtype=float)],
+                (7,),
+            ),
+            (
+                np.random.default_rng(57)
+                .integers(0, 2, (8, 8, 8))
+                .astype(float),
+                0.3,
+                [np.arange(4, dtype=float)] * 3,
+                (4, 4, 4),
+            ),
+        ]
+        for data, scan_fraction, pos, shape in cases:
+            with self.subTest(shape=shape):
+                ti = TrainingImage(data, categorical=True)
+                ds = DirectSampling(MPSModel(ti, scan_fraction=scan_fraction))
+                out = ds(pos, seed=110)
+                self.assertIsInstance(out, np.ndarray)
+                self.assertEqual(out.shape, shape)
 
 
 class TestSimulationPath(unittest.TestCase):
@@ -2977,40 +2866,27 @@ class TestSimulationPath(unittest.TestCase):
     # Validation errors (explicit array)
     # ------------------------------------------------------------------
 
-    def test_explicit_wrong_dim(self):
-        """Wrong dim (1-D array) raises ValueError with 'shape' in message."""
-        ds, _ = self._make_ds()
-        pos = [np.arange(4, dtype=float)] * 2
-        with self.assertRaisesRegex(ValueError, "shape"):
-            ds(pos, seed=0, path=np.array([0, 1, 2, 3]))  # 1-D, not (N,2)
-
-    def test_explicit_wrong_second_dim(self):
-        """Wrong number of columns (N,3 for a 2-D grid) raises ValueError."""
-        ds, _ = self._make_ds()
-        pos = [np.arange(4, dtype=float)] * 2
-        bad = np.zeros((5, 3), dtype=int)
-        with self.assertRaisesRegex(ValueError, "shape"):
-            ds(pos, seed=0, path=bad)
-
-    def test_explicit_out_of_bounds_coord(self):
-        """Out-of-bounds coordinate raises ValueError."""
-        ds, _ = self._make_ds()
-        pos = [np.arange(4, dtype=float)] * 2
-        # Build a valid raster path then corrupt one coordinate
-        base = np.argwhere(np.ones((4, 4), dtype=bool)).copy()
-        base[0, 0] = 99  # out of bounds
-        with self.assertRaisesRegex(ValueError, "out-of-bounds"):
-            ds(pos, seed=0, path=base)
-
-    def test_explicit_missing_node(self):
-        """Path missing a required unknown node raises ValueError."""
-        ds, _ = self._make_ds()
-        pos = [np.arange(4, dtype=float)] * 2
+    def test_explicit_path_validation_errors(self):
+        """Malformed explicit paths each raise ValueError with a specific message."""
         base = np.argwhere(np.ones((4, 4), dtype=bool))
-        # Drop last node
-        incomplete = base[:-1].copy()
-        with self.assertRaisesRegex(ValueError, "missing"):
-            ds(pos, seed=0, path=incomplete)
+        oob = base.copy()
+        oob[0, 0] = 99
+        dup = base.copy()
+        dup[-1] = dup[0]
+        cases = {
+            "wrong_dim": (np.array([0, 1, 2, 3]), "shape"),  # 1-D, not (N,2)
+            "wrong_second_dim": (np.zeros((5, 3), dtype=int), "shape"),
+            "out_of_bounds_coord": (oob, "out-of-bounds"),
+            "missing_node": (base[:-1].copy(), "missing"),
+            "duplicate_node": (dup, "duplicate"),
+            "invalid_string": ("zigzag", "path"),
+        }
+        ds, _ = self._make_ds()
+        pos = [np.arange(4, dtype=float)] * 2
+        for label, (path, regex) in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(ValueError, regex):
+                    ds(pos, seed=0, path=path)
 
     def test_explicit_extra_node_silently_skipped(self):
         """Conditioned nodes present in an explicit path are silently skipped.
@@ -3031,23 +2907,6 @@ class TestSimulationPath(unittest.TestCase):
         # All values must be a subset of TI values
         ti_vals = set(np.unique(ti.data))
         self.assertTrue(set(np.unique(field)).issubset(ti_vals))
-
-    def test_explicit_duplicate_node(self):
-        """Duplicate rows in explicit path raises ValueError with 'duplicate'."""
-        ds, _ = self._make_ds()
-        pos = [np.arange(4, dtype=float)] * 2
-        base = np.argwhere(np.ones((4, 4), dtype=bool)).copy()
-        # Replace last row with first row (duplicate)
-        base[-1] = base[0]
-        with self.assertRaisesRegex(ValueError, "duplicate"):
-            ds(pos, seed=0, path=base)
-
-    def test_invalid_string_raises(self):
-        """Unknown string for path raises ValueError."""
-        ds, _ = self._make_ds()
-        pos = [np.arange(4, dtype=float)] * 2
-        with self.assertRaisesRegex(ValueError, "path"):
-            ds(pos, seed=0, path="zigzag")
 
     # ------------------------------------------------------------------
     # Regression: "random" default is byte-identical to previous behavior
@@ -3256,7 +3115,7 @@ class TestPerVariableSetterDedup(unittest.TestCase):
 
 
 class TestSpecResolver(unittest.TestCase):
-    """Exact-shape spec resolution (spec §2; oracle h, i-prep)."""
+    """Exact-shape spec resolution for rotation/scale (stationary vs per-node)."""
 
     def test_none_passthrough(self):
         arr, stat = resolve_spec(
@@ -3303,16 +3162,16 @@ class TestSpecResolver(unittest.TestCase):
         np.testing.assert_array_equal(arr, vals)
 
     def test_flattened_per_node_map_raises(self):
-        # B5 regression (oracle h): flattened (n_nodes,) map on a 2-D grid
-        # must raise, never silently degrade to stationary.
+        # A flattened (n_nodes,) map on a 2-D grid must raise, never
+        # silently degrade to stationary.
         with self.assertRaisesRegex(ValueError, "shape"):
             resolve_spec(
                 np.linspace(0, 1, 20), (4, 5), 1, _flat_pos((4, 5)), "rotation"
             )
 
     def test_collision_n_nodes_equals_n_comp_raises(self):
-        # oracle h: 1-D grid of length n_comp — both readings match; must be
-        # a loud ValueError naming both interpretations.
+        # 1-D grid of length n_comp — both readings match; must be a loud
+        # ValueError naming both interpretations.
         with self.assertRaisesRegex(
             ValueError, "stationary.*per-node|per-node.*stationary"
         ):
@@ -3321,7 +3180,7 @@ class TestSpecResolver(unittest.TestCase):
             )
 
     def test_per_node_map_on_1d_grid_is_form_4a(self):
-        # oracle h: valid per-node maps on 1-D grids are expressible.
+        # Valid per-node maps on 1-D grids must be expressible.
         vals = np.linspace(0.5, 2.0, 7)
         arr, stat = resolve_spec(vals, (7,), 1, _flat_pos((7,)), "scale")
         self.assertFalse(stat)
@@ -3390,7 +3249,7 @@ class TestZoneConstruction(unittest.TestCase):
             gs.Zone(np.zeros((5, 5)), where=np.ones((5, 5), dtype=bool))
 
     def test_non_boolean_where_raises(self):
-        # oracle k: no silent != 0 coercion
+        # No silent != 0 coercion of a non-boolean mask.
         with self.assertRaisesRegex(ValueError, "bool"):
             gs.Zone(self._ti(), where=np.ones((5, 5), dtype=int))
 
@@ -3419,7 +3278,7 @@ class TestMPSModelNonstationarySpec(unittest.TestCase):
         np.testing.assert_array_equal(m.scale, sc)
 
     def test_rotation_on_1d_ti_raises(self):
-        # oracle k: no_of_angles(1) == 0 — every rotation form is degenerate.
+        # no_of_angles(1) == 0 — every rotation form is degenerate on a 1-D TI.
         ti1d = gs.mps.TrainingImage(
             np.arange(30, dtype=float), categorical=False
         )
@@ -3484,6 +3343,29 @@ class TestMPSModelNonstationarySpec(unittest.TestCase):
         with self.assertRaises(TypeError):
             MPSModel(self._ti(), zones=[self._ti()])
 
+    def test_zone_codes_checked_against_primary_penalty_matrix(self):
+        # The scan indexes the PRIMARY TI's penalty_matrix with codes read from
+        # the selected zone, so an out-of-range zone code must be rejected at
+        # construction rather than raising IndexError mid-simulation.
+        rng = np.random.default_rng(0)
+        primary = gs.TrainingImage(
+            rng.integers(0, 2, (8, 8)).astype(float),
+            categorical=True,
+            penalty_matrix=np.array([[0.0, 1.0], [1.0, 0.0]]),
+        )
+        out_of_range = gs.TrainingImage(
+            rng.integers(0, 4, (8, 8)).astype(float), categorical=True
+        )
+        z = gs.Zone(out_of_range, where=np.ones((5, 5), dtype=bool))
+        with self.assertRaisesRegex(ValueError, "penalty_matrix"):
+            MPSModel(primary, zones=[z])
+        in_range = gs.TrainingImage(
+            rng.integers(0, 2, (8, 8)).astype(float), categorical=True
+        )
+        MPSModel(
+            primary, zones=[gs.Zone(in_range, where=np.ones((5, 5), bool))]
+        )
+
     def test_repr_array_by_shape_callable_by_name(self):
         def my_rot(x, y):
             return x * 0.0
@@ -3535,7 +3417,7 @@ class TestWhereAndSelector(unittest.TestCase):
         self.assertEqual(sel[2, 0], 0)  # uncovered -> primary
 
     def test_overlapping_zones_raise(self):
-        # oracle k: deterministic — no silent precedence order
+        # Overlapping zones must raise, not silently resolve via precedence order.
         ti = gs.mps.TrainingImage(np.zeros((5, 5)))
         m1 = np.zeros((4, 4), dtype=bool)
         m1[:2] = True
@@ -3550,7 +3432,7 @@ class TestWhereAndSelector(unittest.TestCase):
 
 
 class TestZonatedSimulation(unittest.TestCase):
-    """Zonated DS (M10 para [40]) — oracles d, e, j, l."""
+    """Zonated DS: per-zone TI substitution (M10 para [40])."""
 
     def _two_zone_setup(self, sg=10):
         rng = np.random.default_rng(0)
@@ -3567,8 +3449,8 @@ class TestZonatedSimulation(unittest.TestCase):
         return model, pos, sg
 
     def test_per_zone_subset_property(self):
-        # Oracle d: disjoint TI value sets -> values in zone z ⊆ TI_z values.
-        # This also covers the fallback path: fallback draws MUST come from
+        # Disjoint TI value sets -> values in zone z must be a subset of TI_z
+        # values. Also covers the fallback path: fallback draws must come from
         # the selected zone TI, or rare fallbacks would leak primary values.
         model, pos, sg = self._two_zone_setup()
         field = gs.mps.DirectSampling(model)(pos, seed=0)
@@ -3576,7 +3458,7 @@ class TestZonatedSimulation(unittest.TestCase):
         self.assertTrue(np.all(np.isin(field[sg // 2 :], [10, 11, 12])))
 
     def test_zone_thread_count_determinism(self):
-        # Oracle e: zones + rotation, varying num_threads -> identical output.
+        # Zones + rotation, varying num_threads, must produce identical output.
         rng = np.random.default_rng(1)
         ti_a = gs.mps.TrainingImage(
             rng.integers(0, 3, (15, 15)), n_neighbors=4
@@ -3597,7 +3479,7 @@ class TestZonatedSimulation(unittest.TestCase):
         np.testing.assert_array_equal(f1, f4)
 
     def test_overlapping_zones_raise_at_call(self):
-        # Oracle k: overlap detected at resolve time in __call__.
+        # Overlap must be detected at resolve time, inside __call__.
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 2, (10, 10)))
         m1 = np.zeros((6, 6), dtype=bool)
@@ -3612,9 +3494,8 @@ class TestZonatedSimulation(unittest.TestCase):
             ds([np.arange(6, dtype=float)] * 2, seed=0)
 
     def test_per_zone_d_max(self):
-        # Oracle j: distances in each zone normalized by that zone TI's d_max.
+        # Distances in each zone must be normalized by that zone TI's d_max.
         # White-box: the zone domain's scan config carries the zone's range.
-        from gstools.mps.simulate import _DirectSamplingEngine
         from gstools.random.rng import RNG
 
         rng = np.random.default_rng(0)
@@ -3648,7 +3529,6 @@ class TestZonatedSimulation(unittest.TestCase):
         data[0, 0] = 100.0
         data[5:, 5:] = np.arange(25).reshape(5, 5)
         ti = gs.mps.TrainingImage(data, categorical=False)
-        from gstools.mps.simulate import _DirectSamplingEngine
         from gstools.random.rng import RNG
 
         sel = np.zeros((4, 4), dtype=np.intp)
@@ -3666,7 +3546,7 @@ class TestZonatedSimulation(unittest.TestCase):
         self.assertEqual(engine.domains[1].scan_config.d_max[None], 24.0)
 
     def test_composite_zone_ti_joint_copy(self):
-        # Oracle l: composite multivariate zone TI with a swapped A-channel.
+        # Composite multivariate zone TI with a swapped A-channel.
         # A-values in the zone ⊆ composite A values; B-values ⊆ composite B
         # values; every zone (a, b) pair exists co-located in the composite
         # (the whole TI-cell vector is copied — joint-scan invariant).
@@ -3737,6 +3617,738 @@ class TestVecDistanceDmaxOverride(unittest.TestCase):
         d_ovr = ti.vec_distance_var(None, de, cand, d_max=6.0)
         self.assertAlmostEqual(float(d_own[0]), 1.0)
         self.assertAlmostEqual(float(d_ovr[0]), 0.5)
+
+
+class TestVecCategoricalPenaltyDist(unittest.TestCase):
+    """Unit tests for vec_categorical_penalty_dist (DS_Feature_Checklist §3.3)."""
+
+    def setUp(self):
+        # Asymmetric 3-category penalty matrix: T[u,u]=0, T[u,v] in (0,1].
+        self.T = np.array(
+            [
+                [0.0, 0.5, 0.8],
+                [0.3, 0.0, 0.6],
+                [0.9, 0.4, 0.0],
+            ]
+        )
+        self.sim = np.array([0.0, 1.0, 2.0])
+        self.w = np.array([0.2, 0.3, 0.5])
+
+    def test_hand_computed_no_nan(self):
+        ti = np.array([[0.0, 1.0, 2.0], [1.0, 0.0, 2.0]])
+        d = vec_categorical_penalty_dist(self.sim, ti, self.w, self.T)
+        # row0: exact match -> 0
+        # row1: 0.2*T[0,1] + 0.3*T[1,0] + 0.5*T[2,2] = 0.2*0.5+0.3*0.3+0 = 0.19
+        np.testing.assert_allclose(d, [0.0, 0.19])
+
+    def test_hand_computed_has_nan(self):
+        ti = np.array([[0.0, 1.0, 2.0], [1.0, np.nan, 2.0]])
+        d = vec_categorical_penalty_dist(
+            self.sim, ti, self.w, self.T, has_nan=True
+        )
+        # row1: valid=[T,F,T], we=[0.2,0,0.5], wsum=0.7
+        # mism = 0.2*T[0,1] + 0 + 0.5*T[2,2] = 0.1
+        # dist = 0.1 / 0.7
+        np.testing.assert_allclose(d, [0.0, 0.1 / 0.7])
+
+    def test_all_nan_row_is_inf(self):
+        ti = np.array([[np.nan, np.nan, np.nan]])
+        d = vec_categorical_penalty_dist(
+            self.sim, ti, self.w, self.T, has_nan=True
+        )
+        self.assertTrue(np.isinf(d[0]))
+
+    def test_reduction_to_binary_mismatch_no_nan(self):
+        # T = 1 - eye(C) collapses exactly to vec_categorical_dist.
+        rng = np.random.default_rng(0)
+        c, n, max_scan = 4, 5, 20
+        sim = rng.integers(0, c, n).astype(float)
+        ti = rng.integers(0, c, (max_scan, n)).astype(float)
+        w = rng.random(n)
+        w /= w.sum()
+        t_binary = 1.0 - np.eye(c)
+        d_pen = vec_categorical_penalty_dist(sim, ti, w, t_binary)
+        d_bin = vec_categorical_dist(sim, ti, w)
+        np.testing.assert_allclose(d_pen, d_bin)
+
+    def test_reduction_to_binary_mismatch_has_nan(self):
+        rng = np.random.default_rng(1)
+        c, n, max_scan = 4, 5, 20
+        sim = rng.integers(0, c, n).astype(float)
+        ti = rng.integers(0, c, (max_scan, n)).astype(float)
+        ti[3, 2] = np.nan
+        ti[7, :] = np.nan  # fully undefined row -> +inf in both
+        w = rng.random(n)
+        w /= w.sum()
+        t_binary = 1.0 - np.eye(c)
+        d_pen = vec_categorical_penalty_dist(
+            sim, ti, w, t_binary, has_nan=True
+        )
+        d_bin = vec_categorical_dist(sim, ti, w, has_nan=True)
+        np.testing.assert_allclose(d_pen, d_bin, equal_nan=True)
+
+
+class TestPenaltyMatrixVariable(unittest.TestCase):
+    """Variable construction validation for penalty_matrix (DS_Feature_Checklist §3.3)."""
+
+    def test_default_none(self):
+        v = Variable("x", np.array([0, 1, 0, 1]))
+        self.assertIsNone(v.penalty_matrix)
+
+    def test_accept_valid_asymmetric(self):
+        t = np.array([[0.0, 0.5, 0.8], [0.3, 0.0, 0.6], [0.9, 0.4, 0.0]])
+        v = Variable("x", np.array([0, 1, 2, 0]), penalty_matrix=t)
+        np.testing.assert_array_equal(v.penalty_matrix, t)
+        # not symmetric, and that's fine
+        self.assertFalse(np.allclose(v.penalty_matrix, v.penalty_matrix.T))
+
+    def test_penalty_matrix_read_only(self):
+        t = 1.0 - np.eye(2)
+        v = Variable("x", np.array([0, 1, 0, 1]), penalty_matrix=t)
+        with self.assertRaises(ValueError):
+            v.penalty_matrix[0, 1] = 0.1
+
+    def test_reject_bad_shape(self):
+        for t in (np.zeros((2, 3)), np.zeros((2, 2, 2))):
+            with self.subTest(shape=t.shape):
+                with self.assertRaisesRegex(ValueError, "square"):
+                    Variable("x", np.array([0, 1]), penalty_matrix=t)
+
+    def test_reject_nonzero_diagonal(self):
+        t = np.array([[0.0, 0.5], [0.3, 0.1]])
+        with self.assertRaisesRegex(ValueError, "diagonal"):
+            Variable("x", np.array([0, 1, 0, 1]), penalty_matrix=t)
+
+    def test_reject_bad_off_diagonal(self):
+        # zero, negative, and >1 are all invalid off-diagonal penalties.
+        for val in (0.0, -0.2, 1.5):
+            t = np.array([[0.0, val], [0.3, 0.0]])
+            with self.subTest(val=val):
+                with self.assertRaisesRegex(ValueError, "off-diagonal"):
+                    Variable("x", np.array([0, 1, 0, 1]), penalty_matrix=t)
+
+    def test_reject_with_categorical_false(self):
+        t = 1.0 - np.eye(2)
+        with self.assertRaisesRegex(ValueError, "categorical"):
+            Variable(
+                "x",
+                np.linspace(0.0, 1.0, 4),
+                categorical=False,
+                penalty_matrix=t,
+            )
+
+    def test_reject_bad_data_codes(self):
+        # C = 3, valid codes {0, 1, 2}: non-integer, out-of-range, negative.
+        t = 1.0 - np.eye(3)
+        for data in ([0.0, 1.5, 2.0], [0.0, 1.0, 3.0], [0.0, -1.0, 2.0]):
+            with self.subTest(data=data):
+                with self.assertRaisesRegex(ValueError, "integer"):
+                    Variable("x", np.array(data), penalty_matrix=t)
+
+    def test_nan_data_ignored_by_range_check(self):
+        # NaN cells are undefined and must not trip the integer/range check.
+        t = 1.0 - np.eye(3)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            v = Variable("x", np.array([0.0, np.nan, 2.0]), penalty_matrix=t)
+        self.assertIsNotNone(v.penalty_matrix)
+
+    def test_repr_includes_penalty_matrix_shape(self):
+        t = 1.0 - np.eye(3)
+        v = Variable("x", np.array([0, 1, 2, 0]), penalty_matrix=t)
+        self.assertIn("penalty_matrix=(3, 3)", repr(v))
+        v_none = Variable("y", np.array([0, 1, 2, 0]))
+        self.assertNotIn("penalty_matrix", repr(v_none))
+
+
+class TestPenaltyMatrixWindowView(unittest.TestCase):
+    def test_window_retains_penalty_matrix(self):
+        t = np.array([[0.0, 0.5, 0.8], [0.3, 0.0, 0.6], [0.9, 0.4, 0.0]])
+        rng = np.random.default_rng(2)
+        ti = gs.mps.TrainingImage(
+            [
+                Variable("a", rng.integers(0, 3, (12, 12)), penalty_matrix=t),
+            ]
+        )
+        win = ti.window(np.s_[2:10, 0:6])
+        np.testing.assert_array_equal(win.variable("a").penalty_matrix, t)
+
+
+class TestPenaltyMatrixSetCondition(unittest.TestCase):
+    def test_univariate_bad_value_raises(self):
+        # out-of-range (5.0) and non-integer (1.5) codes both fail fast here.
+        t = 1.0 - np.eye(3)
+        ti = TrainingImage(
+            np.array([0, 1, 2, 0, 1, 2], dtype=float), penalty_matrix=t
+        )
+        for bad_val in (5.0, 1.5):
+            ds = DirectSampling(MPSModel(ti))
+            with self.subTest(val=bad_val):
+                with self.assertRaisesRegex(ValueError, "penalty_matrix"):
+                    ds.set_condition([[0.0]], [bad_val])
+
+    def test_univariate_valid_code_accepted(self):
+        t = 1.0 - np.eye(3)
+        ti = TrainingImage(
+            np.array([0, 1, 2, 0, 1, 2], dtype=float), penalty_matrix=t
+        )
+        ds = DirectSampling(MPSModel(ti))
+        ds.set_condition([[0.0]], [2.0])  # must not raise
+
+    def test_multivariate_out_of_range_raises(self):
+        t = 1.0 - np.eye(2)
+        rng = np.random.default_rng(3)
+        ti = gs.mps.TrainingImage(
+            [
+                Variable("a", rng.integers(0, 2, (10, 10)), penalty_matrix=t),
+                Variable("b", rng.integers(0, 2, (10, 10))),
+            ]
+        )
+        ds = DirectSampling(MPSModel(ti))
+        with self.assertRaisesRegex(ValueError, "penalty_matrix"):
+            ds.set_condition([[0.0], [0.0]], {"a": [9.0], "b": [0.0]})
+
+    def test_multivariate_no_penalty_matrix_unaffected(self):
+        rng = np.random.default_rng(4)
+        ti = gs.mps.TrainingImage(
+            [
+                Variable("a", rng.integers(0, 2, (10, 10))),
+                Variable("b", rng.integers(0, 2, (10, 10))),
+            ]
+        )
+        ds = DirectSampling(MPSModel(ti))
+        ds.set_condition([[0.0], [0.0]], {"a": [99.0], "b": [0.0]})
+
+
+class TestPenaltyMatrixIntegration(unittest.TestCase):
+    """End-to-end: DirectSampling with a penalty_matrix stays within the TI codes."""
+
+    def test_simulation_subset_of_ti_values(self):
+        t = np.array([[0.0, 0.5, 0.8], [0.3, 0.0, 0.6], [0.9, 0.4, 0.0]])
+        rng = np.random.default_rng(5)
+        ti_data = rng.integers(0, 3, (25, 25)).astype(float)
+        ti = TrainingImage(ti_data, n_neighbors=6, penalty_matrix=t)
+        model = MPSModel(ti, scan_fraction=0.5, threshold=0.1)
+        ds = DirectSampling(model)
+        out = ds([np.arange(15, dtype=float)] * 2, seed=42)
+        ti_vals = set(np.unique(ti_data).tolist())
+        out_vals = set(np.unique(out).tolist())
+        self.assertTrue(out_vals <= ti_vals)
+
+
+class TestPostProcessingParams(unittest.TestCase):
+    """MPSModel post-processing parameter validation (Me13 §4)."""
+
+    def _ti(self):
+        return gs.TrainingImage(np.zeros((8, 8)), categorical=True)
+
+    def test_defaults(self):
+        model = gs.MPSModel(self._ti())
+        self.assertEqual(model.post_processing, 0)
+        self.assertEqual(model.post_processing_factor, 1.0)
+
+    def test_accepts_valid(self):
+        model = gs.MPSModel(
+            self._ti(), post_processing=2, post_processing_factor=2.0
+        )
+        self.assertEqual(model.post_processing, 2)
+        self.assertEqual(model.post_processing_factor, 2.0)
+        model.post_processing = 1
+        model.post_processing_factor = 4.0
+        self.assertEqual(model.post_processing, 1)
+        self.assertEqual(model.post_processing_factor, 4.0)
+
+    def test_rejects_negative_passes(self):
+        with self.assertRaises(ValueError):
+            gs.MPSModel(self._ti(), post_processing=-1)
+
+    def test_rejects_factor_below_one(self):
+        with self.assertRaises(ValueError):
+            gs.MPSModel(self._ti(), post_processing_factor=0.5)
+
+
+def _isolated_count(field):
+    """Count cells whose value differs from ALL axis-neighbours (noise proxy)."""
+    f = np.asarray(field)
+    n = np.zeros(f.shape, dtype=int)
+    same = np.zeros(f.shape, dtype=int)
+    for ax in range(f.ndim):
+        for sh in (1, -1):
+            rolled = np.roll(f, sh, axis=ax)
+            valid = np.ones(f.shape, dtype=bool)
+            edge = [slice(None)] * f.ndim
+            edge[ax] = 0 if sh == 1 else -1
+            valid[tuple(edge)] = False
+            n += valid
+            same += valid & (rolled == f)
+    return int(np.sum((same == 0) & (n > 0)))
+
+
+class TestPostProcessingPass(unittest.TestCase):
+    """Me13 §4 / CASE 3: re-simulation with fully informed neighbourhoods."""
+
+    def setUp(self):
+        rng = np.random.RandomState(42)
+        ti = np.zeros((40, 40))
+        ti[:, 20:] = 1.0
+        flip = rng.rand(40, 40) < 0.05
+        ti[flip] = 1.0 - ti[flip]
+        self.ti_data = ti
+
+    def _run(self, seed=20260717, cond=None, num_threads=None, **model_kw):
+        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        model = gs.MPSModel(ti, scan_fraction=0.25, threshold=0.2, **model_kw)
+        ds = gs.DirectSampling(model, seed=seed)
+        if cond is not None:
+            ds.set_condition(*cond)
+        if num_threads is not None:
+            ds.num_threads = num_threads
+        return ds((np.arange(24.0), np.arange(24.0)), store=False)
+
+    def test_noop_matches_default(self):
+        base = self._run()
+        noop = self._run(post_processing=0, post_processing_factor=2.0)
+        np.testing.assert_array_equal(base, noop)
+
+    def test_subset_property_after_passes(self):
+        field = self._run(post_processing=2, post_processing_factor=2.0)
+        self.assertTrue(np.isin(field, np.unique(self.ti_data)).all())
+
+    def test_conditioning_preserved_exactly(self):
+        cond = (([2.0, 10.0, 21.0], [3.0, 15.0, 8.0]), [1.0, 0.0, 1.0])
+        field = self._run(post_processing=2, cond=cond)
+        self.assertEqual(field[2, 3], 1.0)
+        self.assertEqual(field[10, 15], 0.0)
+        self.assertEqual(field[21, 8], 1.0)
+
+    def test_deterministic_given_seed(self):
+        a = self._run(post_processing=1)
+        b = self._run(post_processing=1)
+        np.testing.assert_array_equal(a, b)
+
+    def test_thread_count_invariance(self):
+        # Post-passes run over the same dependency DAG as the main path, so
+        # every thread count must reproduce the serial result bit-exactly.
+        ref = self._run(post_processing=2, num_threads=1)
+        for n_threads in (2, 4, 8):
+            with self.subTest(num_threads=n_threads):
+                np.testing.assert_array_equal(
+                    ref, self._run(post_processing=2, num_threads=n_threads)
+                )
+
+    def test_fully_informed_neighbourhood(self):
+        """Me13 §4: a post-pass node sees cells it *precedes* in the order.
+
+        Guards the pass-scoped all ``-1`` vmap. Gating post-pass reads by
+        visit position instead (as the main path does) would leave the
+        first-visited node with an empty neighbourhood, degrading the pass
+        from a refinement of the realization into an independent redraw.
+        """
+        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        eng = _DirectSamplingEngine(
+            ti,
+            (12, 12),
+            0.2,
+            0.25,
+            np.random.RandomState(0),
+            np.random.RandomState(1),
+        )
+        eng.run(num_threads=1)
+        # Reproduce the post-pass vmap/pass, then probe the first-visited node.
+        pss = _Pass(
+            order=eng.path,
+            vmap={v: np.full(144, -1, dtype=np.intp) for v in eng.variables},
+            pos_map=None,
+            n_k=eng.n_k,
+            scan_fraction=eng.scan_fraction,
+            neighbor_cache={},
+        )
+        x_0 = eng.path[0]
+        events = eng._gather_neighborhood(
+            pss, x_0, tuple(int(c) for c in x_0), 0
+        )
+        for v in eng.variables:
+            self.assertGreater(
+                len(events[v]),
+                0,
+                "post-pass node 0 must have a fully informed neighbourhood",
+            )
+
+    def test_noise_not_increased(self):
+        # Me13 CASE 3 (quantified): a post-pass must not add isolated-cell
+        # noise on a two-facies TI at the pinned seed.
+        noisy = self._run(post_processing=0)
+        cleaned = self._run(post_processing=1)
+        self.assertLessEqual(_isolated_count(cleaned), _isolated_count(noisy))
+
+    def test_engine_base_config_never_mutated(self):
+        """Per-pass search parameters live in ``_Pass``, not on the engine.
+
+        Post-passes used to install their factor-reduced ``n_k``/``domains``/
+        ``vmap`` onto the engine and restore them in a ``finally``.  That is
+        what made the mechanism single-level (nothing inside a pass could set
+        its own parameters) and thread-safe only by accident.  Every pass must
+        now see the engine's *base* configuration untouched.
+        """
+        observed = []
+        orig = _DirectSamplingEngine._simulate_node
+
+        def spy(engine, pss, i, x_i, u_st, u_fb):
+            observed.append(
+                (
+                    tuple(sorted(engine.n_k.items())),
+                    engine.scan_fraction,
+                    tuple(sorted(pss.n_k.items())),
+                    pss.scan_fraction,
+                )
+            )
+            return orig(engine, pss, i, x_i, u_st, u_fb)
+
+        _DirectSamplingEngine._simulate_node = spy
+        try:
+            self._run(post_processing=2, post_processing_factor=2.0)
+        finally:
+            _DirectSamplingEngine._simulate_node = orig
+
+        engine_cfg = {(o[0], o[1]) for o in observed}
+        self.assertEqual(
+            len(engine_cfg),
+            1,
+            f"engine base config mutated during the run: {engine_cfg}",
+        )
+        # Base config: n_neighbors=8, scan_fraction=0.25 (see _run).
+        self.assertEqual(engine_cfg.pop(), (((None, 8),), 0.25))
+        # The factor-reduced values must still reach the kernel via _Pass:
+        # 8 / 2.0 = 4 neighbours, 0.25 / 2.0 = 0.125 scan fraction.
+        pass_cfg = {(o[2], o[3]) for o in observed}
+        self.assertEqual(
+            pass_cfg, {(((None, 8),), 0.25), (((None, 4),), 0.125)}
+        )
+
+    def test_per_pass_neighbour_cache_is_isolated(self):
+        """Each pass owns its cache box, so a stale one cannot leak forward.
+
+        The cache is keyed on a pass's visit order; reusing one engine-level
+        slot meant correctness depended on remembering to null it per pass.
+        """
+        boxes = []
+        orig = _DirectSamplingEngine._simulate_node
+
+        def spy(engine, pss, i, x_i, u_st, u_fb):
+            boxes.append(id(pss.neighbor_cache))
+            return orig(engine, pss, i, x_i, u_st, u_fb)
+
+        _DirectSamplingEngine._simulate_node = spy
+        try:
+            self._run(post_processing=2, num_threads=4)
+        finally:
+            _DirectSamplingEngine._simulate_node = orig
+
+        # main pass + 2 post-passes, each with its own box
+        self.assertEqual(len(set(boxes)), 3)
+
+    def test_post_pass_erases_only_own_non_conditioned_cell(self):
+        """``_reopen_and_simulate`` touches this node only, skipping conditioning.
+
+        Reading later-positioned neighbours' *old* values is what makes a pass
+        a refinement, so nothing but the visited node may be erased.
+        """
+        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        eng = _DirectSamplingEngine(
+            ti,
+            (8, 8),
+            0.2,
+            0.25,
+            np.random.RandomState(0),
+            np.random.RandomState(1),
+            conditions={(1, 1): {None: 1.0}, (5, 6): {None: 0.0}},
+        )
+        eng.run(num_threads=1)
+        before = eng.sg[None].copy()
+        pss = _Pass(
+            order=eng.path,
+            vmap={v: np.full(64, -1, dtype=np.intp) for v in eng.variables},
+            pos_map=_order_positions(eng.path, (8, 8)),
+            n_k=eng.n_k,
+            scan_fraction=eng.scan_fraction,
+            neighbor_cache={},
+        )
+        # Erase-and-simulate one node, then check the blast radius.
+        x_0 = eng.path[0]
+        eng._reopen_and_simulate(pss, 0, x_0, 0.5, np.array([0.5, 0.5]))
+        changed = np.argwhere(before != eng.sg[None])
+        self.assertLessEqual(len(changed), 1, f"touched {changed.tolist()}")
+        if len(changed):
+            np.testing.assert_array_equal(changed[0], x_0)
+        # Conditioned cells keep their values and stay out of every visit order.
+        self.assertEqual(eng.sg[None][1, 1], 1.0)
+        self.assertEqual(eng.sg[None][5, 6], 0.0)
+        for v in eng.variables:
+            cells = np.flatnonzero(eng.is_cond[v].reshape(-1))
+            self.assertTrue(np.all(eng.vmap[v][cells] == -1))
+
+    def test_multivariate_joint_subset(self):
+        a = self.ti_data
+        b = 1.0 - a
+        ti = gs.TrainingImage(
+            [
+                Variable("A", a, categorical=True, n_neighbors=6),
+                Variable("B", b, categorical=True, n_neighbors=6),
+            ]
+        )
+        model = gs.MPSModel(
+            ti, scan_fraction=0.25, threshold=0.2, post_processing=1
+        )
+        ds = gs.DirectSampling(model, seed=3)
+        out = ds((np.arange(16.0), np.arange(16.0)), store=False)
+        pairs_ti = set(zip(a.ravel(), b.ravel()))
+        pairs_sim = set(zip(out["A"].ravel(), out["B"].ravel()))
+        self.assertTrue(pairs_sim <= pairs_ti)
+
+
+class TestPostPassDag(unittest.TestCase):
+    """_build_dag_base edge orientation for the two vmap/pos_map regimes."""
+
+    def setUp(self):
+        self.shape = (5, 5)
+        self.offsets = _precompute_offsets(self.shape)
+        # Sequential order so visit position == raster index (readable asserts).
+        self.order = np.stack(
+            np.unravel_index(np.arange(25), self.shape), axis=-1
+        )
+        self.pos = _order_positions(self.order, self.shape)
+        self.main_vmap = {"v": self.pos.copy()}
+        self.post_vmap = {"v": np.full(25, -1, dtype=np.intp)}
+        self.n_k = {"v": 4}
+
+    def _edges(self, vmap, pos_map):
+        _, out_edges, _ = _build_dag_base(
+            self.order,
+            self.shape,
+            self.offsets,
+            vmap,
+            self.n_k,
+            None,
+            pos_map,
+        )
+        return {(a, b) for a, es in enumerate(out_edges) for b, _ in es}
+
+    def test_pos_map_none_matches_main_path(self):
+        # Default (pos_map=None) must reproduce the pre-existing main-path
+        # edge set, which the order-gated vmap already orients for us.
+        self.assertEqual(
+            self._edges(self.main_vmap, None),
+            self._edges(self.main_vmap, self.pos),
+        )
+
+    def test_all_edges_run_forward_in_visit_order(self):
+        # Acyclicity: the visit order itself is a topological order.
+        for a, b in self._edges(self.post_vmap, self.pos):
+            self.assertLess(a, b)
+
+    def test_post_pass_orients_anti_dependencies(self):
+        """The first-visited node reads only later-positioned neighbours, and
+        the DAG must order it *before* each of them.
+
+        This is the write-after-read direction the main path never has: node 0
+        reads their pre-pass values, so they may not overwrite them until it
+        is done. Under the order-gated main-path vmap node 0 reads nothing at
+        all, which is the regression this guards.
+        """
+        strides = np.array([5, 1], dtype=np.intp)
+        coords, _ = _select_neighbors(
+            self.order[0],
+            self.offsets,
+            np.array(self.shape),
+            self.shape,
+            self.post_vmap["v"],
+            0,
+            None,
+            None,
+            self.n_k["v"],
+        )
+        read = sorted(int(p) for p in self.pos[coords @ strides])
+        self.assertTrue(read, "node 0 read nothing — not fully informed")
+        self.assertTrue(all(p > 0 for p in read))
+        edges = self._edges(self.post_vmap, self.pos)
+        for p in read:
+            self.assertIn((0, p), edges)
+        # The order-gated vmap leaves node 0 with nothing to read at all.
+        gated, _ = _select_neighbors(
+            self.order[0],
+            self.offsets,
+            np.array(self.shape),
+            self.shape,
+            self.main_vmap["v"],
+            0,
+            None,
+            None,
+            self.n_k["v"],
+        )
+        self.assertEqual(len(gated), 0)
+
+    def test_indegree_counts_each_pair_once(self):
+        # The read relation is not exactly symmetric (n_neighbors truncation
+        # lets a boundary node reach farther than its neighbours reach back),
+        # so an edge can be discovered from either endpoint. Double-counting
+        # indegree would deadlock the dispatcher, as only one decrement ever
+        # arrives per pair.
+        indegree, out_edges, _ = _build_dag_base(
+            self.order,
+            self.shape,
+            self.offsets,
+            self.post_vmap,
+            self.n_k,
+            None,
+            self.pos,
+        )
+        pairs = [(a, b) for a, es in enumerate(out_edges) for b, _ in es]
+        self.assertEqual(len(pairs), len(set(pairs)))
+        self.assertEqual(int(indegree["v"].sum()), len(pairs))
+
+    def test_every_read_pair_is_ordered(self):
+        """No unsynchronized pair: each node's own selected neighbours all
+        carry an edge with it, which is what makes erasing a node's value
+        inside its worker safe under concurrency."""
+        edges = self._edges(self.post_vmap, self.pos)
+        strides = np.array([5, 1], dtype=np.intp)
+        for i in range(25):
+            coords, _ = _select_neighbors(
+                self.order[i],
+                self.offsets,
+                np.array(self.shape),
+                self.shape,
+                self.post_vmap["v"],
+                i,
+                None,
+                None,
+                self.n_k["v"],
+            )
+            for j in self.pos[coords @ strides]:
+                j = int(j)
+                pair = (j, i) if j < i else (i, j)
+                self.assertIn(
+                    pair, edges, f"node {i} reads {j} unsynchronized"
+                )
+
+
+class TestPostProcessingPath(unittest.TestCase):
+    """post_processing_path: post-pass visit order (implementation extension,
+    not prescribed by Me13 §4)."""
+
+    def setUp(self):
+        rng = np.random.RandomState(42)
+        ti = np.zeros((40, 40))
+        ti[:, 20:] = 1.0
+        flip = rng.rand(40, 40) < 0.05
+        ti[flip] = 1.0 - ti[flip]
+        self.ti_data = ti
+
+    def _run(self, seed=20260717, cond=None, path="random", **model_kw):
+        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        model = gs.MPSModel(
+            ti,
+            scan_fraction=0.25,
+            threshold=0.2,
+            post_processing=1,
+            **model_kw,
+        )
+        ds = gs.DirectSampling(model, seed=seed)
+        if cond is not None:
+            ds.set_condition(*cond)
+        return ds((np.arange(24.0), np.arange(24.0)), path=path, store=False)
+
+    def test_default_inherits_main_mode(self):
+        a = self._run(path="sequential")
+        b = self._run(path="sequential", post_processing_path="sequential")
+        np.testing.assert_array_equal(a, b)
+
+    def test_none_equals_random_for_random_main_path(self):
+        a = self._run()
+        b = self._run(post_processing_path="random")
+        np.testing.assert_array_equal(a, b)
+
+    def test_same_is_deterministic_and_valid(self):
+        cond = (([5.0], [5.0]), [1.0])
+        a = self._run(post_processing_path="same", cond=cond)
+        b = self._run(post_processing_path="same", cond=cond)
+        np.testing.assert_array_equal(a, b)
+        self.assertTrue(np.isin(a, np.unique(self.ti_data)).all())
+        self.assertEqual(a[5, 5], 1.0)
+
+    def test_explicit_raster_equals_sequential(self):
+        raster = np.argwhere(np.ones((24, 24), dtype=bool))
+        a = self._run(post_processing_path=raster)
+        b = self._run(post_processing_path="sequential")
+        np.testing.assert_array_equal(a, b)
+
+    def test_invalid_string_and_shape_raise(self):
+        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        with self.assertRaises(ValueError):
+            gs.MPSModel(ti, post_processing_path="bogus")
+        with self.assertRaises(ValueError):
+            gs.MPSModel(ti, post_processing_path=np.array([1, 2, 3]))
+
+    def test_explicit_path_missing_nodes_raises(self):
+        half = np.argwhere(np.ones((24, 24), dtype=bool))[:288]
+        with self.assertRaises(ValueError):
+            self._run(post_processing_path=half)
+
+
+class TestPostProcessingEngine(unittest.TestCase):
+    """ds_simulate-level post-processing behaviour."""
+
+    def _simulate(self, post_processing, seed=7, post_processing_factor=1.0):
+
+        ti_data = np.zeros((30, 30))
+        ti_data[:, 15:] = 1.0
+        ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=6)
+        return ds_simulate(
+            training_image=ti,
+            sim_shape=(15, 15),
+            threshold=0.2,
+            scan_fraction=0.3,
+            rng_path=gs.random.RNG(seed).random,
+            rng_nodes=gs.random.RNG(seed + 1).random,
+            conditions={(0, 0): {None: 1.0}},
+            post_processing=post_processing,
+            post_processing_factor=post_processing_factor,
+        )[None]
+
+    def test_p0_bit_identical_to_omitted(self):
+
+        ti_data = np.zeros((30, 30))
+        ti_data[:, 15:] = 1.0
+        ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=6)
+        kwargs = dict(
+            training_image=ti,
+            sim_shape=(15, 15),
+            threshold=0.2,
+            scan_fraction=0.3,
+        )
+        a = ds_simulate(
+            rng_path=gs.random.RNG(7).random,
+            rng_nodes=gs.random.RNG(8).random,
+            **kwargs,
+        )[None]
+        b = ds_simulate(
+            rng_path=gs.random.RNG(7).random,
+            rng_nodes=gs.random.RNG(8).random,
+            post_processing=0,
+            **kwargs,
+        )[None]
+        np.testing.assert_array_equal(a, b)
+
+    def test_pass_changes_field_but_keeps_subset_and_conditioning(self):
+        base = self._simulate(0)
+        post = self._simulate(1)
+        self.assertEqual(post[0, 0], 1.0)  # conditioning survives
+        self.assertTrue(np.isin(post, [0.0, 1.0]).all())
+        self.assertFalse(np.array_equal(base, post))  # the pass did work
+
+    def test_pf_divides_effort_and_stays_valid(self):
+        post = self._simulate(1, post_processing_factor=4.0)
+        self.assertTrue(np.isin(post, [0.0, 1.0]).all())
 
 
 if __name__ == "__main__":

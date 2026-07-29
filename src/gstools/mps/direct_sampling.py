@@ -17,11 +17,29 @@ from gstools.field.base import Field
 from gstools.mps.model import MPSModel
 from gstools.mps.nonstationary import build_zone_selector, resolve_spec
 from gstools.mps.simulate import ds_simulate
+from gstools.mps.training_image import _check_category_codes
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
 from gstools.tools.geometric import generate_grid, no_of_angles
 
 __all__ = ["DirectSampling"]
+
+
+def _check_penalty_matrix_conditioning(var_name, penalty_matrix, values):
+    """Validate conditioning values against a Variable's penalty_matrix, if set.
+
+    Fails fast at ``set_condition()`` time with a clear ``ValueError`` rather
+    than raising a raw ``IndexError`` deep in the scan loop when the matrix
+    is later indexed by an out-of-range or non-integer category code.
+    """
+    if penalty_matrix is None:
+        return
+    label = "variable" if var_name is None else f"variable {var_name!r}"
+    _check_category_codes(
+        values,
+        penalty_matrix.shape[0],
+        f"DirectSampling.set_condition: conditioning values for {label}",
+    )
 
 
 def _warn_nonuniform_axes(axes):
@@ -201,6 +219,13 @@ class DirectSampling(Field):
             ``{variable: numpy.ndarray}`` dict with all variables on equal
             footing — each is also stored as a named field accessible via
             ``self[variable]`` / :attr:`all_fields`.
+
+        Notes
+        -----
+        DS post-processing passes (``MPSModel(post_processing=..., post_processing_factor=...)``,
+        Me13 §4) run after the main simulation pass, over the same
+        ``num_threads``-parallel dependency DAG. They are distinct from this
+        method's ``post_process`` kwarg (Field mean/normalizer/trend pipeline).
         """
         if mesh_type != "structured":
             raise ValueError(
@@ -292,6 +317,9 @@ class DirectSampling(Field):
             path=path,
             zone_tis=[z.ti for z in zones] if zones else None,
             zone_selector=selector,
+            post_processing=self._mps_model.post_processing,
+            post_processing_factor=self._mps_model.post_processing_factor,
+            post_processing_path=self._mps_model.post_processing_path,
         )
         # Branch only on the return type: multivariate → dict of named arrays;
         # univariate → bare array (unwrap the single None key).
@@ -431,6 +459,10 @@ class DirectSampling(Field):
             self._cond_val = {
                 v: np.asarray(a, dtype=np.double) for v, a in cond_val.items()
             }
+            for v_name, arr in self._cond_val.items():
+                _check_penalty_matrix_conditioning(
+                    v_name, self._ti.variable(v_name).penalty_matrix, arr
+                )
         elif self._ti.multivariate:
             raise ValueError(
                 "DirectSampling: cond_val must be a dict {variable: array} "
@@ -441,6 +473,9 @@ class DirectSampling(Field):
 
             self._cond_pos, self._cond_val = _gs_set_condition(
                 cond_pos, cond_val, self.dim
+            )
+            _check_penalty_matrix_conditioning(
+                None, self._ti.variable().penalty_matrix, self._cond_val
             )
 
     def set_mv_transforms(self, mean=None, normalizer=None, trend=None):

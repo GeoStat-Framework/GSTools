@@ -27,6 +27,43 @@ from gstools.mps.scan import _scan_for_match, _ScanConfig
 
 
 @dataclass(frozen=True)
+class _Pass:
+    """Everything that varies per pass — the main path or one post-processing round.
+
+    Threaded through the node-simulation seams as an argument, so the engine's
+    own ``n_k``/``scan_fraction``/``domains`` stay un-mutated base configuration
+    and any further phase is just another ``_Pass``.
+
+    Parameters
+    ----------
+    order : numpy.ndarray, shape (N, dim)
+        This pass's visit order.
+    vmap : dict of {str: numpy.ndarray}
+        Per-variable availability map (see :func:`_build_vmap`).  All ``-1`` for
+        a post-pass — Me13 §4's "fully informed neighbourhood".
+    pos_map : numpy.ndarray or None
+        Visit-order orientation for the DAG (see :func:`runner._build_dag_base`).
+        ``None`` for the main path, whose vmap already carries the order.
+    n_k : dict of {str: int}
+        Per-variable neighbour count (post-passes divide by
+        ``post_processing_factor``, floored at 1).
+    scan_fraction : float
+        Likewise divided by ``post_processing_factor`` on a post-pass.
+    neighbor_cache : dict
+        One-slot box for the DAG-build neighbour cache, filled under key
+        ``"coords"``.  Fresh per pass, so no cache can leak between passes;
+        stays empty in serial mode.
+    """
+
+    order: object
+    vmap: dict
+    pos_map: object
+    n_k: dict
+    scan_fraction: float
+    neighbor_cache: dict
+
+
+@dataclass(frozen=True)
 class _Domain:
     """One scan domain: the primary TI or a zone TI, with its precomputations.
 
@@ -137,6 +174,30 @@ def _build_path(unknown, path, rng_path, sim_shape):
     return arr
 
 
+def _order_positions(order, sim_shape):
+    """Flat-cell → index in ``order`` (``-1`` for cells absent from it)."""
+    m = np.full(int(np.prod(sim_shape)), -1, dtype=np.intp)
+    if len(order):
+        m[np.ravel_multi_index(order.T, sim_shape)] = np.arange(len(order))
+    return m
+
+
+def _build_vmap(order, is_cond, variables, sim_shape):
+    """Per-variable availability map: visit index, or ``-1`` = always available.
+
+    A cell conditioned in variable ``v`` is ``-1`` in ``vmap[v]`` so its known
+    value is never gated by visit order — essential for a partially-conditioned
+    node. Cells absent from ``order`` are already ``-1``.
+    """
+    base = _order_positions(order, sim_shape)
+    vmap = {}
+    for v in variables:
+        m = base.copy()
+        m[np.flatnonzero(is_cond[v].reshape(-1))] = -1
+        vmap[v] = m
+    return vmap
+
+
 class _DirectSamplingEngine:
     """Holds one Direct Sampling run's state and orchestrates it."""
 
@@ -157,6 +218,9 @@ class _DirectSamplingEngine:
         path="random",
         zone_tis=None,
         zone_selector=None,
+        post_processing=0,
+        post_processing_factor=1.0,
+        post_processing_path=None,
     ):
         self.training_image = training_image
         self.variables = [v.name for v in training_image.variables]
@@ -211,6 +275,22 @@ class _DirectSamplingEngine:
                     self.is_cond[v][idx] = True
                     self.informed[v][idx] = True
 
+        self.post_processing = int(post_processing)
+        self.post_processing_factor = float(post_processing_factor)
+        self._rng_path = rng_path
+        self._rng_nodes = rng_nodes
+        # Post-pass visit order: None inherits the main-path mode (an
+        # explicit main path array has no meaning for a full-grid re-visit
+        # -> random). Me13 §4 does not prescribe the post-pass order; the
+        # explicit option is an implementation extension.
+        if post_processing_path is None:
+            post_processing_path = (
+                "sequential"
+                if isinstance(path, str) and path == "sequential"
+                else "random"
+            )
+        self._post_path = post_processing_path
+
         self.max_radius_per_var = {
             v.name: v.max_radius for v in training_image.variables
         }
@@ -242,23 +322,9 @@ class _DirectSamplingEngine:
         self.u_start = rng_nodes.uniform(size=n_nodes)
         self.u_fallback = rng_nodes.uniform(size=(n_nodes, self.dim))
 
-        sg_size = int(np.prod(sim_shape))
-        path_flat = (
-            np.ravel_multi_index(self.path.T, sim_shape)
-            if len(self.path)
-            else np.empty(0, dtype=np.intp)
+        self.vmap = _build_vmap(
+            self.path, self.is_cond, self.variables, sim_shape
         )
-        # Per-variable position maps over the node path.  A path node carries its
-        # node-path index; a cell conditioned in variable v is set to -1 in vmap[v]
-        # (always available for v, like univariate conditioning) — essential for a
-        # partially-conditioned node, whose known value must not be gated by path
-        # order.  Cells absent from the path are already -1.
-        self.vmap = {}
-        for v in self.variables:
-            m = np.full(sg_size, -1, dtype=np.intp)
-            m[path_flat] = np.arange(len(path_flat))
-            m[np.flatnonzero(self.is_cond[v].reshape(-1))] = -1
-            self.vmap[v] = m
 
         # Domains: index 0 is always the primary TI; zone TIs (if any) follow
         # in `zones` order (spec: 0 = primary, i+1 = zone_tis[i]). Search
@@ -327,7 +393,6 @@ class _DirectSamplingEngine:
             ti_flat=ti_flat,
             ti_strides=ti_strides,
             ti_shape=ti_shape,
-            scan_fraction=self.scan_fraction,
             threshold=self.threshold,
             cond_weight=self.cond_weight,
             distance_power=self.training_image.distance_power,
@@ -387,7 +452,7 @@ class _DirectSamplingEngine:
     # Simulation pipeline helpers (called only from _simulate_node)
     # ------------------------------------------------------------------
 
-    def _gather_neighborhood(self, x_i, x_i_t, curr_idx):
+    def _gather_neighborhood(self, pss, x_i, x_i_t, curr_idx):
         """Seam 1 — build per-variable data-event arrays for node ``x_i``.
 
         For each variable, selects the ``n_k[var]`` closest already-informed
@@ -397,6 +462,8 @@ class _DirectSamplingEngine:
 
         Parameters
         ----------
+        pss : _Pass
+            The current pass (main path or one post-processing round).
         x_i : numpy.ndarray, shape (dim,)
             Integer grid coordinates of the current node.
         x_i_t : tuple
@@ -417,8 +484,9 @@ class _DirectSamplingEngine:
             # radius, so reuse those coords instead of recomputing -- but
             # re-filter by this variable's own radius below (see r).  Serial
             # path (cache absent): compute normally, already per-variable.
-            if self._neighbor_cache is not None:
-                coords = self._neighbor_cache[curr_idx][var]
+            cache = pss.neighbor_cache.get("coords")
+            if cache is not None:
+                coords = cache[curr_idx][var]
                 r = self.max_radius_per_var[var]
                 # The DAG cache was built with the shared (global) radius, a
                 # superset of any variable's own (possibly smaller) radius.
@@ -436,11 +504,11 @@ class _DirectSamplingEngine:
                     self.offset_arr,
                     self.sim_shape_arr,
                     self.sim_shape,
-                    self.vmap[var],
+                    pss.vmap[var],
                     curr_idx,
                     self.informed[var],
                     self.max_radius_per_var[var],
-                    self.n_k[var],
+                    pss.n_k[var],
                 )
             if len(coords):
                 lv = (coords - x_i).astype(np.float64)
@@ -568,7 +636,15 @@ class _DirectSamplingEngine:
         return win_lo, win_hi, events
 
     def _scan_and_retrieve(
-        self, win_lo, win_hi, events, targets, u_start_i, u_fallback_i, dom
+        self,
+        pss,
+        win_lo,
+        win_hi,
+        events,
+        targets,
+        u_start_i,
+        u_fallback_i,
+        dom,
     ):
         """Seam 4 — scan the TI window and copy the matched cell to targets.
 
@@ -578,6 +654,8 @@ class _DirectSamplingEngine:
 
         Parameters
         ----------
+        pss : _Pass
+            The current pass (main path or one post-processing round).
         win_lo, win_hi : numpy.ndarray, shape (dim,)
         events : dict[str, DataEvent]
             TI-frame events after truncation.
@@ -610,6 +688,7 @@ class _DirectSamplingEngine:
             ln_v,
             u_start_i,
             targets,
+            pss.scan_fraction,
             dom.scan_config,
         )
         if y is None:
@@ -631,8 +710,14 @@ class _DirectSamplingEngine:
             )
         return result
 
-    def _simulate_node(self, curr_idx, x_i, u_start_i, u_fallback_i):
-        """Simulate one node: a short pipeline of four named steps."""
+    def _simulate_node(self, pss, curr_idx, x_i, u_start_i, u_fallback_i):
+        """Simulate one node: a short pipeline of four named steps.
+
+        Parameters
+        ----------
+        pss : _Pass
+            The current pass (main path or one post-processing round).
+        """
         x_i_t = tuple(int(c) for c in x_i)
         # Zonation selects WHICH search domain this node scans; the data
         # event is built from SG neighbours regardless of their zones,
@@ -645,7 +730,7 @@ class _DirectSamplingEngine:
         targets = [v for v in self.variables if np.isnan(self.sg[v][x_i_t])]
 
         # Step 1: collect informed neighbours and build per-variable data events.
-        events = self._gather_neighborhood(x_i, x_i_t, curr_idx)
+        events = self._gather_neighborhood(pss, x_i, x_i_t, curr_idx)
 
         # Step 2: map SG lags into TI frame (stationary path copies so step 3
         # truncation never aliases back into the SG lags).
@@ -661,7 +746,7 @@ class _DirectSamplingEngine:
 
         # Step 4: scan the TI window and paste the matched cell into targets.
         return self._scan_and_retrieve(
-            win_lo, win_hi, events, targets, u_start_i, u_fallback_i, dom
+            pss, win_lo, win_hi, events, targets, u_start_i, u_fallback_i, dom
         )
 
     def _write_result(self, node, result):
@@ -684,47 +769,165 @@ class _DirectSamplingEngine:
             if n_threads > 1
             else None
         )
-        update_progress, close_progress = _make_progress(
-            progress, len(self.path), "DS"
+        main_pass = _Pass(
+            order=self.path,
+            vmap=self.vmap,
+            pos_map=None,
+            n_k=self.n_k,
+            scan_fraction=self.scan_fraction,
+            neighbor_cache={},
         )
-
-        # Parallel-only neighbour cache: the DAG build already calls
-        # _select_neighbors per node×variable; on_cache_ready is called by
-        # _run_path right after DAG build (before any node futures run) so
-        # _gather_neighborhood can skip the redundant _select_neighbors call.
-        # Serial mode (executor is None) leaves _neighbor_cache as None and
-        # _gather_neighborhood computes normally.
-        self._neighbor_cache = None
-
-        def _on_cache_ready(coord_cache):
-            self._neighbor_cache = coord_cache
-
         try:
-            _run_path(
-                self.path,
+            self._dispatch_pass(
+                main_pass,
                 self.u_start,
                 self.u_fallback,
-                lambda i, x_i, u_st, u_fb: self._simulate_node(
-                    i, x_i, u_st, u_fb
-                ),
-                self._write_result,
-                update_progress,
+                self._simulate_node,
                 executor,
-                self.offset_arr,
-                self.vmap,
-                self.n_k,
-                self.sim_shape,
-                self.max_radius,
-                on_cache_ready=_on_cache_ready
-                if executor is not None
-                else None,
+                progress,
+                "DS",
             )
+            # One executor for the whole run: the post-passes reuse it rather
+            # than each spinning up their own pool.
+            self._run_post_passes(progress=progress, executor=executor)
         finally:
-            close_progress()
             if executor is not None:
                 executor.shutdown(wait=True)
-
         return self.sg
+
+    def _dispatch_pass(
+        self, pss, u_start, u_fallback, node_fn, executor, progress, desc
+    ):
+        """Run one pass (main path or post-processing round) through :func:`runner._run_path`.
+
+        Parameters
+        ----------
+        pss : _Pass
+            The pass to run; supplies order, vmap, pos_map and ``n_k``.
+        u_start, u_fallback : numpy.ndarray
+            Per-node random draws for this pass.
+        node_fn : callable
+            ``node_fn(pss, i, x_i, u_start_i, u_fallback_i)`` → result dict.
+        desc : str
+            Progress label.
+
+        Notes
+        -----
+        In parallel mode the DAG build already calls ``_select_neighbors`` per
+        node×variable, so ``on_cache_ready`` hands those coordinates to
+        ``pss.neighbor_cache`` before any node future runs and
+        :meth:`_gather_neighborhood` skips the redundant call.  Serial mode
+        leaves the box empty and recomputes normally.
+        """
+        update, close = _make_progress(progress, len(pss.order), desc)
+        try:
+            _run_path(
+                pss.order,
+                u_start,
+                u_fallback,
+                lambda i, x_i, u_st, u_fb: node_fn(pss, i, x_i, u_st, u_fb),
+                self._write_result,
+                update,
+                executor,
+                self.offset_arr,
+                pss.vmap,
+                pss.n_k,
+                self.sim_shape,
+                self.max_radius,
+                on_cache_ready=(
+                    None
+                    if executor is None
+                    else lambda cache: pss.neighbor_cache.__setitem__(
+                        "coords", cache
+                    )
+                ),
+                pos_map=pss.pos_map,
+            )
+        finally:
+            close()
+
+    def _reopen_and_simulate(self, pss, i, x_i, u_start_i, u_fallback_i):
+        """Post-pass node kernel: erase the node's own values, then simulate.
+
+        Erasing the node's ``informed`` flag suppresses the collocated ``h=0``
+        self-constraint that would otherwise anchor the re-draw to its own
+        stale value, and makes :meth:`_simulate_node` pick the erased
+        variables up as targets.  Conditioning data is never erased.
+
+        Safe to run concurrently: every cell this node goes on to read is one
+        the DAG pass selected for it, and each such pair carries an edge, so
+        no reader of this node's cell is in flight while it is erased
+        (see :func:`runner._build_dag_base` Notes).
+        """
+        x_t = tuple(int(c) for c in x_i)
+        for v in self.variables:
+            if not self.is_cond[v][x_t]:
+                self.sg[v][x_t] = np.nan
+                self.informed[v][x_t] = False
+        return self._simulate_node(pss, i, x_i, u_start_i, u_fallback_i)
+
+    def _run_post_passes(self, progress=None, executor=None):
+        """Post-processing (Meerschman2013 §4 / CASE 3).
+
+        Re-simulates every node with >= 1 non-conditioned variable against a
+        **fully informed** neighbourhood: the pass-scoped all-``-1`` vmap makes
+        every informed cell available, so unlike the main path a node also sees
+        cells it *precedes* in the visit order and reads their
+        not-yet-re-simulated values — that is what refines the existing
+        realization instead of redrawing it.  ``pos_map`` then gives
+        :func:`runner._build_dag_base` the ordering its vmap no longer carries,
+        so the DAG encodes the Gauss–Seidel dependency in both directions and
+        each pass parallelizes while staying bit-identical to serial.
+
+        ``scan_fraction`` and ``n_neighbors`` are divided by
+        ``post_processing_factor`` (Me13 §4) into a per-round ``_Pass``.
+        """
+        if self.post_processing <= 0:
+            return
+        resim = np.zeros(self.sim_shape, dtype=bool)
+        for v in self.variables:
+            resim |= ~self.is_cond[v]
+        if not resim.any():
+            return
+        p_f = self.post_processing_factor
+        pass_n_k = {
+            v: max(1, int(round(n / p_f))) for v, n in self.n_k.items()
+        }
+        pass_scan_fraction = self.scan_fraction / p_f
+        sg_size = int(np.prod(self.sim_shape))
+        # Round-invariant (no order-dependence): every cell is available
+        # regardless of visit position, so build it once and reuse.
+        pass_vmap = {
+            v: np.full(sg_size, -1, dtype=np.intp) for v in self.variables
+        }
+
+        for _ in range(self.post_processing):
+            if isinstance(self._post_path, str) and self._post_path == "same":
+                # resim is exactly the main path's unknown-node set (a node
+                # is re-simulatable iff it was not conditioned, and only
+                # conditioning informs the SG before the main pass).
+                order = self.path
+            else:
+                order = _build_path(
+                    resim, self._post_path, self._rng_path, self.sim_shape
+                )
+            pss = _Pass(
+                order=order,
+                vmap=pass_vmap,
+                pos_map=_order_positions(order, self.sim_shape),
+                n_k=pass_n_k,
+                scan_fraction=pass_scan_fraction,
+                neighbor_cache={},
+            )
+            self._dispatch_pass(
+                pss,
+                self._rng_nodes.uniform(size=len(order)),
+                self._rng_nodes.uniform(size=(len(order), self.dim)),
+                self._reopen_and_simulate,
+                executor,
+                progress,
+                "DS-post",
+            )
 
 
 def ds_simulate(
@@ -745,6 +948,9 @@ def ds_simulate(
     path="random",
     zone_tis=None,
     zone_selector=None,
+    post_processing=0,
+    post_processing_factor=1.0,
+    post_processing_path=None,
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
 
@@ -816,7 +1022,9 @@ def ds_simulate(
         Indexed by ``zone_selector`` (``0`` = primary, ``i + 1`` =
         ``zone_tis[i]``). ``None`` (default) → no zonation, exact single-TI
         behaviour. Produced by :meth:`DirectSampling.__call__` from
-        :attr:`MPSModel.zones`.
+        :attr:`MPSModel.zones`. Only a zone TI's data, shape and ``d_max``
+        are used — ``n_neighbors``, ``max_radius``, ``distance``, ``weight``
+        and ``penalty_matrix`` always come from ``training_image``.
     zone_selector : numpy.ndarray of numpy.intp or None, optional
         Per-node domain selector, shape ``sim_shape``. ``0`` selects the
         primary TI, ``i + 1`` selects ``zone_tis[i]``. ``None`` (default) →
@@ -824,6 +1032,37 @@ def ds_simulate(
         node's scan/window/fallback draw uses; RNG consumption and the DAG
         are untouched, so output stays deterministic and thread-count
         invariant regardless of zoning.
+    post_processing : int, optional
+        Number of post-processing passes (Meerschman2013 §4 / CASE 3) run
+        after the main path completes. Each pass re-simulates every node
+        that has at least one non-conditioned variable, using a fully
+        informed neighbourhood (every other node's current value is an
+        eligible neighbour, `n_neighbors`/`max_radius` permitting) drawn in
+        a fresh random (or sequential, matching ``path``) order. Passes are
+        Gauss–Seidel, but that ordering is carried by the same dependency DAG
+        the main path uses, so they honour ``num_threads`` while staying
+        bit-identical to serial execution for any thread count. ``0``
+        (default) → no post-processing; bit-identical to omitting the
+        parameter and consumes no extra RNG draws.
+    post_processing_factor : float, optional
+        Divides ``scan_fraction`` and every variable's ``n_neighbors``
+        (floored at 1) during post-processing passes only (Meerschman2013
+        §4): a larger factor trades pattern fidelity for speed on the
+        (typically much more numerous) post-pass visits. Ignored when
+        ``post_processing`` is ``0``. Default: ``1.0`` (no reduction).
+    post_processing_path : str, array-like, or None, optional
+        Visit order for the post-processing passes (an implementation
+        extension — Me13 §4 does not prescribe the post-pass order).
+        ``None`` (default) inherits the main-path mode: a ``"sequential"``
+        main ``path`` gives sequential post-passes, anything else gives a
+        fresh random permutation per pass, drawn from ``rng_path``
+        (unchanged pre-existing behaviour). ``"random"`` and
+        ``"sequential"`` behave as for the main ``path``. ``"same"`` reuses
+        the main pass's visit order every pass; it does not
+        consume ``rng_path``. An explicit ``(N, dim)`` integer array is
+        validated like an explicit main ``path`` but against the post-pass
+        node set (every node with at least one non-conditioned variable),
+        so it may include already-conditioned nodes (silently dropped).
 
     Returns
     -------
@@ -846,5 +1085,8 @@ def ds_simulate(
         path=path,
         zone_tis=zone_tis,
         zone_selector=zone_selector,
+        post_processing=post_processing,
+        post_processing_factor=post_processing_factor,
+        post_processing_path=post_processing_path,
     )
     return engine.run(num_threads=num_threads, progress=progress)

@@ -30,6 +30,12 @@ class Zone:
         Zone training image. May be a sub-region view created with
         :meth:`TrainingImage.window`. Must share the primary TI's variable
         set (validated by :class:`MPSModel`).
+
+        Only the zone TI's **data, shape and continuous range** (``d_max``)
+        are used. Search hyper-parameters and the distance kernel —
+        ``n_neighbors``, ``max_radius``, ``distance``, ``weight``,
+        ``penalty_matrix`` — always come from the primary TI; setting them
+        here has no effect.
     where : :class:`numpy.ndarray` of :class:`bool` or callable
         Region of the simulation grid this zone covers: a boolean array of
         the grid shape, or a callable ``f(x, [y, z, ...]) -> bool mask``
