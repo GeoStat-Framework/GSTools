@@ -9,6 +9,7 @@ parameters (does not own a TrainingImage).
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.random import default_rng
 
 from gstools.mps.distance import compute_node_weights
 
@@ -38,6 +39,7 @@ class _ScanConfig:
     d_max: dict  # {var: float or None} — normalization range per variable,
     # from the domain's (zone) TI; kernel type stays primary's.
     ti_has_nan: bool
+    scan_path: str = "sequential"  # window scan order; see module docstring
 
 
 # DS-mode scan block size.  Large enough that per-call NumPy overhead is
@@ -47,7 +49,15 @@ class _ScanConfig:
 _SCAN_BLOCK = 4096
 
 
-def _scan_window(lo, win_shape, start, max_scan, threshold, dist_fn):
+def _scan_window(
+    lo,
+    win_shape,
+    u_start_i,
+    max_scan,
+    threshold,
+    dist_fn,
+    scan_path="sequential",
+):
     """Chunked vectorized TI window scan (pure-Python path).
 
     Parameters
@@ -56,8 +66,9 @@ def _scan_window(lo, win_shape, start, max_scan, threshold, dist_fn):
         Lower-left anchor of the search window in TI coordinates.
     win_shape : tuple of int
         Shape of the search window.
-    start : int
-        Starting position (flat index into window) for the random scan order.
+    u_start_i : float
+        The node's pre-drawn uniform in ``[0, 1)``.  ``"sequential"``: start
+        position ``int(u_start_i * win_size)``.  ``"random"``: stream seed.
     max_scan : int
         Maximum number of candidates to evaluate.
     threshold : float
@@ -65,6 +76,8 @@ def _scan_window(lo, win_shape, start, max_scan, threshold, dist_fn):
     dist_fn : callable
         ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
         anchor coordinates ``y_blk`` of shape ``(b, dim)``.
+    scan_path : str, optional
+        ``"sequential"`` (default) or ``"random"``.  See the module docstring.
 
     Returns
     -------
@@ -75,10 +88,30 @@ def _scan_window(lo, win_shape, start, max_scan, threshold, dist_fn):
         empty-neighbourhood case and draws a defined TI cell.
     """
     win_size = int(np.prod(win_shape))
-    # Random start in the search window, then sequential scan from there
-    # (Mariethoz2010 ¶19, Juda2022 §2 third step).
-    positions = (start + np.arange(max_scan)) % win_size
-    y_all = lo + np.column_stack(np.unravel_index(positions, win_shape))
+    # "sequential": wrap-around walk from a random start (Mariethoz2010 ¶19,
+    # Juda2022 §2). "random": max_scan distinct cells in random order, keyed on
+    # the node's own u_start_i so no extra RNG draw is needed.
+    #
+    # Deliberate exception to the "use gstools.random.RNG" rule: reproducibility
+    # is unaffected, since the only entropy is u_start_i, itself drawn from the
+    # engine's gstools RNG. gstools RNG cannot serve this call anyway -- it
+    # exposes no ``choice``, and its legacy-RandomState ``.random`` implements
+    # ``choice(replace=False)`` via a full permutation, i.e. O(win_size)
+    # instead of O(max_scan).
+    #
+    # Positions are built per ``_SCAN_BLOCK`` inside the loop below rather than
+    # for all ``max_scan`` candidates upfront, since the greedy DS scan
+    # typically exits long before the last block. This is unconditional
+    # rather than mode-gated: the sequential walk's block is a cheap arange
+    # either way, and it is bit-identical to building everything upfront.
+    if scan_path == "random":
+        positions = default_rng(int(u_start_i * 2**53)).choice(
+            win_size, max_scan, replace=False
+        )
+        start = None
+    else:
+        positions = None
+        start = int(u_start_i * win_size)
 
     # DSBC (threshold <= 0) has no threshold-based early exit, but an exact
     # match d == 0 is the best attainable candidate, so accept it immediately
@@ -95,7 +128,16 @@ def _scan_window(lo, win_shape, start, max_scan, threshold, dist_fn):
     dsbc = threshold <= 0
     best_d, best_y = np.inf, None
     for b0 in range(0, max_scan, _SCAN_BLOCK):
-        y_blk = y_all[b0 : b0 + _SCAN_BLOCK]
+        b1 = min(b0 + _SCAN_BLOCK, max_scan)
+        # Same integers the upfront build produced for this slice: the
+        # sequential walk is ``(start + k) % win_size`` elementwise, and
+        # ``unravel_index`` is elementwise, so blocking changes nothing.
+        pos_blk = (
+            (start + np.arange(b0, b1)) % win_size
+            if positions is None
+            else positions[b0:b1]
+        )
+        y_blk = lo + np.column_stack(np.unravel_index(pos_blk, win_shape))
         d_blk = dist_fn(y_blk)
         under = d_blk <= accept if dsbc else d_blk < accept
         if np.any(under):
@@ -146,7 +188,6 @@ def _scan_for_match(
     # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
     # the valid search window so we never wrap around and re-scan anchors.
     max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
-    start = int(u_start_i * win_size)
 
     active_vars = [v for v in cfg.variables if v in int_lags]
     active_w_total = sum(cfg.weights[v] for v in active_vars)
@@ -197,5 +238,11 @@ def _scan_for_match(
         return d
 
     return _scan_window(
-        lo, win_shape, start, max_scan, cfg.threshold, _dist_block
+        lo,
+        win_shape,
+        u_start_i,
+        max_scan,
+        cfg.threshold,
+        _dist_block,
+        cfg.scan_path,
     )

@@ -1458,6 +1458,29 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         np.testing.assert_array_equal(f_s["a"], f_p["a"])
         np.testing.assert_array_equal(f_s["b"], f_p["b"])
 
+    def test_parallel_matches_serial_mismatched_n_neighbors(self):
+        # The DAG neighbour cache is stored flat, one fixed-stride buffer per
+        # variable, with the stride being that variable's own n_neighbors. A
+        # stride shared across variables (or taken from the wrong one) would
+        # read a neighbour slice offset into the previous node's entry, so
+        # pin the case where the two strides genuinely differ.
+        rng = np.random.default_rng(29)
+        ti = TrainingImage(
+            [
+                Variable("a", rng.integers(0, 3, (20, 20)), n_neighbors=20),
+                Variable("b", rng.integers(0, 2, (20, 20)), n_neighbors=5),
+            ]
+        )
+        pos = [np.arange(8, dtype=float)] * 2
+        ds_s = DirectSampling(MPSModel(ti, scan_fraction=0.3))
+        ds_s.num_threads = 1
+        ds_p = DirectSampling(MPSModel(ti, scan_fraction=0.3))
+        ds_p.num_threads = 4
+        f_s = ds_s(pos, seed=7)
+        f_p = ds_p(pos, seed=7)
+        np.testing.assert_array_equal(f_s["a"], f_p["a"])
+        np.testing.assert_array_equal(f_s["b"], f_p["b"])
+
     def test_parallel_conditioning_preserved(self):
         rng = np.random.default_rng(6)
         ti = TrainingImage(
@@ -2297,6 +2320,72 @@ class TestScanWindowThreshold(unittest.TestCase):
 
         y = _scan_window(lo, win_shape, 0, 2, 0.0, dist_fn)
         self.assertEqual(int(y[0]), 0)  # the exact-match candidate
+
+
+class TestRandomScanPath(unittest.TestCase):
+    """MPSModel(scan_path='random'): GSTools extension (M10 para [19] is sequential)."""
+
+    def test_random_order_samples_the_whole_window_without_repeats(self):
+        # Contract: same number of DISTINCT candidates as sequential mode,
+        # spread over the window instead of one contiguous run, and full
+        # coverage when max_scan == win_size. Grid the 40x40 window into 16
+        # 10x10 blocks: 160 uniform draws leave a block empty with negligible
+        # probability, while 160 contiguous cells span 4 rows -> <= 8 blocks.
+        def visited(u_start_i, max_scan, scan_path, win_shape=(40, 40)):
+            seen = []
+
+            def dist_fn(y_blk):  # never accepted (DSBC needs d <= 0)
+                seen.append(y_blk.copy())
+                return np.ones(len(y_blk))
+
+            _scan_window(
+                np.zeros(len(win_shape), dtype=int),
+                win_shape,
+                u_start_i,
+                max_scan,
+                0.0,
+                dist_fn,
+                scan_path,
+            )
+            return np.concatenate(seen, axis=0)
+
+        rnd = visited(0.42, 160, "random")
+        self.assertEqual(len(np.unique(rnd, axis=0)), 160)
+        blocks = lambda v: {(int(r) // 10, int(c) // 10) for r, c in v}
+        self.assertEqual(len(blocks(rnd)), 16)
+        self.assertLessEqual(len(blocks(visited(0.42, 160, "sequential"))), 8)
+        full = visited(0.81, 64, "random", win_shape=(8, 8))
+        np.testing.assert_array_equal(
+            np.sort(np.ravel_multi_index(tuple(full.T), (8, 8))), np.arange(64)
+        )
+
+    def test_option_reaches_the_engine_and_keeps_output_valid(self):
+        rng = np.random.default_rng(0)
+        data = rng.integers(0, 3, (20, 20)).astype(float)
+        ti = TrainingImage(data, categorical=True, n_neighbors=4)
+        pos = [np.arange(8, dtype=float)] * 2
+        seeds = dict(path_seed=1, node_seed=10)
+
+        self.assertEqual(MPSModel(ti).scan_path, "sequential")
+        with self.assertRaises(ValueError):
+            MPSModel(ti, scan_path="spiral")
+
+        ds_seq = DirectSampling(MPSModel(ti, scan_fraction=0.3))
+        ds_rnd = DirectSampling(
+            MPSModel(ti, scan_fraction=0.3, scan_path="random")
+        )
+        f_rnd = ds_rnd(pos, num_threads=1, **seeds)
+        # Plumbed through (otherwise identical), reproducible, a subset of the
+        # TI values, and thread-count independent: the scan order is keyed on
+        # the pre-drawn per-node u_start, never on execution order.
+        self.assertFalse(np.array_equal(ds_seq(pos, **seeds), f_rnd))
+        np.testing.assert_array_equal(
+            f_rnd, ds_rnd(pos, num_threads=1, **seeds)
+        )
+        np.testing.assert_array_equal(
+            f_rnd, ds_rnd(pos, num_threads=4, **seeds)
+        )
+        self.assertTrue(np.isin(f_rnd, np.unique(data)).all())
 
 
 class TestNaNTrainingImage(unittest.TestCase):

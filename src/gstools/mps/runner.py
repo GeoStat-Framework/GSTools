@@ -44,16 +44,25 @@ def _build_dag_base(
     indegree : dict of {key: numpy.ndarray of int32, shape (N,)}
     out_edges : list of list of (int, key)
         ``out_edges[j]`` → ``(i, key)`` pairs to process when node ``j`` completes.
-    coord_cache : list of dict of {key: numpy.ndarray, shape (m, dim)}
-        ``coord_cache[i][key]`` are the neighbour coordinates selected for node
-        ``i`` and variable ``key`` during the DAG pass, using the shared
-        (global) ``max_radius`` -- a superset of any variable's own, possibly
-        smaller, radius. The parallel engine reuses these directly for the
-        DAG edges, but ``_gather_neighborhood`` must re-filter them by each
-        variable's own radius before use; because ``_select_neighbors`` scans
-        ``offset_arr`` in strictly increasing distance order, that filtered
-        result is bit-identical to what a second, per-variable
-        ``_select_neighbors`` call would have produced.
+    coord_cache : dict of {key: (numpy.ndarray, numpy.ndarray, int)}
+        ``(flat_buf, counts, stride)`` per variable ``key``. Node ``i``'s
+        neighbours are the **raveled cell indices**
+        ``flat_buf[i * stride : i * stride + counts[i]]``, in the same
+        distance-sorted order ``_select_neighbors`` returned them;
+        ``_gather_neighborhood`` unravels them back to ``(m, dim)`` coordinates.
+
+        Stored flat rather than as a list of ``N`` dicts of ``(m, dim)`` arrays
+        because that shape dominates memory on large grids: one int32 cell
+        index replaces ``dim`` int64 coordinates, and the fixed stride removes
+        the per-node dict/ndarray object overhead entirely.
+
+        Selection uses the shared (global) ``max_radius`` -- a superset of any
+        variable's own, possibly smaller, radius. The parallel engine reuses
+        these directly for the DAG edges, but ``_gather_neighborhood`` must
+        re-filter them by each variable's own radius before use; because
+        ``_select_neighbors`` scans ``offset_arr`` in strictly increasing
+        distance order, that filtered result is bit-identical to what a second,
+        per-variable ``_select_neighbors`` call would have produced.
 
     Notes
     -----
@@ -90,9 +99,24 @@ def _build_dag_base(
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
 
+    # Flat cell indices fit int32 for any grid under 2**31 cells, which is
+    # every grid the pure-Python engine can traverse in practice.
+    n_cells = int(np.prod(sim_shape))
+    flat_dt = np.int32 if n_cells < 2**31 else np.intp
+
     indegree = {k: np.zeros(N, dtype=np.int32) for k in vmap_dict}
     out_edges = [[] for _ in range(N)]
-    coord_cache = [{} for _ in range(N)]
+    # Neighbour cache in fixed-stride form: one flat buffer per key holding
+    # raveled cell indices at ``i * stride``, plus the per-node count. The
+    # stride is exact -- _select_neighbors returns at most ``n_k`` neighbours.
+    coord_cache = {
+        k: (
+            np.empty(N * n_k_dict[k], dtype=flat_dt),
+            np.zeros(N, dtype=np.int32),
+            n_k_dict[k],
+        )
+        for k in vmap_dict
+    }
     seen = set()
     for i in range(N):
         x_i = path[i]
@@ -108,14 +132,19 @@ def _build_dag_base(
                 max_radius,
                 n_k_dict[key],
             )
-            coord_cache[i][key] = coords
+            flat_buf, counts, stride = coord_cache[key]
+            m = len(coords)
+            flat = (
+                np.ravel_multi_index(coords.T, sim_shape)
+                if m
+                else np.empty(0, dtype=np.intp)
+            )
+            flat_buf[i * stride : i * stride + m] = flat
+            counts[i] = m
             # Orientation index: the gating index for the main path, the
             # visit position for a post-processing pass (all--1 vmap).
-            pos = (
-                vidx
-                if pos_map is None or not len(coords)
-                else pos_map[np.ravel_multi_index(coords.T, sim_shape)]
-            )
+            # ``flat`` is reused here -- the ravel is computed once per node.
+            pos = vidx if pos_map is None or not m else pos_map[flat]
             for j in pos[pos >= 0]:
                 j = int(j)
                 if j == i:
@@ -231,9 +260,9 @@ def _run_path(
     on_cache_ready : callable or None, optional
         When not ``None`` and ``executor`` is not ``None``, called once as
         ``on_cache_ready(coord_cache)`` immediately after :func:`_build_dag_base`
-        returns and before any futures are submitted.  ``coord_cache[i][key]``
-        are the pre-selected neighbour coordinates for node ``i`` and variable
-        ``key`` from the DAG pass.  The engine stores this as
+        returns and before any futures are submitted.  ``coord_cache[key]`` is
+        the ``(flat_buf, counts, stride)`` triple of pre-selected neighbour cell
+        indices for variable ``key`` from the DAG pass.  The engine stores it as
         ``self._neighbor_cache`` so :meth:`_gather_neighborhood` can skip the
         redundant ``_select_neighbors`` call on the parallel path.  ``None`` in
         serial mode (no DAG built, no cache).

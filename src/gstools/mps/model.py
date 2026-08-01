@@ -22,6 +22,19 @@ def _validate_boundary(value):
     return value
 
 
+_VALID_SCAN_PATH = ("sequential", "random")
+
+
+def _validate_scan_path(value):
+    """Validate scan_path; return normalized value or raise ValueError."""
+    if value not in _VALID_SCAN_PATH:
+        raise ValueError(
+            f"MPSModel: scan_path must be one of {_VALID_SCAN_PATH!r}, "
+            f"got {value!r}"
+        )
+    return value
+
+
 def _validate_scan_fraction(value):
     """Validate scan_fraction in (0, 1]; return float or raise ValueError."""
     if not (0 < float(value) <= 1):
@@ -262,6 +275,13 @@ class MPSModel:
           post-processing path may include already-conditioned nodes (a
           full-grid raster/spiral works unchanged); such entries are
           silently dropped.
+    scan_path : :class:`str`, optional
+        TI window scan order per node. ``"sequential"``: contiguous walk from
+        a random start (M10 para [19]). ``"random"``: the same number of
+        distinct cells in random order — a GSTools extension that removes the
+        contiguous run's spatial bias when ``scan_fraction < 1`` and breaks
+        distance ties uniformly instead of by lowest index. Default:
+        ``"sequential"``.
     """
 
     def __init__(
@@ -277,6 +297,7 @@ class MPSModel:
         post_processing=0,
         post_processing_factor=1.0,
         post_processing_path=None,
+        scan_path="sequential",
     ):
         if not isinstance(ti, TrainingImage):
             raise TypeError(
@@ -297,6 +318,7 @@ class MPSModel:
         self._post_processing_path = _validate_post_processing_path(
             post_processing_path
         )
+        self._scan_path = _validate_scan_path(scan_path)
 
     @property
     def ti(self):
@@ -367,6 +389,15 @@ class MPSModel:
         self._post_processing_path = _validate_post_processing_path(value)
 
     @property
+    def scan_path(self):
+        """:class:`str`: TI window scan order — ``"sequential"`` or ``"random"``."""
+        return self._scan_path
+
+    @scan_path.setter
+    def scan_path(self, value):
+        self._scan_path = _validate_scan_path(value)
+
+    @property
     def rotation(self):
         """Rotation spec (scalar, vector, array, or callable); ``None`` → stationary identity."""
         return self._rotation
@@ -390,6 +421,7 @@ class MPSModel:
             boundary="strict",
             post_processing=0,
             post_processing_factor=1.0,
+            scan_path="sequential",
         )
         for name, default in defaults.items():
             val = getattr(self, f"_{name}")

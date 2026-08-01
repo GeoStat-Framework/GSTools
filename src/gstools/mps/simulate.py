@@ -221,6 +221,7 @@ class _DirectSamplingEngine:
         post_processing=0,
         post_processing_factor=1.0,
         post_processing_path=None,
+        scan_path="sequential",
     ):
         self.training_image = training_image
         self.variables = [v.name for v in training_image.variables]
@@ -240,6 +241,9 @@ class _DirectSamplingEngine:
         self.scan_fraction = scan_fraction
         self.cond_weight = cond_weight
         self.boundary = boundary
+        # Window scan order; copied into every domain's _ScanConfig by
+        # _build_domain, so zones inherit it.
+        self.scan_path = scan_path
         self.rotation_map = rotation_map
         self.scale_map = scale_map
         # Stationary transform: compute M once per simulation (today's fast
@@ -399,6 +403,7 @@ class _DirectSamplingEngine:
             vec_distance_var=self.training_image.vec_distance_var,
             d_max=d_max,
             ti_has_nan=has_nan,
+            scan_path=self.scan_path,
         )
         return _Domain(
             ti=ti,
@@ -486,7 +491,25 @@ class _DirectSamplingEngine:
             # path (cache absent): compute normally, already per-variable.
             cache = pss.neighbor_cache.get("coords")
             if cache is not None:
-                coords = cache[curr_idx][var]
+                # Fixed-stride flat cache (see runner._build_dag_base): the
+                # node's neighbours are raveled cell indices, unravelled back
+                # to (m, dim) here.  The round-trip is lossless -- every cached
+                # index came from an in-bounds coordinate -- and preserves the
+                # distance-sorted order the re-filter below relies on.
+                flat_buf, counts, stride = cache[var]
+                m = int(counts[curr_idx])
+                coords = (
+                    np.column_stack(
+                        np.unravel_index(
+                            flat_buf[
+                                curr_idx * stride : curr_idx * stride + m
+                            ],
+                            self.sim_shape,
+                        )
+                    )
+                    if m
+                    else np.empty((0, self.dim), dtype=np.intp)
+                )
                 r = self.max_radius_per_var[var]
                 # The DAG cache was built with the shared (global) radius, a
                 # superset of any variable's own (possibly smaller) radius.
@@ -951,6 +974,7 @@ def ds_simulate(
     post_processing=0,
     post_processing_factor=1.0,
     post_processing_path=None,
+    scan_path="sequential",
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
 
@@ -1063,6 +1087,9 @@ def ds_simulate(
         validated like an explicit main ``path`` but against the post-pass
         node set (every node with at least one non-conditioned variable),
         so it may include already-conditioned nodes (silently dropped).
+    scan_path : :class:`str`, optional
+        TI window scan order: ``"sequential"`` (default, Mariethoz2010 para
+        [19]) or ``"random"`` (GSTools extension). Default: ``"sequential"``
 
     Returns
     -------
@@ -1088,5 +1115,6 @@ def ds_simulate(
         post_processing=post_processing,
         post_processing_factor=post_processing_factor,
         post_processing_path=post_processing_path,
+        scan_path=scan_path,
     )
     return engine.run(num_threads=num_threads, progress=progress)

@@ -320,6 +320,7 @@ class DirectSampling(Field):
             post_processing=self._mps_model.post_processing,
             post_processing_factor=self._mps_model.post_processing_factor,
             post_processing_path=self._mps_model.post_processing_path,
+            scan_path=self._mps_model.scan_path,
         )
         # Branch only on the return type: multivariate → dict of named arrays;
         # univariate → bare array (unwrap the single None key).
@@ -560,6 +561,11 @@ class DirectSampling(Field):
     def boundary(self):
         """:class:`str`: Search-window strategy. Read-only; set on the MPSModel."""
         return self._mps_model.boundary
+
+    @property
+    def scan_path(self):
+        """:class:`str`: TI window scan order. Read-only; set on the MPSModel."""
+        return self._mps_model.scan_path
 
     @property
     def max_radius(self):

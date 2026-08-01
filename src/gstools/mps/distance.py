@@ -118,6 +118,24 @@ def _renorm(numerator, wsum):
     return out
 
 
+def _scaled_abs_diff(data_event_sim, all_de_ti, d_max):
+    """``|data_event_sim - all_de_ti| / d_max`` with one (max_scan, n) temporary.
+
+    The naive expression allocates three full ``(max_scan, n)`` blocks (one per
+    operator); folding ``abs`` and the ``d_max`` scaling into the subtraction
+    result in place keeps just one. Bit-identical to the naive form: a
+    float32 TI stays in float32 throughout rather than being forced to
+    float64, matching the naive expression's own promotion; only an
+    integer-coded TI needs the explicit widen.
+    """
+    diff = np.subtract(data_event_sim, all_de_ti)
+    if not np.issubdtype(diff.dtype, np.floating):
+        diff = diff.astype(np.float64)
+    np.abs(diff, out=diff)
+    diff /= d_max
+    return diff
+
+
 def vec_categorical_dist(
     data_event_sim, all_de_ti, node_weights, has_nan=False
 ):
@@ -137,9 +155,9 @@ def vec_categorical_dist(
         Distance in [0, 1] for each candidate.
     """
     if not has_nan:
-        return np.dot(
-            (data_event_sim != all_de_ti).astype(np.float64), node_weights
-        )
+        # ``np.dot`` upcasts the boolean mismatch mask to float64 internally, so
+        # an explicit ``.astype`` only adds a second (max_scan, n) temporary.
+        return np.dot(data_event_sim != all_de_ti, node_weights)
     _, we, wsum = _masked_weights(all_de_ti, node_weights)
     # NaN positions compare unequal, but ``we`` is zero there so they do not
     # contribute to the mismatch sum.
@@ -202,7 +220,9 @@ def vec_l1_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
     numpy.ndarray, shape (max_scan,)
     """
     if not has_nan:
-        return np.dot(np.abs(data_event_sim - all_de_ti) / d_max, node_weights)
+        return np.dot(
+            _scaled_abs_diff(data_event_sim, all_de_ti, d_max), node_weights
+        )
     valid, we, wsum = _masked_weights(all_de_ti, node_weights)
     ad = np.where(valid, np.abs(data_event_sim - all_de_ti) / d_max, 0.0)
     return _renorm((we * ad).sum(axis=1), wsum)
@@ -227,9 +247,9 @@ def vec_l2_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
     numpy.ndarray, shape (max_scan,)
     """
     if not has_nan:
-        return np.sqrt(
-            np.dot(((data_event_sim - all_de_ti) / d_max) ** 2, node_weights)
-        )
+        sq = _scaled_abs_diff(data_event_sim, all_de_ti, d_max)
+        sq **= 2
+        return np.sqrt(np.dot(sq, node_weights))
     valid, we, wsum = _masked_weights(all_de_ti, node_weights)
     sq = np.where(valid, ((data_event_sim - all_de_ti) / d_max) ** 2, 0.0)
     return np.sqrt(_renorm((we * sq).sum(axis=1), wsum))
@@ -254,8 +274,9 @@ def vec_lp_dist(
     numpy.ndarray, shape (max_scan,)
     """
     if not has_nan:
-        diffs = np.abs(data_event_sim - all_de_ti) / d_max
-        return np.dot(diffs**p, node_weights) ** (1.0 / p)
+        diffs = _scaled_abs_diff(data_event_sim, all_de_ti, d_max)
+        diffs **= p
+        return np.dot(diffs, node_weights) ** (1.0 / p)
     valid, we, wsum = _masked_weights(all_de_ti, node_weights)
     dp = np.where(
         valid, (np.abs(data_event_sim - all_de_ti) / d_max) ** p, 0.0
