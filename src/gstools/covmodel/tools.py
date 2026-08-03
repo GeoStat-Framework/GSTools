@@ -27,7 +27,7 @@ import warnings
 import numpy as np
 from hankel import SymmetricFourierTransform as SFT
 from scipy import special as sps
-from scipy.optimize import root
+from scipy.optimize import root_scalar
 
 from gstools.tools.geometric import no_of_angles, set_angles, set_anis
 from gstools.tools.misc import list_format
@@ -439,8 +439,12 @@ def percentile_scale(model, per=0.9):
     def curve(x):
         return 1.0 - model.correlation(x) - per
 
-    # take 'per * len_rescaled' as initial guess
-    return root(curve, per * model.len_rescaled)["x"][0]
+    # upper bound for bracket where curve(b) > 0
+    b = float(max(model.len_rescaled, 1e-5))
+    while curve(b) <= 0:
+        b *= 2.0
+
+    return root_scalar(curve, bracket=[0.0, b], method="brentq").root
 
 
 def set_arg_bounds(model, check_args=True, **kwargs):
