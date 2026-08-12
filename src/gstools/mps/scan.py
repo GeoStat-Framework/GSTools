@@ -32,9 +32,9 @@ class _ScanConfig:
     ti_flat: dict
     ti_strides: dict
     ti_shape: object
-    threshold: float
-    cond_weight: float
-    distance_power: float
+    threshold: float  # or None -> DSBC (see _scan_window's dsbc computation)
+    cond_weight: dict  # {var: float} -- per-variable, from the kernel TI
+    distance_power: dict  # {var: float} -- per-variable, from the kernel TI
     vec_distance_var: object
     d_max: dict  # {var: float or None} — normalization range per variable,
     # from the domain's (zone) TI; kernel type stays primary's.
@@ -71,8 +71,9 @@ def _scan_window(
         position ``int(u_start_i * win_size)``.  ``"random"``: stream seed.
     max_scan : int
         Maximum number of candidates to evaluate.
-    threshold : float
-        Distance threshold for early exit (DS mode). ``<= 0`` → DSBC (no early exit).
+    threshold : float or None
+        Distance threshold for early exit (DS mode). ``None`` → DSBC
+        (no early exit).
     dist_fn : callable
         ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
         anchor coordinates ``y_blk`` of shape ``(b, dim)``.
@@ -113,19 +114,19 @@ def _scan_window(
         positions = None
         start = int(u_start_i * win_size)
 
-    # DSBC (threshold <= 0) has no threshold-based early exit, but an exact
-    # match d == 0 is the best attainable candidate, so accept it immediately
-    # (retained for categorical, where d == 0 is common — Juda2022 §2). Both
-    # modes therefore scan in blocks of ``_SCAN_BLOCK`` and track the running
-    # best, so a full-window DSBC scan never materialises one giant distance
-    # array. Block argmin + strict ``<`` keep the first-in-scan-order winner,
+    # DSBC has no threshold-based early exit, but an exact match d == 0 is
+    # the best attainable candidate, so accept it immediately (retained for
+    # categorical, where d == 0 is common — Juda2022 §2). Both modes
+    # therefore scan in blocks of ``_SCAN_BLOCK`` and track the running best,
+    # so a full-window DSBC scan never materialises one giant distance array.
+    # Block argmin + strict ``<`` keep the first-in-scan-order winner,
     # matching a single ``argmin`` over the whole window.
-    accept = threshold if threshold > 0 else 0.0
+    dsbc = threshold is None
+    accept = 0.0 if dsbc else threshold
 
     # DS mode (threshold > 0): strict acceptance d < t (Mariethoz2010 ¶23).
-    # DSBC mode (threshold <= 0, accept == 0): accept the exact match d == 0,
-    # i.e. d <= 0, since distances are non-negative (Juda2022 §2).
-    dsbc = threshold <= 0
+    # DSBC mode: accept the exact match d == 0, i.e. d <= 0, since distances
+    # are non-negative (Juda2022 §2).
     best_d, best_y = np.inf, None
     for b0 in range(0, max_scan, _SCAN_BLOCK):
         b1 = min(b0 + _SCAN_BLOCK, max_scan)
@@ -170,7 +171,7 @@ def _scan_for_match(
 
     Scans candidates in randomized order (greedy DS early-exit when the first
     candidate with distance ``< threshold`` is found; DSBC running-best argmin
-    when ``threshold <= 0``).  The window is the per-variable intersection so
+    when ``threshold`` is ``None``).  The window is the per-variable intersection so
     every ``y + lag`` is in bounds and the gather needs no clipping; the h=0
     lag maps to ``y`` itself.  Returns the single best TI anchor coordinate
     ``y``, or ``None`` when every candidate in the window is undefined (masked
@@ -193,7 +194,7 @@ def _scan_for_match(
     active_w_total = sum(cfg.weights[v] for v in active_vars)
     precomp_w = {
         v: compute_node_weights(
-            len(de_v[v]), ln_v[v], cfg.distance_power, cm_v[v], cfg.cond_weight
+            len(de_v[v]), ln_v[v], cfg.distance_power[v], cm_v[v], cfg.cond_weight[v]
         )
         for v in active_vars
     }
@@ -213,7 +214,7 @@ def _scan_for_match(
                 de_v[v],
                 all_de_ti,
                 cm_v[v],
-                cfg.cond_weight,
+                cfg.cond_weight[v],
                 ln_v[v],
                 weights=precomp_w[v],
                 d_max=cfg.d_max[v],

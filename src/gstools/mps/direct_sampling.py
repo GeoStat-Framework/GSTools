@@ -307,7 +307,6 @@ class DirectSampling(Field):
             rng_path=rng_path,
             rng_nodes=rng_nodes,
             conditions=sim_conditions,
-            cond_weight=self.cond_weight,
             boundary=self.boundary,
             num_threads=n_threads,
             rotation_map=rotation_map,
@@ -320,6 +319,8 @@ class DirectSampling(Field):
             post_processing=self._mps_model.post_processing,
             post_processing_factor=self._mps_model.post_processing_factor,
             post_processing_path=self._mps_model.post_processing_path,
+            post_processing_variables=self._mps_model.post_processing_variables,
+            post_processing_mask=self._mps_model.post_processing_mask,
             scan_path=self._mps_model.scan_path,
         )
         # Branch only on the return type: multivariate → dict of named arrays;
@@ -421,7 +422,7 @@ class DirectSampling(Field):
     def set_condition(self, cond_pos, cond_val):
         """Set the conditioning data for the simulation.
 
-        Conditioning weight is configured on the :class:`MPSModel` (``cond_weight=``).
+        Conditioning weight is configured per :class:`Variable` (``cond_weight=``).
 
         Parameters
         ----------
@@ -525,7 +526,8 @@ class DirectSampling(Field):
         """Read ``attr`` from every TI Variable; scalar if all equal, else a dict.
 
         Read-only view over the variables' values. Used by the
-        :attr:`n_neighbors` and :attr:`max_radius` getters.
+        :attr:`n_neighbors`, :attr:`cond_weight`, and :attr:`max_radius`
+        getters.
         """
         vars_ = self._ti.variables
         vals = [getattr(v, attr) for v in vars_]
@@ -537,10 +539,21 @@ class DirectSampling(Field):
     def n_neighbors(self):
         """:class:`int` or :class:`dict`: n_neighbors per variable (scalar if all equal).
 
-        Read-only. Configure on the :class:`Variable` (``ti.variable(name).n_neighbors = …``)
-        or at :class:`TrainingImage` construction.
+        Read-only. Configure on the :class:`Variable`
+        (``Variable(..., n_neighbors=…)``) or via
+        ``variable.replace(n_neighbors=…)``.
         """
         return self._collapse_per_var("n_neighbors")
+
+    @property
+    def cond_weight(self):
+        """:class:`float` or :class:`dict`: cond_weight per variable (scalar if all equal).
+
+        Read-only. Configure on the :class:`Variable`
+        (``Variable(..., cond_weight=…)``) or via
+        ``variable.replace(cond_weight=…)``.
+        """
+        return self._collapse_per_var("cond_weight")
 
     @property
     def scan_fraction(self):
@@ -549,13 +562,8 @@ class DirectSampling(Field):
 
     @property
     def threshold(self):
-        """:class:`float`: Distance threshold (0.0 → DSBC mode). Read-only; set on the MPSModel."""
+        """:class:`float` or None: Distance threshold (None → DSBC mode). Read-only; set on the MPSModel."""
         return self._mps_model.threshold
-
-    @property
-    def cond_weight(self):
-        """:class:`float`: Conditioning-node weight. Read-only; set on the MPSModel."""
-        return self._mps_model.cond_weight
 
     @property
     def boundary(self):

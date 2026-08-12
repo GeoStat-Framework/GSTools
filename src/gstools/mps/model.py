@@ -4,7 +4,11 @@ import warnings
 
 import numpy as np
 
-from gstools.mps.training_image import TrainingImage, _check_category_codes
+from gstools.mps.training_image import (
+    TrainingImage,
+    Variable,
+    _check_category_codes,
+)
 from gstools.mps.zone import Zone
 
 __all__ = ["MPSModel"]
@@ -45,16 +49,21 @@ def _validate_scan_fraction(value):
 
 
 def _validate_threshold(value):
-    """Validate threshold >= 0, warn if > 1; return float or raise ValueError."""
-    if float(value) < 0:
-        raise ValueError(f"MPSModel: threshold must be >= 0, got {value!r}")
-    if float(value) > 1.0:
+    """Validate threshold: None (DSBC) or a float > 0 (DS). Warn if > 1."""
+    if value is None:
+        return None
+    v = float(value)
+    if v <= 0.0:
+        raise ValueError(
+            f"MPSModel: threshold must be > 0 or None, got {value!r}"
+        )
+    if v > 1.0:
         warnings.warn(
             "MPSModel: threshold > 1.0 guarantees the first candidate is always accepted.",
             UserWarning,
             stacklevel=3,
         )
-    return float(value)
+    return v
 
 
 def _validate_post_processing(value):
@@ -68,11 +77,16 @@ def _validate_post_processing(value):
 
 
 def _validate_post_processing_factor(value):
-    """Validate p_f >= 1 (Me13 §4 divides f and n by p_f to SAVE cpu)."""
+    """Validate p_f > 0 (Me13 §4 divides f and n by p_f).
+
+    p_f > 1 reduces post-pass effort (Me13's intent, "to save CPU").
+    p_f < 1 increases it -- a post-pass more thorough than the main pass.
+    p_f == 0 is rejected: it is a division by zero at simulate.py:917-919.
+    """
     v = float(value)
-    if v < 1.0:
+    if v <= 0.0:
         raise ValueError(
-            f"MPSModel: post_processing_factor must be >= 1, got {value!r}"
+            f"MPSModel: post_processing_factor must be > 0, got {value!r}"
         )
     return v
 
@@ -173,6 +187,47 @@ def _validate_post_processing_path(value):
     return arr
 
 
+def _validate_post_processing_variables(post_processing_variables, primary_ti):
+    """Validate a list[Variable] of post-processing overrides against primary_ti."""
+    if post_processing_variables is None:
+        return []
+    post_processing_variables = list(post_processing_variables)
+    if not all(isinstance(v, Variable) for v in post_processing_variables):
+        raise TypeError(
+            "MPSModel: post_processing_variables must be a list of Variable "
+            "objects."
+        )
+    names = [v.name for v in post_processing_variables]
+    if len(set(names)) != len(names):
+        raise ValueError(
+            f"MPSModel: post_processing_variables names must be unique, "
+            f"got {names!r}."
+        )
+    primary_names = {v.name for v in primary_ti.variables}
+    unknown = set(names) - primary_names
+    if unknown:
+        raise ValueError(
+            f"MPSModel: post_processing_variables name(s) "
+            f"{sorted(map(str, unknown))!r} not found in the primary TI's "
+            f"variables {sorted(map(str, primary_names))!r}."
+        )
+    return post_processing_variables
+
+
+def _validate_post_processing_mask(value):
+    """Light validation only -- shape depends on the simulation grid, known
+    only at DirectSampling.__call__ time; the engine re-checks shape there."""
+    if value is None:
+        return None
+    arr = np.asarray(value)
+    if arr.dtype != bool:
+        raise TypeError(
+            f"MPSModel: post_processing_mask must be a boolean array or "
+            f"None, got dtype {arr.dtype!r}."
+        )
+    return arr
+
+
 def _spec_repr(val):
     """Repr for a rotation/scale spec: callables by name, arrays by shape."""
     if callable(val):
@@ -199,10 +254,10 @@ class MPSModel:
     scan_fraction : :class:`float`, optional
         Fraction of the TI to scan per node (capped at the valid search
         window). Must be in (0, 1]. Default: 1.0.
-    threshold : :class:`float`, optional
-        Distance threshold for early acceptance. 0.0 → DSBC mode. Default: 0.0.
-    cond_weight : :class:`float`, optional
-        Weight multiplier for conditioning nodes in distance. Default: 1.0.
+    threshold : :class:`float` or None, optional
+        Distance threshold for early acceptance (Mariethoz2010 para [23]).
+        ``None`` → DSBC mode (no threshold; take the best candidate found
+        in the scan). Otherwise must be > 0. Default: ``None``.
     boundary : :class:`str`, optional
         Search-window strategy: ``"strict"`` (default) or ``"partial"``.
     rotation : :class:`float` or array-like or callable, optional
@@ -214,8 +269,7 @@ class MPSModel:
         Must be ``None`` on 1-D TI. Default: ``None`` (stationary identity).
 
         **Convention:** angles and scales act on *index* lags (not coordinate
-        lags). Migration from prior versions: if you previously used
-        ``anis = s``, use ``scale=[1, s]`` instead.
+        lags).
     scale : :class:`float` or array-like or callable, optional
         Dilation scales: stretch factors describing how simulated patterns
         scale relative to the TI. At node ``x``, patterns scale by ``s(x)``.
@@ -247,11 +301,17 @@ class MPSModel:
         DAG as the main path and so honour ``num_threads``, staying
         bit-identical to serial execution for any thread count.
     post_processing_factor : :class:`float`, optional
-        Factor p_f >= 1 to divide ``scan_fraction`` and ``n_neighbors``
-        during post-processing passes (Me13 §4). Values > 1 reduce the
-        search effort per pass (cheaper, coarser re-simulation).
-        Default: 1.0 (use original parameters). Me13 finds p_f has little
-        effect in general and recommends p_f=1.
+        Factor p_f > 0 to divide ``scan_fraction`` and ``n_neighbors``
+        during post-processing passes (Me13 §4). ``threshold`` is
+        unaffected -- it is not a per-pass field.
+        Values > 1 reduce the search effort per pass (cheaper, coarser
+        re-simulation) -- Me13's documented intent. Values < 1 *increase*
+        it: each post-pass then scans more of the TI and considers more
+        neighbours than the main pass. This direction has no literature
+        precedent (Me13 recommends p_f=1 and reports little effect from
+        varying it upward); it is offered for experimentation, not backed
+        by a documented result.
+        Default: 1.0 (use original parameters).
     post_processing_path : :class:`str`, array-like, or None, optional
         Visit order for the post-processing passes. This is an
         implementation extension, not prescribed by the DS papers (Me13 §4
@@ -275,6 +335,37 @@ class MPSModel:
           post-processing path may include already-conditioned nodes (a
           full-grid raster/spiral works unchanged); such entries are
           silently dropped.
+    post_processing_variables : list of Variable, optional
+        Per-variable search-config overrides used **only** during
+        post-processing passes. Matched by ``.name`` against the primary
+        TI's variables; a name absent from the primary TI raises
+        ``ValueError``. Unnamed variables reuse the primary's own search
+        config unchanged. Uniform across every post-processing pass (Me13
+        §4 treats them as identical repetitions).
+
+        Only ``distance``, ``penalty_matrix``, ``distance_power``,
+        ``cond_weight``, and ``n_neighbors`` take effect for post-processing
+        (``n_neighbors`` is further divided by ``post_processing_factor``,
+        same as the main pass). ``max_radius`` and ``weight`` are **not**
+        read from the override -- both are resolved once from the primary
+        TI and shared by every pass; set them on the primary TI's
+        ``Variable`` instead.
+
+        For a univariate TI, build the override from
+        ``ti.variable().replace(...)`` (the anonymous variable's name is
+        ``None``; do not construct ``Variable(None, ...)`` directly).
+        Default: ``[]`` (no overrides; post-processing reuses the primary
+        TI's search config exactly).
+    post_processing_mask : numpy.ndarray of bool, or None, optional
+        Simulation-grid-shaped mask selecting which nodes post-processing
+        may re-simulate (``True`` = eligible). ``None`` (default) -> every
+        non-conditioning node -- bit-identical to omitting this parameter.
+        ``~mask`` selects the complement. Conditioning nodes are never
+        re-simulated regardless of this mask. Masked-out nodes still inform
+        neighbouring re-simulations (the post-pass neighbourhood is "fully
+        informed" regardless of visit membership) -- only their own value
+        is frozen. Joint across variables (not per-variable). Shape is
+        validated against the simulation grid at call time, not here.
     scan_path : :class:`str`, optional
         TI window scan order per node. ``"sequential"``: contiguous walk from
         a random start (M10 para [19]). ``"random"``: the same number of
@@ -288,8 +379,7 @@ class MPSModel:
         self,
         ti,
         scan_fraction=1.0,
-        threshold=0.0,
-        cond_weight=1.0,
+        threshold=None,
         boundary="strict",
         rotation=None,
         scale=None,
@@ -297,6 +387,8 @@ class MPSModel:
         post_processing=0,
         post_processing_factor=1.0,
         post_processing_path=None,
+        post_processing_variables=None,
+        post_processing_mask=None,
         scan_path="sequential",
     ):
         if not isinstance(ti, TrainingImage):
@@ -306,7 +398,6 @@ class MPSModel:
         self._ti = ti
         self._scan_fraction = _validate_scan_fraction(scan_fraction)
         self._threshold = _validate_threshold(threshold)
-        self._cond_weight = float(cond_weight)
         self._boundary = _validate_boundary(boundary)
         self._rotation = _validate_rotation(rotation, ti.ndim)
         self._scale = _validate_scale(scale)
@@ -317,6 +408,12 @@ class MPSModel:
         )
         self._post_processing_path = _validate_post_processing_path(
             post_processing_path
+        )
+        self._post_processing_variables = _validate_post_processing_variables(
+            post_processing_variables, ti
+        )
+        self._post_processing_mask = _validate_post_processing_mask(
+            post_processing_mask
         )
         self._scan_path = _validate_scan_path(scan_path)
 
@@ -344,15 +441,6 @@ class MPSModel:
         self._threshold = _validate_threshold(value)
 
     @property
-    def cond_weight(self):
-        """:class:`float`: Weight multiplier for conditioning nodes."""
-        return self._cond_weight
-
-    @cond_weight.setter
-    def cond_weight(self, value):
-        self._cond_weight = float(value)
-
-    @property
     def boundary(self):
         """:class:`str`: Search-window boundary strategy (``"strict"`` or ``"partial"``)."""
         return self._boundary
@@ -372,7 +460,7 @@ class MPSModel:
 
     @property
     def post_processing_factor(self):
-        """:class:`float`: p_f — scan_fraction and n_neighbors are divided by this during post-passes."""
+        """:class:`float`: p_f > 0 — scan_fraction and n_neighbors are divided by this during post-passes."""
         return self._post_processing_factor
 
     @post_processing_factor.setter
@@ -387,6 +475,30 @@ class MPSModel:
     @post_processing_path.setter
     def post_processing_path(self, value):
         self._post_processing_path = _validate_post_processing_path(value)
+
+    @property
+    def post_processing_variables(self):
+        """:class:`list` of :class:`Variable`: per-variable search-config
+        overrides for post-processing passes (empty -> use the primary TI's
+        variables unchanged)."""
+        return list(self._post_processing_variables)
+
+    @post_processing_variables.setter
+    def post_processing_variables(self, value):
+        self._post_processing_variables = _validate_post_processing_variables(
+            value, self._ti
+        )
+
+    @property
+    def post_processing_mask(self):
+        """:class:`numpy.ndarray` of bool, or None: nodes eligible for
+        re-simulation during post-processing (True = eligible). None (default)
+        -> every non-conditioning node."""
+        return self._post_processing_mask
+
+    @post_processing_mask.setter
+    def post_processing_mask(self, value):
+        self._post_processing_mask = _validate_post_processing_mask(value)
 
     @property
     def scan_path(self):
@@ -416,8 +528,7 @@ class MPSModel:
         args = [repr(self._ti)]
         defaults = dict(
             scan_fraction=1.0,
-            threshold=0.0,
-            cond_weight=1.0,
+            threshold=None,
             boundary="strict",
             post_processing=0,
             post_processing_factor=1.0,

@@ -38,9 +38,9 @@ print(ti)
 #   (set on the :any:`TrainingImage`).
 # * ``scan_fraction`` — fraction of the training image scanned per cell
 #   (smaller is faster, slightly noisier).
-# * ``threshold=0.0`` — the recommended DSBC mode: always take the best match.
+# * ``threshold=None`` — the recommended DSBC mode: always take the best match.
 
-ds = gs.DirectSampling(gs.MPSModel(ti, scan_fraction=0.3, threshold=0.0))
+ds = gs.DirectSampling(gs.MPSModel(ti, scan_fraction=0.3, threshold=None))
 field = ds([np.arange(40, dtype=float)] * 2, seed=20250616)
 
 ###############################################################################

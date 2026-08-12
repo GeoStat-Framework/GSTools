@@ -78,7 +78,7 @@ anis = 1.0 - 0.65 * (radius / max_radius)
 scale = np.stack([np.ones_like(anis), anis], axis=-1)
 ds = gs.DirectSampling(
     gs.MPSModel(
-        ti, scan_fraction=0.35, threshold=0, rotation=rotation, scale=scale
+        ti, scan_fraction=0.35, threshold=None, rotation=rotation, scale=scale
     )
 )
 

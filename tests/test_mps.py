@@ -41,7 +41,11 @@ from gstools.mps.simulate import (
     _Pass,
     ds_simulate,
 )
-from gstools.mps.training_image import TrainingImage, Variable
+from gstools.mps.training_image import (
+    TrainingImage,
+    Variable,
+    _resolve_post_ti,
+)
 from gstools.tools.geometric import generate_grid
 
 
@@ -220,12 +224,122 @@ class TestVariable(unittest.TestCase):
         v = Variable(None, np.zeros(4))
         self.assertIsNone(v.name)
 
-    def test_n_neighbors_setter(self):
+    def test_n_neighbors_is_read_only(self):
         v = Variable("x", np.zeros(4))
-        v.n_neighbors = 8
-        self.assertEqual(v.n_neighbors, 8)
-        with self.assertRaisesRegex(ValueError, "n_neighbors"):
-            v.n_neighbors = 0
+        with self.assertRaises(AttributeError):
+            v.n_neighbors = 16
+
+    def test_replace_shares_data_buffer(self):
+        v = Variable("x", np.zeros((10, 10)))
+        v2 = v.replace(n_neighbors=16)
+        self.assertTrue(np.shares_memory(v.data, v2.data))
+        self.assertEqual(v2.n_neighbors, 16)
+        self.assertEqual(v2.name, "x")
+        self.assertIs(v2.categorical, v.categorical)
+
+    def test_replace_rejects_invalid_overrides(self):
+        v = Variable("x", np.zeros((4, 4)))
+        for overrides in (
+            {"data": np.ones((4, 4))},  # defines what the variable *is*
+            {"categorical": False},  # ditto
+            {"not_a_real_field": 1},
+        ):
+            with self.subTest(field=next(iter(overrides))):
+                with self.assertRaises(ValueError):
+                    v.replace(**overrides)
+
+    def test_replace_applies_override_and_carries_the_rest(self):
+        # replace() forwards to Variable.__init__, so per field it is enough
+        # to confirm the override arrives and nothing else moves; __init__'s
+        # own semantics are covered by the constructor tests above.
+        v = Variable(
+            "x",
+            np.zeros((4, 4)),
+            n_neighbors=10,
+            max_radius=5.0,
+            weight=0.3,
+            distance_power=0.5,
+            cond_weight=2.0,
+        )
+        carried = (
+            "distance",
+            "n_neighbors",
+            "max_radius",
+            "weight",
+            "distance_power",
+            "cond_weight",
+        )
+        for field, value in [
+            ("n_neighbors", 20),
+            ("max_radius", 7.0),
+            ("max_radius", None),  # None is an override, not "leave as is"
+            ("weight", 0.9),
+            ("distance_power", 1.0),
+            ("cond_weight", 3.0),
+        ]:
+            with self.subTest(field=field, value=value):
+                v2 = v.replace(**{field: value})
+                self.assertEqual(getattr(v2, field), value)
+                for other in carried:
+                    if other != field:
+                        self.assertEqual(
+                            getattr(v2, other), getattr(v, other)
+                        )
+
+    def test_replace_distance_change_reparses_p_norm(self):
+        v = Variable("x", np.linspace(0.0, 1.0, 10), categorical=False)
+        self.assertEqual(v.p_norm, 1.0)  # default "l1"
+        v2 = v.replace(distance="l2")
+        self.assertEqual(v2.p_norm, 2.0)
+        self.assertIsNone(v2.variation_p_norm)
+
+    def test_replace_delegates_validation_to_init(self):
+        cat = Variable("x", np.array([0, 1, 0, 1]))
+        variation = Variable(
+            "x",
+            np.linspace(0.0, 1.0, 10),
+            categorical=False,
+            distance="variation",
+            n_neighbors=4,
+        )
+        for var, overrides in [
+            (cat, {"max_radius": 0.0}),
+            (cat, {"distance_power": -1.0}),
+            (cat, {"penalty_matrix": np.array([[0.0, 2.0], [1.0, 0.0]])}),
+            (variation, {"n_neighbors": 1}),  # variation needs >= 2
+        ]:
+            with self.subTest(field=next(iter(overrides))):
+                with self.assertRaises(ValueError):
+                    var.replace(**overrides)
+
+    def test_distance_power_and_cond_weight_on_variable(self):
+        v = Variable("x", np.zeros((4, 4)), distance_power=0.5, cond_weight=2.0)
+        self.assertAlmostEqual(v.distance_power, 0.5)
+        self.assertAlmostEqual(v.cond_weight, 2.0)
+        self.assertAlmostEqual(Variable("x", np.zeros(4)).distance_power, 0.0)
+        with self.assertRaises(ValueError):
+            Variable("x", np.zeros((4, 4)), distance_power=-1.0)
+
+    def test_univariate_sugar_forwards_distance_power_and_cond_weight(self):
+        # distance_power/cond_weight live on the Variable only; the TI just
+        # forwards the univariate sugar to its anonymous Variable.
+        ti = TrainingImage(
+            np.zeros((4, 4)), distance_power=0.5, cond_weight=2.0
+        )
+        self.assertFalse(hasattr(ti, "distance_power"))
+        self.assertAlmostEqual(ti.variable().distance_power, 0.5)
+        self.assertAlmostEqual(ti.variable().cond_weight, 2.0)
+
+    def test_vec_distance_var_fallback_uses_variable_distance_power(self):
+        # Exercises the weights=None fallback branch directly (no scan.py
+        # involved) -- the path the spec's point 4 missed.
+        ti = TrainingImage(
+            np.linspace(0.0, 1.0, 10), categorical=False, distance_power=1.0
+        )
+        de = np.array([0.0, 0.5])
+        cand = np.array([[0.0, 0.5]])
+        result = ti.vec_distance_var(None, de, cand, lag_norms=[0.0, 1.0])
+        self.assertEqual(result.shape, (1,))
 
     def test_read_only_name(self):
         v = Variable("x", np.zeros(4))
@@ -684,16 +798,16 @@ class TestDirectSampling(unittest.TestCase):
         self.assertIn("DirectSampling", r)
 
     def test_properties(self):
+        ti = TrainingImage(self.ti1d.variable().replace(cond_weight=2.0))
         ds = DirectSampling(
             MPSModel(
-                self.ti1d,
+                ti,
                 scan_fraction=0.5,
                 threshold=0.05,
-                cond_weight=2.0,
                 boundary="partial",
             )
         )
-        self.assertIs(ds.ti, self.ti1d)
+        self.assertIs(ds.ti, ti)
         self.assertEqual(ds.n_neighbors, 8)
         self.assertAlmostEqual(ds.scan_fraction, 0.5)
         self.assertAlmostEqual(ds.threshold, 0.05)
@@ -838,7 +952,7 @@ class TestDirectSampling(unittest.TestCase):
         result = ds_simulate(
             self.ti1d,
             sim_shape=(8,),
-            threshold=0.0,
+            threshold=None,
             scan_fraction=1.0,
             rng_path=rng,
             rng_nodes=rng,
@@ -898,9 +1012,8 @@ class TestDirectSampling(unittest.TestCase):
         self.assertIs(gs.mps.Variable, Variable)
 
     def test_config_is_read_only_view(self):
-        model = MPSModel(
-            self.ti1d, threshold=0.3, scan_fraction=0.5, cond_weight=4.0
-        )
+        ti = TrainingImage(self.ti1d.variable().replace(cond_weight=4.0))
+        model = MPSModel(ti, threshold=0.3, scan_fraction=0.5)
         ds = DirectSampling(model)
         # Getters read straight from the shared model (no instance copy).
         self.assertAlmostEqual(ds.threshold, 0.3)
@@ -919,6 +1032,32 @@ class TestDirectSampling(unittest.TestCase):
             ds.n_neighbors = 4
         with self.assertRaises(AttributeError):
             ds.max_radius = 5.0
+
+
+class TestTrainingImageShadowingGuard(unittest.TestCase):
+    def test_shadowing_guard_all_sugar_kwargs(self):
+        # Every univariate-sugar kwarg is rejected, for both a bare Variable
+        # and a list of them, and the message names the offending kwarg.
+        data = np.array([0, 1, 0, 1])
+        for kwarg, value in [
+            ("categorical", False),
+            ("distance", "l2"),
+            ("n_neighbors", 5),
+            ("max_radius", 3.0),
+            ("penalty_matrix", np.array([[0.0, 1.0], [1.0, 0.0]])),
+            ("distance_power", 1.0),
+            ("cond_weight", 2.0),
+        ]:
+            for listed in (False, True):
+                var = Variable("a", data)
+                container = [var] if listed else var
+                with self.subTest(kwarg=kwarg, listed=listed):
+                    with self.assertRaisesRegex(ValueError, kwarg):
+                        TrainingImage(container, **{kwarg: value})
+
+    def test_no_shadowing_guard_when_kwargs_omitted(self):
+        ti = TrainingImage([Variable("a", np.zeros((4, 4)))])
+        self.assertEqual(ti.variable("a").name, "a")
 
 
 class TestMultivariateTrainingImage(unittest.TestCase):
@@ -1190,7 +1329,7 @@ class TestMultivariateDirectSampling(unittest.TestCase):
                 Variable("b", ids + 100, categorical=True),
             ]
         )
-        ds = DirectSampling(MPSModel(ti, scan_fraction=1.0, threshold=0.0))
+        ds = DirectSampling(MPSModel(ti, scan_fraction=1.0, threshold=None))
         field = ds([np.arange(6, dtype=float)] * 2, seed=0)
         np.testing.assert_array_equal(field["b"], field["a"] + 100)
 
@@ -1324,7 +1463,7 @@ class TestMultivariateDirectSampling(unittest.TestCase):
         nb = np.arange(36).reshape(6, 6)
         na = (nb * 7) % 5
         ti = TrainingImage([Variable("a", na), Variable("b", nb)])
-        ds = DirectSampling(MPSModel(ti, scan_fraction=1.0, threshold=0.0))
+        ds = DirectSampling(MPSModel(ti, scan_fraction=1.0, threshold=None))
         ds.set_condition(
             cond_pos=[[0.0], [0.0]],
             cond_val={"a": np.array([np.nan]), "b": np.array([20])},
@@ -1552,12 +1691,15 @@ class TestMultivariateDirectSampling(unittest.TestCase):
                     rng.random((20, 20)) * 10.0,
                     categorical=False,
                     distance="l2",
+                    distance_power=1.0,
                 ),
                 Variable(
-                    "cat", rng.integers(0, 2, (20, 20)), categorical=True
+                    "cat",
+                    rng.integers(0, 2, (20, 20)),
+                    categorical=True,
+                    distance_power=1.0,
                 ),
             ],
-            distance_power=1.0,
         )
         ds = DirectSampling(MPSModel(ti, scan_fraction=0.3))
         field = ds([np.arange(8, dtype=float)] * 2, seed=3)
@@ -2232,7 +2374,9 @@ class TestVariationNNeighbors(unittest.TestCase):
         self.assertEqual(ds.n_neighbors, 1)
 
     def test_variation_guard_is_atomic(self):
-        # Variation guard raises on the Variable; the value stays at 3.
+        # Variation guard raises on replace(); the original Variable/DS
+        # are unaffected (replace() never mutates, so this is trivially
+        # atomic -- verified anyway as a regression guard).
         v = Variable(
             "x",
             np.linspace(0.0, 1.0, 20),
@@ -2243,7 +2387,8 @@ class TestVariationNNeighbors(unittest.TestCase):
         ti = TrainingImage([v])
         ds = DirectSampling(MPSModel(ti, scan_fraction=0.5))
         with self.assertRaises(ValueError):
-            v.n_neighbors = 1
+            v.replace(n_neighbors=1)
+        self.assertEqual(v.n_neighbors, 3)  # unchanged
         self.assertEqual(ds.n_neighbors, 3)  # unchanged
 
 
@@ -2588,7 +2733,7 @@ class TestStatisticalValidity(unittest.TestCase):
             MPSModel(
                 ti,
                 scan_fraction=1.0,
-                threshold=0.0,
+                threshold=None,
             )
         )
         pos = [np.arange(50, dtype=float)] * 2
@@ -2725,16 +2870,17 @@ class TestMVTransformsAndReporting(unittest.TestCase):
         """Different cond_weight values must yield different fields while honoring the conditioned node."""
         rng = np.random.default_rng(2)
         data = rng.integers(0, 3, (20, 20)).astype(float)
-        ti = TrainingImage(data, n_neighbors=8)
         pos = [np.arange(8, dtype=float)] * 2
         cond_pos = [[4.0], [4.0]]
         cond_val = [2]
 
-        ds1 = DirectSampling(MPSModel(ti, scan_fraction=0.3, cond_weight=1.0))
+        ti1 = TrainingImage(data, n_neighbors=8, cond_weight=1.0)
+        ds1 = DirectSampling(MPSModel(ti1, scan_fraction=0.3))
         ds1.set_condition(cond_pos, cond_val)
         f1 = ds1(pos, seed=0)
 
-        ds5 = DirectSampling(MPSModel(ti, scan_fraction=0.3, cond_weight=5.0))
+        ti5 = TrainingImage(ti1.variable().replace(cond_weight=5.0))
+        ds5 = DirectSampling(MPSModel(ti5, scan_fraction=0.3))
         ds5.set_condition(cond_pos, cond_val)
         f5 = ds5(pos, seed=0)
 
@@ -3045,7 +3191,7 @@ class TestSimulationPath(unittest.TestCase):
         result = ds_simulate(
             ti,
             sim_shape=(6,),
-            threshold=0.0,
+            threshold=None,
             scan_fraction=1.0,
             rng_path=rng.random,
             rng_nodes=rng.random,
@@ -3085,7 +3231,7 @@ class TestSimulationPath(unittest.TestCase):
 
 
 class TestCondWeightOverride(unittest.TestCase):
-    """cond_weight lives on MPSModel; DirectSampling is a read-only view."""
+    """cond_weight lives on Variable; DirectSampling exposes a read-only collapsed view."""
 
     def setUp(self):
         rng = np.random.default_rng(42)
@@ -3093,27 +3239,27 @@ class TestCondWeightOverride(unittest.TestCase):
 
     def test_shared_model_both_see_same_cond_weight(self):
         """Two DirectSampling from the same MPSModel both read the same cond_weight."""
-        ti = TrainingImage(self.ti_data, n_neighbors=4)
-        model = MPSModel(ti, scan_fraction=0.5, cond_weight=1.0)
+        ti = TrainingImage(self.ti_data, n_neighbors=4, cond_weight=1.0)
+        model = MPSModel(ti, scan_fraction=0.5)
         ds1 = DirectSampling(model)
         ds2 = DirectSampling(model)
 
         # Both read from the shared model — no override mechanism.
         self.assertAlmostEqual(ds1.cond_weight, 1.0)
         self.assertAlmostEqual(ds2.cond_weight, 1.0)
-        self.assertAlmostEqual(model.cond_weight, 1.0)
+        self.assertAlmostEqual(ti.variable().cond_weight, 1.0)
 
     def test_cond_weight_on_model_is_honored(self):
-        """Two DS with identical MPSModel(cond_weight=2) produce the same output."""
-        ti1 = TrainingImage(self.ti_data, n_neighbors=4)
-        ds1 = DirectSampling(MPSModel(ti1, scan_fraction=0.5, cond_weight=2.0))
+        """Two DS with identical cond_weight=2 (baked into the TI) produce the same output."""
+        ti1 = TrainingImage(self.ti_data, n_neighbors=4, cond_weight=2.0)
+        ds1 = DirectSampling(MPSModel(ti1, scan_fraction=0.5))
         cpos = [np.array([5.0, 10.0]), np.array([5.0, 10.0])]
         cval = np.array([1.0, 2.0])
         ds1.set_condition(cpos, cval)
         out1 = ds1([np.arange(15, dtype=float)] * 2, seed=7)
 
-        ti2 = TrainingImage(self.ti_data, n_neighbors=4)
-        ds2 = DirectSampling(MPSModel(ti2, scan_fraction=0.5, cond_weight=2.0))
+        ti2 = TrainingImage(self.ti_data, n_neighbors=4, cond_weight=2.0)
+        ds2 = DirectSampling(MPSModel(ti2, scan_fraction=0.5))
         ds2.set_condition(cpos, cval)
         out2 = ds2([np.arange(15, dtype=float)] * 2, seed=7)
 
@@ -3190,12 +3336,15 @@ class TestPerVariableSetterDedup(unittest.TestCase):
             MPSModel(TrainingImage([a, b]), scan_fraction=0.2)
         )
 
-    def test_n_neighbors_variable_setter_works(self):
-        # After construction the Variable.n_neighbors setter is still mutable.
+    def test_n_neighbors_variable_replace_dedup(self):
+        # A per-variable override (via replace(), sharing the data buffer)
+        # is visible through the collapse-to-dict getter when values differ.
         ds = self._mv(n_neighbors=5)
-        ds.ti.variable("a").n_neighbors = 7
-        self.assertEqual(ds.ti.variable("a").n_neighbors, 7)
-        self.assertEqual(ds.n_neighbors, {"a": 7, "b": 5})
+        a7 = ds.ti.variable("a").replace(n_neighbors=7)
+        new_ti = TrainingImage([a7, ds.ti.variable("b")])
+        ds2 = DirectSampling(MPSModel(new_ti, scan_fraction=0.2))
+        self.assertEqual(ds2.ti.variable("a").n_neighbors, 7)
+        self.assertEqual(ds2.n_neighbors, {"a": 7, "b": 5})
 
     def test_max_radius_none_default(self):
         # Default is None; getter collapses to scalar.
@@ -3708,6 +3857,283 @@ class TestVecDistanceDmaxOverride(unittest.TestCase):
         self.assertAlmostEqual(float(d_ovr[0]), 0.5)
 
 
+class TestScanConfigPerVariableDicts(unittest.TestCase):
+    def test_distance_power_cond_weight_are_per_variable_dicts(self):
+        from gstools.mps.simulate import _DirectSamplingEngine
+
+        ti = TrainingImage(
+            [
+                Variable(
+                    "a", np.zeros((6, 6)), distance_power=0.5, cond_weight=2.0
+                ),
+                Variable(
+                    "b", np.zeros((6, 6)), distance_power=1.5, cond_weight=3.0
+                ),
+            ]
+        )
+        rng = np.random.RandomState(0)
+        engine = _DirectSamplingEngine(
+            ti, sim_shape=(4, 4), threshold=None, scan_fraction=1.0,
+            rng_path=rng, rng_nodes=rng,
+        )
+        cfg = engine.domains[0].scan_config
+        self.assertEqual(cfg.distance_power, {"a": 0.5, "b": 1.5})
+        self.assertEqual(cfg.cond_weight, {"a": 2.0, "b": 3.0})
+
+
+class TestResolvePostTi(unittest.TestCase):
+    @staticmethod
+    def _mv_ti():
+        return TrainingImage(
+            [Variable("a", np.zeros((4, 4))), Variable("b", np.zeros((4, 4)))]
+        )
+
+    def test_resolve_post_ti_no_overrides_reuses_primary_variables(self):
+        ti = self._mv_ti()
+        post_ti = _resolve_post_ti(ti, [])
+        self.assertIs(post_ti.variable("a"), ti.variable("a"))
+        self.assertIs(post_ti.variable("b"), ti.variable("b"))
+
+    def test_resolve_post_ti_overrides_named_variable(self):
+        ti = self._mv_ti()
+        override = ti.variable("a").replace(distance_power=0.5)
+        post_ti = _resolve_post_ti(ti, [override])
+        self.assertIs(post_ti.variable("a"), override)
+        self.assertIs(post_ti.variable("b"), ti.variable("b"))
+
+    def test_resolve_post_ti_univariate(self):
+        ti = TrainingImage(np.zeros((4, 4)))
+        override = ti.variable().replace(distance_power=0.5)
+        post_ti = _resolve_post_ti(ti, [override])
+        self.assertFalse(post_ti.multivariate)
+        self.assertIs(post_ti.variable(), override)
+        self.assertTrue(hasattr(post_ti, "vec_distance_var"))
+
+    def test_resolve_post_ti_unknown_name_raises(self):
+        ti = TrainingImage([Variable("a", np.zeros((4, 4)))])
+        bogus = Variable("z", np.zeros((4, 4)))
+        with self.assertRaisesRegex(ValueError, "z"):
+            _resolve_post_ti(ti, [bogus])
+
+    def test_model_post_processing_variables_default_empty(self):
+        self.assertEqual(MPSModel(self._mv_ti()).post_processing_variables, [])
+
+    def test_model_post_processing_variables_roundtrip(self):
+        # Constructor and setter both accept a valid override list.
+        ti = self._mv_ti()
+        override = ti.variable("a").replace(distance_power=0.5)
+        model = MPSModel(ti, post_processing_variables=[override])
+        self.assertEqual(model.post_processing_variables, [override])
+
+        model = MPSModel(ti)
+        model.post_processing_variables = [override]
+        self.assertEqual(model.post_processing_variables, [override])
+
+    def test_model_post_processing_variables_rejects_bad_lists(self):
+        ti = self._mv_ti()
+        bogus = Variable("z", np.zeros((4, 4)))
+        duplicated = [
+            ti.variable("a").replace(distance_power=0.1),
+            ti.variable("a").replace(distance_power=0.2),
+        ]
+        for bad in ([bogus], duplicated):
+            with self.subTest(bad=[v.name for v in bad]):
+                with self.assertRaises(ValueError):
+                    MPSModel(ti, post_processing_variables=bad)
+
+
+class TestPostProcessingVariablesEngine(unittest.TestCase):
+    @staticmethod
+    def _run(ti, seed, sim_size=10, **model_kwargs):
+        """Simulate a square grid with one post-processing pass."""
+        model = MPSModel(ti, post_processing=1, **model_kwargs)
+        pos = [np.arange(float(sim_size))] * 2
+        return DirectSampling(model)(pos, seed=seed)
+
+    def test_post_processing_variables_none_bit_identical(self):
+        # Spec invariant 3: default behaviour is untouched.
+        rng = np.random.RandomState(42)
+        ti_arr = (rng.random((30, 30)) > 0.5).astype(float)
+        ti = TrainingImage(ti_arr, categorical=True, n_neighbors=8)
+        kwargs = dict(ti=ti, seed=5, scan_fraction=0.25, threshold=0.2)
+
+        out_before = self._run(**kwargs)
+        out_after = self._run(**kwargs, post_processing_variables=[])
+        np.testing.assert_array_equal(out_before, out_after)
+
+    def test_post_processing_distance_power_override_changes_output(self):
+        # R1: a different distance_power during post-processing.
+        rng = np.random.RandomState(7)
+        ti_arr = (rng.random((30, 30)) > 0.5).astype(float)
+        ti = TrainingImage(ti_arr, categorical=True, n_neighbors=8)
+        kwargs = dict(ti=ti, seed=9, scan_fraction=0.25, threshold=0.2)
+
+        base = self._run(**kwargs)
+        override = ti.variable().replace(distance_power=2.0)
+        overridden = self._run(**kwargs, post_processing_variables=[override])
+
+        self.assertFalse(np.array_equal(base, overridden))
+
+    def test_post_processing_distance_override_changes_output(self):
+        # R2: a different distance metric during post-processing.
+        rng = np.random.default_rng(3)
+        ti_arr = rng.integers(0, 3, (25, 25)).astype(float)
+        ti = TrainingImage(ti_arr, categorical=True, n_neighbors=10)
+        kwargs = dict(ti=ti, seed=11, scan_fraction=0.3, threshold=0.1)
+
+        base = self._run(**kwargs)
+
+        # Non-uniform, not just a uniform scalar multiple of binary mismatch
+        # (a uniform penalty would leave every exact-match (d=0) candidate
+        # exactly where it was, since scaling doesn't move the argmin/
+        # threshold-crossing point for those).
+        penalty = np.array(
+            [[0.0, 0.9, 0.1], [0.9, 0.0, 0.9], [0.1, 0.9, 0.0]]
+        )
+        override = ti.variable().replace(penalty_matrix=penalty)
+        overridden = self._run(**kwargs, post_processing_variables=[override])
+
+        self.assertFalse(np.array_equal(base, overridden))
+        self.assertTrue(np.isin(overridden, np.unique(ti_arr)).all())
+
+    def test_post_processing_variables_multivariate_named_override(self):
+        # R3: the override applies to the named variable of a multivariate TI.
+        rng = np.random.default_rng(4)
+        ti = TrainingImage(
+            [
+                Variable(
+                    "a", rng.integers(0, 3, (20, 20)).astype(float),
+                    n_neighbors=6,
+                ),
+                Variable(
+                    "b", rng.integers(0, 2, (20, 20)).astype(float),
+                    n_neighbors=6,
+                ),
+            ]
+        )
+        kwargs = dict(
+            ti=ti, seed=13, sim_size=8, scan_fraction=0.4, threshold=0.15
+        )
+
+        base = self._run(**kwargs)
+        override_a = ti.variable("a").replace(distance_power=1.5)
+        overridden = self._run(
+            **kwargs, post_processing_variables=[override_a]
+        )
+
+        self.assertFalse(np.array_equal(base["a"], overridden["a"]))
+
+    def test_post_processing_variables_max_radius_and_weight_ignored(self):
+        # Documented limitation: only distance/penalty_matrix/distance_power/
+        # cond_weight/n_neighbors take effect for a post-processing override;
+        # max_radius and weight are resolved once from the primary TI and
+        # shared by every pass, so an override of either is a no-op. Pinned
+        # here so a future change either preserves this or updates the
+        # MPSModel.post_processing_variables docstring deliberately.
+        rng = np.random.RandomState(15)
+        ti_arr = (rng.random((25, 25)) > 0.5).astype(float)
+        ti = TrainingImage(ti_arr, categorical=True, n_neighbors=8, max_radius=10.0)
+        kwargs = dict(ti=ti, seed=17, scan_fraction=0.25, threshold=0.2)
+
+        base = self._run(**kwargs)
+        override = ti.variable().replace(max_radius=2.0)
+        overridden = self._run(**kwargs, post_processing_variables=[override])
+        np.testing.assert_array_equal(base, overridden)
+
+    def test_ds_simulate_direct_accepts_post_processing_variables(self):
+        # ds_simulate is the low-level entry point MPSModel wraps; it must
+        # take the override list directly too.
+        arr1d = np.tile([0, 1], 10).astype(float)
+        ti = TrainingImage(arr1d, categorical=True, n_neighbors=4)
+        override = ti.variable().replace(distance_power=1.0)
+        result = ds_simulate(
+            ti, sim_shape=(6,), threshold=None, scan_fraction=1.0,
+            rng_path=np.random.RandomState(1),
+            rng_nodes=np.random.RandomState(1),
+            post_processing=1, post_processing_variables=[override],
+        )
+        self.assertTrue(np.isin(result[None], [0.0, 1.0]).all())
+
+
+class TestPostProcessingMask(unittest.TestCase):
+    def setUp(self):
+        rng = np.random.RandomState(6)
+        ti_arr = (rng.random((20, 20)) > 0.5).astype(float)
+        self.ti = TrainingImage(ti_arr, categorical=True, n_neighbors=6)
+        self.pos = [np.arange(10.0)] * 2
+
+    def _ds(self, **model_kwargs):
+        return DirectSampling(
+            MPSModel(
+                self.ti, scan_fraction=0.3, threshold=0.15, **model_kwargs
+            )
+        )
+
+    def _run(self, seed=8, **model_kwargs):
+        return self._ds(**model_kwargs)(self.pos, seed=seed)
+
+    def test_post_processing_mask_none_is_default_behaviour(self):
+        base = self._run(post_processing=1)
+        explicit_none = self._run(post_processing=1, post_processing_mask=None)
+        np.testing.assert_array_equal(base, explicit_none)
+
+    def test_post_processing_mask_selects_eligible_nodes(self):
+        # The mask says which nodes the post-pass may re-simulate; nodes
+        # outside it must come out of the post-pass untouched.
+        before = self._run(post_processing=0)
+        mask = np.zeros((10, 10), dtype=bool)
+        mask[:5, :] = True  # only the top half is eligible
+
+        top_eligible = self._run(post_processing=1, post_processing_mask=mask)
+        np.testing.assert_array_equal(before[5:, :], top_eligible[5:, :])
+
+        bottom_eligible = self._run(
+            post_processing=1, post_processing_mask=~mask
+        )
+        np.testing.assert_array_equal(before[:5, :], bottom_eligible[:5, :])
+
+    def test_post_processing_mask_selects_eligible_nodes_with_same_path(self):
+        # Regression: post_processing_path="same" used to reuse self.path
+        # verbatim, bypassing the mask-narrowed resim set entirely (the
+        # "same" branch predates post_processing_mask and assumed resim was
+        # always the full unknown-node set). Masked-out nodes must still be
+        # frozen under this path mode too.
+        before = self._run(post_processing=0)
+        mask = np.zeros((10, 10), dtype=bool)
+        mask[:5, :] = True
+
+        top_eligible = self._run(
+            post_processing=1, post_processing_mask=mask,
+            post_processing_path="same",
+        )
+        np.testing.assert_array_equal(before[5:, :], top_eligible[5:, :])
+
+    def test_post_processing_mask_all_false_is_noop(self):
+        before = self._run(post_processing=0)
+        after = self._run(
+            post_processing=1,
+            post_processing_mask=np.zeros((10, 10), dtype=bool),
+        )
+        np.testing.assert_array_equal(before, after)
+
+    def test_post_processing_mask_wrong_shape_raises(self):
+        ds = self._ds(
+            post_processing=1,
+            post_processing_mask=np.ones((3, 3), dtype=bool),
+        )
+        with self.assertRaises(ValueError):
+            ds(self.pos, seed=1)
+
+    def test_post_processing_mask_never_touches_conditioning(self):
+        ds = self._ds(
+            post_processing=1,
+            post_processing_mask=np.ones((10, 10), dtype=bool),  # all eligible
+        )
+        ds.set_condition([[3.0], [3.0]], [1.0])
+        out = ds(self.pos, seed=8)
+        self.assertEqual(float(out[3, 3]), 1.0)
+
+
 class TestVecCategoricalPenaltyDist(unittest.TestCase):
     """Unit tests for vec_categorical_penalty_dist (DS_Feature_Checklist §3.3)."""
 
@@ -3917,6 +4343,49 @@ class TestPenaltyMatrixSetCondition(unittest.TestCase):
         ds.set_condition([[0.0], [0.0]], {"a": [99.0], "b": [0.0]})
 
 
+class TestThresholdNoneSentinel(unittest.TestCase):
+    """threshold=None is the DSBC spelling; any other value must be > 0."""
+
+    def _ti(self):
+        return gs.TrainingImage(np.zeros((8, 8)), categorical=True)
+
+    def test_none_is_the_default_and_warns_nothing(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertIsNone(gs.MPSModel(self._ti()).threshold)
+            self.assertIsNone(gs.MPSModel(self._ti(), threshold=None).threshold)
+
+    def test_non_positive_rejected(self):
+        # 0.0 is not a DSBC selector: DS acceptance is ``d < threshold``, so
+        # 0.0 would accept nothing. It is an ordinary invalid value.
+        for bad in (0.0, -0.1):
+            with self.subTest(threshold=bad):
+                with self.assertRaises(ValueError):
+                    gs.MPSModel(self._ti(), threshold=bad)
+                model = gs.MPSModel(self._ti())
+                with self.assertRaises(ValueError):
+                    model.threshold = bad
+
+    def test_positive_threshold_unaffected(self):
+        model = gs.MPSModel(self._ti(), threshold=0.05)
+        self.assertAlmostEqual(model.threshold, 0.05)
+
+    def test_ds_simulate_direct_accepts_none(self):
+        # ds_simulate is the low-level entry point MPSModel wraps; it must
+        # accept None directly too, not just via MPSModel's validator.
+        arr1d = np.tile([0, 1], 10).astype(float)
+        ti = gs.TrainingImage(arr1d, categorical=True, n_neighbors=4)
+        result = ds_simulate(
+            ti,
+            sim_shape=(6,),
+            threshold=None,
+            scan_fraction=1.0,
+            rng_path=np.random.RandomState(7),
+            rng_nodes=np.random.RandomState(7),
+        )
+        self.assertTrue(np.isin(result[None], [0.0, 1.0]).all())
+
+
 class TestPostProcessingParams(unittest.TestCase):
     """MPSModel post-processing parameter validation (Me13 §4)."""
 
@@ -3943,9 +4412,19 @@ class TestPostProcessingParams(unittest.TestCase):
         with self.assertRaises(ValueError):
             gs.MPSModel(self._ti(), post_processing=-1)
 
-    def test_rejects_factor_below_one(self):
+    def test_rejects_factor_not_positive(self):
         with self.assertRaises(ValueError):
-            gs.MPSModel(self._ti(), post_processing_factor=0.5)
+            gs.MPSModel(self._ti(), post_processing_factor=0.0)
+        with self.assertRaises(ValueError):
+            gs.MPSModel(self._ti(), post_processing_factor=-0.5)
+
+    def test_accepts_factor_below_one(self):
+        model = gs.MPSModel(
+            self._ti(), post_processing=1, post_processing_factor=0.5
+        )
+        self.assertEqual(model.post_processing_factor, 0.5)
+        model.post_processing_factor = 0.1
+        self.assertEqual(model.post_processing_factor, 0.1)
 
 
 def _isolated_count(field):
@@ -3998,6 +4477,36 @@ class TestPostProcessingPass(unittest.TestCase):
         # the passes must actually re-draw, not no-op
         self.assertFalse(np.array_equal(base, field))
 
+    def test_factor_below_one_changes_output(self):
+        # p_f < 1 means MORE effort per post-pass (larger n_neighbors,
+        # larger scan_fraction), not less -- the opposite of Me13's
+        # documented use of p_f. Confirm it actually takes effect.
+        field_pf1 = self._run(post_processing=1, post_processing_factor=1.0)
+        field_pf_half = self._run(post_processing=1, post_processing_factor=0.5)
+        self.assertFalse(np.array_equal(field_pf1, field_pf_half))
+        # still a valid categorical subset of the TI's values
+        self.assertTrue(np.isin(field_pf_half, np.unique(self.ti_data)).all())
+
+    def test_factor_below_one_scales_n_k_and_scan_fraction_up(self):
+        observed = []
+        orig = _DirectSamplingEngine._simulate_node
+
+        def spy(engine, pss, i, x_i, u_st, u_fb):
+            observed.append((dict(pss.n_k), pss.scan_fraction))
+            return orig(engine, pss, i, x_i, u_st, u_fb)
+
+        _DirectSamplingEngine._simulate_node = spy
+        try:
+            self._run(post_processing=1, post_processing_factor=0.5)
+        finally:
+            _DirectSamplingEngine._simulate_node = orig
+
+        # main-pass n_neighbors is 8 (set on the TI inside _run); a p_f=0.5
+        # post-pass must double it: max(1, round(8 / 0.5)) == 16. scan_fraction
+        # (0.25 in _run) must likewise double to 0.5.
+        post_pass_n_k = {n_k[None] for n_k, f in observed if f == 0.5}
+        self.assertEqual(post_pass_n_k, {16})
+
     def test_conditioning_preserved_exactly(self):
         cond = (([2.0, 10.0, 21.0], [3.0, 15.0, 8.0]), [1.0, 0.0, 1.0])
         field = self._run(post_processing=2, cond=cond)
@@ -4046,6 +4555,7 @@ class TestPostProcessingPass(unittest.TestCase):
             n_k=eng.n_k,
             scan_fraction=eng.scan_fraction,
             neighbor_cache={},
+            domains=eng.domains,
         )
         x_0 = eng.path[0]
         events = eng._gather_neighborhood(
@@ -4156,6 +4666,7 @@ class TestPostProcessingPass(unittest.TestCase):
             n_k=eng.n_k,
             scan_fraction=eng.scan_fraction,
             neighbor_cache={},
+            domains=eng.domains,
         )
         # Erase-and-simulate one node, then check the blast radius.
         x_0 = eng.path[0]

@@ -1,11 +1,12 @@
 """Direct Sampling simulation engine.
 
 `ds_simulate` is the entry point; `_DirectSamplingEngine` holds one run's
-state (output grids, informed masks, config) explicitly — what used to be
-captured by closures inside `ds_simulate`. The engine orchestrates per-node
-simulation by calling the stateless `neighbors`, `scan`, and `runner` modules.
+state (output grids, informed masks, config) explicitly. The engine
+orchestrates per-node simulation by calling the stateless `neighbors`,
+`scan`, and `runner` modules.
 """
 
+import dataclasses
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from math import prod
@@ -24,15 +25,16 @@ from gstools.mps.neighbors import (
 )
 from gstools.mps.runner import _make_progress, _run_path
 from gstools.mps.scan import _scan_for_match, _ScanConfig
+from gstools.mps.training_image import _resolve_post_ti
 
 
 @dataclass(frozen=True)
 class _Pass:
     """Everything that varies per pass — the main path or one post-processing round.
 
-    Threaded through the node-simulation seams as an argument, so the engine's
-    own ``n_k``/``scan_fraction``/``domains`` stay un-mutated base configuration
-    and any further phase is just another ``_Pass``.
+    Threaded through the node-simulation seams as an argument, so the
+    engine's own base configuration is never mutated in place; each phase
+    is just another ``_Pass``.
 
     Parameters
     ----------
@@ -53,6 +55,13 @@ class _Pass:
         One-slot box for the DAG-build neighbour cache, filled under key
         ``"coords"``.  Fresh per pass, so no cache can leak between passes;
         stays empty in serial mode.
+    domains : list of _Domain
+        This pass's scan domains (index 0 = primary, i + 1 = zone i) -- the
+        main pass uses ``self.domains`` (bound to the primary TI's search
+        config); a post-processing pass uses ``self._post_domains`` (bound
+        to ``_post_ti``'s, per any ``post_processing_variables`` override).
+        Both domain sets share every data buffer; only the distance kernel
+        and per-variable distance_power/cond_weight can differ between them.
     """
 
     order: object
@@ -61,6 +70,7 @@ class _Pass:
     n_k: dict
     scan_fraction: float
     neighbor_cache: dict
+    domains: list
 
 
 @dataclass(frozen=True)
@@ -210,7 +220,6 @@ class _DirectSamplingEngine:
         rng_path,
         rng_nodes,
         conditions=None,
-        cond_weight=1.0,
         boundary="strict",
         rotation_map=None,
         scale_map=None,
@@ -221,6 +230,8 @@ class _DirectSamplingEngine:
         post_processing=0,
         post_processing_factor=1.0,
         post_processing_path=None,
+        post_processing_variables=None,
+        post_processing_mask=None,
         scan_path="sequential",
     ):
         self.training_image = training_image
@@ -239,7 +250,6 @@ class _DirectSamplingEngine:
         self.dim = len(sim_shape)
         self.threshold = threshold
         self.scan_fraction = scan_fraction
-        self.cond_weight = cond_weight
         self.boundary = boundary
         # Window scan order; copied into every domain's _ScanConfig by
         # _build_domain, so zones inherit it.
@@ -354,8 +364,53 @@ class _DirectSamplingEngine:
                     f"zone_tis[i]), got range [{smin}, {smax}]."
                 )
 
+        # Post-processing domains: same domain data as self.domains (no
+        # rebuild -- primary + zones' data/shape/d_max never differ between
+        # a main pass and a post-pass), only the distance kernel and
+        # per-variable distance_power/cond_weight differ, sourced from
+        # `_post_ti` instead of `training_image`. Resolved once here, not
+        # per pass or per node.
+        self._post_ti = _resolve_post_ti(
+            training_image, post_processing_variables or []
+        )
+        post_distance_power = {
+            v.name: v.distance_power for v in self._post_ti.variables
+        }
+        post_cond_weight = {
+            v.name: v.cond_weight for v in self._post_ti.variables
+        }
+        self._post_domains = [
+            dataclasses.replace(
+                dom,
+                scan_config=dataclasses.replace(
+                    dom.scan_config,
+                    distance_power=post_distance_power,
+                    cond_weight=post_cond_weight,
+                    vec_distance_var=self._post_ti.vec_distance_var,
+                ),
+            )
+            for dom in self.domains
+        ]
+
+        if post_processing_mask is not None:
+            if post_processing_mask.shape != tuple(sim_shape):
+                raise ValueError(
+                    f"ds_simulate: post_processing_mask shape "
+                    f"{post_processing_mask.shape!r} does not match the "
+                    f"simulation grid shape {tuple(sim_shape)!r}."
+                )
+        self._post_processing_mask = post_processing_mask
+
     def _build_domain(self, ti):
-        """Precompute one scan domain (flat arrays, strides, d_max, NaN)."""
+        """Precompute one scan domain (flat arrays, strides, d_max, NaN).
+
+        ``ti`` supplies this domain's data, shape, and d_max (the primary
+        TI or a zone TI); the distance kernel and per-variable
+        distance_power/cond_weight always come from ``self.training_image``
+        -- the main pass's post-processing counterpart is derived from the
+        result via ``dataclasses.replace`` instead of rebuilding here (see
+        ``_post_domains`` in ``__init__``).
+        """
         ti_shape = np.array(ti.shape)
         ti_shape_tuple = tuple(int(s) for s in ti.shape)
         _dim = len(ti_shape_tuple)
@@ -390,6 +445,12 @@ class _DirectSamplingEngine:
         # follow the selected TI). Kernel type stays the primary's
         # (vec_distance_var is bound to self.training_image).
         d_max = {v.name: v.d_max for v in ti.variables}
+        distance_power = {
+            v.name: v.distance_power for v in self.training_image.variables
+        }
+        cond_weight = {
+            v.name: v.cond_weight for v in self.training_image.variables
+        }
         scan_config = _ScanConfig(
             variables=self.variables,
             weights=self.weights,
@@ -398,8 +459,8 @@ class _DirectSamplingEngine:
             ti_strides=ti_strides,
             ti_shape=ti_shape,
             threshold=self.threshold,
-            cond_weight=self.cond_weight,
-            distance_power=self.training_image.distance_power,
+            cond_weight=cond_weight,
+            distance_power=distance_power,
             vec_distance_var=self.training_image.vec_distance_var,
             d_max=d_max,
             ti_has_nan=has_nan,
@@ -746,9 +807,9 @@ class _DirectSamplingEngine:
         # event is built from SG neighbours regardless of their zones,
         # which keeps zone boundaries coherent (spec §3 Mechanism).
         dom = (
-            self.domains[int(self.zone_selector[x_i_t])]
+            pss.domains[int(self.zone_selector[x_i_t])]
             if self.zone_selector is not None
-            else self.domains[0]
+            else pss.domains[0]
         )
         targets = [v for v in self.variables if np.isnan(self.sg[v][x_i_t])]
 
@@ -799,6 +860,7 @@ class _DirectSamplingEngine:
             n_k=self.n_k,
             scan_fraction=self.scan_fraction,
             neighbor_cache={},
+            domains=self.domains,
         )
         try:
             self._dispatch_pass(
@@ -910,11 +972,18 @@ class _DirectSamplingEngine:
         resim = np.zeros(self.sim_shape, dtype=bool)
         for v in self.variables:
             resim |= ~self.is_cond[v]
+        if self._post_processing_mask is not None:
+            resim &= self._post_processing_mask
         if not resim.any():
             return
         p_f = self.post_processing_factor
+        # Divide from _post_ti's own n_neighbors, not self.n_k (the main
+        # pass's) -- when no post_processing_variables override exists,
+        # _post_ti's variables are the primary's own Variable objects, so
+        # this is bit-identical to dividing self.n_k.
+        post_n_k = {v.name: v.n_neighbors for v in self._post_ti.variables}
         pass_n_k = {
-            v: max(1, int(round(n / p_f))) for v, n in self.n_k.items()
+            v: max(1, int(round(n / p_f))) for v, n in post_n_k.items()
         }
         pass_scan_fraction = self.scan_fraction / p_f
         sg_size = int(np.prod(self.sim_shape))
@@ -926,10 +995,14 @@ class _DirectSamplingEngine:
 
         for _ in range(self.post_processing):
             if isinstance(self._post_path, str) and self._post_path == "same":
-                # resim is exactly the main path's unknown-node set (a node
-                # is re-simulatable iff it was not conditioned, and only
-                # conditioning informs the SG before the main pass).
-                order = self.path
+                # Without a post_processing_mask, resim is exactly the main
+                # path's unknown-node set (a node is re-simulatable iff it
+                # was not conditioned, and only conditioning informs the SG
+                # before the main pass), so self.path IS the eligible node
+                # set in the right order. With a mask, resim is narrower --
+                # filter self.path down to the eligible subset, preserving
+                # its order, rather than reusing it unfiltered.
+                order = self.path[resim[tuple(self.path.T)]]
             else:
                 order = _build_path(
                     resim, self._post_path, self._rng_path, self.sim_shape
@@ -941,6 +1014,7 @@ class _DirectSamplingEngine:
                 n_k=pass_n_k,
                 scan_fraction=pass_scan_fraction,
                 neighbor_cache={},
+                domains=self._post_domains,
             )
             self._dispatch_pass(
                 pss,
@@ -961,7 +1035,6 @@ def ds_simulate(
     rng_path,
     rng_nodes,
     conditions=None,
-    cond_weight=1.0,
     boundary="strict",
     num_threads=None,
     rotation_map=None,
@@ -974,6 +1047,8 @@ def ds_simulate(
     post_processing=0,
     post_processing_factor=1.0,
     post_processing_path=None,
+    post_processing_variables=None,
+    post_processing_mask=None,
     scan_path="sequential",
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
@@ -986,7 +1061,8 @@ def ds_simulate(
     the node's *uninformed* variables. Because every variable at a node is drawn
     from the same TI cell, the joint (cross-variable) relationship is reproduced
     exactly. Variables already known at the node (only ever via conditioning
-    data) act as collocated ``h = 0`` constraints, weighted by ``cond_weight``.
+    data) act as collocated ``h = 0`` constraints, weighted by each
+    variable's ``cond_weight`` (:class:`Variable`).
 
     Parameters
     ----------
@@ -995,8 +1071,8 @@ def ds_simulate(
         read from each :class:`Variable` object.
     sim_shape : tuple
         Simulation grid shape.
-    threshold : float
-        Distance threshold (Juda2022 §2). ``0.0`` -> DSBC mode.
+    threshold : float or None
+        Distance threshold (Juda2022 §2). ``None`` -> DSBC mode.
     scan_fraction : float
         Fraction of the TI to scan per node, capped at the valid search window.
     rng_path : numpy.random.RandomState
@@ -1015,8 +1091,6 @@ def ds_simulate(
         Default: ``"random"``.
     conditions : dict, optional
         ``{node_index: {variable: value}}`` conditioning data.
-    cond_weight : float, optional
-        Weight delta for conditioning nodes (Mariethoz2010 §3 ¶26).
     boundary : str, optional
         ``"strict"`` (default) or ``"partial"`` search-window strategy.
     num_threads : int or None, optional
@@ -1087,6 +1161,17 @@ def ds_simulate(
         validated like an explicit main ``path`` but against the post-pass
         node set (every node with at least one non-conditioned variable),
         so it may include already-conditioned nodes (silently dropped).
+    post_processing_variables : list of Variable, optional
+        Per-variable search-config overrides used only during
+        post-processing passes. Matched by ``.name`` against
+        ``training_image``'s variables; a name absent there raises
+        ``ValueError``. Unnamed variables reuse the primary's own search
+        config unchanged. Default: ``None`` (no overrides).
+    post_processing_mask : numpy.ndarray of bool, or None, optional
+        Simulation-grid-shaped mask selecting which nodes post-processing
+        may re-simulate (``True`` = eligible). ``None`` (default) -> every
+        non-conditioning node. ``~mask`` selects the complement.
+        Conditioning nodes are never re-simulated regardless of this mask.
     scan_path : :class:`str`, optional
         TI window scan order: ``"sequential"`` (default, Mariethoz2010 para
         [19]) or ``"random"`` (GSTools extension). Default: ``"sequential"``
@@ -1104,7 +1189,6 @@ def ds_simulate(
         rng_path,
         rng_nodes,
         conditions=conditions,
-        cond_weight=cond_weight,
         boundary=boundary,
         rotation_map=rotation_map,
         scale_map=scale_map,
@@ -1115,6 +1199,8 @@ def ds_simulate(
         post_processing=post_processing,
         post_processing_factor=post_processing_factor,
         post_processing_path=post_processing_path,
+        post_processing_variables=post_processing_variables,
+        post_processing_mask=post_processing_mask,
         scan_path=scan_path,
     )
     return engine.run(num_threads=num_threads, progress=progress)

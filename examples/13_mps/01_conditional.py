@@ -36,7 +36,7 @@ cond_val = ti_data[cond_x.astype(int), cond_y.astype(int)]
 # Set the conditioning data and simulate. ``set_condition`` snaps each point to
 # its nearest grid node, so the values are honoured exactly at those cells.
 
-ds = gs.DirectSampling(gs.MPSModel(ti, scan_fraction=0.3, threshold=0.0))
+ds = gs.DirectSampling(gs.MPSModel(ti, scan_fraction=0.3, threshold=None))
 ds.set_condition([cond_x, cond_y], cond_val)
 field = ds([np.arange(40, dtype=float)] * 2, seed=7)
 
