@@ -8,11 +8,15 @@ The following functions are provided
 .. autosummary::
    set_angles
    set_anis
+   set_scale
    no_of_angles
    rotation_planes
    givens_rotation
    matrix_rotate
    matrix_derotate
+   matrix_scale
+   matrix_transform
+   matrix_detransform
    matrix_isotropify
    matrix_anisotropify
    matrix_isometrize
@@ -35,11 +39,15 @@ import numpy as np
 __all__ = [
     "set_angles",
     "set_anis",
+    "set_scale",
     "no_of_angles",
     "rotation_planes",
     "givens_rotation",
     "matrix_rotate",
     "matrix_derotate",
+    "matrix_scale",
+    "matrix_transform",
+    "matrix_detransform",
     "matrix_isotropify",
     "matrix_anisotropify",
     "matrix_isometrize",
@@ -54,6 +62,7 @@ __all__ = [
     "latlon2pos",
     "pos2latlon",
     "chordal_to_great_circle",
+    "great_circle_to_chordal",
 ]
 
 
@@ -121,6 +130,56 @@ def set_anis(dim, anis):
             constant_values=1.0,
         )
     return out_anis
+
+
+def set_scale(dim, scale):
+    """Set the axis scaling factors for the given dimension.
+
+    Unlike :func:`set_anis` there is no padding and no pinned axis: a scalar
+    is broadcast to all ``dim`` axes (uniform dilation), an exact
+    ``dim``-vector passes through, and anything else raises.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    scale : :class:`float` or :class:`list`
+        scaling factor per axis; a scalar means uniform dilation
+
+    Returns
+    -------
+    scale : :class:`numpy.ndarray` of shape (dim,)
+        the validated per-axis scaling factors
+
+    Raises
+    ------
+    ValueError
+        If ``scale`` is neither a scalar nor an exact ``dim``-vector, or if
+        any value is not strictly positive.
+
+    Examples
+    --------
+    >>> set_scale(3, 2.0)
+    array([2., 2., 2.])
+    >>> set_scale(2, [1.0, 0.5])
+    array([1. , 0.5])
+    """
+    arr = np.asarray(scale, dtype=np.double)
+    if arr.ndim == 0:
+        arr = np.full(dim, float(arr))
+    elif arr.shape != (dim,):
+        raise ValueError(
+            f"set_scale: scale must be a scalar or a vector of exactly "
+            f"length dim={dim}, got shape {arr.shape!r}. Short vectors are "
+            "not padded."
+        )
+    else:
+        arr = arr.copy()
+    if not np.all(arr > 0):
+        raise ValueError(
+            f"set_scale: all scale values must be > 0, got {arr!r}"
+        )
+    return arr
 
 
 def no_of_angles(dim):
@@ -234,6 +293,85 @@ def matrix_derotate(dim, angles):
     return result
 
 
+def matrix_scale(dim, scale):
+    """Create a diagonal per-axis scaling matrix.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    scale : :class:`float` or :class:`list`
+        scaling factor per axis (see :func:`set_scale`)
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (dim, dim)
+        Scaling matrix ``diag(set_scale(dim, scale))``.
+
+    Examples
+    --------
+    >>> matrix_scale(2, [1.0, 0.5])
+    array([[1. , 0. ],
+           [0. , 0.5]])
+    """
+    return np.diag(set_scale(dim, scale))
+
+
+def matrix_transform(dim, angles, scale):
+    """Create a matrix to rotate and scale points (rotation ∘ scaling).
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
+    scale : :class:`float` or :class:`list`
+        scaling factor per axis (see :func:`set_scale`)
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (dim, dim)
+        ``matrix_rotate(dim, angles) @ matrix_scale(dim, scale)``.
+
+    Examples
+    --------
+    >>> matrix_transform(2, [0.0], [1.0, 0.5])
+    array([[1. , 0. ],
+           [0. , 0.5]])
+    """
+    return np.matmul(matrix_rotate(dim, angles), matrix_scale(dim, scale))
+
+
+def matrix_detransform(dim, angles, scale):
+    """Create the exact inverse of :func:`matrix_transform`.
+
+    Parameters
+    ----------
+    dim : :class:`int`
+        spatial dimension
+    angles : :class:`float` or :class:`list`
+        the rotation angles of the target coordinate-system
+    scale : :class:`float` or :class:`list`
+        scaling factor per axis (see :func:`set_scale`)
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (dim, dim)
+        ``matrix_scale(dim, 1/scale) @ matrix_derotate(dim, angles)``.
+
+    Examples
+    --------
+    >>> matrix_detransform(2, [0.0], [1.0, 0.5])
+    array([[1., 0.],
+           [0., 2.]])
+    """
+    return np.matmul(
+        matrix_scale(dim, 1.0 / set_scale(dim, scale)),
+        matrix_derotate(dim, angles),
+    )
+
+
 def matrix_isotropify(dim, anis):
     """Create a stretching matrix to make things isotrope.
 
@@ -250,7 +388,7 @@ def matrix_isotropify(dim, anis):
             Stretching matrix.
     """
     anis = set_anis(dim, anis)
-    return np.diag(np.concatenate(([1.0], 1.0 / anis)))
+    return matrix_scale(dim, np.concatenate(([1.0], 1.0 / anis)))
 
 
 def matrix_anisotropify(dim, anis):
@@ -269,7 +407,7 @@ def matrix_anisotropify(dim, anis):
             Stretching matrix.
     """
     anis = set_anis(dim, anis)
-    return np.diag(np.concatenate(([1.0], anis)))
+    return matrix_scale(dim, np.concatenate(([1.0], anis)))
 
 
 def matrix_isometrize(dim, angles, anis):
@@ -289,9 +427,8 @@ def matrix_isometrize(dim, angles, anis):
         :class:`numpy.ndarray`
             Transformation matrix.
     """
-    return np.matmul(
-        matrix_isotropify(dim, anis), matrix_derotate(dim, angles)
-    )
+    anis = set_anis(dim, anis)
+    return matrix_detransform(dim, angles, np.concatenate(([1.0], anis)))
 
 
 def matrix_anisometrize(dim, angles, anis):
@@ -311,9 +448,8 @@ def matrix_anisometrize(dim, angles, anis):
         :class:`numpy.ndarray`
             Transformation matrix.
     """
-    return np.matmul(
-        matrix_rotate(dim, angles), matrix_anisotropify(dim, anis)
-    )
+    anis = set_anis(dim, anis)
+    return matrix_transform(dim, angles, np.concatenate(([1.0], anis)))
 
 
 def rotated_main_axes(dim, angles):

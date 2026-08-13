@@ -267,11 +267,17 @@ class TestCokriging(unittest.TestCase):
 
         Uses eval points that don't coincide with conditioning locations to
         keep the (2n+1) system full-rank (it is singular at exact conditioning
-        locations under Markov Model 1).
+        locations under Markov Model 1). A shorter len_scale than the shared
+        fixture's is used here so the (2n+1) system stays well-conditioned
+        (cond ~500, vs ~1e5 at len_scale=2) -- otherwise the assert_allclose
+        below is sensitive to which BLAS/LAPACK backend numpy is linked
+        against (observed to fail only on windows-latest py3.11
+        numpy==1.23.2 scipy==1.9.2 in CI, not reproducible on macOS/Linux).
         """
         rho, sec_var, mZ, mY = 0.7, 1.5, 0.3, -0.2
+        model = gs.Gaussian(dim=1, var=2, len_scale=1)
         corr = gs.MarkovModel1(
-            self.model, cross_corr=rho, secondary_var=sec_var,
+            model, cross_corr=rho, secondary_var=sec_var,
             primary_mean=mZ, secondary_mean=mY,
         )
         icck = gs.cokriging.IntrinsicCollocated(
@@ -283,11 +289,11 @@ class TestCokriging(unittest.TestCase):
         sec_eval = np.array([0.4, 0.6, 0.3, 0.8])
         field = icck(eval_pos[0], secondary_data=sec_eval, return_var=False)
 
-        C_Z0 = self.model.sill
+        C_Z0 = model.sill
         C_YZ0 = rho * np.sqrt(C_Z0 * sec_var)
         C_Y0 = sec_var
         k = C_YZ0 / C_Z0
-        cov = self.model.covariance
+        cov = model.covariance
         P = np.asarray(self.cond_pos[0])
         n = len(P)
         Dzz = cov(np.abs(P[:, None] - P[None, :]))
@@ -404,10 +410,19 @@ class TestCokriging(unittest.TestCase):
 
 
     def test_icck_summate_matches_oracle_with_chunks(self):
-        """Rewritten _summate must match the full-system oracle, incl. chunking."""
+        """Rewritten _summate must match the full-system oracle, incl. chunking.
+
+        A shorter len_scale than the shared fixture's is used here so the
+        (2n+1) system stays well-conditioned (cond ~500, vs ~1e5 at
+        len_scale=2) -- otherwise the assert_allclose below is sensitive to
+        which BLAS/LAPACK backend numpy is linked against (observed to fail
+        only on windows-latest py3.11 numpy==1.23.2 scipy==1.9.2 in CI, not
+        reproducible on macOS/Linux).
+        """
         rho, sec_var, mZ, mY = 0.7, 1.5, 0.3, -0.2
+        model = gs.Gaussian(dim=1, var=2, len_scale=1)
         corr = gs.MarkovModel1(
-            self.model, cross_corr=rho, secondary_var=sec_var,
+            model, cross_corr=rho, secondary_var=sec_var,
             primary_mean=mZ, secondary_mean=mY,
         )
         icck = gs.cokriging.IntrinsicCollocated(
@@ -422,10 +437,10 @@ class TestCokriging(unittest.TestCase):
         self.assertEqual(field.shape, self.pos.shape)
         self.assertTrue(np.all(var >= 0.0))
         # independently re-derive reference using full (2n+1) system on non-coinciding points
-        C_Z0 = self.model.sill
+        C_Z0 = model.sill
         C_YZ0 = rho * np.sqrt(C_Z0 * sec_var)
         k = C_YZ0 / C_Z0
-        cov = self.model.covariance
+        cov = model.covariance
         P = np.asarray(self.cond_pos[0])
         n = len(P)
         Dzz = cov(np.abs(P[:, None] - P[None, :]))

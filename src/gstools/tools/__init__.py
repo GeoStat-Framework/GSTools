@@ -40,11 +40,15 @@ Geometric
    rotated_main_axes
    set_angles
    set_anis
+   set_scale
    no_of_angles
    rotation_planes
    givens_rotation
    matrix_rotate
    matrix_derotate
+   matrix_scale
+   matrix_transform
+   matrix_detransform
    matrix_isotropify
    matrix_anisotropify
    matrix_isometrize
@@ -89,14 +93,18 @@ from gstools.tools.geometric import (
     matrix_anisometrize,
     matrix_anisotropify,
     matrix_derotate,
+    matrix_detransform,
     matrix_isometrize,
     matrix_isotropify,
     matrix_rotate,
+    matrix_scale,
+    matrix_transform,
     no_of_angles,
     rotated_main_axes,
     rotation_planes,
     set_angles,
     set_anis,
+    set_scale,
 )
 from gstools.tools.special import (
     confidence_scaling,
@@ -139,11 +147,15 @@ __all__ = [
     "tpl_gau_spec_dens",
     "set_angles",
     "set_anis",
+    "set_scale",
     "no_of_angles",
     "rotation_planes",
     "givens_rotation",
     "matrix_rotate",
     "matrix_derotate",
+    "matrix_scale",
+    "matrix_transform",
+    "matrix_detransform",
     "matrix_isotropify",
     "matrix_anisotropify",
     "matrix_isometrize",

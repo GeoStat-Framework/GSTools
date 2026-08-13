@@ -13,6 +13,21 @@ All notable changes to **GSTools** will be documented in this file.
 - add collocated cokriging [#396](https://github.com/GeoStat-Framework/GSTools/pull/396)
   - new `SimpleCollocated` (SCCK) and `IntrinsicCollocated` (ICCK) classes, subclassing `CollocatedCokriging`
   - uses a `Correlogram` to relate the secondary variable to the primary at the estimation location
+- add Multiple Point Statistics with the Direct Sampling algorithm (new `gstools.mps` subpackage)
+  - `TrainingImage`/`Variable` hold the training data and the per-variable pattern distance,
+    `MPSModel` bundles the search parameters, `DirectSampling` generates the fields
+  - univariate and multivariate (joint) simulation, conditioning, masked (NaN) training images,
+    categorical and continuous distances including a per-category penalty matrix
+  - geometric non-stationarity via `MPSModel(rotation=..., scale=...)`, zonation via `Zone`,
+    and post-processing passes
+  - the main simulation path and the post-processing passes share one dependency-DAG runner,
+    so both honour `num_threads` and stay bit-identical to serial for any thread count
+- new geometric helpers in `gstools.tools`: `set_scale`, `matrix_scale`, `matrix_transform`
+  and `matrix_detransform` (rotation ∘ scaling and its exact inverse, without a pinned axis);
+  `great_circle_to_chordal` is now exported alongside `chordal_to_great_circle`
+- `matrix_isotropify` now raises `ValueError` for non-positive `anis` instead of returning an
+  infinite (degenerate) matrix, matching the three sibling `matrix_*` helpers; `CovModel`
+  already constrained `anis` to `(0, inf)`, so no model path changes
 
 ## [1.7.0] - Morphic Mint - 2025-04
 
