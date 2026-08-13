@@ -194,7 +194,11 @@ def _scan_for_match(
     active_w_total = sum(cfg.weights[v] for v in active_vars)
     precomp_w = {
         v: compute_node_weights(
-            len(de_v[v]), ln_v[v], cfg.distance_power[v], cm_v[v], cfg.cond_weight[v]
+            len(de_v[v]),
+            ln_v[v],
+            cfg.distance_power[v],
+            cm_v[v],
+            cfg.cond_weight[v],
         )
         for v in active_vars
     }

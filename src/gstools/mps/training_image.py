@@ -162,8 +162,13 @@ _SENTINEL = object()
 
 _REPLACE_FIELDS = frozenset(
     {
-        "distance", "weight", "n_neighbors", "max_radius", "penalty_matrix",
-        "distance_power", "cond_weight",
+        "distance",
+        "weight",
+        "n_neighbors",
+        "max_radius",
+        "penalty_matrix",
+        "distance_power",
+        "cond_weight",
     }
 )
 
@@ -240,7 +245,9 @@ class Variable:
         # construction, not literally O(1).
         data_arr = np.asarray(data)
         self._data = (
-            data_arr if not data_arr.flags.writeable else np.array(data_arr, copy=True)
+            data_arr
+            if not data_arr.flags.writeable
+            else np.array(data_arr, copy=True)
         )
         self._categorical = bool(categorical)
         self._distance = str(distance)
