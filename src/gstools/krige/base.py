@@ -16,6 +16,7 @@ import scipy.linalg as spl
 from gstools_core import calc_field_krige, calc_field_krige_and_variance
 from scipy.spatial.distance import cdist
 
+from gstools import config
 from gstools.field.base import Field
 from gstools.krige.tools import get_drift_functions, set_condition
 from gstools.tools.geometric import rotated_main_axes
@@ -27,20 +28,6 @@ __all__ = ["Krige"]
 
 P_INV = {"pinv": spl.pinv, "pinvh": spl.pinvh}
 """dict: Standard pseudo-inverse routines"""
-
-
-def _calc_field_krige(krig_mat, krig_vecs, cond, num_threads=None):
-    """A wrapper function for calling the krige algorithms."""
-    return calc_field_krige(krig_mat, krig_vecs, cond, num_threads)
-
-
-def _calc_field_krige_and_variance(
-    krig_mat, krig_vecs, cond, num_threads=None
-):
-    """A wrapper function for calling the krige algorithms."""
-    return calc_field_krige_and_variance(
-        krig_mat, krig_vecs, cond, num_threads
-    )
 
 
 class Krige(Field):
@@ -288,14 +275,15 @@ class Krige(Field):
 
     def _summate(self, field, krige_var, c_slice, k_vec, return_var):
         if return_var:  # estimate error variance
-            field[c_slice], krige_var[c_slice] = (
-                _calc_field_krige_and_variance(
-                    self._krige_mat, k_vec, self._krige_cond
-                )
+            field[c_slice], krige_var[c_slice] = calc_field_krige_and_variance(
+                self._krige_mat,
+                k_vec,
+                self._krige_cond,
+                config.NUM_THREADS,
             )
         else:  # solely calculate the interpolated field
-            field[c_slice] = _calc_field_krige(
-                self._krige_mat, k_vec, self._krige_cond
+            field[c_slice] = calc_field_krige(
+                self._krige_mat, k_vec, self._krige_cond, config.NUM_THREADS
             )
 
     def _inv(self, mat):

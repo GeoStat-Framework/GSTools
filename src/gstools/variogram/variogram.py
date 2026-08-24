@@ -39,69 +39,6 @@ AXIS = ["x", "y", "z"]
 AXIS_DIR = {"x": 0, "y": 1, "z": 2}
 
 
-def _directional(
-    field,
-    bin_edges,
-    pos,
-    direction,
-    angles_tol=np.pi / 8.0,
-    bandwidth=-1.0,
-    separate_dirs=False,
-    estimator_type="m",
-    num_threads=None,
-):
-    """A wrapper function for calling the directional variogram algorithms."""
-    return directional(
-        field,
-        bin_edges,
-        pos,
-        direction,
-        angles_tol,
-        bandwidth,
-        separate_dirs,
-        estimator_type,
-        num_threads,
-    )
-
-
-def _unstructured(
-    field,
-    bin_edges,
-    pos,
-    estimator_type="m",
-    distance_type="e",
-    num_threads=None,
-):
-    """A wrapper function for calling the unstructured variogram algorithms."""
-    return unstructured(
-        field,
-        bin_edges,
-        pos,
-        estimator_type,
-        distance_type,
-        num_threads,
-    )
-
-
-def _structured(
-    field,
-    estimator_type="m",
-    num_threads=None,
-):
-    """A wrapper function for calling the structured variogram algorithms."""
-    return structured(field, estimator_type, num_threads)
-
-
-def _ma_structured(
-    field,
-    mask,
-    estimator_type="m",
-    num_threads=None,
-):
-    """A wrapper function for calling the masked struct. variogram algorithms."""
-    return ma_structured(field, mask, estimator_type, num_threads)
-
-
 def _set_estimator(estimator):
     """Translate the verbose Python estimator identifier to single char."""
     if estimator.lower() == "matheron":
@@ -422,7 +359,7 @@ def vario_estimate(
     if dir_no == 0:
         # "h"aversine or "e"uclidean distance type
         distance_type = "h" if latlon else "e"
-        estimates, counts = _unstructured(
+        estimates, counts = unstructured(
             field,
             bin_edges,
             pos,
@@ -431,7 +368,7 @@ def vario_estimate(
             num_threads=config.NUM_THREADS,
         )
     else:
-        estimates, counts = _directional(
+        estimates, counts = directional(
             field,
             bin_edges,
             pos,
@@ -539,12 +476,10 @@ def vario_estimate_axis(
     backend_estimator = _set_estimator(estimator)
 
     if masked:
-        return _ma_structured(
+        return ma_structured(
             field, mask, backend_estimator, num_threads=config.NUM_THREADS
         )
-    return _structured(
-        field, backend_estimator, num_threads=config.NUM_THREADS
-    )
+    return structured(field, backend_estimator, num_threads=config.NUM_THREADS)
 
 
 # for backward compatibility

@@ -32,28 +32,6 @@ __all__ = ["Generator", "RandMeth", "IncomprRandMeth", "Fourier"]
 SAMPLING = ["auto", "inversion", "mcmc"]
 
 
-def _summate(cov_samples, z_1, z_2, pos, num_threads=None):
-    """A wrapper function for calling the randomization algorithms."""
-    return summate(cov_samples, z_1, z_2, pos, num_threads)
-
-
-def _summate_incompr(
-    cov_samples,
-    z_1,
-    z_2,
-    pos,
-    num_threads=None,
-):
-    """A wrapper function for calling the incompr. randomization algorithms."""
-
-    return summate_incompr(cov_samples, z_1, z_2, pos, num_threads)
-
-
-def _summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads=None):
-    """A wrapper function for calling the Fourier algorithms."""
-    return summate_fourier(spectrum_factor, modes, z_1, z_2, pos, num_threads)
-
-
 class Generator(ABC):
     """
     Abstract generator class.
@@ -242,7 +220,7 @@ class RandMeth(Generator):
             shp = pos.shape[1:]
             return self.get_nugget(shp) if add_nugget else np.full(shp, 0.0)
         # generate if var is not 0
-        summed_modes = _summate(
+        summed_modes = summate(
             self._cov_sample, self._z_1, self._z_2, pos, config.NUM_THREADS
         )
         nugget = self.get_nugget(summed_modes.shape) if add_nugget else 0.0
@@ -530,7 +508,7 @@ class IncomprRandMeth(RandMeth):
         e1 = self._create_unit_vector(pos.shape)
         if self.zero_var:
             return self.mean_u * e1 + nugget
-        summed_modes = _summate_incompr(
+        summed_modes = summate_incompr(
             self._cov_sample,
             self._z_1,
             self._z_2,
@@ -658,7 +636,7 @@ class Fourier(Generator):
             shp = pos.shape[1:]
             return self.get_nugget(shp) if add_nugget else np.full(shp, 0.0)
         # generate if var is not 0
-        summed_modes = _summate_fourier(
+        summed_modes = summate_fourier(
             self._spectrum_factor,
             self._modes,
             self._z_1,
