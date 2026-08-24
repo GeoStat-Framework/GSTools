@@ -47,7 +47,7 @@ conda
 GSTools can be installed via
 `conda <https://docs.conda.io/en/latest/miniconda.html>`_ on Linux, Mac, and
 Windows.
-Install the package by typing the following command in a command terminal:
+Install the package by typing the following command in a terminal:
 
 .. code-block:: none
 
@@ -55,7 +55,6 @@ Install the package by typing the following command in a command terminal:
 
 In case conda forge is not set up for your system yet, see the easy to follow
 instructions on `conda forge <https://github.com/conda-forge/gstools-feedstock#installing-gstools>`_.
-Using conda, the parallelized version of GSTools should be installed.
 
 
 pip
@@ -63,9 +62,7 @@ pip
 
 GSTools can be installed via `pip <https://pypi.org/project/gstools/>`_
 on Linux, Mac, and Windows.
-On Windows you can install `WinPython <https://winpython.github.io/>`_ to get
-Python and pip running.
-Install the package by typing the following into command in a command terminal:
+Install the package by typing the following into command in a terminal:
 
 .. code-block:: none
 
@@ -79,60 +76,10 @@ To get the latest development version you can install it directly from GitHub:
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
-**Speeding up GSTools by parallelization**
+**Running GSTools in parallel**
 
-We provide two possibilities to run GSTools in parallel, often causing a
-massive improvement in runtime. In either case, the number of parallel
-threads can be set with the global variable `config.NUM_THREADS`. If not set,
-all cores are used.
-When using conda, the parallel version of GSTools is installed per default.
-
-***Parallelizing Cython***
-
-For parallel support, the `GSTools-Cython <https://github.com/GeoStat-Framework/GSTools-Cython>`_
-backend needs to be compiled from source the following way:
-
-.. code-block:: none
-
-    export GSTOOLS_BUILD_PARALLEL=1
-    pip install --no-binary=gstools-cython gstools
-
-You have to provide a C compiler and OpenMP to compile GSTools-Cython with parallel support.
-The feature is controlled by the environment variable
-``GSTOOLS_BUILD_PARALLEL``, that can be ``0`` or ``1`` (interpreted as ``0`` if not present).
-Note, that the ``--no-binary=gstools-cython`` option forces pip to not use a wheel
-for the GSTools-Cython backend.
-
-For the development version, you can do almost the same:
-
-.. code-block:: none
-
-    export GSTOOLS_BUILD_PARALLEL=1
-    pip install git+git://github.com/GeoStat-Framework/GSTools-Cython.git@main
-    pip install git+git://github.com/GeoStat-Framework/GSTools.git@main
-
-
-***Using GSTools-Core for parallelization and even more speed***
-
-You can install the optional dependency `GSTools-Core <https://github.com/GeoStat-Framework/GSTools-Core>`_,
-which is a re-implementation of GSTools-Cython:
-
-.. code-block:: none
-
-    pip install gstools[rust]
-
-or by manually installing the package
-
-.. code-block:: none
-
-    pip install gstools-core
-
-The new package uses the language Rust and it should be safer and faster (in some cases by orders of magnitude).
-Once the package GSTools-Core is available on your machine, it will be used by default.
-In case you want to switch back to the Cython implementation, you can set
-:code:`gstools.config.USE_GSTOOLS_CORE=False` in your code. This also works at runtime.
-
-GSTools-Core will automatically run in parallel, without having to provide OpenMP or a local C compiler.
+The number of parallel threads can be set with the global variable
+`config.NUM_THREADS`. If not set, all available cores are used.
 
 
 Citation
