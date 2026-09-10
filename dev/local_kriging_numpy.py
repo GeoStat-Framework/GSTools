@@ -4,10 +4,82 @@ Pure Python/NumPy prototype for *local* (moving-neighborhood) Kriging.
 
 from __future__ import annotations
 
+import json
+
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
+from gstools import config
 
+
+if config._GSTOOLS_CORE_AVAIL:
+    from gstools_core import calc_field_krige_local as calc_field_krige_local_gsc
+
+
+# model classes GSTools-Core's CovModelSpec (covmodel_spec.rs) currently
+# implements; the JSON "type" tag is just the lowercased class name for
+# all three
+_CORE_MODEL_TYPES = ("Gaussian", "Exponential", "Matern")
+
+
+def _cov_model_to_json(model):
+    """
+    Serialize a :any:`gstools.CovModel` to the JSON wire format the
+    GSTools-Core Rust backend expects (``CovModelSpec`` in
+    ``covmodel_spec.rs``: a ``{"type": ..., ...}``-tagged enum).
+
+    Only ``var``/``len_scale``/``nugget`` (and, for Matern, ``nu``) travel
+    over the wire
+    """
+    if model.name not in _CORE_MODEL_TYPES:
+        raise NotImplementedError(
+            f"calc_field_krige_local: GSTools-Core does not (yet) support "
+            f"the '{model.name}' covariance model; supported: "
+            f"{_CORE_MODEL_TYPES}."
+        )
+    spec = {
+        "type": model.name.lower(),
+        "var": model.var,
+        "len_scale": model.len_scale,
+        "nugget": model.nugget,
+    }
+    if model.name == "Matern":
+        spec["nu"] = model.nu
+    return json.dumps(spec)
+
+
+def calc_field_krige_local(
+    cond_pos,
+    cond_val,
+    target_pos,
+    model,
+    cond_err,
+    drift_cond,
+    drift_target,
+    unbiased,
+    exact,
+    local_radius,
+    num_threads=None,
+):
+    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+        calc_field_krige_local = calc_field_krige_local_gsc
+        model_arg = _cov_model_to_json(model)
+    else:
+        calc_field_krige_local = calc_field_krige_local_python
+        model_arg = model
+    return calc_field_krige_local(
+        cond_pos,
+        cond_val,
+        target_pos,
+        model_arg,
+        cond_err,
+        drift_cond,
+        drift_target,
+        unbiased,
+        exact,
+        local_radius,
+        num_threads=num_threads,
+    )
 
 def local_krige(
     krige,
@@ -178,7 +250,7 @@ def _calc_target_drift(krige, iso_targ, ext_drift, pnt_cnt):
     return drift_target
 
 
-def calc_field_krige_local(
+def calc_field_krige_local_python(
     cond_pos,
     cond_val,
     target_pos,
