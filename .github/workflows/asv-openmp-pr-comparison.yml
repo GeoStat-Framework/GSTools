@@ -41,7 +41,6 @@ jobs:
             pyproject.toml \
             asv.conf.json \
             asv.openmp.conf.json \
-            .github/workflows/benchmark-readiness.yml \
             .github/workflows/asv-openmp-pr-comparison.yml \
             .github/workflows/asv-benchmark-publish.yml
           then
@@ -114,6 +113,16 @@ jobs:
             --no-pull \
             --bench "^benchmark_" \
             --show-stderr
+
+      - name: Check Cython OpenMP and Rust backend readiness
+        run: |
+          # The benchmark suite silently skips backends that cannot run in
+          # parallel. Probe the environment ASV just built so a broken OpenMP
+          # or Rust install fails this job instead of producing misleading
+          # thread-scaling results.
+          for py in .asv-openmp/env/*/bin/python; do
+            "$py" benchmarks/tools/check_backend_parallel_ready.py --verbose
+          done
 
       - name: Write informational ASV comparison
         env:

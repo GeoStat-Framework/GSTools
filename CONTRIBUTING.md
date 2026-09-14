@@ -48,7 +48,7 @@ Cython fallback and the optional Rust backend, as well as OpenMP thread scaling.
 Every pull request automatically runs the benchmark suite and reports any
 significant regressions or improvements directly in the PR.
 The cumulative benchmark history is published at
-<https://geostat-framework.github.io/gstools-benchmarks/>.
+<https://geostat-framework.github.io/GSTools-Benchmarks/>.
 
 If you would like to contribute to benchmarking you can:
 

@@ -10,7 +10,6 @@ on:
       - "pyproject.toml"
       - "asv.conf.json"
       - "asv.openmp.conf.json"
-      - ".github/workflows/benchmark-readiness.yml"
       - ".github/workflows/asv-openmp-pr-comparison.yml"
       - ".github/workflows/asv-benchmark-publish.yml"
   workflow_dispatch:
@@ -24,13 +23,13 @@ concurrency:
 
 env:
   ASV_CONFIG: asv.openmp.conf.json
-  BENCHMARKS_REPO: jeilealr/gstools-benchmarks-asv
+  BENCHMARKS_REPO: GeoStat-Framework/GSTools-Benchmarks
   MACHINE_NAME: github-actions-ubuntu
 
 jobs:
   publish:
     name: Benchmark accepted main commit and publish history
-    if: github.repository == 'jeilealr/GSTools'
+    if: github.repository == 'GeoStat-Framework/GSTools'
     runs-on: ubuntu-latest
     timeout-minutes: 360
 
@@ -90,6 +89,16 @@ jobs:
             --no-pull \
             --bench "^benchmark_" \
             --show-stderr
+
+      - name: Check Cython OpenMP and Rust backend readiness
+        run: |
+          # The benchmark suite silently skips backends that cannot run in
+          # parallel. Probe the environment ASV just built so a broken OpenMP
+          # or Rust install fails this job instead of publishing misleading
+          # thread-scaling results.
+          for py in .asv-openmp/env/*/bin/python; do
+            "$py" benchmarks/tools/check_backend_parallel_ready.py --verbose
+          done
 
       - name: Build published reports and preserve raw results
         run: |

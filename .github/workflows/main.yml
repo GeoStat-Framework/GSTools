@@ -35,7 +35,7 @@ jobs:
 
       - name: ruff linter
         run: |
-          python -m ruff check src/gstools/
+          python -m ruff check src/gstools/ benchmarks/
 
       - name: ruff format check
         run: |

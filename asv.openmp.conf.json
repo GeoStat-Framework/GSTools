@@ -1,14 +1,14 @@
 {
   "version": 1,
   "project": "GSTools",
-  "project_url": "https://github.com/jeilealr/GSTools",
+  "project_url": "https://github.com/GeoStat-Framework/GSTools",
   "repo": ".",
   "branches": ["main"],
   "benchmark_dir": "benchmarks",
   "env_dir": ".asv-openmp/env",
   "results_dir": ".asv-openmp/results",
   "html_dir": ".asv-openmp/html",
-  "show_commit_url": "https://github.com/jeilealr/GSTools/commit/",
+  "show_commit_url": "https://github.com/GeoStat-Framework/GSTools/commit/",
   "environment_type": "conda",
   "conda_channels": ["conda-forge"],
   "pythons": ["3.14"],
@@ -28,6 +28,9 @@
       "wheel": [""]
     }
   },
+  "build_command": [
+    "python -m pip wheel --no-deps -w {build_cache_dir} {build_dir}"
+  ],
   "install_command": [
     "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_pyproject_extras.py --pyproject {conf_dir}/pyproject.toml rust",
     "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_openmp_cython.py {env_dir}",

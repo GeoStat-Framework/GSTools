@@ -1,14 +1,14 @@
 {
   "version": 1,
   "project": "GSTools",
-  "project_url": "https://github.com/jeilealr/GSTools",
+  "project_url": "https://github.com/GeoStat-Framework/GSTools",
   "repo": ".",
   "branches": ["main"],
   "benchmark_dir": "benchmarks",
   "env_dir": ".asv/env",
   "results_dir": ".asv/results",
   "html_dir": ".asv/html",
-  "show_commit_url": "https://github.com/jeilealr/GSTools/commit/",
+  "show_commit_url": "https://github.com/GeoStat-Framework/GSTools/commit/",
   "environment_type": "conda",
   "conda_channels": ["conda-forge"],
   "pythons": ["3.14"],
@@ -23,6 +23,9 @@
       "gstools-cython": [""]
     }
   },
+  "build_command": [
+    "python -m pip wheel --no-deps -w {build_cache_dir} {build_dir}"
+  ],
   "install_command": [
     "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_pyproject_extras.py --pyproject {conf_dir}/pyproject.toml rust",
     "in-dir={env_dir} python -m pip install --no-deps {build_dir}"
