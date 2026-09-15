@@ -36,47 +36,47 @@ __STYLE__
       <legend>Metric</legend>
       <div id="metric" class="checkbox-list"></div>
     </fieldset>
-	    <fieldset class="filter-control">
-	      <legend>Family</legend>
-	      <div id="family" class="checkbox-list"></div>
-	    </fieldset>
-	    <fieldset class="filter-control">
-	      <legend>View</legend>
-	      <div id="viewMode" class="checkbox-list"></div>
-	    </fieldset>
-	    <fieldset class="filter-control wide-control">
-	      <legend>Case</legend>
-	      <div id="case" class="checkbox-list"></div>
-	    </fieldset>
-	    <fieldset class="filter-control">
-	      <legend>Threads</legend>
-	      <div id="threads" class="checkbox-list"></div>
-	    </fieldset>
-	    <fieldset class="filter-control wide-control">
-	      <legend>
-	        <button id="modeCommit" class="toggle-btn active" onclick="setReferenceMode('commit')">Commits</button>
-	        <button id="modeTag" class="toggle-btn" onclick="setReferenceMode('tag')">Tags</button>
-	      </legend>
-	      <select id="commit" class="multi-select" multiple size="5"></select>
-	      <select id="tag" class="multi-select" multiple size="5" style="display:none"></select>
-	      <div class="select-actions">
-	        <button class="select-action-btn" onclick="selectAllOptions(referenceModeValue())">All</button>
-	        <button class="select-action-btn" onclick="clearAllOptions(referenceModeValue())">None</button>
-	      </div>
-	    </fieldset>
-	    <fieldset class="filter-control">
-	      <legend>Backend</legend>
-	      <div id="backend" class="checkbox-list"></div>
-	    </fieldset>
-	  </section>
-	  <section class="panel">
-	    <div class="panel-header">
-	      <div class="panel-title" id="chart-title">Benchmark visualization</div>
-	      <div class="panel-note">Lower values are better</div>
-	    </div>
-	    <div id="chart"></div>
-	    <div id="legend" class="chart-legend"></div>
-	  </section>
+    <fieldset class="filter-control">
+      <legend>Family</legend>
+      <div id="family" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>View</legend>
+      <div id="viewMode" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control wide-control">
+      <legend>Case</legend>
+      <div id="case" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>Threads</legend>
+      <div id="threads" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control wide-control">
+      <legend>
+        <button id="modeCommit" class="toggle-btn active" onclick="setReferenceMode('commit')">Commits</button>
+        <button id="modeTag" class="toggle-btn" onclick="setReferenceMode('tag')">Tags</button>
+      </legend>
+      <select id="commit" class="multi-select" multiple size="5"></select>
+      <select id="tag" class="multi-select" multiple size="5" style="display:none"></select>
+      <div class="select-actions">
+        <button class="select-action-btn" onclick="selectAllOptions(referenceModeValue())">All</button>
+        <button class="select-action-btn" onclick="clearAllOptions(referenceModeValue())">None</button>
+      </div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>Backend</legend>
+      <div id="backend" class="checkbox-list"></div>
+    </fieldset>
+  </section>
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title" id="chart-title">Benchmark visualization</div>
+      <div class="panel-note">Lower values are better</div>
+    </div>
+    <div id="chart"></div>
+    <div id="legend" class="chart-legend"></div>
+  </section>
 </main>
 <script>
 __SCRIPT__

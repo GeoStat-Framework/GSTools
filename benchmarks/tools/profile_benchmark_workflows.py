@@ -150,7 +150,7 @@ def iter_selected(case):
 
 
 def load_suite_class(class_name, threads):
-    """Import a benchmark class after selecting generated thread labels."""
+    """Import a benchmark class after configuring its thread count."""
     os.environ["GSTOOLS_BENCHMARK_THREADS"] = threads[len("threads_") :]
     try:
         from benchmarks import benchmark_two_point_statistics
@@ -181,7 +181,7 @@ def run_case(
     suite_cls = load_suite_class(class_name, threads)
     suite = suite_cls()
     data = suite.setup_cache()
-    threads_int = int(threads[len("threads_"):])
+    threads_int = int(threads[len("threads_") :])
     method = getattr(suite, method_base_name)
 
     profiler = cProfile.Profile()

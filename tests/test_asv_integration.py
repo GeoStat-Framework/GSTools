@@ -67,6 +67,7 @@ class TestAsvIntegration(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Run one fast benchmark and prepare comparable result files."""
         cls.tmp = tempfile.TemporaryDirectory()
         root = Path(cls.tmp.name)
         cls.results_dir = root / "results"
@@ -127,6 +128,7 @@ class TestAsvIntegration(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Remove the temporary ASV configuration and results."""
         cls.tmp.cleanup()
 
     @classmethod

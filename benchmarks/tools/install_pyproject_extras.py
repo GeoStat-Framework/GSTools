@@ -80,7 +80,10 @@ def main():
     try:
         install_requirements(requirements)
     except subprocess.CalledProcessError as err:
-        print(f"pip install failed with exit code {err.returncode}", file=sys.stderr)
+        print(
+            f"pip install failed with exit code {err.returncode}",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

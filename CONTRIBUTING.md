@@ -40,15 +40,18 @@ with your idea or suggestion and we'd love to discuss about it.
 
 ## Do you want to contribute to benchmarking?
 
-GSTools tracks the runtime and memory performance 
-using [Airspeed Velocity (ASV)](https://asv.readthedocs.io/).
+GSTools tracks runtime and memory performance using
+[Airspeed Velocity (ASV)](https://asv.readthedocs.io/).
 The benchmark suite lives in the `benchmarks/` directory and covers both the
 Cython fallback and the optional Rust backend, as well as OpenMP thread scaling.
 
-Every pull request automatically runs the benchmark suite and reports any
-significant regressions or improvements directly in the PR.
+Pull requests that change benchmark-relevant code run the benchmark suite and
+report statistically significant regressions or improvements directly in the
+PR.
 The cumulative benchmark history is published at
 <https://geostat-framework.github.io/GSTools-Benchmarks/>.
+See the [benchmark guide](benchmarks/README.md) for setup, benchmark coverage,
+and local commands.
 
 If you would like to contribute to benchmarking you can:
 

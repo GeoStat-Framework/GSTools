@@ -2,9 +2,9 @@
 """Summarize Rust-vs-Cython speedups from local ASV result files.
 
 The summary is optional. ASV itself remains the source of truth for benchmark
-storage and visualization. The helper understands both current generated
-benchmark method names, which encode case and thread labels, and older
-parameterized ASV result files.
+storage and visualization. The helper understands the current parameterized
+ASV results and older result files that encode case and thread labels in
+benchmark method names.
 
 Usage:
     python benchmarks/tools/asv_speedup_summary.py

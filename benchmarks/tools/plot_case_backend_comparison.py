@@ -153,7 +153,9 @@ def get_git_tags():
     try:
         tag_out = subprocess.run(
             ["git", "tag", "-l", "--sort=version:refname"],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.strip()
         if not tag_out:
             return {}
@@ -164,7 +166,8 @@ def get_git_tags():
                 continue
             rev = subprocess.run(
                 ["git", "rev-parse", f"{tag}^{{}}"],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             if rev.returncode == 0:
                 result[rev.stdout.strip()] = tag
@@ -235,10 +238,10 @@ def family_from_name(name):
 def parse_benchmark_name(name):
     """Split a benchmark name into base benchmark, case, and thread labels.
 
-    Current OpenMP results may encode case and thread into generated method
-    names, while baseline results may keep them as ASV parameters. This parser
-    extracts the encoded part when present and leaves parameterized results for
-    ``result_rows`` to fill in.
+    Older results may encode case and thread in generated method names, while
+    current results keep them as ASV parameters. This parser extracts encoded
+    values when present and leaves parameterized results for ``result_rows``
+    to fill in.
     """
     short_name = short_benchmark_name(name)
     threads = None
@@ -330,7 +333,9 @@ def result_rows(benchmark, entry):
     return rows
 
 
-def collect_rows(results_dirs, benchmark_filter=None, metric_filter="all", tag_map=None):
+def collect_rows(
+    results_dirs, benchmark_filter=None, metric_filter="all", tag_map=None
+):
     """Collect normalized benchmark rows from ASV result folders."""
     rows = []
     benchmark_filter = (
@@ -528,7 +533,7 @@ def format_ram(value):
         amount = int(value)
     except (TypeError, ValueError):
         return str(value)
-    if amount < 1024 ** 3:
+    if amount < 1024**3:
         amount *= 1024
     return f"{amount / (1024**3):.1f} GiB"
 
@@ -563,9 +568,9 @@ def machine_summary_markup(rows):
     for machine in machines.values():
         title = html.escape(machine["machine"])
         details = html.escape(
-            f'{machine["os"]} · {machine["arch"]} · {machine["cpu"]} · '
-            f'{machine["num_cpu"]} CPUs · {machine["ram"]} · '
-            f'Python {machine["python"]}'
+            f"{machine['os']} · {machine['arch']} · {machine['cpu']} · "
+            f"{machine['num_cpu']} CPUs · {machine['ram']} · "
+            f"Python {machine['python']}"
         )
         cards.append(
             '<div class="machine-card">'
@@ -589,7 +594,9 @@ def render_html(rows):
     payload = json.dumps(rows, separators=(",", ":")).replace("</", "<\\/")
     template = read_template("backend_comparison.html")
     return (
-        template.replace("__STYLE__\n", read_template("backend_comparison.css"))
+        template.replace(
+            "__STYLE__\n", read_template("backend_comparison.css")
+        )
         .replace("__SCRIPT__\n", read_template("backend_comparison.js"))
         .replace("__PAYLOAD__", payload)
         .replace("__LOGO_MARKUP__", gstools_logo_markup())

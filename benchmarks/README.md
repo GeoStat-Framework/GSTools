@@ -1,6 +1,9 @@
 # GSTools Benchmark Guide
 
-This directory contains the Airspeed Velocity ([ASV](https://github.com/airspeed-velocity/asv/)) benchmark suite for GSTools and a complementary profiling helper implemented with cProfile (part of the Python standard library).
+This directory contains the
+[Airspeed Velocity (ASV)](https://github.com/airspeed-velocity/asv/)
+benchmark suite for GSTools and a complementary profiling helper implemented
+with cProfile (part of the Python standard library).
 
 This guide benchmarks GSTools, inspects the
 results, profiles where runtime is spent, and then decides what to optimize.
@@ -68,7 +71,8 @@ parallelism as a confounding factor. Parallel/OpenMP scaling is treated as a
 separate optional experiment because the correct Cython OpenMP build depends on
 the user's operating system, compiler, and runtime environment.
 
-To run the benchmark and the optional cProfile helper, follow these steps (this guide uses Python 3.14):
+To run the benchmarks and the optional cProfile helper, follow these steps.
+The examples use Python 3.14.
 
 1. Move to the GSTools repository root:
 
@@ -163,6 +167,9 @@ The repo root `asv.conf.json` is tailored to this GSTools checkout:
       "gstools-cython": [""]
     }
   },
+  "build_command": [
+    "python -m pip wheel --no-deps -w {build_cache_dir} {build_dir}"
+  ],
   "install_command": [
     "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_pyproject_extras.py --pyproject {conf_dir}/pyproject.toml rust",
     "in-dir={env_dir} python -m pip install --no-deps {build_dir}"
@@ -187,6 +194,9 @@ Important details:
 - `matrix.req` asks ASV to install GSTools runtime dependencies before
   installing the checked-out GSTools source. It includes `gstools-cython`
   explicitly because the GSTools commit is installed with `--no-deps`.
+- `build_command` uses `--no-deps` so ASV's build cache contains only the
+  GSTools wheel. This is required by ASV 0.6.6 and remains compatible with
+  earlier ASV 0.6 releases.
 - `{build_dir}` is ASV's temporary checkout/build directory for the exact
   GSTools commit being benchmarked.
 - `install_command` installs the checked-out GSTools revision with `--no-deps`.
@@ -273,8 +283,8 @@ FIELD_CASES = (
 )
 ```
 
-These constants define backend parameter values and the case/thread labels used
-in generated benchmark method names.
+These constants define the backend, case, and thread-count parameters passed to
+the benchmark methods. Reports display thread counts using `threads_N` labels.
 
 `BACKENDS` compares:
 
@@ -283,7 +293,8 @@ in generated benchmark method names.
 
 `THREAD_COUNTS` defaults to:
 
-- `threads_1`: force `gstools.config.NUM_THREADS = 1`
+- `1`: set `gstools.config.NUM_THREADS = 1` (displayed as `threads_1` in
+  reports)
 
 That is the default because the first benchmark target is a clean
 Cython-vs-Rust backend comparison without parallelism.
@@ -700,9 +711,12 @@ raw ASV results. Use `--benchmark` to filter to one family:
 ```bash
 python benchmarks/tools/plot_case_backend_comparison.py \
   --results-dir .asv-openmp/results \
-  --benchmark variogram   # or krige, kriging, field, srf, condsrf, vario
+  --benchmark variogram \
   --output .asv-openmp/variogram-comparison.html
 ```
+
+Accepted family names include `variogram`, `vario`, `krige`, `kriging`,
+`field`, `srf`, and `condsrf`.
 
 Build and preview the OpenMP browser report:
 

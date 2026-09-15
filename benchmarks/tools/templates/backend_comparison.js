@@ -114,7 +114,6 @@ function clearAllOptions(id) {
   const el = document.getElementById(id);
   if (!el) return;
   for (const opt of el.options) opt.selected = false;
-  refreshOptions();
   renderAll();
 }
 
@@ -327,11 +326,11 @@ function barGroupKey(row) {
   return `${row.case}|${row.threads}|${xKey}`;
 }
 
-function barGroupLabel(key, showThread, showCommit) {
-  const [caseName, threads, commit] = key.split("|");
+function barGroupLabel(key, showThread, showReference) {
+  const [caseName, threads, reference] = key.split("|");
   const parts = [caseName];
   if (showThread) parts.push(threads);
-  if (showCommit) parts.push(commit);
+  if (showReference) parts.push(reference);
   return parts.join(" · ");
 }
 
@@ -379,10 +378,10 @@ function renderBarChart(data) {
   const metric = data[0].metric;
   const unit = metricUnits[metric];
   const selectedThreads = checkedValues("threads");
-  const selectedCommits = selectedOptions("commit");
+  const selectedReferences = selectedOptions(referenceModeValue());
   const selectedBackends = checkedValues("backend");
   const showThread = selectedThreads.length > 1;
-  const showCommit = selectedCommits.length > 1;
+  const showReference = selectedReferences.length > 1;
   const groups = orderedKeys(data.map(barGroupKey));
   const values = data.map(formatValue);
   const maxValue = axisMax(values);
@@ -415,7 +414,7 @@ function renderBarChart(data) {
 
   groups.forEach((groupKey, groupIndex) => {
     const groupX = plotLeft + groupIndex * groupStep + groupStep / 2;
-    const label = barGroupLabel(groupKey, showThread, showCommit);
+    const label = barGroupLabel(groupKey, showThread, showReference);
     svg += `<text x="${groupX}" y="${height - 46}" text-anchor="middle" class="tick" transform="rotate(-25 ${groupX} ${height - 46})">${escapeHtml(label)}</text>`;
     selectedBackends.forEach((backend, backendIndex) => {
       const row = data.find(item => barGroupKey(item) === groupKey && item.backend === backend);

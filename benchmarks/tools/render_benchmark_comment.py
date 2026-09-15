@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Render a GitHub PR comment body from an ASV benchmark comparison.
+r"""Render a GitHub PR comment body from an ASV benchmark comparison.
 
 Used by both the pull-request comparison workflow (for same-repo PRs) and the
 workflow_run comment workflow (for cross-fork PRs) so the badge wording and
@@ -122,8 +122,7 @@ def render(base, head, artifact_url, repository, comparison):
 
     if len(comparison) > MAX_COMPARISON_CHARS:
         comparison = (
-            comparison[:MAX_COMPARISON_CHARS]
-            + "\n... (comparison truncated)"
+            comparison[:MAX_COMPARISON_CHARS] + "\n... (comparison truncated)"
         )
 
     # ASV marks "+" (regressed) or "-" (improved) only when BOTH the

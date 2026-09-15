@@ -11,13 +11,15 @@ All notable changes to **GSTools** will be documented in this file.
   - each node of the binary tree is a decision based on the values of the SRF
 - replace pylint, black, and isort with ruff [#391](https://github.com/GeoStat-Framework/GSTools/pull/391)
 - add comprehensive benchmark suite for two-point statistics workflows
-  - covers variogram estimation, kriging, and random field generation across Cython and Rust backends
+  - covers variogram estimation, kriging, and random field generation across
+    Cython and Rust backends
   - includes OpenMP thread-count scaling analysis (1/2/4/8 threads)
   - interactive HTML report with per-case and per-thread-count comparisons
 - add benchmarking CI workflows
-  - automated performance regression detection with ASV on every pull request
+  - automated ASV performance comparisons for benchmark-relevant pull requests
   - benchmark results posted as PR comments with Mann-Whitney U statistical test
-  - cumulative benchmark history published to GitHub Pages after each merge to main
+  - cumulative benchmark history published to GitHub Pages for
+    benchmark-relevant changes on main
 - add benchmarking guidelines to CONTRIBUTING.md
 
 ## [1.7.0] - Morphic Mint - 2025-04

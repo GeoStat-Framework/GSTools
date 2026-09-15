@@ -41,7 +41,7 @@ jobs:
 
       - name: ruff format check
         run: |
-          python -m ruff format --diff src/gstools/
+          python -m ruff format --diff src/gstools/ benchmarks/
 
       - name: coveralls check
         run: |
