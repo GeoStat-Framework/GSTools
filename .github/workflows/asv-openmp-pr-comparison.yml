@@ -178,6 +178,7 @@ jobs:
           python benchmarks/tools/render_benchmark_comment.py \
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
             --artifact-url "${ARTIFACT_URL:-}" \
             --comparison .asv-openmp/artifact/comparison.txt \
             --output /tmp/benchmark_comment.md
@@ -206,15 +207,12 @@ jobs:
         if: always()
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
         run: |
+          # Only the PR number and the comparison text are handed over; the
+          # comment workflow verifies the number against its triggering run
+          # and resolves commits and artifact URL from the GitHub API.
           mkdir -p .asv-openmp/pr-context
           printf '%s' "$PR_NUMBER"    > .asv-openmp/pr-context/pr_number.txt
-          printf '%s' "$BASE_SHA"     > .asv-openmp/pr-context/base_sha.txt
-          printf '%s' "$HEAD_SHA"     > .asv-openmp/pr-context/head_sha.txt
-          printf '%s' "$ARTIFACT_URL" > .asv-openmp/pr-context/artifact_url.txt
           cp .asv-openmp/artifact/comparison.txt \
              .asv-openmp/pr-context/comparison.txt 2>/dev/null \
             || printf '_Comparison output not available._' \

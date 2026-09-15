@@ -35,15 +35,41 @@ jobs:
         if: steps.download.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          BASE_SHA=$(cat pr-context/base_sha.txt)
-          HEAD_SHA=$(cat pr-context/head_sha.txt)
-          ARTIFACT_URL=$(cat pr-context/artifact_url.txt)
+          # The artifact was produced by an untrusted pull-request run, while
+          # this job holds a write token. Only the PR number and the
+          # comparison text are taken from it; the number is verified against
+          # the triggering run and everything else comes from the GitHub API.
           PR_NUMBER=$(cat pr-context/pr_number.txt)
+          if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid PR number in benchmark artifact."
+            exit 1
+          fi
+          PR_HEAD_SHA=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" \
+            --jq '.head.sha')
+          if [[ "$PR_HEAD_SHA" != "$HEAD_SHA" ]]; then
+            echo "::warning::PR #$PR_NUMBER head does not match the" \
+              "benchmarked commit $HEAD_SHA; skipping comment."
+            exit 0
+          fi
+          BASE_SHA=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" \
+            --jq '.base.sha')
+
+          ARTIFACT_ID=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts" \
+            --jq ".artifacts[] | select(.name == \"openmp-pr-$PR_NUMBER\") | .id" \
+            | head -1)
+          ARTIFACT_URL=""
+          if [[ -n "$ARTIFACT_ID" ]]; then
+            ARTIFACT_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts/$ARTIFACT_ID"
+          fi
 
           python benchmarks/tools/render_benchmark_comment.py \
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
             --artifact-url "$ARTIFACT_URL" \
             --comparison pr-context/comparison.txt \
             --output /tmp/benchmark_comment.md

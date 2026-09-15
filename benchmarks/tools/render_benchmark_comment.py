@@ -5,9 +5,16 @@ Used by both the pull-request comparison workflow (for same-repo PRs) and the
 workflow_run comment workflow (for cross-fork PRs) so the badge wording and
 comment format stay in sync across both code paths.
 
+For cross-fork pull requests the comparison text is produced by an untrusted
+workflow run and later posted with a privileged token, so every input is
+treated as hostile: the comparison can never escape its code block, commit
+identifiers must be hexadecimal, and the report link is only kept when it
+points at an artifact of the expected repository.
+
 Usage:
     python benchmarks/tools/render_benchmark_comment.py \\
         --base <sha> --head <sha> \\
+        --repository <owner/name> \\
         [--artifact-url <url>] \\
         [--comparison <file>] \\
         --output <file>
@@ -16,8 +23,21 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
+
+# GitHub rejects comment bodies above 65536 characters; leave room for the
+# surrounding markup.
+MAX_COMPARISON_CHARS = 60_000
+# "+" regressed, "-" improved, "~" ratio exceeded but not significant,
+# "x" failed in one of the two commits.
+CHANGE_MARKERS = frozenset("+-~x")
+SHA_PATTERN = re.compile(r"[0-9a-f]{7,40}")
+ARTIFACT_URL_PATTERN = re.compile(
+    r"https://github\.com/(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)"
+    r"/actions/runs/[0-9]+/artifacts/[0-9]+"
+)
 
 
 def parse_args():
@@ -28,6 +48,11 @@ def parse_args():
     )
     parser.add_argument("--base", required=True, help="Base commit SHA.")
     parser.add_argument("--head", required=True, help="Head commit SHA.")
+    parser.add_argument(
+        "--repository",
+        required=True,
+        help="GitHub repository (owner/name) the artifact URL must belong to.",
+    )
     parser.add_argument(
         "--artifact-url",
         default="",
@@ -48,20 +73,65 @@ def parse_args():
     return parser.parse_args()
 
 
-def render(base, head, artifact_url, comparison):
+def validate_sha(value):
+    """Return ``value`` lower-cased if it is an abbreviated or full git SHA."""
+    value = value.strip().lower()
+    if not SHA_PATTERN.fullmatch(value):
+        raise ValueError(f"Not a git commit SHA: {value!r}")
+    return value
+
+
+def safe_artifact_url(url, repository):
+    """Return ``url`` if it is an Actions artifact URL of ``repository``."""
+    match = ARTIFACT_URL_PATTERN.fullmatch(url.strip())
+    if match is None or match.group("repository") != repository:
+        return ""
+    return match.group(0)
+
+
+def change_marker(line):
+    """Return the ``asv compare`` change marker of one output line.
+
+    ASV >= 0.6 prints a Markdown table whose first cell holds the marker
+    (``| +        | ...``); older releases put the marker in the first
+    column followed by whitespace (``+   1.00ms  2.00ms  ...``). Header and
+    separator rows yield ``""``.
+    """
+    if line.startswith("|"):
+        cells = line.split("|")
+        marker = cells[1].strip() if len(cells) > 2 else ""
+    else:
+        marker = line[:1] if line[1:2] == " " else ""
+    return marker if marker in CHANGE_MARKERS else ""
+
+
+def code_fence(text):
+    """Return a backtick fence that no line inside ``text`` can close."""
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    return "`" * max(3, longest + 1)
+
+
+def render(base, head, artifact_url, repository, comparison):
     """Return the full PR comment body as a string."""
-    base = base[:8]
-    head = head[:8]
+    base = validate_sha(base)[:8]
+    head = validate_sha(head)[:8]
+    artifact_url = safe_artifact_url(artifact_url, repository)
     report_link = (
         f" · [Full HTML Report ↗]({artifact_url})" if artifact_url else ""
     )
 
-    lines = comparison.splitlines()
+    if len(comparison) > MAX_COMPARISON_CHARS:
+        comparison = (
+            comparison[:MAX_COMPARISON_CHARS]
+            + "\n... (comparison truncated)"
+        )
+
     # ASV marks "+" (regressed) or "-" (improved) only when BOTH the
     # ratio > 1.05 AND the Mann-Whitney U test agree. Lines with "~"
     # exceeded the ratio threshold but were not statistically significant.
-    regressed = sum(1 for l in lines if l.startswith("+") and l[1:2] == " ")
-    improved = sum(1 for l in lines if l.startswith("-") and l[1:2] == " ")
+    markers = [change_marker(line) for line in comparison.splitlines()]
+    regressed = markers.count("+")
+    improved = markers.count("-")
     note = "Mann-Whitney U · 5% threshold"
     if regressed:
         badge = f"⚠️ {regressed} benchmark(s) regressed · {note}"
@@ -70,13 +140,14 @@ def render(base, head, artifact_url, comparison):
     else:
         badge = f"✅ No significant changes detected · {note}"
 
+    fence = code_fence(comparison)
     return (
         "<!-- gstools-openmp-benchmark -->\n"
         "## OpenMP Benchmark Results\n\n"
         f"**Base:** `{base}` → **Head:** `{head}`{report_link}\n\n"
         f"{badge}\n\n"
         "<details>\n<summary>Full ASV comparison</summary>\n\n"
-        f"```\n{comparison}\n```\n\n"
+        f"{fence}\n{comparison}\n{fence}\n\n"
         "</details>\n"
     )
 
@@ -94,7 +165,25 @@ def main():
     else:
         comparison = "_Comparison output not available._"
 
-    body = render(args.base, args.head, args.artifact_url, comparison)
+    if args.artifact_url and not safe_artifact_url(
+        args.artifact_url, args.repository
+    ):
+        print(
+            f"Ignoring unexpected artifact URL: {args.artifact_url!r}",
+            file=sys.stderr,
+        )
+
+    try:
+        body = render(
+            args.base,
+            args.head,
+            args.artifact_url,
+            args.repository,
+            comparison,
+        )
+    except ValueError as err:
+        print(err, file=sys.stderr)
+        return 1
     args.output.write_text(body, encoding="utf8")
     return 0
 
