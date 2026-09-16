@@ -6,6 +6,7 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 
+- drop Cython backend and use Rust as the only backend [#420](https://github.com/GeoStat-Framework/GSTools/pull/420)
 - add decision-tree based plurigaussian fields [#387](https://github.com/GeoStat-Framework/GSTools/pull/387)
   - instead of spatial rules, as before, decision trees are a more flexible approach
   - each node of the binary tree is a decision based on the values of the SRF
