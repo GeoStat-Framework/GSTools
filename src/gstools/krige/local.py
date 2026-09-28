@@ -31,8 +31,8 @@ __all__ = [
 
 # model classes GSTools-Core's CovModelSpec (covmodel_spec.rs) currently
 # implements; the JSON "type" tag is just the lowercased class name for
-# all three
-_CORE_MODEL_TYPES = ("Gaussian", "Exponential", "Matern")
+# all four
+_CORE_MODEL_TYPES = ("Gaussian", "Exponential", "Matern", "Spherical")
 
 
 def _cov_model_to_json(model):
