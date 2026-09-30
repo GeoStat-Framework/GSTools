@@ -79,8 +79,8 @@ If something went wrong during installation, try the :code:`-I` `flag from pip <
 uv
 --
 
-GSTools can be installed via `pip <https://docs.astral.sh/uv/>`_
-on Linux, Mac, and Windows.
+uv can be installed via `pip <https://docs.astral.sh/uv/>`_ on Linux, Mac,
+and Windows.
 Install the package by typing the following command in a command terminal:
 
 .. code-block:: none
