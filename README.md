@@ -41,6 +41,7 @@ GSTools provides geostatistical tools for various purposes:
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
 - plurigaussian field simulations (PGS)
+- surface-based stochastic geometry with borehole conditioning
 - collocated cokriging
 - plotting and exporting routines
 
@@ -107,6 +108,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [Spatio-Temporal Modelling][tut9_link]
 - [Normalizing Data][tut10_link]
 - [Plurigaussian Field Generation (PGS)][tut11_link]
+- [Stochastic Geometry][tut13_link]
 - [Miscellaneous examples][tut0_link]
 
 The associated python scripts are provided in the `examples` folder.
@@ -436,6 +438,7 @@ You can contact us via <info@geostat-framework.org>.
 [tut9_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/09_spatio_temporal/index.html
 [tut10_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/10_normalizer/index.html
 [tut11_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/11_plurigaussian/index.html
+[tut13_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/13_geometry/index.html
 [tut0_link]: https://geostat-framework.readthedocs.io/projects/gstools/en/stable/examples/00_misc/index.html
 [cor_link]: https://en.wikipedia.org/wiki/Autocovariance#Normalization
 [vtk_link]: https://www.vtk.org/

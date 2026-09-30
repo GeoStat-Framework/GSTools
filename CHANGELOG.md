@@ -14,6 +14,16 @@ All notable changes to **GSTools** will be documented in this file.
 - add collocated cokriging [#396](https://github.com/GeoStat-Framework/GSTools/pull/396)
   - new `SimpleCollocated` (SCCK) and `IntrinsicCollocated` (ICCK) classes, subclassing `CollocatedCokriging`
   - uses a `Correlogram` to relate the secondary variable to the primary at the estimation location
+- add surface-based stochastic geometry `gstools.geometry` [#XXX](https://github.com/GeoStat-Framework/GSTools/pull/421)
+  - interfaces are height functions, i.e. random fields on the `(d - 1)`-dimensional lateral domain, evaluated exactly at any point
+  - new `LayerStack` stacking positive log-thicknesses (`Layer`, `LogLink`), so interfaces never cross
+  - new `SurfaceStack` ordering independent elevation surfaces (`Surface`) by cumulative maximum (onlap) or minimum (erode)
+  - new `StratColumn` combining groups by erode/onlap relations and `HalfSpace` for topography and erosion surfaces
+  - new `FaciesField` rendering integer labels of any geometry on structured and unstructured meshes
+  - exact borehole conditioning with `BoreholeData`, built from well logs (`from_well_logs`) or surface-points tables (`from_surface_points`)
+  - inequality data (hole ending inside a unit, absent units, unobserved contacts) are imputed by a Gibbs sampler (`gibbs_sample`)
+  - stratigraphic coordinates (`strat_coords`) to evaluate property fields along the layering
+  - add `CondSRF(cond_method="error")` and `Krige.krige_raw()` for exact conditioning
 
 ## [1.7.0] - Morphic Mint - 2025-04
 
