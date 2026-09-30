@@ -76,6 +76,24 @@ To get the latest development version you can install it directly from GitHub:
 
 If something went wrong during installation, try the :code:`-I` `flag from pip <https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i>`_.
 
+uv
+--
+
+uv can be installed via `pip <https://docs.astral.sh/uv/>`_ on Linux, Mac,
+and Windows.
+Install the package by typing the following command in a command terminal:
+
+.. code-block:: none
+
+    uv add gstools
+
+To get the latest development version you can install it directly from GitHub:
+
+.. code-block:: none
+
+    uv add "gstools @ git+https://github.com/GeoStat-Framework/GSTools.git"
+
+
 **Running GSTools in parallel**
 
 The number of parallel threads can be set with the global variable
