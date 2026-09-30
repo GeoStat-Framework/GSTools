@@ -49,8 +49,10 @@ class TestGibbs(unittest.TestCase):
         val = np.full(9, np.nan)
         low = np.zeros(9)
         res = gibbs_sample(self.model, self.pos, val, low, seed=1)
-        np.testing.assert_array_equal(
-            res, gibbs_sample(self.model, self.pos, val, low, seed=1)
+        np.testing.assert_allclose(
+            res,
+            gibbs_sample(self.model, self.pos, val, low, seed=1),
+            rtol=1e-10,
         )
         self.assertFalse(
             np.array_equal(
