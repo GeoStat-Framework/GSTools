@@ -1,0 +1,253 @@
+"""TI search-window scanning for Direct Sampling.
+
+Scans a candidate window for the best weighted-distance match (greedy
+early-exit in DS mode, running-best argmin in DSBC mode). Depends only on
+distance.py; receives TI arrays and the vectorized distance callable as
+parameters (does not own a TrainingImage).
+"""
+
+from dataclasses import dataclass
+
+import numpy as np
+from numpy.random import default_rng
+
+from gstools.mps.distance import compute_node_weights
+
+
+@dataclass(frozen=True)
+class _ScanConfig:
+    """Domain-constant inputs to :func:`_scan_for_match`, built once per domain.
+
+    Every field is invariant across the whole node path *and* across
+    post-processing passes — it describes the domain (TI data, shape,
+    per-variable ``d_max``) and engine-level search configuration, never
+    anything that varies per pass.  ``scan_fraction`` is a per-pass value
+    (Meerschman2013 §4 divides it by ``post_processing_factor``) and is passed
+    to :func:`_scan_for_match` directly instead, from the caller's ``_Pass``.
+    """
+
+    variables: tuple
+    weights: dict
+    ti_vars: dict
+    ti_flat: dict
+    ti_strides: dict
+    ti_shape: object
+    threshold: float  # or None -> DSBC (see _scan_window's dsbc computation)
+    cond_weight: dict  # {var: float} -- per-variable, from the kernel TI
+    distance_power: dict  # {var: float} -- per-variable, from the kernel TI
+    vec_distance_var: object
+    d_max: dict  # {var: float or None} — normalization range per variable,
+    # from the domain's (zone) TI; kernel type stays primary's.
+    ti_has_nan: bool
+    scan_path: str = "sequential"  # window scan order; see module docstring
+
+
+# DS-mode scan block size.  Large enough that per-call NumPy overhead is
+# negligible (essentially full vectorization speed), small enough that the
+# greedy DS scan does not overcompute far past the first accepted match.
+# This is a call-overhead-amortization constant, not a cache-tuned one.
+_SCAN_BLOCK = 4096
+
+
+def _scan_window(
+    lo,
+    win_shape,
+    u_start_i,
+    max_scan,
+    threshold,
+    dist_fn,
+    scan_path="sequential",
+):
+    """Chunked vectorized TI window scan (pure-Python path).
+
+    Parameters
+    ----------
+    lo : numpy.ndarray
+        Lower-left anchor of the search window in TI coordinates.
+    win_shape : tuple of int
+        Shape of the search window.
+    u_start_i : float
+        The node's pre-drawn uniform in ``[0, 1)``.  ``"sequential"``: start
+        position ``int(u_start_i * win_size)``.  ``"random"``: stream seed.
+    max_scan : int
+        Maximum number of candidates to evaluate.
+    threshold : float or None
+        Distance threshold for early exit (DS mode). ``None`` → DSBC
+        (no early exit).
+    dist_fn : callable
+        ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
+        anchor coordinates ``y_blk`` of shape ``(b, dim)``.
+    scan_path : str, optional
+        ``"sequential"`` (default) or ``"random"``.  See the module docstring.
+
+    Returns
+    -------
+    y : numpy.ndarray, shape (dim,) or None
+        Coordinate of the best matching TI anchor, or ``None`` when no candidate
+        in the window has a finite distance (every candidate excluded — e.g. an
+        all-undefined window on a masked TI). The caller treats ``None`` as the
+        empty-neighbourhood case and draws a defined TI cell.
+    """
+    win_size = int(np.prod(win_shape))
+    # "sequential": wrap-around walk from a random start (Mariethoz2010 ¶19,
+    # Juda2022 §2). "random": max_scan distinct cells in random order, keyed on
+    # the node's own u_start_i so no extra RNG draw is needed.
+    #
+    # Deliberate exception to the "use gstools.random.RNG" rule: reproducibility
+    # is unaffected, since the only entropy is u_start_i, itself drawn from the
+    # engine's gstools RNG. gstools RNG cannot serve this call anyway -- it
+    # exposes no ``choice``, and its legacy-RandomState ``.random`` implements
+    # ``choice(replace=False)`` via a full permutation, i.e. O(win_size)
+    # instead of O(max_scan).
+    #
+    # Positions are built per ``_SCAN_BLOCK`` inside the loop below rather than
+    # for all ``max_scan`` candidates upfront, since the greedy DS scan
+    # typically exits long before the last block. This is unconditional
+    # rather than mode-gated: the sequential walk's block is a cheap arange
+    # either way, and it is bit-identical to building everything upfront.
+    if scan_path == "random":
+        positions = default_rng(int(u_start_i * 2**53)).choice(
+            win_size, max_scan, replace=False
+        )
+        start = None
+    else:
+        positions = None
+        start = int(u_start_i * win_size)
+
+    # DSBC has no threshold-based early exit, but an exact match d == 0 is
+    # the best attainable candidate, so accept it immediately (retained for
+    # categorical, where d == 0 is common — Juda2022 §2). Both modes
+    # therefore scan in blocks of ``_SCAN_BLOCK`` and track the running best,
+    # so a full-window DSBC scan never materialises one giant distance array.
+    # Block argmin + strict ``<`` keep the first-in-scan-order winner,
+    # matching a single ``argmin`` over the whole window.
+    dsbc = threshold is None
+    accept = 0.0 if dsbc else threshold
+
+    # DS mode (threshold > 0): strict acceptance d < t (Mariethoz2010 ¶23).
+    # DSBC mode: accept the exact match d == 0, i.e. d <= 0, since distances
+    # are non-negative (Juda2022 §2).
+    best_d, best_y = np.inf, None
+    for b0 in range(0, max_scan, _SCAN_BLOCK):
+        b1 = min(b0 + _SCAN_BLOCK, max_scan)
+        # Same integers the upfront build produced for this slice: the
+        # sequential walk is ``(start + k) % win_size`` elementwise, and
+        # ``unravel_index`` is elementwise, so blocking changes nothing.
+        pos_blk = (
+            (start + np.arange(b0, b1)) % win_size
+            if positions is None
+            else positions[b0:b1]
+        )
+        y_blk = lo + np.column_stack(np.unravel_index(pos_blk, win_shape))
+        d_blk = dist_fn(y_blk)
+        under = d_blk <= accept if dsbc else d_blk < accept
+        if np.any(under):
+            return y_blk[int(np.argmax(under))]
+        k = int(np.argmin(d_blk))
+        if d_blk[k] < best_d:
+            best_d = float(d_blk[k])
+            best_y = y_blk[k]
+    # ``best_y is None`` means every candidate had a non-finite (excluded)
+    # distance — only reachable on a masked TI where the whole window is
+    # undefined. Signal the caller to fall back to a defined TI draw (M10
+    # para [15] empty-neighbourhood handling). For a fully-defined TI the loop
+    # always sets best_y, so this returns a real anchor unchanged.
+    return best_y
+
+
+def _scan_for_match(
+    lo,
+    win_shape,
+    int_lags,
+    de_v,
+    cm_v,
+    ln_v,
+    u_start_i,
+    scan_targets,
+    scan_fraction,
+    cfg,
+):
+    """Joint multivariate DS scan over a TI search window.
+
+    Scans candidates in randomized order (greedy DS early-exit when the first
+    candidate with distance ``< threshold`` is found; DSBC running-best argmin
+    when ``threshold`` is ``None``).  The window is the per-variable intersection so
+    every ``y + lag`` is in bounds and the gather needs no clipping; the h=0
+    lag maps to ``y`` itself.  Returns the single best TI anchor coordinate
+    ``y``, or ``None`` when every candidate in the window is undefined (masked
+    TI — caller falls back to a random defined cell).
+
+    Parameters
+    ----------
+    scan_fraction : float
+        This pass's scan fraction (main path, or divided by
+        ``post_processing_factor`` for a post-pass) — the one field of the
+        old ``_ScanConfig`` that varies per pass rather than per domain.
+    """
+    win_size = int(np.prod(win_shape))
+    ti_size = int(np.prod(cfg.ti_shape))
+    # Scan fraction is of the TI (Mariethoz2010 ¶24, Juda2022 §2), capped at
+    # the valid search window so we never wrap around and re-scan anchors.
+    max_scan = max(1, min(win_size, int(scan_fraction * ti_size)))
+
+    active_vars = [v for v in cfg.variables if v in int_lags]
+    active_w_total = sum(cfg.weights[v] for v in active_vars)
+    precomp_w = {
+        v: compute_node_weights(
+            len(de_v[v]),
+            ln_v[v],
+            cfg.distance_power[v],
+            cm_v[v],
+            cfg.cond_weight[v],
+        )
+        for v in active_vars
+    }
+    # Precompute flat lag offsets for each variable: flat_il[v] = int_lags[v] @ strides.
+    # Combined with base = y_blk @ strides, all_de_ti = ti_flat[v][base[:,None] + flat_il[v][None,:]].
+    # In-bounds invariant: every y + lag is guaranteed in-bounds by window construction
+    # (_intersect_search_windows), so this flat take needs no bounds checking.
+    flat_il = {v: int_lags[v] @ cfg.ti_strides[v] for v in active_vars}
+
+    def _dist_block(y_blk):
+        d = np.zeros(len(y_blk))
+        for v in active_vars:
+            base = y_blk @ cfg.ti_strides[v]  # shape (B,)
+            all_de_ti = cfg.ti_flat[v][base[:, None] + flat_il[v][None, :]]
+            d += cfg.weights[v] * cfg.vec_distance_var(
+                v,
+                de_v[v],
+                all_de_ti,
+                cm_v[v],
+                cfg.cond_weight[v],
+                ln_v[v],
+                weights=precomp_w[v],
+                d_max=cfg.d_max[v],
+                has_nan=cfg.ti_has_nan,
+            )
+        # Renormalize so the joint distance stays in [0, 1] even when
+        # some variables have no data event and are excluded from int_lags.
+        # Without this, the threshold fires on a compressed scale and
+        # accepts matches that should be rejected.
+        if 0.0 < active_w_total < 1.0:
+            d /= active_w_total
+        if cfg.ti_has_nan:
+            # Never select an anchor whose pasted value would be undefined:
+            # the matched cell must be defined in every target variable.
+            center_ok = np.ones(len(y_blk), dtype=bool)
+            ys = tuple(y_blk.T)
+            for v in scan_targets:
+                cv = cfg.ti_vars[v][ys]
+                if np.issubdtype(cv.dtype, np.floating):
+                    center_ok &= np.isfinite(cv)
+            d = np.where(center_ok, d, np.inf)
+        return d
+
+    return _scan_window(
+        lo,
+        win_shape,
+        u_start_i,
+        max_scan,
+        cfg.threshold,
+        _dist_block,
+        cfg.scan_path,
+    )
