@@ -329,7 +329,7 @@ class Krige(Field):
         for i in range(chunk_no):
             chunk_slice = (i * chunk_size, min(pnt_cnt, (i + 1) * chunk_size))
             k_vec = self._get_krige_vecs(iso_pos, chunk_slice, ext_drift)
-            field[slice(*chunk_slice)] = _calc_field_krige(
+            field[slice(*chunk_slice)] = calc_field_krige(
                 self._krige_mat, k_vec, cond
             )
         return np.reshape(field, shape)
