@@ -43,7 +43,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "gstools-cython>=1,<2",
+    "gstools_core>=1.3.0",
     "emcee>=3.0.0",
     "hankel>=1.0.0",
     "meshio>=5.1.0",

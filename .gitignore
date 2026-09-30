@@ -107,10 +107,6 @@ tags
 # own stuff
 info/
 
-# Cython generated C code
-*.c
-*.cpp
-
 # generated version file
 src/gstools/_version.py
 
