@@ -34,6 +34,7 @@ GSTools provides geostatistical tools for various purposes:
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
 - plurigaussian field simulations (PGS)
+- surface-based stochastic geometry with borehole conditioning
 - collocated cokriging
 - plotting and exporting routines
 
@@ -131,6 +132,7 @@ showing the most important use cases of GSTools, which are
 - `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
 - `Normalizing Data <examples/10_normalizer/index.html>`__
 - `Plurigaussian Field Generation (PGS) <examples/11_plurigaussian/index.html>`__
+- `Stochastic Geometry <examples/13_geometry/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 

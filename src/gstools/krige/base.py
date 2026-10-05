@@ -161,6 +161,7 @@ class Krige(Field):
         self._cond_val = None
         self._cond_err = None
         self._krige_mat = None
+        self._condition_revision = 0
         self._krige_pos = None
         self._cond_trend = None
         self._cond_ext_drift = np.array([])
@@ -285,6 +286,53 @@ class Krige(Field):
             field[c_slice] = calc_field_krige(
                 self._krige_mat, k_vec, self._krige_cond, config.NUM_THREADS
             )
+
+    def krige_raw(self, values, ext_drift=None, chunk_size=None):
+        """Krige given values at the condition positions on the current pos.
+
+        Values must already be normalized, detrended and zero-mean (i.e.
+        in the same space as the internal kriging conditions). Reuses the
+        cached kriging matrix, stores nothing, and neither sets nor purges
+        ``pos``.
+
+        Parameters
+        ----------
+        values : :class:`numpy.ndarray`
+            Values at the conditioning points, shape ``(cond_no,)``.
+        ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
+            the external drift values at the current positions (only for EDK)
+        chunk_size : :class:`int`, optional
+            Chunk size for the evaluation. Default: all at once.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Kriged values with shape ``field_shape``.
+        """
+        values = np.asarray(values, dtype=np.double).reshape(-1)
+        if values.size != self.cond_no:
+            raise ValueError(
+                f"Krige.krige_raw: expected {self.cond_no} values, "
+                f"got {values.size}."
+            )
+        iso_pos, shape = self.pre_pos()
+        pnt_cnt = len(iso_pos[0])
+        field = np.empty(pnt_cnt, dtype=np.double)
+        if pnt_cnt == 0:
+            return np.reshape(field, shape)
+        cond = np.concatenate(
+            (values, np.zeros(self.krige_size - self.cond_no))
+        )
+        chunk_size = pnt_cnt if chunk_size is None else int(chunk_size)
+        chunk_no = int(np.ceil(pnt_cnt / chunk_size))
+        ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
+        for i in range(chunk_no):
+            chunk_slice = (i * chunk_size, min(pnt_cnt, (i + 1) * chunk_size))
+            k_vec = self._get_krige_vecs(iso_pos, chunk_slice, ext_drift)
+            field[slice(*chunk_slice)] = calc_field_krige(
+                self._krige_mat, k_vec, cond, config.NUM_THREADS
+            )
+        return np.reshape(field, shape)
 
     def _inv(self, mat):
         # return pseudo-inverted matrix if wanted (numerically more stable)
@@ -554,6 +602,8 @@ class Krige(Field):
         self._krige_pos = self.model.isometrize(self.cond_pos)
         # krige pos are the unrotated and isotropic condition positions
         self._krige_mat = self._get_krige_mat()
+        self._condition_revision += 1
+        self.delete_fields()
 
     def set_drift_functions(self, drift_functions=None):
         """

@@ -154,6 +154,79 @@ class TestCondition(unittest.TestCase):
         field2 = crf2(self.pos)
         self.assertTrue(np.all(np.isclose(field1, field2)))
 
+    def test_krige_raw(self):
+        model = gs.Gaussian(dim=1, var=1.0, len_scale=2.0)
+        for unbiased in (False, True):
+            krige = gs.Krige(
+                model, self.cond_pos[0], self.cond_val, unbiased=unbiased
+            )
+            ref = krige(self.pos[0], post_process=False, store=False)[0]
+            raw = krige.krige_raw(krige._krige_cond[: krige.cond_no])
+            np.testing.assert_allclose(raw, ref, rtol=1e-12, atol=1e-12)
+        self.assertRaises(ValueError, krige.krige_raw, [1.0, 2.0])
+
+    def test_cond_method_error_exact(self):
+        model = gs.Gaussian(dim=3, var=0.5, len_scale=2.0)
+        for unbiased in (False, True):
+            krige = gs.Krige(
+                model,
+                self.cond_pos,
+                self.cond_val,
+                mean=self.mean,
+                unbiased=unbiased,
+            )
+            srf = gs.CondSRF(krige, cond_method="error", seed=19)
+            self.assertEqual(srf.cond_method, "error")
+            field = srf(self.pos)
+            np.testing.assert_allclose(field[:5], self.cond_val, atol=1e-10)
+            # reuse of the stored kriging field gives the same result
+            np.testing.assert_allclose(srf(), field)
+        self.assertRaises(ValueError, gs.CondSRF, krige, cond_method="foo")
+
+    def test_condition_update_invalidates_cached_fields(self):
+        model = gs.Gaussian(dim=1)
+        pos = [0.0, 1.0]
+        for method in ("error", "rescale"):
+            for krige_store in (True, False):
+                with self.subTest(method=method, krige_store=krige_store):
+                    krige = gs.Krige(model, pos, [1.0, 2.0], unbiased=False)
+                    srf = gs.CondSRF(krige, cond_method=method, seed=1)
+                    srf(pos, krige_store=krige_store)
+                    krige.set_condition(cond_val=[10.0, 20.0])
+                    self.assertEqual(krige.field_names, [])
+                    # Re-populating kriging storage must not validate the
+                    # conditioned field's old raw estimate.
+                    krige(pos)
+                    field = srf(krige_store=krige_store)
+                    np.testing.assert_allclose(field, [10.0, 20.0], atol=1e-7)
+                    np.testing.assert_allclose(srf(), field, atol=1e-7)
+
+    def test_cond_method_error_covariance(self):
+        model = gs.Gaussian(dim=1, var=1.0, len_scale=5.0)
+        cond_pos = np.array([0.0, 3.0, 7.0, 12.0])
+        krige = gs.Krige(
+            model, cond_pos, [1, -0.5, 2, 0.3], mean=0.0, unbiased=False
+        )
+        pnt = np.array([1.5, 9.0])
+        cov = model.covariance(np.abs(np.subtract.outer(cond_pos, cond_pos)))
+        c_0 = model.covariance(np.abs(np.subtract.outer(cond_pos, pnt)))
+        ref = model.covariance(np.abs(np.subtract.outer(pnt, pnt)))
+        ref -= c_0.T @ np.linalg.solve(cov, c_0)
+        emp = {}
+        for method in ("error", "rescale"):
+            srf = gs.CondSRF(krige, cond_method=method, mode_no=100)
+            smp = [srf(pnt, seed=s, store=False) for s in range(1000)]
+            emp[method] = np.cov(np.array(smp).T)
+        np.testing.assert_allclose(emp["error"], ref, rtol=0.15)
+        # "rescale" provably misses the conditional cross-covariance
+        self.assertGreater(abs(emp["rescale"][0, 1] / ref[0, 1] - 1), 0.5)
+
+    def test_cond_method_nugget_raises(self):
+        model = gs.Gaussian(dim=3, var=0.5, len_scale=2.0, nugget=0.1)
+        krige = gs.Krige(model, self.cond_pos, self.cond_val)
+        srf = gs.CondSRF(krige, cond_method="error")
+        self.assertRaises(NotImplementedError, srf, self.pos)
+
 
 if __name__ == "__main__":
     unittest.main()

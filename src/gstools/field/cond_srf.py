@@ -22,6 +22,9 @@ GENERATOR = {
 }
 """dict: Standard generators for conditioned spatial random fields."""
 
+COND_METHOD = ["rescale", "error"]
+"""list: Standard conditioning methods for conditioned spatial random fields."""
+
 
 class CondSRF(Field):
     """A class to generate conditioned spatial random fields (SRF).
@@ -38,6 +41,15 @@ class CondSRF(Field):
               See: :any:`RandMeth`
 
         Default: "RandMeth"
+    cond_method : :class:`str`, optional
+        Conditioning method to use:
+
+            * "rescale" : classic rescaled-residual conditioning.
+            * "error" : exact conditioning by kriging the simulation
+              error (``Z_c = Z_k + (Y - Y_k)``). Requires
+              ``model.nugget == 0`` and ``cond_err == 0`` everywhere.
+
+        Default: "rescale"
     **generator_kwargs
         Keyword arguments that are forwarded to the generator in use.
         Have a look at the provided generators for further information.
@@ -49,14 +61,25 @@ class CondSRF(Field):
     default_field_names = ["field", "raw_field", "raw_krige"]
     """:class:`list`: Default field names."""
 
-    def __init__(self, krige, generator="RandMeth", **generator_kwargs):
+    def __init__(
+        self,
+        krige,
+        generator="RandMeth",
+        cond_method="rescale",
+        **generator_kwargs,
+    ):
         if not isinstance(krige, Krige):
             raise ValueError("CondSRF: krige should be an instance of Krige.")
         self._krige = krige
+        if cond_method not in COND_METHOD:
+            raise ValueError(f"CondSRF: unknown cond_method '{cond_method}'.")
+        self._cond_method = cond_method
         # initialize attributes
         self._field_names = []
         # initialize private attributes
         self._generator = None
+        # counts the number of set_condition() calls
+        self._condition_revision = None
         # initialize attributes
         self.set_generator(generator, **generator_kwargs)
 
@@ -108,13 +131,37 @@ class CondSRF(Field):
         krige_name, krige_save = self.krige.get_store_config(
             store=krige_store, fld_cnt=2
         )
+        error = self._cond_method == "error"
+        if error and (
+            self.model.nugget > 0 or np.any(self.krige.cond_err > 0)
+        ):
+            # nugget > 0 or any cond_err > 0 would require saving a
+            # measurement-error realisation into the realization - extra
+            # state for no benefit here, since the geometry layer requires
+            # nugget == 0 anyway.
+            raise NotImplementedError(
+                "CondSRF: cond_method='error' requires model.nugget "
+                "== 0 and cond_err == 0."
+            )
+        # "error" needs no kriging variance
+        return_var = not error
         kwargs["mesh_type"] = mesh_type
         kwargs["only_mean"] = False  # overwrite if given
-        kwargs["return_var"] = True  # overwrite if given
+        kwargs["return_var"] = return_var  # overwrite if given
         kwargs["post_process"] = False  # overwrite if given
-        kwargs["store"] = [False, krige_name[1] if krige_save[1] else False]
+        if return_var:
+            kwargs["store"] = [
+                False,
+                krige_name[1] if krige_save[1] else False,
+            ]
+        else:
+            kwargs["store"] = False
         # update the model/seed in the generator if any changes were made
         self.generator.update(self.model, seed)
+        # A rebuilt kriging system invalidates every cached raw estimate
+        if self._condition_revision != self.krige._condition_revision:
+            self.delete_fields()
+            self._condition_revision = self.krige._condition_revision
         # get isometrized positions and the resulting field-shape
         iso_pos, shape, info = self.pre_pos(pos, mesh_type, info=True)
         # generate the field
@@ -123,14 +170,17 @@ class CondSRF(Field):
         if (
             not info["deleted"]
             and name[2] in self.field_names
-            and krige_name[1] in self.krige.field_names
+            and (not return_var or krige_name[1] in self.krige.field_names)
         ):
             reuse = True
-            rawkrige, krige_var = self[name[2]], self.krige[krige_name[1]]
+            rawkrige = self[name[2]]
+            krige_var = self.krige[krige_name[1]] if return_var else None
         else:
             reuse = False
-            rawkrige, krige_var = self.krige(**kwargs)
-        var_scale, nugget = self.get_scaling(krige_var, shape)
+            if return_var:
+                rawkrige, krige_var = self.krige(**kwargs)
+            else:
+                rawkrige, krige_var = self.krige(**kwargs), None
         # store krige field (need a copy to not alter field by reference)
         if not reuse or krige_name[0] not in self.krige.field_names:
             self.krige.post_field(
@@ -141,13 +191,40 @@ class CondSRF(Field):
             self.post_field(rawkrige, name[2], False, save[2])
         # store raw random field
         self.post_field(rawfield, name[1], False, save[1])
+        if error:
+            field = self._cond_field_error(
+                rawfield,
+                rawkrige,
+                ext_drift=kwargs.get("ext_drift"),
+                chunk_size=kwargs.get("chunk_size"),
+            )
+        else:
+            var_scale, nugget = self.get_scaling(krige_var, shape)
+            field = rawkrige + var_scale * rawfield + nugget
         # store cond random field
         return self.post_field(
-            field=rawkrige + var_scale * rawfield + nugget,
+            field=field,
             name=name[0],
             process=post_process,
             save=save[0],
         )
+
+    def _cond_field_error(
+        self, rawfield, rawkrige, ext_drift=None, chunk_size=None
+    ):
+        """Exact conditioning by kriging the simulation error.
+
+        ``Z_c = Z_k + (Y - Y_k)`` where ``Y`` is the raw, unconditioned
+        realization and ``Y_k`` is that same realization kriged from its
+        own values at the conditioning points via
+        :any:`gstools.krige.base.Krige.krige_raw`.
+        """
+        cond_iso = self.model.isometrize(self.krige.cond_pos)
+        y_cond = self.generator(cond_iso, add_nugget=False)
+        y_krige = self.krige.krige_raw(
+            y_cond, ext_drift=ext_drift, chunk_size=chunk_size
+        )
+        return rawkrige + rawfield - y_krige
 
     def get_scaling(self, krige_var, shape):
         """
@@ -304,8 +381,19 @@ class CondSRF(Field):
     def value_type(self, value_type):
         self.krige.value_type = value_type
 
+    @property
+    def cond_method(self):
+        """:class:`str`: Conditioning method ("rescale" or "error")."""
+        return self._cond_method
+
     def __repr__(self):
         """Return String representation."""
+        cond_method = (
+            f", cond_method='{self._cond_method}'"
+            if self._cond_method != "rescale"
+            else ""
+        )
         return (
-            f"{self.name}(krige={self.krige}, generator={self.generator.name})"
+            f"{self.name}(krige={self.krige}, "
+            f"generator={self.generator.name}{cond_method})"
         )

@@ -24,6 +24,7 @@ Subpackages
     tools
     transform
     normalizer
+    geometry
 
 Classes
 =======
@@ -60,6 +61,27 @@ Classes for (conditioned) random field generation
    SRF
    CondSRF
    PGS
+
+Stochastic Geometry
+^^^^^^^^^^^^^^^^^^^
+Surface-based stochastic geometry: layered stratigraphy, interfaces and
+facies fields with borehole conditioning
+
+.. currentmodule:: gstools.geometry
+
+.. autosummary::
+   Region
+   Composite
+   HalfSpace
+   StratColumn
+   ThicknessLink
+   LogLink
+   Layer
+   LayerStack
+   Surface
+   SurfaceStack
+   FaciesField
+   BoreholeData
 
 Covariance Base-Class
 ^^^^^^^^^^^^^^^^^^^^^
@@ -154,6 +176,7 @@ from gstools import (  # noqa: I001
     field,
     krige,
     cokriging,
+    geometry,
     normalizer,
     random,
     tools,
@@ -190,6 +213,16 @@ from gstools.covmodel import (
     TPLStable,
 )
 from gstools.field import PGS, SRF, CondSRF
+from gstools.geometry import (
+    BoreholeData,
+    FaciesField,
+    HalfSpace,
+    Layer,
+    LayerStack,
+    StratColumn,
+    Surface,
+    SurfaceStack,
+)
 from gstools.krige import Krige
 from gstools.tools import (
     DEGREE_SCALE,
@@ -227,6 +260,7 @@ __all__ += [
     "variogram",
     "krige",
     "cokriging",
+    "geometry",
     "random",
     "tools",
 ]
@@ -272,6 +306,14 @@ __all__ += [
     "SRF",
     "CondSRF",
     "PGS",
+    "BoreholeData",
+    "FaciesField",
+    "HalfSpace",
+    "Layer",
+    "LayerStack",
+    "StratColumn",
+    "Surface",
+    "SurfaceStack",
     "rotated_main_axes",
     "generate_grid",
     "generate_st_grid",
