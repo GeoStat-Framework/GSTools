@@ -24,9 +24,22 @@ Subpackages
     tools
     transform
     normalizer
+    mps
 
 Classes
 =======
+
+Multiple Point Statistics
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Classes for Multiple Point Statistics (MPS) simulations
+
+.. currentmodule:: gstools.mps
+
+.. autosummary::
+   DirectSampling
+   MPSModel
+   TrainingImage
+   Zone
 
 Kriging
 ^^^^^^^
@@ -153,6 +166,7 @@ from gstools import (  # noqa: I001
     covmodel,
     field,
     krige,
+    mps,
     cokriging,
     normalizer,
     random,
@@ -191,6 +205,7 @@ from gstools.covmodel import (
 )
 from gstools.field import PGS, SRF, CondSRF
 from gstools.krige import Krige
+from gstools.mps import DirectSampling, MPSModel, TrainingImage, Zone
 from gstools.tools import (
     DEGREE_SCALE,
     EARTH_RADIUS,
@@ -221,6 +236,8 @@ except ModuleNotFoundError:  # pragma: no cover
     __version__ = "0.0.0.dev0"
 
 __all__ = ["__version__"]
+__all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
+__all__ += ["transform", "normalizer", "config", "mps"]
 __all__ += [
     "covmodel",
     "field",
@@ -272,6 +289,10 @@ __all__ += [
     "SRF",
     "CondSRF",
     "PGS",
+    "DirectSampling",
+    "MPSModel",
+    "TrainingImage",
+    "Zone",
     "rotated_main_axes",
     "generate_grid",
     "generate_st_grid",
