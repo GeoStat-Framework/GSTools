@@ -56,8 +56,7 @@ Install the package by typing the following command in a command terminal:
     conda install gstools
 
 In case conda forge is not set up for your system yet, see the easy to follow
-instructions on [conda forge][conda_forge_link]. Using conda, the parallelized
-version of GSTools should be installed.
+instructions on [conda forge][conda_forge_link].
 
 
 ### pip
@@ -81,9 +80,6 @@ Install the package by typing the following command in a command terminal:
 
 To install the latest development version via uv, see the
 [documentation][doc_install_link].
-One thing to point out is that this way, the non-parallel version of GSTools
-is installed. In case you want the parallel version, follow these easy
-[steps][doc_install_link].
 
 
 ## Citation
