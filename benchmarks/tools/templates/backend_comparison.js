@@ -189,6 +189,12 @@ function viewModeValue() {
   return checkedValues("viewMode")[0] || "line";
 }
 
+function machineValue() {
+  // Single-choice: the chart only ever shows one machine/environment so that
+  // results from different hardware are never merged into the same series.
+  return checkedValues("machine")[0] || "";
+}
+
 function selectedBenchmark() {
   const candidates = unique(rows
     .filter(row => row.metric === metricValue() && row.family === familyValue())
@@ -198,16 +204,19 @@ function selectedBenchmark() {
 
 function benchmarkRows() {
   const benchmark = selectedBenchmark();
+  const machine = machineValue();
   return rows.filter(row =>
     row.metric === metricValue() &&
     row.family === familyValue() &&
-    row.benchmark === benchmark
+    row.benchmark === benchmark &&
+    (!machine || row.machine === machine)
   );
 }
 
 function filteredRows() {
   const metric = metricValue();
   const family = familyValue();
+  const machine = machineValue();
   const benchmark = selectedBenchmark();
   const cases = checkedValues("case");
   const threads = checkedValues("threads");
@@ -219,6 +228,7 @@ function filteredRows() {
   return rows.filter(row =>
     (!metric || row.metric === metric) &&
     (!family || row.family === family) &&
+    (!machine || row.machine === machine) &&
     (!benchmark || row.benchmark === benchmark) &&
     cases.includes(row.case) &&
     threads.includes(row.threads) &&
@@ -236,6 +246,7 @@ function refreshOptions() {
     metrics: checkedValues("metric"),
     families: checkedValues("family"),
     viewModes: checkedValues("viewMode"),
+    machines: checkedValues("machine"),
     cases: checkedValues("case"),
     threads: checkedValues("threads"),
     commits: selectedOptions("commit"),
@@ -251,6 +262,12 @@ function refreshOptions() {
   const defaultFamily = familyOptions.includes("krige") ? "krige" : familyOptions[0];
   setCheckboxes("family", familyOptions, previousMain.families, {}, [defaultFamily]);
   setCheckboxes("viewMode", ["line", "bar"], previousMain.viewModes, modeLabels, ["line"]);
+  const machineOptions = unique(rows
+    .filter(row => row.metric === metricValue() && row.family === familyValue())
+    .map(row => row.machine));
+  setCheckboxes(
+    "machine", machineOptions, previousMain.machines, {}, [machineOptions[0]]
+  );
   const isTagMode = referenceModeValue() === "tag";
   const benchRows = benchmarkRows();
   const caseOptions = unique(benchRows.map(row => row.case));
@@ -567,7 +584,7 @@ function renderAll() {
   renderChart();
 }
 
-for (const id of ["metric", "family", "viewMode"]) {
+for (const id of ["metric", "family", "viewMode", "machine"]) {
   document.getElementById(id).addEventListener("change", event => {
     enforceSingleChoice(id, event);
     refreshOptions();

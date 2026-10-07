@@ -39,9 +39,13 @@ jobs:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           # The artifact was produced by an untrusted pull-request run, while
-          # this job holds a write token. Only the PR number and the
-          # comparison text are taken from it; the number is verified against
-          # the triggering run and everything else comes from the GitHub API.
+          # this job holds a write token. From it we take the PR number, the
+          # benchmarked base/head commits, and the comparison text — each is
+          # format-validated, and the head is checked against the triggering
+          # run (workflow_run.head_sha). The base is the commit that was
+          # actually benchmarked, recorded by the producer, NOT a live
+          # .base.sha query (which drifts when the base branch advances and
+          # would report a base that was never benchmarked).
           PR_NUMBER=$(cat pr-context/pr_number.txt)
           if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
             echo "::error::Invalid PR number in benchmark artifact."
@@ -54,8 +58,19 @@ jobs:
               "benchmarked commit $HEAD_SHA; skipping comment."
             exit 0
           fi
-          BASE_SHA=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" \
-            --jq '.base.sha')
+          # Provenance: the context belongs to this triggering run, so its
+          # recorded head must equal the trusted workflow_run head.
+          ARTIFACT_HEAD_SHA=$(cat pr-context/head_sha.txt)
+          if [[ "$ARTIFACT_HEAD_SHA" != "$HEAD_SHA" ]]; then
+            echo "::warning::Benchmark context head $ARTIFACT_HEAD_SHA does not" \
+              "match the triggering run $HEAD_SHA; skipping comment."
+            exit 0
+          fi
+          BASE_SHA=$(cat pr-context/base_sha.txt)
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+            echo "::error::Invalid base SHA in benchmark artifact."
+            exit 1
+          fi
 
           ARTIFACT_ID=$(gh api \
             "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts" \

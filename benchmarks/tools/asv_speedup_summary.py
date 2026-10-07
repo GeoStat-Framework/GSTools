@@ -149,6 +149,16 @@ def parse_benchmark_name(name):
     return short_name, "-", threads
 
 
+def _is_thread_label(item):
+    """True for a threads parameter value.
+
+    The suite stores the threads parameter as a bare integer (``THREAD_COUNTS``,
+    e.g. ``"4"``); older results encoded it as ``"threads_4"``. Both are treated
+    as the thread label so the thread count is never mistaken for a case value.
+    """
+    return item.isdigit() or item.startswith(THREAD_PREFIX)
+
+
 def backend_rows(benchmark, entry):
     """Return backend/value rows for one ASV benchmark entry."""
     parsed_benchmark, parsed_case, parsed_threads = parse_benchmark_name(
@@ -174,12 +184,16 @@ def backend_rows(benchmark, entry):
         case_values = [
             item
             for item in combo_values
-            if item not in BACKENDS and not item.startswith(THREAD_PREFIX)
+            if item not in BACKENDS and not _is_thread_label(item)
         ]
         threads = next(
-            (item for item in combo_values if item.startswith(THREAD_PREFIX)),
+            (item for item in combo_values if _is_thread_label(item)),
             parsed_threads,
         )
+        # Normalise a bare integer ("4") to the "threads_4" convention used by
+        # thread_number() and the summary output.
+        if threads.isdigit():
+            threads = f"{THREAD_PREFIX}{threads}"
         rows.append(
             {
                 "backend": backend,

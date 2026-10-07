@@ -163,7 +163,20 @@ def _check_backend_available(backend):
         raise NotImplementedError("gstools_core is not available")
 
 
-class VariogramBenchmarks:
+class _TwoPointBenchmark:
+    """Shared ASV timing attributes for the two-point benchmark classes.
+
+    ``number``/``repeat`` are benchmark attributes (ASV ignores them in
+    ``asv.conf.json``), so this is the single place to tune timing resolution
+    for all families. ASV only collects classes with ``time_*``/``peakmem_*``
+    methods, so this base is not discovered as a benchmark itself.
+    """
+
+    number = 1  # one inner call per sample
+    repeat = 20  # repeats per case, for a stable median
+
+
+class VariogramBenchmarks(_TwoPointBenchmark):
     """Measure variogram estimation cases for each backend, case, and thread count."""
 
     params = [BACKENDS, VARIOGRAM_CASES, THREAD_COUNTS]
@@ -208,7 +221,7 @@ class VariogramBenchmarks:
         self._run_variogram(data, backend, case, threads)
 
 
-class KrigingBenchmarks:
+class KrigingBenchmarks(_TwoPointBenchmark):
     """Measure global kriging cases for each backend, case, and thread count."""
 
     params = [BACKENDS, KRIGE_CASES, THREAD_COUNTS]
@@ -254,7 +267,7 @@ class KrigingBenchmarks:
         self._run_krige(data, backend, case, threads)
 
 
-class RandomFieldBenchmarks:
+class RandomFieldBenchmarks(_TwoPointBenchmark):
     """Measure SRF and CondSRF generation cases for each backend, case, and thread count."""
 
     params = [BACKENDS, FIELD_CASES, THREAD_COUNTS]

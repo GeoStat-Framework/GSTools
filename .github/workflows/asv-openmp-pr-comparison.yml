@@ -212,12 +212,19 @@ jobs:
         if: always()
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          # Only the PR number and the comparison text are handed over; the
-          # comment workflow verifies the number against its triggering run
-          # and resolves commits and artifact URL from the GitHub API.
+          # Hand over the PR number, the *benchmarked* base/head commits, and
+          # the comparison text. The comment workflow verifies the number and
+          # head against its triggering run. The base commit is recorded here
+          # rather than re-queried live, because the base branch tip can advance
+          # after the benchmark runs — a live .base.sha would then report a base
+          # that was never benchmarked.
           mkdir -p .asv-openmp/pr-context
-          printf '%s' "$PR_NUMBER"    > .asv-openmp/pr-context/pr_number.txt
+          printf '%s' "$PR_NUMBER" > .asv-openmp/pr-context/pr_number.txt
+          printf '%s' "$BASE_SHA"  > .asv-openmp/pr-context/base_sha.txt
+          printf '%s' "$HEAD_SHA"  > .asv-openmp/pr-context/head_sha.txt
           cp .asv-openmp/artifact/comparison.txt \
              .asv-openmp/pr-context/comparison.txt 2>/dev/null \
             || printf '_Comparison output not available._' \

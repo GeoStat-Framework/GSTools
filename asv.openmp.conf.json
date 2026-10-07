@@ -36,7 +36,5 @@
     "in-dir={env_dir} python {conf_dir}/benchmarks/tools/install_openmp_cython.py {env_dir}",
     "in-dir={env_dir} python -m pip install --no-deps {build_dir}",
     "in-dir={env_dir} python {conf_dir}/benchmarks/tools/check_backend_parallel_ready.py --verbose"
-  ],
-  "number": 1,
-  "repeat": 20
+  ]
 }
