@@ -30,9 +30,14 @@ from pathlib import Path
 # GitHub rejects comment bodies above 65536 characters; leave room for the
 # surrounding markup.
 MAX_COMPARISON_CHARS = 60_000
-# "+" regressed, "-" improved, "~" ratio exceeded but not significant,
-# "x" failed in one of the two commits.
-CHANGE_MARKERS = frozenset("+-~x")
+# ASV compare change-column markers:
+#   "+" regressed, "-" improved,
+#   "!" a benchmark that worked on the base now FAILS on the head,
+#   "*" a benchmark that failed on the base now works,
+#   "x" not comparable (the benchmark signature changed between commits).
+# ("~" marks a statistically insignificant ratio in the Ratio column, not the
+# change column, so it never appears here — kept for the legacy text layout.)
+CHANGE_MARKERS = frozenset("+-~x!*")
 SHA_PATTERN = re.compile(r"[0-9a-f]{7,40}")
 ARTIFACT_URL_PATTERN = re.compile(
     r"https://github\.com/(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)"
@@ -125,15 +130,22 @@ def render(base, head, artifact_url, repository, comparison):
             comparison[:MAX_COMPARISON_CHARS] + "\n... (comparison truncated)"
         )
 
-    # ASV marks "+" (regressed) or "-" (improved) only when BOTH the
-    # ratio > 1.05 AND the Mann-Whitney U test agree. Lines with "~"
-    # exceeded the ratio threshold but were not statistically significant.
+    # ASV marks "+" (regressed) or "-" (improved) only when BOTH the ratio
+    # > 1.05 AND the Mann-Whitney U test agree. "!" marks a benchmark that
+    # worked on the base but now fails on the head — a failure must be
+    # surfaced, never hidden behind "no significant changes".
     markers = [change_marker(line) for line in comparison.splitlines()]
     regressed = markers.count("+")
-    improved = markers.count("-")
+    improved = markers.count("-") + markers.count("*")
+    failed = markers.count("!")
     note = "Mann-Whitney U · 5% threshold"
-    if regressed:
-        badge = f"⚠️ {regressed} benchmark(s) regressed · {note}"
+    if failed or regressed:
+        parts = []
+        if failed:
+            parts.append(f"{failed} benchmark(s) failed")
+        if regressed:
+            parts.append(f"{regressed} benchmark(s) regressed")
+        badge = f"⚠️ {', '.join(parts)} · {note}"
     elif improved:
         badge = f"✅ {improved} benchmark(s) improved, none regressed · {note}"
     else:

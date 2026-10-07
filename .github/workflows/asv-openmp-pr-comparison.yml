@@ -106,11 +106,16 @@ jobs:
         env:
           GSTOOLS_BENCHMARK_THREADS: "1,2,4,8"
         run: |
+          # --record-samples keeps the raw measurement samples (not just
+          # summary stats) so `asv compare` can run its Mann-Whitney U
+          # significance test below. Without it, samples are discarded and the
+          # test cannot run.
           asv --config "$ASV_CONFIG" run \
             "HASHFILE:$RUNNER_TEMP/asv-pr-commits.txt" \
             --machine "$MACHINE_NAME" \
             --interleave-rounds \
             --no-pull \
+            --record-samples \
             --bench "^benchmark_" \
             --show-stderr
 

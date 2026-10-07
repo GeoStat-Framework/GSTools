@@ -120,6 +120,23 @@ class TestRenderBenchmarkComment(unittest.TestCase):
             COMMENT.render(BASE, HEAD, "", REPO, table.replace("| +", "|  ")),
         )
 
+    def test_introduced_failure_is_surfaced_not_hidden(self):
+        """A benchmark that now fails ("!") must not read as "no changes"."""
+        table = (
+            "| Change   | Before [aaaaaaaa]   | After [bbbbbbbb]   | Ratio |\n"
+            "|----------|---------------------|--------------------|-------|\n"
+            "| !        | 1.00±0ms            | failed             | n/a   |\n"
+            "|          | 1.00±0ms            | 1.00±0ms           | 1.00  |\n"
+        )
+        self.assertEqual(
+            [COMMENT.change_marker(l) for l in table.splitlines()],
+            ["", "", "!", ""],
+        )
+        body = COMMENT.render(BASE, HEAD, "", REPO, table)
+        self.assertIn("1 benchmark(s) failed", body)
+        self.assertNotIn("No significant changes detected", body)
+        self.assertIn("⚠️", body)
+
     def test_rejected_artifact_url_drops_link(self):
         """An unexpected URL results in no report link at all."""
         body = COMMENT.render(
