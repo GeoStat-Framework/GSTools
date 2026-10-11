@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-"""Check whether the GSTools benchmark backend is ready for parallel runs.
+"""Smoke-check that the GSTools benchmark backend runs with threads set.
 
-This is a fast CI probe. It verifies that the Rust backend (gstools_core) is
-installed and can run a small GSTools workflow while GSTools is configured with
-more than one thread.
+This is a fast CI guard, not a parallel-performance proof. It verifies that the
+Rust backend (gstools_core) is installed and that a small GSTools workflow
+completes with ``gs.config.NUM_THREADS`` set above one. It does NOT measure
+speedup or confirm that multiple OS threads were actually used — the benchmark
+thread-scaling results are the real evidence of parallel execution.
 """
 
 from __future__ import annotations
@@ -15,6 +17,14 @@ import sys
 import numpy as np
 
 
+def positive_int(value):
+    """Parse a command-line integer that must be >= 1."""
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("thread count must be at least 1")
+    return parsed
+
+
 def parse_args():
     """Parse command-line options."""
     parser = argparse.ArgumentParser(
@@ -24,8 +34,8 @@ def parse_args():
     parser.add_argument(
         "--threads",
         default=2,
-        type=int,
-        help="Thread count to request for the Rust backend smoke workflow.",
+        type=positive_int,
+        help="Thread count (>=1) to request for the Rust backend smoke check.",
     )
     parser.add_argument(
         "--verbose",

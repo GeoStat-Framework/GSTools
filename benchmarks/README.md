@@ -248,6 +248,11 @@ The current suite measures runtime and peak memory for variogram estimation,
 global kriging, spatial random field generation, and conditioned random field
 generation, on the Rust backend across the configured thread counts.
 
+These are **end-to-end workflow** measurements: the timed call includes model
+and estimator/generator object construction (e.g. building `gs.Krige(...)`) as
+well as the evaluation. The thread-count override wraps the evaluation, so for
+small cases fixed construction overhead can dominate and limit thread scaling.
+
 ### Shared Constants
 
 ```python
@@ -286,7 +291,7 @@ Both constants are driven by environment variables read at import time:
 | Variable | Default | Example override |
 |---|---|---|
 | `GSTOOLS_BENCHMARK_THREADS` | `"1"` | `"1,2,4,8"` — run with 1, 2, 4, and 8 threads |
-| `GSTOOLS_BENCHMARK_BACKENDS` | all backends | `"rust_core"` — run Rust only |
+| `GSTOOLS_BENCHMARK_BACKENDS` | all configured backends (currently `rust_core`) | `"rust_core"` — run Rust only |
 
 These must be set before ASV imports the benchmark module. When running
 locally with ASV, prefix the `asv run` command:

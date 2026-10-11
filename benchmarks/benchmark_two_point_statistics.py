@@ -30,6 +30,10 @@ import numpy as np
 
 import gstools as gs
 
+# GSTools-Core (Rust) is the only numerical backend. The single-entry backend
+# axis is kept deliberately: it preserves the ASV result shape (so previously
+# recorded results stay comparable) and leaves room to add another backend
+# later without reshaping the benchmark classes.
 AVAILABLE_BACKENDS = ("rust_core",)
 
 
@@ -160,10 +164,6 @@ class VariogramBenchmarks(_TwoPointBenchmark):
             "sampled_15000_to_4500": _make_variogram_data(20220503, 15000),
         }
 
-    def setup(self, data, backend, case, threads):
-        """Skip backend rows that cannot run in the current environment."""
-        pass
-
     def _run_variogram(self, data, backend, case, threads):
         """Run one variogram estimation case with the selected backend."""
         pos, field, bins = data[case]
@@ -204,10 +204,6 @@ class KrigingBenchmarks(_TwoPointBenchmark):
             "large_120x2000": _make_krige_data(20220507, 120, 2000),
             "extra_large_360x6000": _make_krige_data(20220508, 360, 6000),
         }
-
-    def setup(self, data, backend, case, threads):
-        """Skip backend rows that cannot run in the current environment."""
-        pass
 
     def _run_krige(self, data, backend, case, threads):
         """Run one global kriging case with the selected backend."""
@@ -253,10 +249,6 @@ class RandomFieldBenchmarks(_TwoPointBenchmark):
             ),
             "condsrf": _make_krige_data(20220510, 40, 1000),
         }
-
-    def setup(self, data, backend, case, threads):
-        """Skip backend rows that cannot run in the current environment."""
-        pass
 
     def _run_field(self, data, backend, case, threads):
         """Run one SRF or CondSRF case by label with the selected backend."""

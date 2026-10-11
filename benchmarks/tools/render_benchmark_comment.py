@@ -39,6 +39,29 @@ MAX_COMPARISON_CHARS = 60_000
 # change column, so it never appears here — kept for the legacy text layout.)
 CHANGE_MARKERS = frozenset("+-~x!*")
 SHA_PATTERN = re.compile(r"[0-9a-f]{7,40}")
+# The comparison workflow runs ``asv compare`` under ``set +e`` and appends this
+# line to the comparison text so a failed comparison can be detected here
+# instead of being silently reported as success.
+EXIT_STATUS_PATTERN = re.compile(r"ASV comparison exit status:\s*(-?\d+)")
+# Placeholder written by ``main()`` when no comparison file is supplied.
+UNAVAILABLE_PLACEHOLDER = "_Comparison output not available._"
+# A real ``asv compare`` of this suite always lists benchmark method rows.
+BENCHMARK_ROW_PATTERN = re.compile(r"\b(?:time_|peakmem_)\w+")
+
+
+def has_comparison_rows(comparison):
+    """Return True if ``comparison`` contains at least one ASV result row.
+
+    A genuine comparison (even "all unchanged") carries change-marker rows,
+    ``value±error`` measurements, or benchmark method names. Empty, placeholder
+    or error-only text has none of these.
+    """
+    for line in comparison.splitlines():
+        if change_marker(line) or "±" in line:
+            return True
+        if BENCHMARK_ROW_PATTERN.search(line) is not None:
+            return True
+    return False
 ARTIFACT_URL_PATTERN = re.compile(
     r"https://github\.com/(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)"
     r"/actions/runs/[0-9]+/artifacts/[0-9]+"
@@ -110,6 +133,26 @@ def change_marker(line):
     return marker if marker in CHANGE_MARKERS else ""
 
 
+def comparison_status(comparison):
+    """Classify the comparison text as ``"ok"``, ``"empty"`` or ``"error"``.
+
+    A green "no significant changes" badge must only ever be shown for a real,
+    complete comparison. Empty/missing text, the unavailable placeholder, a
+    nonzero ``asv compare`` exit status, or output that contains no benchmark
+    rows are all treated as *not comparable* so they cannot masquerade as
+    success.
+    """
+    stripped = comparison.strip()
+    if not stripped or stripped == UNAVAILABLE_PLACEHOLDER:
+        return "empty"
+    exit_match = EXIT_STATUS_PATTERN.search(comparison)
+    if exit_match is not None and int(exit_match.group(1)) != 0:
+        return "error"
+    if not has_comparison_rows(comparison):
+        return "empty"
+    return "ok"
+
+
 def code_fence(text):
     """Return a backtick fence that no line inside ``text`` can close."""
     longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
@@ -130,26 +173,44 @@ def render(base, head, artifact_url, repository, comparison):
             comparison[:MAX_COMPARISON_CHARS] + "\n... (comparison truncated)"
         )
 
-    # ASV marks "+" (regressed) or "-" (improved) only when BOTH the ratio
-    # > 1.05 AND the Mann-Whitney U test agree. "!" marks a benchmark that
-    # worked on the base but now fails on the head — a failure must be
-    # surfaced, never hidden behind "no significant changes".
-    markers = [change_marker(line) for line in comparison.splitlines()]
-    regressed = markers.count("+")
-    improved = markers.count("-") + markers.count("*")
-    failed = markers.count("!")
     note = "Mann-Whitney U · 5% threshold"
-    if failed or regressed:
-        parts = []
-        if failed:
-            parts.append(f"{failed} benchmark(s) failed")
-        if regressed:
-            parts.append(f"{regressed} benchmark(s) regressed")
-        badge = f"⚠️ {', '.join(parts)} · {note}"
-    elif improved:
-        badge = f"✅ {improved} benchmark(s) improved, none regressed · {note}"
+    status = comparison_status(comparison)
+    if status != "ok":
+        # No valid comparison was produced (missing/empty text, a nonzero
+        # ``asv compare`` exit status, or no benchmark rows). Never fall through
+        # to a reassuring green badge in these cases.
+        badge = "⚠️ Comparison unavailable or failed — results not comparable"
     else:
-        badge = f"✅ No significant changes detected · {note}"
+        # ASV marks "+" (regressed) or "-" (improved) only when BOTH the ratio
+        # > 1.05 AND the Mann-Whitney U test agree. "!" marks a benchmark that
+        # worked on the base but now fails on the head — a failure must be
+        # surfaced, never hidden behind "no significant changes".
+        markers = [change_marker(line) for line in comparison.splitlines()]
+        regressed = markers.count("+")
+        improved = markers.count("-") + markers.count("*")
+        failed = markers.count("!")
+        # "x" = not comparable (benchmark signature changed between commits).
+        not_comparable = markers.count("x")
+        if failed or regressed:
+            parts = []
+            if failed:
+                parts.append(f"{failed} benchmark(s) failed")
+            if regressed:
+                parts.append(f"{regressed} benchmark(s) regressed")
+            badge = f"⚠️ {', '.join(parts)} · {note}"
+        elif improved:
+            badge = (
+                f"✅ {improved} benchmark(s) improved, none regressed · {note}"
+            )
+        elif not_comparable:
+            # Rows exist but every one is "x" — nothing was actually compared,
+            # so this must not read as a reassuring "no changes".
+            badge = (
+                f"⚠️ {not_comparable} benchmark(s) not comparable "
+                f"(signature changed) · {note}"
+            )
+        else:
+            badge = f"✅ No significant changes detected · {note}"
 
     fence = code_fence(comparison)
     return (

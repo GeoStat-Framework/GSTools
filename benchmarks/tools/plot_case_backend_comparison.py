@@ -30,8 +30,14 @@ import math
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _warn(message):
+    """Print a non-fatal data-quality warning to stderr."""
+    print(f"warning: {message}", file=sys.stderr)
 
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 BACKENDS = ("rust_core",)
@@ -178,11 +184,12 @@ def get_git_tags():
 
 
 def load_json(path):
-    """Load one ASV JSON file, ignoring invalid files."""
+    """Load one ASV JSON file; warn and return None on an invalid file."""
     try:
         with path.open(encoding="utf8") as handle:
             return json.load(handle)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError) as err:
+        _warn(f"could not read {path}: {err}")
         return None
 
 
@@ -294,10 +301,23 @@ def result_rows(benchmark, entry):
     base_name, encoded_case, encoded_threads = parse_benchmark_name(benchmark)
     rows = []
     values = list(flatten_values(result))
-    combinations = itertools.product(*params) if params else [()]
+    combinations = list(itertools.product(*params)) if params else [()]
 
+    # A length mismatch means ``zip`` below would silently drop combinations or
+    # values — surface it rather than quietly producing a partial result.
+    if len(combinations) != len(values):
+        _warn(
+            f"{short_benchmark_name(benchmark)}: {len(values)} result value(s) "
+            f"do not match {len(combinations)} parameter combination(s); "
+            "some observations may be dropped"
+        )
+
+    skipped = 0
     for combo, value in zip(combinations, values):
         if not is_number(value):
+            # None/NaN = a failed or missing measurement; count and report it
+            # instead of dropping it silently.
+            skipped += 1
             continue
         combo_values = [clean_param_value(item) for item in combo]
         backend = next(
@@ -330,6 +350,11 @@ def result_rows(benchmark, entry):
                 "backend": backend,
                 "value": float(value),
             }
+        )
+    if skipped:
+        _warn(
+            f"{short_benchmark_name(benchmark)}: skipped {skipped} "
+            "missing/failed (null or NaN) measurement(s)"
         )
     return rows
 
@@ -605,6 +630,32 @@ def render_html(rows):
     )
 
 
+def warn_on_mixed_hardware(rows):
+    """Warn when one machine name maps to >1 CPU/OS/arch fingerprint.
+
+    The CI machine identity is a stable alias (e.g. ``github-actions-ubuntu``),
+    so different runner hardware can be silently grouped under one name.
+    Surfacing it lets a reader distrust cross-time comparisons that mix
+    machines.
+    """
+    by_name = {}
+    for row in rows:
+        fingerprint = (
+            row.get("cpu", "-"),
+            row.get("os", "-"),
+            row.get("arch", "-"),
+        )
+        by_name.setdefault(row.get("machine", "-"), set()).add(fingerprint)
+    for name, fingerprints in sorted(by_name.items()):
+        if len(fingerprints) > 1:
+            joined = "; ".join("/".join(fp) for fp in sorted(fingerprints))
+            _warn(
+                f"machine {name!r} spans {len(fingerprints)} different "
+                f"hardware/OS fingerprints; comparisons under this name may "
+                f"mix machines: {joined}"
+            )
+
+
 def main():
     """Run the report generator."""
     args = parse_args()
@@ -617,6 +668,7 @@ def main():
         tag_map=tag_map,
     )
     rows = limit_recent_commits(rows, args.max_commits)
+    warn_on_mixed_hardware(rows)
     if args.table:
         try:
             print_table(rows)

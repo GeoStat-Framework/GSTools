@@ -137,6 +137,54 @@ class TestRenderBenchmarkComment(unittest.TestCase):
         self.assertNotIn("No significant changes detected", body)
         self.assertIn("⚠️", body)
 
+    def test_empty_or_placeholder_comparison_is_not_green(self):
+        """Missing/empty comparison text must not read as "no changes"."""
+        for text in ("", "   \n  \n", COMMENT.UNAVAILABLE_PLACEHOLDER):
+            body = COMMENT.render(BASE, HEAD, "", REPO, text)
+            self.assertIn("⚠️", body)
+            self.assertIn("unavailable", body.lower())
+            self.assertNotIn("No significant changes detected", body)
+
+    def test_failed_compare_exit_status_is_not_green(self):
+        """A nonzero ``asv compare`` exit status is surfaced, not hidden."""
+        text = (
+            "|   | 1.00±0ms | 1.00±0ms | 1.00 | time_variogram_estimate |\n"
+            "ASV comparison exit status: 1\n"
+        )
+        body = COMMENT.render(BASE, HEAD, "", REPO, text)
+        self.assertIn("⚠️", body)
+        self.assertNotIn("No significant changes detected", body)
+
+    def test_valid_comparison_with_zero_exit_status_stays_green(self):
+        """A real, complete, unchanged comparison still reads as success."""
+        text = (
+            "|   | 1.00±0ms | 1.00±0ms | 1.00 | time_variogram_estimate |\n"
+            "ASV comparison exit status: 0\n"
+        )
+        body = COMMENT.render(BASE, HEAD, "", REPO, text)
+        self.assertIn("No significant changes detected", body)
+
+    def test_comparison_without_benchmark_rows_is_not_green(self):
+        """Output with no benchmark rows is treated as not comparable."""
+        body = COMMENT.render(
+            BASE, HEAD, "", REPO, "Could not find any results.\n"
+        )
+        self.assertIn("⚠️", body)
+        self.assertNotIn("No significant changes detected", body)
+
+    def test_all_not_comparable_is_not_green(self):
+        """An all-"x" (signature-changed) comparison must not read green."""
+        table = (
+            "| Change | Before [aaaaaaaa] | After [bbbbbbbb] | Ratio | Bench |\n"
+            "|---|---|---|---|---|\n"
+            "| x | 1.00±0ms | failed | n/a | time_variogram_estimate |\n"
+            "| x | 1.00±0ms | failed | n/a | peakmem_global_krige |\n"
+        )
+        body = COMMENT.render(BASE, HEAD, "", REPO, table)
+        self.assertIn("⚠️", body)
+        self.assertIn("not comparable", body)
+        self.assertNotIn("No significant changes detected", body)
+
     def test_rejected_artifact_url_drops_link(self):
         """An unexpected URL results in no report link at all."""
         body = COMMENT.render(

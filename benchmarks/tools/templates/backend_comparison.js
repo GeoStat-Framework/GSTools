@@ -1,12 +1,11 @@
 const rows = __PAYLOAD__;
-const backends = ["cython_fallback", "rust_core"];
-const colors = {cython_fallback: "#2f75b5", rust_core: "#d05a45"};
+const backends = ["rust_core"];
+const colors = {rust_core: "#d05a45"};
 const linePalette = [
-  "#2f75b5", "#d05a45", "#0f766e", "#9467bd", "#8c6d31", "#6b7280",
+  "#d05a45", "#2f75b5", "#0f766e", "#9467bd", "#8c6d31", "#6b7280",
   "#1f9fb2", "#b44e9d", "#6f9e3f", "#d38b2f", "#4b5cc4", "#a14f3f"
 ];
 const labels = {
-  cython_fallback: "Cython fallback",
   rust_core: "Rust core"
 };
 const modeLabels = {

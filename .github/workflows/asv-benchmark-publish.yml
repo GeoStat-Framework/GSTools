@@ -107,8 +107,9 @@ jobs:
             --no-pull \
             --html-dir benchmark-site/asv
           cp -R .asv-openmp/results benchmark-site/results
-          # Landing page redirects to the native ASV report (the custom
-          # backend-comparison page has been retired).
+          # Landing page redirects to the native ASV report. The custom
+          # plot_case_backend_comparison.py report is a local/manual helper and
+          # is not published here.
           printf '%s\n' \
             '<!doctype html><meta charset="utf-8">' \
             '<meta http-equiv="refresh" content="0; url=asv/index.html">' \

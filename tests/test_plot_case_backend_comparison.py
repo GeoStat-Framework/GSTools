@@ -1,6 +1,8 @@
 """Tests for the custom ASV case/backend comparison report."""
 
+import contextlib
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
@@ -110,6 +112,67 @@ class TestPlotCaseBackendComparison(unittest.TestCase):
             {row["commit_hash"] for row in limited},
             {"b" * 40, "c" * 40},
         )
+
+    def test_load_json_warns_on_broken_file(self):
+        """A corrupt result file is reported, not silently ignored."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            bad = Path(temp_dir) / "broken.json"
+            bad.write_text("{not valid json", encoding="utf8")
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                result = REPORT.load_json(bad)
+        self.assertIsNone(result)
+        self.assertIn("could not read", stderr.getvalue())
+
+    def test_result_rows_reports_missing_measurements(self):
+        """Null/NaN measurements are skipped with an explicit warning."""
+        entry = {
+            "result": [0.1, None, float("nan")],
+            "params": [["rust_core"], ["small_30x500", "large_120x2000",
+                                       "extra_large_360x6000"], ["threads_1"]],
+        }
+        name = (
+            "benchmark_two_point_statistics.KrigingBenchmarks.time_global_krige"
+        )
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            rows = REPORT.result_rows(name, entry)
+        self.assertEqual(len(rows), 1)  # only the one numeric value survives
+        self.assertIn("skipped 2 missing/failed", stderr.getvalue())
+
+    def test_result_rows_warns_on_length_mismatch(self):
+        """A value/combination count mismatch is surfaced, not hidden."""
+        entry = {
+            "result": [0.1],  # one value
+            "params": [["rust_core"], ["small_30x500"],
+                       ["threads_1", "threads_2"]],  # two combinations
+        }
+        name = (
+            "benchmark_two_point_statistics.KrigingBenchmarks.time_global_krige"
+        )
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            REPORT.result_rows(name, entry)
+        self.assertIn("do not match", stderr.getvalue())
+
+    def test_warns_when_one_machine_name_spans_hardware(self):
+        """Two CPUs under the same machine name are flagged, not hidden."""
+        row_a = result_row("a" * 40, 1_700_000_000_000)
+        row_b = result_row("b" * 40, 1_800_000_000_000)
+        row_a.update(machine="github-actions-ubuntu", cpu="Intel X", os="L1")
+        row_b.update(machine="github-actions-ubuntu", cpu="AMD Y", os="L2")
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            REPORT.warn_on_mixed_hardware([row_a, row_b])
+        self.assertIn("spans 2 different", stderr.getvalue())
+
+    def test_no_hardware_warning_for_single_machine(self):
+        """A single consistent machine produces no warning."""
+        rows = [result_row("a" * 40, 1_700_000_000_000)]
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            REPORT.warn_on_mixed_hardware(rows)
+        self.assertEqual(stderr.getvalue(), "")
 
     def test_render_html_shows_machine_and_asv_links(self):
         """The report identifies its machine and links to complete ASV data."""
