@@ -6,13 +6,16 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 
+- drop Cython backend and use Rust as the only backend [#420](https://github.com/GeoStat-Framework/GSTools/pull/420)
 - add decision-tree based plurigaussian fields [#387](https://github.com/GeoStat-Framework/GSTools/pull/387)
   - instead of spatial rules, as before, decision trees are a more flexible approach
   - each node of the binary tree is a decision based on the values of the SRF
 - replace pylint, black, and isort with ruff [#391](https://github.com/GeoStat-Framework/GSTools/pull/391)
+- add collocated cokriging [#396](https://github.com/GeoStat-Framework/GSTools/pull/396)
+  - new `SimpleCollocated` (SCCK) and `IntrinsicCollocated` (ICCK) classes, subclassing `CollocatedCokriging`
+  - uses a `Correlogram` to relate the secondary variable to the primary at the estimation location
 - add comprehensive benchmark suite for two-point statistics workflows
-  - covers variogram estimation, kriging, and random field generation across
-    Cython and Rust backends
+  - covers variogram estimation, kriging, and random field generation
   - includes OpenMP thread-count scaling analysis (1/2/4/8 threads)
   - interactive HTML report with per-case and per-thread-count comparisons
 - add benchmarking CI workflows

@@ -35,6 +35,8 @@ wheels/
 pip-log.txt
 pip-delete-this-directory.txt
 
+uv.lock
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -110,10 +112,6 @@ tags
 
 # own stuff
 info/
-
-# Cython generated C code
-*.c
-*.cpp
 
 # generated version file
 src/gstools/_version.py

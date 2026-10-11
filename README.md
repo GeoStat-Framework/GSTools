@@ -41,6 +41,7 @@ GSTools provides geostatistical tools for various purposes:
 - many readily provided and even user-defined covariance models
 - metric spatio-temporal modelling
 - plurigaussian field simulations (PGS)
+- collocated cokriging
 - plotting and exporting routines
 
 
@@ -54,9 +55,8 @@ Install the package by typing the following command in a command terminal:
 
     conda install gstools
 
-In case conda-forge is not set up for your system yet, see the easy to follow
-instructions on [conda-forge][conda_forge_link]. Using conda, the parallelized
-version of GSTools should be installed.
+In case conda forge is not set up for your system yet, see the easy to follow
+instructions on [conda forge][conda_forge_link].
 
 
 ### pip
@@ -69,9 +69,17 @@ running. Install the package by typing the following command in a command termin
 
 To install the latest development version via pip, see the
 [documentation][doc_install_link].
-One thing to point out is that this way, the non-parallel version of GSTools
-is installed. In case you want the parallel version, follow these easy
-[steps][doc_install_link].
+
+
+### uv
+
+GSTools can be installed via [uv][uv_link] on Linux, Mac, and Windows.
+Install the package by typing the following command in a command terminal:
+
+    uv add gstools
+
+To install the latest development version via uv, see the
+[documentation][doc_install_link].
 
 
 ## Citation
@@ -102,7 +110,7 @@ The documentation also includes some [tutorials][tut_link], showing the most imp
 - [The Covariance Model][tut2_link]
 - [Variogram Estimation][tut3_link]
 - [Random Vector Field Generation][tut4_link]
-- [Kriging][tut5_link]
+- [Kriging (incl. collocated cokriging)][tut5_link]
 - [Conditioned random field generation][tut6_link]
 - [Field transformations][tut7_link]
 - [Geographic Coordinates][tut8_link]
@@ -417,6 +425,7 @@ You can contact us via <info@geostat-framework.org>.
 
 [pip_link]: https://pypi.org/project/gstools
 [conda_link]: https://docs.conda.io/en/latest/miniconda.html
+[uv_link]: https://docs.astral.sh/uv/
 [conda_forge_link]: https://github.com/conda-forge/gstools-feedstock#installing-gstools
 [conda_pip]: https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-non-conda-packages
 [pipiflag]: https://pip-python3.readthedocs.io/en/latest/reference/pip_install.html?highlight=i#cmdoption-i

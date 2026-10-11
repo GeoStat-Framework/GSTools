@@ -11,11 +11,8 @@ Usage:
     asv preview
     asv compare main~1 main
 
-Backend speedup should be interpreted as:
-    speedup = cython_fallback_time / rust_core_time
-
-Values greater than 1.0 mean the Rust backend is faster on the same machine
-for the same benchmark, case, commit, and thread count.
+Benchmarks run on the GSTools-Core (Rust) backend and track performance over
+commits and thread counts (GSTools dropped the Cython backend upstream).
 
 By default the suite uses one GSTools thread. For local OpenMP scaling
 experiments, set GSTOOLS_BENCHMARK_THREADS before ASV discovers the
@@ -33,7 +30,7 @@ import numpy as np
 
 import gstools as gs
 
-AVAILABLE_BACKENDS = ("cython_fallback", "rust_core")
+AVAILABLE_BACKENDS = ("rust_core",)
 
 
 def _configured_backends():
@@ -90,39 +87,18 @@ FIELD_CASES = (
 
 
 @contextlib.contextmanager
-def gstools_backend(use_core, num_threads):
-    """Temporarily select the GSTools backend and thread count."""
-    previous = (
-        gs.config._GSTOOLS_CORE_AVAIL,
-        gs.config.USE_GSTOOLS_CORE,
-        gs.config.NUM_THREADS,
-    )
+def gstools_backend(num_threads):
+    """Temporarily set the thread count.
+
+    GSTools-Core (Rust) is the only numerical backend upstream (Cython was
+    dropped), so there is no backend to select — only the thread count varies.
+    """
+    previous = gs.config.NUM_THREADS
     try:
-        if use_core:
-            if not previous[0]:
-                raise NotImplementedError("gstools_core is not available")
-            gs.config._GSTOOLS_CORE_AVAIL = True
-            gs.config.USE_GSTOOLS_CORE = True
-        else:
-            gs.config._GSTOOLS_CORE_AVAIL = False
-            gs.config.USE_GSTOOLS_CORE = False
         gs.config.NUM_THREADS = num_threads
         yield
     finally:
-        (
-            gs.config._GSTOOLS_CORE_AVAIL,
-            gs.config.USE_GSTOOLS_CORE,
-            gs.config.NUM_THREADS,
-        ) = previous
-
-
-def _use_core(backend):
-    """Map a benchmark backend label to the GSTools core flag."""
-    if backend == "rust_core":
-        return True
-    if backend == "cython_fallback":
-        return False
-    raise ValueError(f"Unknown backend: {backend}")
+        gs.config.NUM_THREADS = previous
 
 
 def _random_points(seed, count, scale):
@@ -157,12 +133,6 @@ def _make_krige_data(seed, cond_count, target_count, scale=50.0):
     return (cond_x, cond_y), cond_val, target_pos
 
 
-def _check_backend_available(backend):
-    """Skip Rust benchmark rows when ``gstools_core`` is unavailable."""
-    if backend == "rust_core" and not gs.config._GSTOOLS_CORE_AVAIL:
-        raise NotImplementedError("gstools_core is not available")
-
-
 class _TwoPointBenchmark:
     """Shared ASV timing attributes for the two-point benchmark classes.
 
@@ -192,7 +162,7 @@ class VariogramBenchmarks(_TwoPointBenchmark):
 
     def setup(self, data, backend, case, threads):
         """Skip backend rows that cannot run in the current environment."""
-        _check_backend_available(backend)
+        pass
 
     def _run_variogram(self, data, backend, case, threads):
         """Run one variogram estimation case with the selected backend."""
@@ -202,7 +172,7 @@ class VariogramBenchmarks(_TwoPointBenchmark):
             kwargs = {"sampling_size": 1500, "sampling_seed": 20220504}
         if case == "sampled_15000_to_4500":
             kwargs = {"sampling_size": 4500, "sampling_seed": 20220505}
-        with gstools_backend(_use_core(backend), threads):
+        with gstools_backend(threads):
             gs.vario_estimate(
                 pos,
                 field,
@@ -237,7 +207,7 @@ class KrigingBenchmarks(_TwoPointBenchmark):
 
     def setup(self, data, backend, case, threads):
         """Skip backend rows that cannot run in the current environment."""
-        _check_backend_available(backend)
+        pass
 
     def _run_krige(self, data, backend, case, threads):
         """Run one global kriging case with the selected backend."""
@@ -250,7 +220,7 @@ class KrigingBenchmarks(_TwoPointBenchmark):
             exact=False,
             cond_err=0.05,
         )
-        with gstools_backend(_use_core(backend), threads):
+        with gstools_backend(threads):
             krige(
                 target_pos,
                 mesh_type="unstructured",
@@ -286,11 +256,11 @@ class RandomFieldBenchmarks(_TwoPointBenchmark):
 
     def setup(self, data, backend, case, threads):
         """Skip backend rows that cannot run in the current environment."""
-        _check_backend_available(backend)
+        pass
 
     def _run_field(self, data, backend, case, threads):
         """Run one SRF or CondSRF case by label with the selected backend."""
-        with gstools_backend(_use_core(backend), threads):
+        with gstools_backend(threads):
             if case == "srf_unstructured_randmeth":
                 self._run_srf_unstructured(data)
             elif case == "srf_structured_randmeth":
