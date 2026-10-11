@@ -147,7 +147,7 @@ class _TwoPointBenchmark:
     """
 
     number = 1  # one inner call per sample
-    repeat = 20  # repeats per case, for a stable median
+    repeat = 5  # repeats per case (kept modest to keep CI runtime down)
 
 
 class VariogramBenchmarks(_TwoPointBenchmark):

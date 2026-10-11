@@ -170,11 +170,12 @@ Important details:
   Both ASV configs use Python 3.14 by default; change `pythons` in
   `asv.conf.json` and `asv.openmp.conf.json` only when intentionally
   validating another Python/GSTools stack.
-- The timing attributes `number = 1` and `repeat = 20` live on the benchmark
+- The timing attributes `number = 1` and `repeat = 5` live on the benchmark
   **classes** in `benchmark_two_point_statistics.py`, not in `asv.conf.json`
   (ASV ignores `number`/`repeat` keys placed in the config file). `number = 1`
-  runs the benchmark code once per iteration; `repeat = 20` records 20
-  independent measurements per case.
+  runs the benchmark code once per iteration; `repeat = 5` records 5
+  independent measurements per case (kept modest to keep CI runtime down —
+  raise it for more statistically stable comparisons).
 - `matrix.req` asks ASV to install GSTools runtime dependencies before
   installing the checked-out GSTools source, which is installed with
   `--no-deps`. The Rust backend (`gstools_core`) is installed by the
@@ -549,8 +550,8 @@ baseline:
 ```
 
 It uses the same timing attributes as the baseline config (`number = 1`,
-`repeat = 20`, defined on the benchmark classes): each benchmark case records
-20 independent measurements, running the benchmark code once per measurement.
+`repeat = 5`, defined on the benchmark classes): each benchmark case records
+5 independent measurements, running the benchmark code once per measurement.
 
 During ASV installation, it additionally runs
 `benchmarks/tools/check_backend_parallel_ready.py`, which fails the
