@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GSTools Two-Point Statistics Backend Comparison</title>
+<style>
+__STYLE__
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to benchmark controls</a>
+<header>
+  <div class="brand-row">
+    <div class="brand-copy">
+      <div class="eyebrow">ASV benchmark report</div>
+      <h1>GSTools Two-Point Statistics Backend Comparison</h1>
+      <p class="lede">
+        Cython and Rust backend results grouped side by side for selected
+        two-point statistics cases, thread counts, commits, and metrics.
+      </p>
+      <div class="report-links">
+        <a href="asv/">Complete native ASV history</a>
+        <a href="https://asv.readthedocs.io/" rel="noreferrer">
+          Powered by Airspeed Velocity (ASV)
+        </a>
+      </div>
+    </div>
+    __LOGO_MARKUP__
+  </div>
+  <div class="machine-summary">__MACHINE_MARKUP__</div>
+</header>
+<main id="main">
+  <section class="controls">
+    <fieldset class="filter-control">
+      <legend>Metric</legend>
+      <div id="metric" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>Family</legend>
+      <div id="family" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>View</legend>
+      <div id="viewMode" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>Machine</legend>
+      <div id="machine" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control wide-control">
+      <legend>Case</legend>
+      <div id="case" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>Threads</legend>
+      <div id="threads" class="checkbox-list"></div>
+    </fieldset>
+    <fieldset class="filter-control wide-control">
+      <legend>
+        <button id="modeCommit" class="toggle-btn active" onclick="setReferenceMode('commit')">Commits</button>
+        <button id="modeTag" class="toggle-btn" onclick="setReferenceMode('tag')">Tags</button>
+      </legend>
+      <select id="commit" class="multi-select" multiple size="5"></select>
+      <select id="tag" class="multi-select" multiple size="5" style="display:none"></select>
+      <div class="select-actions">
+        <button class="select-action-btn" onclick="selectAllOptions(referenceModeValue())">All</button>
+        <button class="select-action-btn" onclick="clearAllOptions(referenceModeValue())">None</button>
+      </div>
+    </fieldset>
+    <fieldset class="filter-control">
+      <legend>Backend</legend>
+      <div id="backend" class="checkbox-list"></div>
+    </fieldset>
+  </section>
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title" id="chart-title">Benchmark visualization</div>
+      <div class="panel-note">Lower values are better</div>
+    </div>
+    <div id="chart"></div>
+    <div id="legend" class="chart-legend"></div>
+  </section>
+</main>
+<script>
+__SCRIPT__
+</script>
+</body>
+</html>
