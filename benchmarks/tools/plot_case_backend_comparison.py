@@ -39,6 +39,7 @@ def _warn(message):
     """Print a non-fatal data-quality warning to stderr."""
     print(f"warning: {message}", file=sys.stderr)
 
+
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 BACKENDS = ("rust_core",)
 THREAD_PREFIX = "threads_"

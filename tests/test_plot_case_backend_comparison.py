@@ -128,12 +128,13 @@ class TestPlotCaseBackendComparison(unittest.TestCase):
         """Null/NaN measurements are skipped with an explicit warning."""
         entry = {
             "result": [0.1, None, float("nan")],
-            "params": [["rust_core"], ["small_30x500", "large_120x2000",
-                                       "extra_large_360x6000"], ["threads_1"]],
+            "params": [
+                ["rust_core"],
+                ["small_30x500", "large_120x2000", "extra_large_360x6000"],
+                ["threads_1"],
+            ],
         }
-        name = (
-            "benchmark_two_point_statistics.KrigingBenchmarks.time_global_krige"
-        )
+        name = "benchmark_two_point_statistics.KrigingBenchmarks.time_global_krige"
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
             rows = REPORT.result_rows(name, entry)
@@ -144,12 +145,13 @@ class TestPlotCaseBackendComparison(unittest.TestCase):
         """A value/combination count mismatch is surfaced, not hidden."""
         entry = {
             "result": [0.1],  # one value
-            "params": [["rust_core"], ["small_30x500"],
-                       ["threads_1", "threads_2"]],  # two combinations
+            "params": [
+                ["rust_core"],
+                ["small_30x500"],
+                ["threads_1", "threads_2"],
+            ],  # two combinations
         }
-        name = (
-            "benchmark_two_point_statistics.KrigingBenchmarks.time_global_krige"
-        )
+        name = "benchmark_two_point_statistics.KrigingBenchmarks.time_global_krige"
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
             REPORT.result_rows(name, entry)

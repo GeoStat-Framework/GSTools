@@ -62,6 +62,8 @@ def has_comparison_rows(comparison):
         if BENCHMARK_ROW_PATTERN.search(line) is not None:
             return True
     return False
+
+
 ARTIFACT_URL_PATTERN = re.compile(
     r"https://github\.com/(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)"
     r"/actions/runs/[0-9]+/artifacts/[0-9]+"
