@@ -124,7 +124,7 @@ def parse_args():
     parser.add_argument(
         "--backend",
         default="rust_core",
-        choices=["cython_fallback", "rust_core"],
+        choices=["rust_core"],
         help="Backend label to force while profiling.",
     )
     parser.add_argument(

@@ -19,8 +19,7 @@
       "meshio": [""],
       "numpy": [""],
       "pyevtk": [""],
-      "scipy": [""],
-      "gstools-cython": [""]
+      "scipy": [""]
     }
   },
   "build_command": [

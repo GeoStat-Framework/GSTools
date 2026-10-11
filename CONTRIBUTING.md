@@ -42,8 +42,8 @@ with your idea or suggestion and we'd love to discuss about it.
 
 GSTools tracks runtime and memory performance using
 [Airspeed Velocity (ASV)](https://asv.readthedocs.io/).
-The benchmark suite lives in the `benchmarks/` directory and covers both the
-Cython fallback and the optional Rust backend, as well as OpenMP thread scaling.
+The benchmark suite lives in the `benchmarks/` directory and runs on the
+GSTools-Core (Rust) backend, tracking performance across thread counts.
 
 Pull requests that change benchmark-relevant code run the benchmark suite and
 report statistically significant regressions or improvements directly in the

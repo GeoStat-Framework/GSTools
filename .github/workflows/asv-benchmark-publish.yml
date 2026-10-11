@@ -90,26 +90,31 @@ jobs:
             --bench "^benchmark_" \
             --show-stderr
 
-      - name: Check Cython OpenMP and Rust backend readiness
+      - name: Check Rust backend readiness
         run: |
           # The benchmark suite silently skips backends that cannot run in
-          # parallel. Probe the environment ASV just built so a broken OpenMP
-          # or Rust install fails this job instead of publishing misleading
+          # parallel. Probe the environment ASV just built so a broken Rust
+          # install fails this job instead of publishing misleading
           # thread-scaling results.
           for py in .asv-openmp/env/*/bin/python; do
             "$py" benchmarks/tools/check_backend_parallel_ready.py --verbose
           done
 
-      - name: Build published reports and preserve raw results
+      - name: Build published report and preserve raw results
         run: |
           rm -rf benchmark-site/asv benchmark-site/results
-          python benchmarks/tools/plot_case_backend_comparison.py \
-            --results-dir .asv-openmp/results \
-            --output benchmark-site/index.html
           asv --config "$ASV_CONFIG" publish \
             --no-pull \
             --html-dir benchmark-site/asv
           cp -R .asv-openmp/results benchmark-site/results
+          # Landing page redirects to the native ASV report (the custom
+          # backend-comparison page has been retired).
+          printf '%s\n' \
+            '<!doctype html><meta charset="utf-8">' \
+            '<meta http-equiv="refresh" content="0; url=asv/index.html">' \
+            '<title>GSTools benchmarks</title>' \
+            '<a href="asv/index.html">GSTools benchmark report</a>' \
+            > benchmark-site/index.html
           touch benchmark-site/.nojekyll
 
       - name: Commit and push benchmark history

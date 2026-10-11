@@ -12,7 +12,7 @@ Usage:
     asv compare main~1 main
 
 Benchmarks run on the GSTools-Core (Rust) backend and track performance over
-commits and thread counts (GSTools dropped the Cython backend upstream).
+commits and thread counts.
 
 By default the suite uses one GSTools thread. For local OpenMP scaling
 experiments, set GSTOOLS_BENCHMARK_THREADS before ASV discovers the
@@ -90,8 +90,8 @@ FIELD_CASES = (
 def gstools_backend(num_threads):
     """Temporarily set the thread count.
 
-    GSTools-Core (Rust) is the only numerical backend upstream (Cython was
-    dropped), so there is no backend to select — only the thread count varies.
+    GSTools-Core (Rust) is the only numerical backend, so there is no backend
+    to select — only the thread count varies.
     """
     previous = gs.config.NUM_THREADS
     try:

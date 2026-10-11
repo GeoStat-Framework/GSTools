@@ -119,11 +119,11 @@ jobs:
             --bench "^benchmark_" \
             --show-stderr
 
-      - name: Check Cython OpenMP and Rust backend readiness
+      - name: Check Rust backend readiness
         run: |
           # The benchmark suite silently skips backends that cannot run in
-          # parallel. Probe the environment ASV just built so a broken OpenMP
-          # or Rust install fails this job instead of producing misleading
+          # parallel. Probe the environment ASV just built so a broken Rust
+          # install fails this job instead of producing misleading
           # thread-scaling results.
           for py in .asv-openmp/env/*/bin/python; do
             "$py" benchmarks/tools/check_backend_parallel_ready.py --verbose
@@ -153,11 +153,8 @@ jobs:
           echo "ASV comparison exit status: $compare_status" \
             >> .asv-openmp/artifact/comparison.txt
 
-      - name: Build custom and native ASV reports
+      - name: Build native ASV report
         run: |
-          python benchmarks/tools/plot_case_backend_comparison.py \
-            --results-dir .asv-openmp/results \
-            --output .asv-openmp/artifact/index.html
           asv --config "$ASV_CONFIG" publish \
             --no-pull \
             --html-dir .asv-openmp/artifact/asv

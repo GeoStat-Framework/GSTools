@@ -22,7 +22,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).parents[1]
 TOOLS = REPO_ROOT / "benchmarks" / "tools"
-FAST_CASE = "time_variogram_estimate\\('cython_fallback', 'full_900'"
+FAST_CASE = "time_variogram_estimate\\('rust_core', 'full_900'"
 
 
 def load_tool(name):
@@ -93,7 +93,7 @@ class TestAsvIntegration(unittest.TestCase):
         cls.env.update(
             HOME=str(root / "home"),
             USERPROFILE=str(root / "home"),
-            GSTOOLS_BENCHMARK_BACKENDS="cython_fallback",
+            GSTOOLS_BENCHMARK_BACKENDS="rust_core",
             GSTOOLS_BENCHMARK_THREADS="1",
         )
         (root / "home").mkdir()
@@ -178,24 +178,6 @@ class TestAsvIntegration(unittest.TestCase):
             cls.head_result.name.replace(cls.head[:8], cls.base[:8])
         )
         base_file.write_text(json.dumps(payload), encoding="utf8")
-
-    def test_result_json_is_understood_by_report_tool(self):
-        """The result layout written by ASV maps onto our normalized rows."""
-        report = load_tool("plot_case_backend_comparison")
-
-        rows = report.collect_rows([self.results_dir])
-        head_rows = [row for row in rows if row["commit_hash"] == self.head]
-
-        self.assertEqual(len(head_rows), 1, rows)
-        row = head_rows[0]
-        self.assertEqual(row["benchmark"], "time_variogram_estimate")
-        self.assertEqual(row["family"], "variogram")
-        self.assertEqual(row["metric"], "time")
-        self.assertEqual(row["backend"], "cython_fallback")
-        self.assertEqual(row["case"], "full_900")
-        self.assertEqual(row["threads"], "threads_1")
-        self.assertEqual(row["machine"], self.machine)
-        self.assertGreater(row["value"], 0.0)
 
     def test_result_json_keeps_machine_metadata(self):
         """``machine.json`` still carries the fields shown in the report."""
