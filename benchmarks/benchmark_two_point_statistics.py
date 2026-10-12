@@ -69,7 +69,13 @@ def _configured_thread_counts():
             value = item[len("threads_") :]
         else:
             value = item
-        thread_counts.append(int(value))
+        count = int(value)
+        if count < 1:
+            raise ValueError(
+                "GSTOOLS_BENCHMARK_THREADS must contain positive thread "
+                f"counts, got {count!r}"
+            )
+        thread_counts.append(count)
     if not thread_counts:
         raise ValueError("GSTOOLS_BENCHMARK_THREADS did not define threads")
     return tuple(thread_counts)
@@ -205,32 +211,41 @@ class KrigingBenchmarks(_TwoPointBenchmark):
             "extra_large_360x6000": _make_krige_data(20220508, 360, 6000),
         }
 
-    def _run_krige(self, data, backend, case, threads):
-        """Run one global kriging case with the selected backend."""
-        cond_pos, cond_val, target_pos = data[case]
+    def setup(self, data, backend, case, threads):
+        """Build the model and ``Krige`` instance outside the timed method.
+
+        Estimator construction (and the kriging-matrix solve it triggers on
+        first use) is not what we want to measure here, so it happens in
+        ``setup``; the ``time_*``/``peakmem_*`` methods then measure only the
+        kriging evaluation at the target points.
+        """
+        cond_pos, cond_val, self._target_pos = data[case]
         model = gs.Exponential(dim=2, var=1.5, len_scale=12.0, nugget=0.05)
-        krige = gs.Krige(
+        self._krige = gs.Krige(
             model,
             cond_pos,
             cond_val,
             exact=False,
             cond_err=0.05,
         )
+
+    def _run_krige(self, threads):
+        """Evaluate the pre-built kriging object (the timed work)."""
         with gstools_backend(threads):
-            krige(
-                target_pos,
+            self._krige(
+                self._target_pos,
                 mesh_type="unstructured",
                 return_var=True,
                 store=False,
             )
 
     def time_global_krige(self, data, backend, case, threads):
-        """Measure runtime of one global kriging case."""
-        self._run_krige(data, backend, case, threads)
+        """Measure runtime of evaluating one global kriging case."""
+        self._run_krige(threads)
 
     def peakmem_global_krige(self, data, backend, case, threads):
-        """Measure peak memory of one global kriging case."""
-        self._run_krige(data, backend, case, threads)
+        """Measure peak memory of evaluating one global kriging case."""
+        self._run_krige(threads)
 
 
 class RandomFieldBenchmarks(_TwoPointBenchmark):

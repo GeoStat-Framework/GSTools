@@ -249,10 +249,12 @@ The current suite measures runtime and peak memory for variogram estimation,
 global kriging, spatial random field generation, and conditioned random field
 generation, on the Rust backend across the configured thread counts.
 
-These are **end-to-end workflow** measurements: the timed call includes model
-and estimator/generator object construction (e.g. building `gs.Krige(...)`) as
-well as the evaluation. The thread-count override wraps the evaluation, so for
-small cases fixed construction overhead can dominate and limit thread scaling.
+Measurement scope differs by family. The **kriging** cases build the model and
+the `gs.Krige` instance in `setup`, so their timed method measures only the
+kriging **evaluation** at the target points (construction and the one-off
+kriging-matrix solve are excluded). The **variogram** and **random-field**
+(SRF/CondSRF) cases build their estimator/generator inside the timed call, so
+those remain **end-to-end** measurements (construction plus evaluation).
 
 ### Shared Constants
 

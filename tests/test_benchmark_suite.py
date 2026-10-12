@@ -7,8 +7,10 @@ without running the (timed) benchmark methods themselves.
 """
 
 import importlib.util
+import os
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -80,6 +82,26 @@ class TestBenchmarkCoverage(unittest.TestCase):
     def test_single_rust_backend(self):
         """The backend axis exposes exactly the Rust core."""
         self.assertEqual(SUITE.AVAILABLE_BACKENDS, ("rust_core",))
+
+
+class TestThreadCountParsing(unittest.TestCase):
+    """GSTOOLS_BENCHMARK_THREADS must only accept positive thread counts."""
+
+    def test_rejects_zero_and_negative(self):
+        """Zero or negative thread counts are rejected with a clear error."""
+        for bad in ("0", "1,0", "-2", "1,-1,4", "threads_0"):
+            with mock.patch.dict(
+                os.environ, {"GSTOOLS_BENCHMARK_THREADS": bad}
+            ):
+                with self.assertRaises(ValueError):
+                    SUITE._configured_thread_counts()
+
+    def test_accepts_positive_counts(self):
+        """A comma-separated list of positive counts parses in order."""
+        with mock.patch.dict(
+            os.environ, {"GSTOOLS_BENCHMARK_THREADS": "1,2,4,8"}
+        ):
+            self.assertEqual(SUITE._configured_thread_counts(), (1, 2, 4, 8))
 
 
 if __name__ == "__main__":
