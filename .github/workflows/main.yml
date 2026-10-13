@@ -30,16 +30,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -v --editable '.[lint,test]'
+          # benchmark extra: lets tests/test_asv_integration.py run the
+          # installed ASV against the benchmark suite (skipped without it).
+          pip install -v --editable '.[lint,test,benchmark]'
           pip install "coveralls>=3.0.0"
 
       - name: ruff linter
         run: |
-          python -m ruff check src/gstools/
+          python -m ruff check src/gstools/ benchmarks/
 
       - name: ruff format check
         run: |
-          python -m ruff format --diff src/gstools/
+          python -m ruff format --diff src/gstools/ benchmarks/
 
       - name: coveralls check
         run: |

@@ -66,6 +66,7 @@ doc = [
 ]
 plotting = ["matplotlib>=3.7", "pyvista>=0.40"]
 rust = ["gstools_core>=1.3.0"]
+benchmark = ["asv"]
 test = ["pytest-cov>=3"]
 lint = ["ruff"]
 
