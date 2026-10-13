@@ -351,6 +351,12 @@ class TestCovModel(unittest.TestCase):
         self.assertRaises(ValueError, Gau_fix, latlon=True)
         # check inputs
         self.assertRaises(ValueError, model_std.percentile_scale, per=-1.0)
+        # check positive percentile scale for SuperSpherical across nu values
+        for nu in (0.5, 1.0, 2.0, 5.0, 10.0):
+            m = SuperSpherical(dim=2, nu=nu, len_scale=10.0)
+            ps = m.percentile_scale(0.9)
+            self.assertGreater(ps, 0.0)
+            self.assertAlmostEqual(m.correlation(ps), 0.1, places=5)
         self.assertRaises(ValueError, Gaussian, anis=-1.0)
         self.assertRaises(ValueError, Gaussian, len_scale=[1, -1])
         self.assertRaises(ValueError, check_arg_in_bounds, model_std, "wrong")
