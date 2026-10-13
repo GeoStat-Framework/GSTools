@@ -14,16 +14,15 @@ All notable changes to **GSTools** will be documented in this file.
 - add collocated cokriging [#396](https://github.com/GeoStat-Framework/GSTools/pull/396)
   - new `SimpleCollocated` (SCCK) and `IntrinsicCollocated` (ICCK) classes, subclassing `CollocatedCokriging`
   - uses a `Correlogram` to relate the secondary variable to the primary at the estimation location
-- add comprehensive benchmark suite for two-point statistics workflows
+- add comprehensive benchmark suite for two-point statistics workflows [#410](https://github.com/GeoStat-Framework/GSTools/pull/410)
   - covers variogram estimation, kriging, and random field generation
   - includes OpenMP thread-count scaling analysis (1/2/4/8 threads)
   - interactive HTML report with per-case and per-thread-count comparisons
-- add benchmarking CI workflows
+- add benchmarking CI workflows [#410](https://github.com/GeoStat-Framework/GSTools/pull/410)
   - automated ASV performance comparisons for benchmark-relevant pull requests
   - benchmark results posted as PR comments with Mann-Whitney U statistical test
   - cumulative benchmark history published to GitHub Pages for
     benchmark-relevant changes on main
-- add benchmarking guidelines to CONTRIBUTING.md
 
 ## [1.7.0] - Morphic Mint - 2025-04
 
