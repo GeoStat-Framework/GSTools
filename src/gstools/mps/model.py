@@ -427,6 +427,7 @@ class MPSModel:
     def __init__(
         self,
         ti,
+        *,
         scan_fraction=1.0,
         threshold=None,
         boundary="strict",

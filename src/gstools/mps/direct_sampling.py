@@ -169,6 +169,7 @@ class DirectSampling(Field):
         self,
         pos=None,
         seed=np.nan,
+        *,
         path_seed=np.nan,
         node_seed=np.nan,
         path="random",
