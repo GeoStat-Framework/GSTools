@@ -45,9 +45,9 @@ ti_var2 = smoothed + noise
 # 2. Assemble Multivariate TI using Variable list.
 # Paper says Variable 2 uses distance (4), which is the weighted RMSE ("l2" in GSTools).
 # n1 = 30, n2 = 30, t = 0.01, w1 = 0.5, w2 = 0.5
-ti = gs.TrainingImage(
+ti = gs.mps.TrainingImage(
     [
-        gs.Variable(
+        gs.mps.Variable(
             "facies",
             ti_var1,
             categorical=True,
@@ -55,7 +55,7 @@ ti = gs.TrainingImage(
             distance="l1",
             n_neighbors=30,
         ),
-        gs.Variable(
+        gs.mps.Variable(
             "resistivity",
             ti_var2,
             categorical=False,

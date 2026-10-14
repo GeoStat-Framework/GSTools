@@ -23,7 +23,7 @@ from gstools.tools.geometric import (
 
 
 # Frozen copies of the PRE-refactor implementations: the bit-identical
-# regression reference (oracle a of the non-stationarity redesign spec).
+# regression reference.
 def _ref_isotropify(dim, anis):
     anis = set_anis(dim, anis)
     return np.diag(np.concatenate(([1.0], 1.0 / anis)))
@@ -51,7 +51,7 @@ class TestSetScale(unittest.TestCase):
         np.testing.assert_array_equal(set_scale(2, [1.0, 0.5]), [1.0, 0.5])
 
     def test_short_vector_raises(self):
-        # exact-match discipline: NO padding (unlike set_anis) — B5 history
+        # exact-match discipline: NO padding (unlike set_anis)
         with self.assertRaises(ValueError):
             set_scale(3, [1.0, 2.0])
 

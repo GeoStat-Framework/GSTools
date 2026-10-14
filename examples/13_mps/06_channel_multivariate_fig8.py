@@ -34,16 +34,16 @@ context_ti = gx_ti / float(ti_size - 1)
 
 # Assemble multivariate TI using Variable list.
 # From paper: n1 = 30 for primary, n2 = 1 for secondary.
-ti = gs.TrainingImage(
+ti = gs.mps.TrainingImage(
     [
-        gs.Variable(
+        gs.mps.Variable(
             "channels",
             channels_ti,
             categorical=True,
             weight=0.5,
             n_neighbors=30,
         ),
-        gs.Variable(
+        gs.mps.Variable(
             "context",
             context_ti,
             categorical=False,

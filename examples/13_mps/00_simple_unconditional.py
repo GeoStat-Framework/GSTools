@@ -28,7 +28,7 @@ ti_data = ((np.sin(gx / 5.0) + np.sin((gx + gy) / 8.0)) > 0).astype(float)
 # codes) the distance is the fraction of mismatching neighbours, so the
 # ``distance`` argument is ignored here.
 
-ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=12)
+ti = gs.mps.TrainingImage(ti_data, categorical=True, n_neighbors=12)
 print(ti)
 
 ###############################################################################

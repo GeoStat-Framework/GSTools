@@ -38,7 +38,6 @@ Classes for Multiple Point Statistics (MPS) simulations
 .. autosummary::
    DirectSampling
    MPSModel
-   TrainingImage
    Zone
 
 Kriging
@@ -205,7 +204,7 @@ from gstools.covmodel import (
 )
 from gstools.field import PGS, SRF, CondSRF
 from gstools.krige import Krige
-from gstools.mps import DirectSampling, MPSModel, TrainingImage, Zone
+from gstools.mps import DirectSampling, MPSModel, Zone
 from gstools.tools import (
     DEGREE_SCALE,
     EARTH_RADIUS,
@@ -236,8 +235,6 @@ except ModuleNotFoundError:  # pragma: no cover
     __version__ = "0.0.0.dev0"
 
 __all__ = ["__version__"]
-__all__ += ["covmodel", "field", "variogram", "krige", "random", "tools"]
-__all__ += ["transform", "normalizer", "config", "mps"]
 __all__ += [
     "covmodel",
     "field",
@@ -247,7 +244,7 @@ __all__ += [
     "random",
     "tools",
 ]
-__all__ += ["transform", "normalizer", "config"]
+__all__ += ["transform", "normalizer", "config", "mps"]
 __all__ += [
     "CovModel",
     "SumModel",
@@ -291,7 +288,6 @@ __all__ += [
     "PGS",
     "DirectSampling",
     "MPSModel",
-    "TrainingImage",
     "Zone",
     "rotated_main_axes",
     "generate_grid",

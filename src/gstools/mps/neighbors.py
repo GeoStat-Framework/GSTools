@@ -5,6 +5,7 @@ Pure NumPy + gstools.tools.geometric; no TrainingImage, no simulation state.
 """
 
 import warnings
+from math import prod
 
 import numpy as np
 
@@ -26,25 +27,29 @@ def _precompute_offsets(shape, max_offset=None):
     shape : tuple
         Simulation grid shape.
     max_offset : int, optional
-        Maximum offset in any dimension.
-        Default: ``max(shape)``.
+        Maximum offset in any dimension, further capped per axis at
+        ``shape[d] - 1`` (larger offsets never fall inside the grid).
+        Default: ``shape[d] - 1`` on each axis.
 
     Returns
     -------
     numpy.ndarray, shape (N, dim)
     """
     dim = len(shape)
-    if max_offset is None:
-        max_offset = max(shape)
-    estimated_elements = (2 * max_offset + 1) ** dim
-    if estimated_elements > 5_000_000:
+    half = [
+        int(s) - 1 if max_offset is None else min(int(max_offset), int(s) - 1)
+        for s in shape
+    ]
+    n_offsets = prod(2 * b + 1 for b in half)
+    if n_offsets > 5_000_000:
         raise ValueError(
-            f"_precompute_offsets would allocate ~{estimated_elements * dim * 8 // 1_000_000} MB "
-            f"(max_offset={max_offset}, dim={dim}). Set max_radius to bound the "
+            f"_precompute_offsets would build {n_offsets} offsets "
+            f"(~{n_offsets * dim * 8 // 1_000_000} MB, ~4x that at peak; "
+            f"max_offset={max(half)}, dim={dim}). Set max_radius to bound the "
             "neighbourhood search radius."
         )
-    rng_vals = np.arange(-max_offset, max_offset + 1)
-    grid = np.array(np.meshgrid(*[rng_vals] * dim, indexing="ij"))
+    rng_vals = [np.arange(-b, b + 1) for b in half]
+    grid = np.array(np.meshgrid(*rng_vals, indexing="ij"))
     offsets = grid.reshape(dim, -1).T
     offsets = offsets[np.any(offsets != 0, axis=1)]
     dist_sq = np.sum(offsets**2, axis=1)
@@ -336,7 +341,7 @@ def _lag_transform_matrix(dim, rotation_map, scale_map, x_i):
     Consumes the canonical per-node maps produced by
     :func:`gstools.mps.nonstationary.resolve_spec` — always shaped
     ``grid_shape + (n_comp,)`` (stationary specs are zero-stride broadcast
-    views), so indexing is uniform and no ndim heuristics exist (B5).
+    views), so indexing is uniform and no ndim heuristics exist.
 
     Parameters
     ----------

@@ -34,7 +34,7 @@ def _check_penalty_matrix_conditioning(var_name, penalty_matrix, values):
     """
     if penalty_matrix is None:
         return
-    label = "variable" if var_name is None else f"variable {var_name!r}"
+    label = "the TI" if var_name is None else f"variable {var_name!r}"
     _check_category_codes(
         values,
         penalty_matrix.shape[0],
@@ -42,14 +42,25 @@ def _check_penalty_matrix_conditioning(var_name, penalty_matrix, values):
     )
 
 
-def _warn_nonuniform_axes(axes):
-    """Warn when a transform/zonation is active on non-index-like axes.
+def _check_finite_positions(pos):
+    """Raise ``ValueError`` if a conditioning position is NaN or +-inf."""
+    if not np.isfinite(pos).all():
+        raise ValueError(
+            "DirectSampling.set_condition: conditioning positions must be "
+            "finite."
+        )
 
-    Rotation/scale act on **index lags** and zone masks are per-cell; for
-    uniformly and equally spaced axes index-space and physical-space geometry
-    coincide (the spacing matrix h·I commutes with rotation). Otherwise a
-    physical-space rotation is not an index-space rotation — warn (MPS-local;
-    Mariethoz2010 §6.2 geometry is defined on cells).
+
+def _unset(seed):
+    """``None`` or NaN: no explicit seed given."""
+    return seed is None or np.isnan(seed)
+
+
+def _warn_nonuniform_axes(axes):
+    """Warn when grid spacing is non-uniform: DS works in grid-index space.
+
+    Direct Sampling works in cells, so physical spacing is ignored; rotation,
+    scale, zones and ``max_radius`` all act on cell offsets.
     """
     steps = []
     for d, ax in enumerate(axes):
@@ -59,21 +70,20 @@ def _warn_nonuniform_axes(axes):
         diffs = np.diff(ax)
         if not np.allclose(diffs, diffs[0]):
             warnings.warn(
-                f"DirectSampling: axis {d} is not uniformly spaced while a "
-                "geometric transform or zonation is active. Rotation/scale "
-                "act on index lags (cell offsets); on non-uniform axes the "
-                "result is not a physical-space transform.",
+                f"DirectSampling: axis {d} is not uniformly spaced. DS works "
+                "in grid-index space (cells) and ignores physical spacing, so "
+                "patterns are not isotropic in physical units.",
                 UserWarning,
                 stacklevel=3,
             )
             return
-        steps.append(diffs[0])
+        # a reflected (decreasing) axis has the same spacing magnitude
+        steps.append(abs(diffs[0]))
     if len(steps) > 1 and not np.allclose(steps, steps[0]):
         warnings.warn(
-            "DirectSampling: grid axes have unequal spacing while a "
-            "geometric transform or zonation is active. Rotation/scale act "
-            "on index lags (cell offsets); with anisotropic spacing the "
-            "result is not a physical-space transform.",
+            "DirectSampling: grid axes have unequal spacing. DS works in "
+            "grid-index space (cells) and ignores physical spacing, so "
+            "patterns are stretched in physical units.",
             UserWarning,
             stacklevel=3,
         )
@@ -90,8 +100,8 @@ class DirectSampling(Field):
     ----------
     model : MPSModel
         Algorithm configuration: training image, scan fraction, threshold,
-        conditioning weight, and boundary strategy. Neighbour count and
-        maximum search radius live on each :class:`Variable` inside the
+        and boundary strategy. Neighbour count, maximum search radius and
+        conditioning weight live on each :class:`Variable` inside the
         :class:`TrainingImage`. Build one with
         ``MPSModel(ti, scan_fraction=…, threshold=…)``.
     seed : int or nan, optional
@@ -107,6 +117,17 @@ class DirectSampling(Field):
     --------
     MPSModel : holds the algorithm parameters.
     TrainingImage : training data holder.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import gstools as gs
+    >>> ti = gs.mps.TrainingImage(np.indices((20, 20)).sum(axis=0) % 3.0)
+    >>> model = gs.mps.MPSModel(ti, scan_fraction=0.5, threshold=0.05)
+    >>> dsim = gs.mps.DirectSampling(model, seed=42)
+    >>> field = dsim([np.arange(10.), np.arange(10.)])
+    >>> field.shape
+    (10, 10)
     """
 
     default_field_names = ["field"]
@@ -135,7 +156,7 @@ class DirectSampling(Field):
         self._mv_mean = {}
         self._mv_normalizer = {}
         self._mv_trend = {}
-        self.rng = RNG(None if np.isnan(seed) else int(seed))
+        self.rng = RNG(None if _unset(seed) else int(seed))
         if model.ti.multivariate:
             for v in model.ti.variables:
                 if v.name in dir(self):
@@ -170,8 +191,10 @@ class DirectSampling(Field):
         pos : :class:`list`, optional
             The position tuple, containing main direction and transversal
             directions. Only structured grids are supported.
-        seed : :class:`int`, optional
-            Seed for the RNG. If ``np.nan``, the current seed is kept.
+        seed : :class:`int` or :any:`None`, optional
+            Seed for the RNG. If ``np.nan``, the master RNG stream continues,
+            so each call draws a new realization (pass a seed to reproduce
+            one); ``None`` draws a fresh random seed.
             Default: ``np.nan``
         path_seed : :class:`int` or :any:`numpy.nan`, optional
             Seed controlling the order in which simulation grid nodes are
@@ -210,6 +233,12 @@ class DirectSampling(Field):
             (no third-party dependency); a callable is invoked as
             ``progress(n_done, n_total)`` once per completed node.
             ``None``/``False`` (default) disables it.
+        num_threads : :class:`int` or :any:`None`, optional
+            Threads for the node dependency graph; overrides
+            :attr:`num_threads`. The output is identical for any thread count,
+            but the pure-Python engine is largely GIL-bound, so speed-ups are
+            small (about 1.0-1.25x measured at 4-8 threads).
+            Default: :any:`None` (``config.NUM_THREADS``)
 
         Returns
         -------
@@ -251,6 +280,7 @@ class DirectSampling(Field):
             no_of_angles(dim),
             flat_pos,
             "rotation",
+            pad=True,
         )
         scale_map, scale_stat = resolve_spec(
             self._mps_model.scale,
@@ -264,38 +294,40 @@ class DirectSampling(Field):
         selector = (
             build_zone_selector(zones, shape, flat_pos) if zones else None
         )
-        if (
-            rotation_map is not None
-            or scale_map is not None
-            or selector is not None
-        ):
-            _warn_nonuniform_axes(self.pos)
+        _warn_nonuniform_axes(self.pos)
+        # Re-check: the model's overrides may have changed since set_condition.
+        self._check_condition_codes()
         conditions = self._conditions_to_grid(self.pos)
-        if not np.isnan(seed):
+        if seed is None:
+            self.rng.seed = None  # fresh random seed, as in gs.SRF
+        elif not np.isnan(seed):
             self.rng.seed = int(seed)
+        # Explicit seeds seed the stream directly: RNG(seed) funnels them through
+        # a 16-bit master draw, so distinct seeds collide. Deliberate exception
+        # to the gstools RNG rule, as in scan.py.
         rng_path = (
             self.rng.random
-            if np.isnan(path_seed)
-            else RNG(int(path_seed)).random
+            if _unset(path_seed)
+            else np.random.RandomState(int(path_seed))
         )
         rng_nodes = (
             self.rng.random
-            if np.isnan(node_seed)
-            else RNG(int(node_seed)).random
+            if _unset(node_seed)
+            else np.random.RandomState(int(node_seed))
         )
         # Call-time num_threads overrides the instance default.
         n_threads = (
             num_threads if num_threads is not None else self._num_threads
         )
-        # ds_simulate now accepts both univariate and multivariate TIs directly.
-        # Univariate TIs produce {None: array}; multivariate produce {name: array}.
-        # Conditions for univariate are {idx: value}; ds_simulate expects
-        # {idx: {var: value}} so we remap using the sentinel key None.
+        # ds_simulate returns {name: array} for every variable. A univariate
+        # TI's single variable is named None (bare-array sugar) or by its
+        # Variable; its conditions {idx: value} are remapped under that key.
+        uv_key = self._ti.variables[0].name
         if self._ti.multivariate:
             sim_conditions = conditions  # already {idx: {var: val}}
         else:
             sim_conditions = (
-                {idx: {None: val} for idx, val in conditions.items()}
+                {idx: {uv_key: val} for idx, val in conditions.items()}
                 if conditions
                 else None
             )
@@ -354,7 +386,7 @@ class DirectSampling(Field):
                     fld, name=v.name, process=False, save=save
                 )
             return out
-        return self.post_field(result[None], name, post_process, save)
+        return self.post_field(result[uv_key], name, post_process, save)
 
     def _conditions_to_grid(self, axes):
         """Snap conditioning points to nearest grid nodes (Mariethoz2010 §3 ¶12).
@@ -378,6 +410,22 @@ class DirectSampling(Field):
         """
         if self._cond_pos is None:
             return {}
+        # Points beyond half a cell outside the grid snap to its edge: warn.
+        outside = 0
+        for d, ax in enumerate(axes):
+            ax = np.asarray(ax, dtype=np.double)
+            tol = 0.5 * np.abs(np.diff(ax)).max() if len(ax) > 1 else 0.0
+            p = np.asarray(self._cond_pos[d], dtype=np.double)
+            outside |= (p < ax.min() - tol) | (p > ax.max() + tol)
+        if np.any(outside):
+            warnings.warn(
+                f"DirectSampling: {int(np.sum(outside))} conditioning "
+                "point(s) lie outside the simulation grid and were snapped "
+                "to its nearest edge node.",
+                UserWarning,
+                stacklevel=3,
+            )
+        n_collided = 0  # finite values landing on an occupied (node, variable)
         if self._ti.multivariate and isinstance(self._cond_val, dict):
             if not self._cond_val:
                 raise ValueError("DirectSampling: cond_val must not be empty")
@@ -393,19 +441,33 @@ class DirectSampling(Field):
                     val = self._cond_val[v][k]
                     if not np.isfinite(val):
                         continue
+                    if v in var_best:
+                        n_collided += 1
                     if v not in var_best or dist_sq < var_best[v][1]:
                         var_best[v] = (float(val), dist_sq)
-            return {
+            result = {
                 idx: {v: val for v, (val, _) in var_best.items()}
                 for idx, var_best in candidates.items()
             }
-        # univariate (unchanged)
-        candidates = {}  # idx -> (val, dist_sq)
-        for k in range(self._cond_val.shape[0]):
-            idx, dist_sq = self._snap_to_nearest(axes, k)
-            if idx not in candidates or dist_sq < candidates[idx][1]:
-                candidates[idx] = (self._cond_val[k], dist_sq)
-        return {idx: val for idx, (val, _) in candidates.items()}
+        else:
+            # univariate (NaN values were already dropped in set_condition)
+            candidates = {}  # idx -> (val, dist_sq)
+            for k in range(self._cond_val.shape[0]):
+                idx, dist_sq = self._snap_to_nearest(axes, k)
+                if idx in candidates:
+                    n_collided += 1
+                if idx not in candidates or dist_sq < candidates[idx][1]:
+                    candidates[idx] = (self._cond_val[k], dist_sq)
+            result = {idx: val for idx, (val, _) in candidates.items()}
+        if n_collided:
+            warnings.warn(
+                f"DirectSampling: {n_collided} conditioning value(s) collided "
+                "on an occupied grid node; the one closest to the node was "
+                "kept (the first one on ties).",
+                UserWarning,
+                stacklevel=3,
+            )
+        return result
 
     def _snap_to_nearest(self, axes, k):
         """Return (grid_index_tuple, dist_sq) for the k-th conditioning point."""
@@ -433,6 +495,7 @@ class DirectSampling(Field):
             ``{variable: numpy.ndarray}`` mapping (use ``numpy.nan`` for a
             variable that is not conditioned at a given point).
         """
+        prev = (self._cond_pos, self._cond_val)
         if self._ti.multivariate and isinstance(cond_val, dict):
             if not cond_val:
                 raise ValueError("DirectSampling: cond_val must not be empty")
@@ -457,14 +520,20 @@ class DirectSampling(Field):
                 raise ValueError(
                     "DirectSampling: cond_pos and cond_val length mismatch."
                 )
+            _check_finite_positions(cond_pos_arr)
             self._cond_pos = cond_pos_arr
             self._cond_val = {
                 v: np.asarray(a, dtype=np.double) for v, a in cond_val.items()
             }
-            for v_name, arr in self._cond_val.items():
-                _check_penalty_matrix_conditioning(
-                    v_name, self._ti.variable(v_name).penalty_matrix, arr
-                )
+            # NaN means "not conditioned" here (documented); only infinities drop.
+            n_dropped = sum(
+                int(np.count_nonzero(np.isinf(a)))
+                for a in self._cond_val.values()
+            )
+            uncovered = {
+                v: self._count_uncovered(v, a)
+                for v, a in self._cond_val.items()
+            }
         elif self._ti.multivariate:
             raise ValueError(
                 "DirectSampling: cond_val must be a dict {variable: array} "
@@ -473,12 +542,70 @@ class DirectSampling(Field):
         else:
             from gstools.krige.tools import set_condition as _gs_set_condition
 
-            self._cond_pos, self._cond_val = _gs_set_condition(
-                cond_pos, cond_val, self.dim
+            n_dropped = int(
+                np.count_nonzero(~np.isfinite(np.asarray(cond_val, np.double)))
             )
-            _check_penalty_matrix_conditioning(
-                None, self._ti.variable().penalty_matrix, self._cond_val
+            pos, val = _gs_set_condition(cond_pos, cond_val, self.dim)
+            _check_finite_positions(pos)
+            self._cond_pos, self._cond_val = pos, val
+            uv_name = self._ti.variables[0].name
+            uncovered = {uv_name: self._count_uncovered(uv_name, val)}
+        try:
+            self._check_condition_codes()
+        except ValueError:  # keep the previous conditioning on error
+            self._cond_pos, self._cond_val = prev
+            raise
+        if n_dropped:
+            warnings.warn(
+                f"DirectSampling.set_condition: {n_dropped} non-finite "
+                "conditioning value(s) were dropped.",
+                UserWarning,
+                stacklevel=2,
             )
+        bad = {v: n for v, n in uncovered.items() if n}
+        if bad:
+            warnings.warn(
+                f"DirectSampling.set_condition: {sum(bad.values())} "
+                "conditioning value(s) of variable(s) "
+                f"{list(bad)} cannot be reproduced by the training image(s) "
+                "(absent category, or outside the TI range).",
+                UserWarning,
+                stacklevel=2,
+            )
+
+    def _count_uncovered(self, name, vals):
+        """Count finite conditioning values the TI(s) cannot reproduce."""
+        vals = np.asarray(vals, dtype=np.double)
+        vals = vals[np.isfinite(vals)]
+        data = [
+            t.variable(name).data
+            for t in [self._ti] + [z.ti for z in self._mps_model.zones]
+        ]
+        pool = np.concatenate([d[np.isfinite(d)] for d in data])
+        if vals.size == 0 or pool.size == 0:
+            return 0
+        if self._ti.variable(name).categorical:
+            return int(np.count_nonzero(~np.isin(vals, pool)))
+        return int(np.count_nonzero((vals < pool.min()) | (vals > pool.max())))
+
+    def _check_condition_codes(self):
+        """Check conditioning codes against every penalty matrix indexing
+        them: the primary Variable's and any post-processing override's."""
+        if self._cond_pos is None:
+            return
+        overrides = self._mps_model.post_processing_variables
+        for v in self._ti.variables:
+            vals = (
+                self._cond_val.get(v.name)
+                if isinstance(self._cond_val, dict)
+                else self._cond_val
+            )
+            if vals is None:
+                continue
+            mats = [v.penalty_matrix]
+            mats += [o.penalty_matrix for o in overrides if o.name == v.name]
+            for mat in mats:
+                _check_penalty_matrix_conditioning(v.name, mat, vals)
 
     def set_mv_transforms(self, mean=None, normalizer=None, trend=None):
         """Set per-variable post-processing transforms for multivariate simulations.
@@ -577,7 +704,7 @@ class DirectSampling(Field):
 
     @property
     def max_radius(self):
-        """:class:`float` or :any:`None` or :class:`dict`: Euclidean neighbour cap (scalar if all equal).
+        """:class:`float` or :any:`None` or :class:`dict`: Euclidean neighbour cap in grid cells (scalar if all equal).
 
         Read-only. Configure at :class:`Variable`/:class:`TrainingImage` construction.
         """

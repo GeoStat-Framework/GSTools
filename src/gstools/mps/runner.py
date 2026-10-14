@@ -21,6 +21,7 @@ def _build_dag_base(
     n_k_dict,
     max_radius=None,
     pos_map=None,
+    nb_cache=None,
 ):
     """Unified dependency-DAG builder for both univariate and multivariate DS.
 
@@ -34,16 +35,26 @@ def _build_dag_base(
         Flat-cell → index in ``path`` (``-1`` for cells absent from it), used
         **only** to orient edges.  ``None`` (default, main simulation path)
         takes the orientation from the gating index returned by
-        :func:`neighbors._select_neighbors`, which is the pre-existing
-        behaviour.  Pass it when ``vmap_dict`` no longer carries visit order —
+        :func:`neighbors._select_neighbors`, which is what the serial path
+        uses.  Pass it when ``vmap_dict`` no longer carries visit order —
         i.e. for a post-processing pass, whose all-``-1`` vmap makes every
         informed cell available (Me13 §4 "fully informed neighbourhood") and
         therefore returns no usable ordering information.  See Notes.
+    nb_cache : dict or None, optional
+        Cell-ordered neighbour lists shared by the post-processing passes of
+        one run; honoured only with ``pos_map``.  Filled by the first pass
+        (pass an empty dict); a later pass over the same cells gathers its
+        lists from it instead of calling ``_select_neighbors``.  Exact because
+        an all-``-1`` vmap with ``informed=None`` makes a cell's list depend
+        on the cell alone.  ``None`` (default) disables it.
     Returns
     -------
     indegree : dict of {key: numpy.ndarray of int32, shape (N,)}
-    out_edges : list of list of (int, key)
-        ``out_edges[j]`` → ``(i, key)`` pairs to process when node ``j`` completes.
+    out_edges : tuple of (out_indptr, out_targets, out_keys)
+        CSR successors: when node ``j`` completes, its successors are
+        ``out_targets[out_indptr[j]:out_indptr[j+1]]`` (all ``> j``), with variable
+        indices ``out_keys[...]`` into ``list(vmap_dict)``. ``out_indptr`` is
+        int64 of shape ``(N + 1,)``; edges are deduplicated and sorted by ``(j, key, target)``.
     coord_cache : dict of {key: (numpy.ndarray, numpy.ndarray, int)}
         ``(flat_buf, counts, stride)`` per variable ``key``. Node ``i``'s
         neighbours are the **raveled cell indices**
@@ -90,11 +101,10 @@ def _build_dag_base(
     Because the read relation is not exactly symmetric (``n_neighbors``
     truncation lets a boundary node reach farther than its own neighbours
     reach back), an edge may be discovered from either endpoint, so ``seen``
-    dedupes before ``indegree`` is counted — counting one pair twice yields a
+    deduplicates before ``indegree`` is counted — counting one pair twice yields a
     single matching decrement and deadlocks the dispatcher.  With
-    ``pos_map=None`` every selected neighbour is at an earlier position, no
-    duplicate is reachable, and the edge set is identical to the pre-existing
-    one.
+    ``pos_map=None`` every selected neighbour is at an earlier position, so no
+    duplicate is reachable.
     """
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
@@ -104,8 +114,7 @@ def _build_dag_base(
     n_cells = int(np.prod(sim_shape))
     flat_dt = np.int32 if n_cells < 2**31 else np.intp
 
-    indegree = {k: np.zeros(N, dtype=np.int32) for k in vmap_dict}
-    out_edges = [[] for _ in range(N)]
+    keys = list(vmap_dict)
     # Neighbour cache in fixed-stride form: one flat buffer per key holding
     # raveled cell indices at ``i * stride``, plus the per-node count. The
     # stride is exact -- _select_neighbors returns at most ``n_k`` neighbours.
@@ -115,46 +124,104 @@ def _build_dag_base(
             np.zeros(N, dtype=np.int32),
             n_k_dict[k],
         )
-        for k in vmap_dict
+        for k in keys
     }
-    seen = set()
-    for i in range(N):
-        x_i = path[i]
-        for key, vmap in vmap_dict.items():
-            coords, vidx = _select_neighbors(
-                x_i,
-                offset_arr,
-                sim_shape_arr,
-                sim_shape,
-                vmap,
-                i,
-                None,
-                max_radius,
-                n_k_dict[key],
+    # Visit position of each cached neighbour, in the same layout; -1 marks
+    # unused slots and conditioning/unavailable cells.
+    pos_cache = {k: np.full(N * n_k_dict[k], -1, dtype=flat_dt) for k in keys}
+    cached = nb_cache is not None and pos_map is not None and N > 0
+    rows = None
+    if cached:
+        flat_path = np.ravel_multi_index(path.T, sim_shape)
+        # A cache filled over the same cells gives this pass's lists by row.
+        if nb_cache.get("n_k") == n_k_dict and len(nb_cache["cells"]) == N:
+            cells = nb_cache["cells"]
+            rows = np.minimum(np.searchsorted(cells, flat_path), N - 1)
+            if not np.array_equal(cells[rows], flat_path):
+                rows = None
+    if rows is not None:
+        for key in keys:
+            src, src_counts, stride = nb_cache["coords"][key]
+            flat_buf = src.reshape(N, stride)[rows].ravel()
+            counts = src_counts[rows]
+            coord_cache[key] = (flat_buf, counts, stride)
+            # Post-pass orientation is the visit position of each neighbour.
+            valid = np.arange(stride) < counts[:, None]
+            pos_cache[key].reshape(N, stride)[valid] = pos_map[
+                flat_buf.reshape(N, stride)[valid]
+            ]
+    else:
+        for i in range(N):
+            x_i = path[i]
+            for key, vmap in vmap_dict.items():
+                coords, vidx = _select_neighbors(
+                    x_i,
+                    offset_arr,
+                    sim_shape_arr,
+                    sim_shape,
+                    vmap,
+                    i,
+                    None,
+                    max_radius,
+                    n_k_dict[key],
+                )
+                flat_buf, counts, stride = coord_cache[key]
+                m = len(coords)
+                flat = (
+                    np.ravel_multi_index(coords.T, sim_shape)
+                    if m
+                    else np.empty(0, dtype=np.intp)
+                )
+                flat_buf[i * stride : i * stride + m] = flat
+                counts[i] = m
+                # Orientation index: the gating index for the main path, the
+                # visit position for a post-processing pass (all--1 vmap).
+                # ``flat`` is reused here -- the ravel is computed once per node.
+                pos = vidx if pos_map is None or not m else pos_map[flat]
+                pos_cache[key][i * stride : i * stride + m] = pos
+        if cached:
+            order = np.argsort(flat_path)
+            nb_cache.update(
+                n_k=dict(n_k_dict),
+                cells=flat_path[order],
+                coords={
+                    key: (
+                        buf.reshape(N, stride)[order].ravel(),
+                        cnt[order],
+                        stride,
+                    )
+                    for key, (buf, cnt, stride) in coord_cache.items()
+                },
             )
-            flat_buf, counts, stride = coord_cache[key]
-            m = len(coords)
-            flat = (
-                np.ravel_multi_index(coords.T, sim_shape)
-                if m
-                else np.empty(0, dtype=np.intp)
-            )
-            flat_buf[i * stride : i * stride + m] = flat
-            counts[i] = m
-            # Orientation index: the gating index for the main path, the
-            # visit position for a post-processing pass (all--1 vmap).
-            # ``flat`` is reused here -- the ravel is computed once per node.
-            pos = vidx if pos_map is None or not m else pos_map[flat]
-            for j in pos[pos >= 0]:
-                j = int(j)
-                if j == i:
-                    continue
-                lo, hi = (j, i) if j < i else (i, j)
-                if (lo, hi, key) in seen:
-                    continue
-                seen.add((lo, hi, key))
-                indegree[key][hi] += 1
-                out_edges[lo].append((hi, key))
+
+    # Each edge is one int64 code ``(lo * n_keys + key) * N + hi``; a single
+    # np.unique deduplicates per key (a pair can be found from either end on
+    # the post pass) and sorts the result into CSR order.
+    n_keys = len(keys)
+    codes = []
+    for kid, key in enumerate(keys):
+        slots = np.flatnonzero(pos_cache[key] >= 0)
+        node = slots // n_k_dict[key]
+        other = pos_cache[key][slots].astype(np.int64)
+        keep = other != node
+        lo = np.minimum(node, other)[keep]
+        hi = np.maximum(node, other)[keep]
+        codes.append((lo * n_keys + kid) * N + hi)
+    code = np.unique(np.concatenate(codes))
+    hi = code % N
+    lo, kid = np.divmod(code // N, n_keys)
+
+    indegree = {
+        key: np.bincount(hi[kid == k_id], minlength=N).astype(np.int32)
+        for k_id, key in enumerate(keys)
+    }
+    out_indptr = np.zeros(N + 1, dtype=np.int64)
+    np.cumsum(np.bincount(lo, minlength=N), out=out_indptr[1:])
+    out_edges = (
+        out_indptr,
+        hi.astype(flat_dt),
+        kid.astype(np.min_scalar_type(n_keys)),
+    )
     return indegree, out_edges, coord_cache
 
 
@@ -225,6 +292,7 @@ def _run_path(
     max_radius,
     on_cache_ready=None,
     pos_map=None,
+    nb_cache=None,
 ):
     """Dispatch the node simulation path: serial or parallel DAG.
 
@@ -271,6 +339,9 @@ def _run_path(
         rather than by ``vmap``'s gating index.  Required for a
         post-processing pass, whose all-``-1`` ``vmap`` carries no ordering.
         ``None`` (default) → main-path behaviour.
+    nb_cache : dict or None, optional
+        Forwarded to :func:`_build_dag_base` (see there); ``None`` disables
+        the cross-pass neighbour cache.
 
     Notes
     -----
@@ -292,7 +363,9 @@ def _run_path(
             n_k,
             max_radius,
             pos_map,
+            nb_cache,
         )
+        out_indptr, out_targets, out_keys = out_edges
         if on_cache_ready is not None:
             on_cache_ready(coord_cache)
         remaining = {v: indegree[v].copy() for v in variables}
@@ -322,8 +395,11 @@ def _run_path(
             counts["done"] += 1
             write_fn(tuple(int(c) for c in path[i]), result)
             update_fn()
-            for j, v in out_edges[i]:
-                remaining[v][j] -= 1
+            lo_e, hi_e = out_indptr[i], out_indptr[i + 1]
+            for j, k_id in zip(
+                out_targets[lo_e:hi_e].tolist(), out_keys[lo_e:hi_e].tolist()
+            ):
+                remaining[variables[k_id]][j] -= 1
                 if _ready(j):
                     _submit(j)
     else:

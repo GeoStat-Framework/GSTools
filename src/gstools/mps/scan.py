@@ -18,12 +18,13 @@ from gstools.mps.distance import compute_node_weights
 class _ScanConfig:
     """Domain-constant inputs to :func:`_scan_for_match`, built once per domain.
 
-    Every field is invariant across the whole node path *and* across
-    post-processing passes — it describes the domain (TI data, shape,
-    per-variable ``d_max``) and engine-level search configuration, never
-    anything that varies per pass.  ``scan_fraction`` is a per-pass value
-    (Meerschman2013 §4 divides it by ``post_processing_factor``) and is passed
-    to :func:`_scan_for_match` directly instead, from the caller's ``_Pass``.
+    Every field is invariant across the whole node path of a pass.  The
+    kernel fields (``weights``, ``distance_power``, ``cond_weight``,
+    ``vec_distance_var``, ``adjust_value``) come from the pass's TI (main or
+    post-processing); the rest describe the domain (TI data, shape, per-variable
+    ``d_max``).  ``scan_fraction`` is a per-pass value (Meerschman2013 §4 divides
+    it by ``post_processing_factor``) and is passed to :func:`_scan_for_match`
+    directly instead, from the caller's ``_Pass``.
     """
 
     variables: tuple
@@ -36,9 +37,11 @@ class _ScanConfig:
     cond_weight: dict  # {var: float} -- per-variable, from the kernel TI
     distance_power: dict  # {var: float} -- per-variable, from the kernel TI
     vec_distance_var: object
+    adjust_value: object  # paste rule paired with vec_distance_var (same TI)
     d_max: dict  # {var: float or None} — normalization range per variable,
     # from the domain's (zone) TI; kernel type stays primary's.
     ti_has_nan: bool
+    var_has_nan: dict  # {var: bool}; NaN-free variables skip the NaN path
     scan_path: str = "sequential"  # window scan order; see module docstring
 
 
@@ -140,6 +143,8 @@ def _scan_window(
         )
         y_blk = lo + np.column_stack(np.unravel_index(pos_blk, win_shape))
         d_blk = dist_fn(y_blk)
+        # NaN would win np.argmin and hide the block's real best: rank it last.
+        d_blk = np.where(np.isnan(d_blk), np.inf, d_blk)
         under = d_blk <= accept if dsbc else d_blk < accept
         if np.any(under):
             return y_blk[int(np.argmax(under))]
@@ -211,6 +216,8 @@ def _scan_for_match(
     def _dist_block(y_blk):
         d = np.zeros(len(y_blk))
         for v in active_vars:
+            if cfg.weights[v] == 0.0:
+                continue  # carried along, not matched; also avoids 0 * inf
             base = y_blk @ cfg.ti_strides[v]  # shape (B,)
             all_de_ti = cfg.ti_flat[v][base[:, None] + flat_il[v][None, :]]
             d += cfg.weights[v] * cfg.vec_distance_var(
@@ -222,7 +229,7 @@ def _scan_for_match(
                 ln_v[v],
                 weights=precomp_w[v],
                 d_max=cfg.d_max[v],
-                has_nan=cfg.ti_has_nan,
+                has_nan=cfg.var_has_nan[v],
             )
         # Renormalize so the joint distance stays in [0, 1] even when
         # some variables have no data event and are excluded from int_lags.

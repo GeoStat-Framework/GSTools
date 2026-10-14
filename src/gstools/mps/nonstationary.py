@@ -11,17 +11,16 @@ its canonical per-node form:
 - ``Zone.where`` masks -> one integer selector array over the grid
   (0 = primary TI, i+1 = ``zones[i]``); overlaps raise.
 
-Resolution is by **exact shape match**, never ndim heuristics — this is what
-structurally eliminates bug B5 (flattened per-node maps silently treated as
-stationary). Genuine collisions (a 1-D grid of length ``n_comp``) raise a
-ValueError naming both interpretations.
+Resolution is by **exact shape match**, never ndim heuristics, so a flattened
+per-node map is never silently treated as stationary. Genuine collisions (a
+1-D grid of length ``n_comp``) raise a ValueError naming both interpretations.
 
-Callables follow the established GSTools mean/trend convention: invoked as
-``f(*pos)`` with one flat coordinate array per dimension, returning
-``(n_nodes,)`` (broadcast across components) or ``(n_nodes, n_comp)``. The
-trailing component axis is a deliberate deviation from GSTools vector-field
-callables (which lead with a ``(dim,)`` axis): trailing is what per-node
-indexing ``arr[tuple(x_i)]`` consumes.
+Callables are invoked as ``f(*pos)`` with one flat coordinate array per
+dimension, returning ``(n_nodes,)`` (rotation fills the first angle like
+:func:`gstools.tools.set_angles`; scale broadcasts across components) or
+``(n_nodes, n_comp)``. The trailing component axis is a deliberate deviation
+from GSTools vector-field callables (which lead with a ``(dim,)`` axis):
+trailing is what per-node indexing ``arr[tuple(x_i)]`` consumes.
 """
 
 import numpy as np
@@ -46,24 +45,33 @@ def _stationary_view(values, grid_shape, n_comp):
     )
 
 
-def _materialize_callable(func, grid_shape, n_comp, pos, name):
+def _per_node(vals, n_comp, pad):
+    """One value per node -> ``vals.shape + (n_comp,)``: broadcast across
+    components, or (``pad``) component 0 with zeros elsewhere like ``set_angles``."""
+    if pad and n_comp > 1:
+        out = np.zeros(vals.shape + (n_comp,))
+        out[..., 0] = vals
+        return out
+    return np.broadcast_to(vals[..., None], vals.shape + (n_comp,))
+
+
+def _materialize_callable(func, grid_shape, n_comp, pos, name, pad=False):
     n_nodes = int(np.prod(grid_shape))
     vals = np.asarray(func(*pos), dtype=np.float64)
     if vals.shape == (n_nodes,):
-        return np.broadcast_to(
-            np.ascontiguousarray(vals).reshape(grid_shape + (1,)),
-            grid_shape + (n_comp,),
-        )
+        return _per_node(vals.reshape(grid_shape), n_comp, pad)
     if vals.shape == (n_nodes, n_comp):
         return np.ascontiguousarray(vals).reshape(grid_shape + (n_comp,))
     raise ValueError(
         f"MPSModel: the {name} callable must return shape ({n_nodes},) "
-        f"(one value per node, broadcast across components) or "
+        f"(one value per node) or "
         f"({n_nodes}, {n_comp}) (per-node components); got {vals.shape!r}."
     )
 
 
-def resolve_spec(spec, grid_shape, n_comp, pos, name, positive=False):
+def resolve_spec(
+    spec, grid_shape, n_comp, pos, name, positive=False, pad=False
+):
     """Resolve a rotation/scale spec to its canonical per-node array.
 
     Parameters
@@ -83,6 +91,11 @@ def resolve_spec(spec, grid_shape, n_comp, pos, name, positive=False):
         Parameter name for error messages (``"rotation"``/``"scale"``).
     positive : bool, optional
         Require all resolved values > 0 (scale). Default: False.
+    pad : bool, optional
+        One-value-per-node forms (scalar, grid-shaped map, ``(n_nodes,)``
+        callable) fill component 0 and zero the rest, like
+        :func:`gstools.tools.set_angles` (rotation). ``False`` broadcasts
+        them across components (scale). Default: False.
 
     Returns
     -------
@@ -115,7 +128,11 @@ def resolve_spec(spec, grid_shape, n_comp, pos, name, positive=False):
         return None, True
     grid_shape = tuple(int(s) for s in grid_shape)
     if callable(spec):
-        arr = _materialize_callable(spec, grid_shape, n_comp, pos, name)
+        arr = _materialize_callable(spec, grid_shape, n_comp, pos, name, pad)
+        if not np.all(np.isfinite(arr)):
+            raise ValueError(
+                f"MPSModel: the {name} callable returned non-finite values."
+            )
         if positive:
             _check_positive(arr, name)
         return arr, False
@@ -124,7 +141,7 @@ def resolve_spec(spec, grid_shape, n_comp, pos, name, positive=False):
         _check_positive(arr, name)
     if arr.ndim == 0:
         return (
-            _stationary_view(np.full(n_comp, float(arr)), grid_shape, n_comp),
+            _stationary_view(_per_node(arr, n_comp, pad), grid_shape, n_comp),
             True,
         )
     is_stationary_form = arr.shape == (n_comp,)
@@ -141,10 +158,7 @@ def resolve_spec(spec, grid_shape, n_comp, pos, name, positive=False):
     if is_stationary_form:
         return _stationary_view(arr, grid_shape, n_comp), True
     if is_grid_scalar:
-        return (
-            np.broadcast_to(arr[..., None], grid_shape + (n_comp,)),
-            False,
-        )
+        return _per_node(arr, n_comp, pad), False
     if is_grid_full:
         return arr, False
     raise ValueError(

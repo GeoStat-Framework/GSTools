@@ -36,7 +36,7 @@ ti_data = np.sin(gx / 6.0) * np.cos(gy / 8.0)
 ###############################################################################
 # Build a continuous training image with the Euclidean (``"l2"``) distance.
 
-ti = gs.TrainingImage(
+ti = gs.mps.TrainingImage(
     ti_data, categorical=False, distance="l2", n_neighbors=12
 )
 print(ti)

@@ -10,6 +10,7 @@ The following classes and functions are provided
    TrainingImage
 """
 
+import functools
 import warnings
 
 import numpy as np
@@ -66,9 +67,10 @@ def _parse_distance(distance):
                 f"TrainingImage: distance starting with 'l' must be followed by "
                 f"a positive number (e.g. 'l1', 'l2', 'l3.5'). Got {distance!r}"
             )
-        if p_val <= 0:
+        if not 0 < p_val < np.inf:  # also rejects 'lnan' / 'linf'
             raise ValueError(
-                f"TrainingImage: Lp norm exponent must be > 0, got {p_val}."
+                f"TrainingImage: Lp norm exponent must be finite and > 0, "
+                f"got {p_val}."
             )
         return p_val, None
     if distance_lower == "variation":
@@ -82,9 +84,10 @@ def _parse_distance(distance):
                 f"followed by a positive number (e.g. 'variation1', 'variation1.5'). "
                 f"Got {distance!r}"
             )
-        if p_val <= 0:
+        if not 0 < p_val < np.inf:
             raise ValueError(
-                f"TrainingImage: variation exponent must be > 0, got {p_val}."
+                f"TrainingImage: variation exponent must be finite and > 0, "
+                f"got {p_val}."
             )
         return None, p_val
     raise ValueError(
@@ -136,8 +139,8 @@ def _check_category_codes(values, n_cat, context):
 def _view_variable(var, slices):
     """Variable sharing ``var``'s configuration with ``data = var.data[slices]``.
 
-    The data is a NumPy **view** (no copy; the parent buffer is already
-    read-only, so the view is too -- ``Variable.__init__`` skips copying it).
+    The data is a NumPy **view** (no copy; the parent buffer is module-owned
+    and frozen, so ``Variable.__init__`` is told to skip copying it).
     ``d_max``/``has_nan`` are recomputed from the sliced data as a side
     effect of delegating to ``Variable``'s own constructor.
     """
@@ -155,6 +158,7 @@ def _view_variable(var, slices):
             penalty_matrix=var._penalty_matrix,
             distance_power=var._distance_power,
             cond_weight=var._cond_weight,
+            _trusted=True,
         )
 
 
@@ -173,6 +177,17 @@ _REPLACE_FIELDS = frozenset(
 )
 
 
+def _record_explicit(init):
+    """Remember which search-config fields the caller passed explicitly."""
+
+    @functools.wraps(init)
+    def wrapper(self, *args, **kwargs):
+        init(self, *args, **kwargs)
+        self._explicit = frozenset(kwargs) & _REPLACE_FIELDS
+
+    return wrapper
+
+
 class Variable:
     """One channel's data and per-variable distance configuration for MPS.
 
@@ -189,18 +204,20 @@ class Variable:
     distance : str, optional
         Continuous-distance metric: ``"l1"`` (default), ``"l2"``, ``"lp"``
         (p > 0), ``"variation"``, ``"variation<p>"``. Ignored when
-        ``categorical=True``.
+        ``categorical=True``. With ``"variation"``, a realised data event of
+        one point (e.g. a small ``max_radius``) gives zero distance for every
+        candidate.
     weight : float or None, optional
         Relative weight for the multivariate joint distance. ``None`` means
         equal share (resolved at ``TrainingImage`` level). Default: ``None``.
     n_neighbors : int, optional
         Maximum neighbours in the data event. Default: 32.
     max_radius : float or None, optional
-        Exclude SG neighbours beyond this Euclidean distance from the data
-        event. ``None`` → no limit (default).
+        Exclude SG neighbours beyond this Euclidean distance (in grid cells,
+        ``>= 1``) from the data event. ``None`` → no limit (default).
     penalty_matrix : numpy.ndarray or None, optional
         ``(C, C)`` per-category mismatch penalty matrix ``T[u, v]`` for
-        categorical variables (DS_Feature_Checklist §3.3). ``T[u, u] == 0``
+        categorical variables. ``T[u, u] == 0``
         and ``T[u, v] ∈ (0, 1]`` for ``u != v``; asymmetric matrices are
         allowed. ``None`` (default) uses the standard binary mismatch.
         Only valid when ``categorical=True``; ``data`` must then contain
@@ -208,13 +225,23 @@ class Variable:
     distance_power : float, optional
         Exponent δ for spatial-decay weighting of this variable's
         neighbours (Mariethoz2010 Eq. 3). ``0.0`` → uniform weights
-        (oracle-compatible default). ``1.0`` → closer neighbours weighted
+        (default). ``1.0`` → closer neighbours weighted
         more heavily.
     cond_weight : float, optional
         Weight multiplier for this variable's conditioning nodes in the
         distance (Meerschman2013 §6, Mariethoz2010 para [26]). Default: 1.0.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import gstools as gs
+    >>> facies = np.indices((10, 10)).sum(axis=0) % 2.0
+    >>> var = gs.mps.Variable("facies", facies, n_neighbors=8, max_radius=3.0)
+    >>> var.n_neighbors, var.max_radius
+    (8, 3.0)
     """
 
+    @_record_explicit
     def __init__(
         self,
         name,
@@ -228,6 +255,7 @@ class Variable:
         penalty_matrix=None,
         distance_power=0.0,
         cond_weight=1.0,
+        _trusted=False,
     ):
         if name is not None and (
             not isinstance(name, str) or not name.isidentifier()
@@ -236,25 +264,37 @@ class Variable:
                 f"Variable: name must be a valid Python identifier, got {name!r}."
             )
         self._name = name
-        # Defensive copy, except when `data` is already a frozen (read-only)
-        # array -- nothing can mutate it in place, so sharing it is safe.
-        # This is what makes `replace()`/`_view_variable()` avoid the O(n)
-        # data copy: they pass in this Variable's own already-frozen buffer.
-        # has_nan/d_max are still recomputed from that buffer below (O(n)),
-        # so replace() is a large constant-factor win over a fresh
-        # construction, not literally O(1).
+        # Defensive copy of external data. Only the module-internal callers
+        # (`replace()`, `_view_variable()`) pass `_trusted=True`: they hand in
+        # this module's own frozen buffer. A read-only *view* of a writable
+        # base is not safe to share, so the flag is not inferred from
+        # `flags.writeable`. has_nan/d_max are still recomputed below (O(n)).
         data_arr = np.asarray(data)
-        self._data = (
-            data_arr
-            if not data_arr.flags.writeable
-            else np.array(data_arr, copy=True)
-        )
+        self._data = data_arr if _trusted else np.array(data_arr, copy=True)
+        if (
+            np.issubdtype(self._data.dtype, np.floating)
+            and np.isinf(self._data).any()
+        ):
+            raise ValueError(
+                f"Variable {name!r}: data contains +-inf; use NaN to mark "
+                "undefined cells."
+            )
         self._categorical = bool(categorical)
         self._distance = str(distance)
-        self._weight = None if weight is None else float(weight)
-        if max_radius is not None and float(max_radius) <= 0:
+        if self._categorical and self._distance.lower() != "l1":
             raise ValueError(
-                f"Variable: max_radius must be a positive float, got {max_radius!r}."
+                f"Variable {name!r}: distance={distance!r} only applies to "
+                "continuous variables; pass categorical=False."
+            )
+        self._weight = None if weight is None else float(weight)
+        if self._weight is not None and not 0 <= self._weight < np.inf:
+            raise ValueError(
+                f"Variable: weight must be finite and >= 0, got {weight!r}."
+            )
+        if max_radius is not None and not 1 <= float(max_radius) < np.inf:
+            raise ValueError(
+                "Variable: max_radius is in grid cells and must be finite "
+                f"and >= 1 (None for no limit), got {max_radius!r}."
             )
         self._max_radius = None if max_radius is None else float(max_radius)
         self._has_nan = _any_float_nan(self._data)
@@ -277,11 +317,17 @@ class Variable:
             self._d_max = None
         self._penalty_matrix = self._validate_penalty_matrix(penalty_matrix)
         self._distance_power = float(distance_power)
-        if self._distance_power < 0:
+        if not 0 <= self._distance_power < np.inf:
             raise ValueError(
-                f"Variable: distance_power must be >= 0, got {distance_power!r}."
+                "Variable: distance_power must be finite and >= 0, got "
+                f"{distance_power!r}."
             )
         self._cond_weight = float(cond_weight)
+        if not 0 <= self._cond_weight < np.inf:
+            raise ValueError(
+                f"Variable: cond_weight must be finite and >= 0, got "
+                f"{cond_weight!r}."
+            )
         self._n_neighbors = _validate_n_neighbors(
             n_neighbors, self._variation_p_norm
         )
@@ -292,7 +338,7 @@ class Variable:
     def _validate_penalty_matrix(self, penalty_matrix):
         """Validate and freeze a per-category penalty matrix, or return None.
 
-        Constraints (DS_Feature_Checklist §3.3): 2-D square, zero diagonal,
+        Constraints: 2-D square, zero diagonal,
         off-diagonal entries in ``(0, 1]``; asymmetric matrices are allowed.
         The variable's own data must contain non-negative integer-valued
         codes ``< C`` at every finite cell.
@@ -321,7 +367,7 @@ class Variable:
             )
         off_diag_mask = ~np.eye(n_cat, dtype=bool)
         off_vals = mat[off_diag_mask]
-        bad_off = (off_vals <= 0.0) | (off_vals > 1.0)
+        bad_off = ~((off_vals > 0.0) & (off_vals <= 1.0))  # NaN is bad too
         if bad_off.any():
             off_idx = np.argwhere(off_diag_mask)
             bad_pairs = off_idx[bad_off]
@@ -418,8 +464,8 @@ class Variable:
     def replace(self, **overrides):
         """New Variable sharing this one's data buffer; only search config differs.
 
-        No copy: the buffer is already frozen read-only, so sharing it is
-        safe (``__init__`` skips copying a read-only array). ``data`` and
+        No copy: the buffer is this module's own frozen array, so sharing it
+        is safe (``_trusted`` skips the copy). ``data`` and
         ``categorical`` cannot be overridden -- they define what the
         variable *is*; construct a new Variable instead.
         """
@@ -451,7 +497,7 @@ class Variable:
         # NaN-containing data.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
-            return Variable(self._name, self._data, **kwargs)
+            return Variable(self._name, self._data, _trusted=True, **kwargs)
 
     def __repr__(self):
         parts = [
@@ -487,13 +533,30 @@ class TrainingImage:
     n_neighbors : :class:`int`, optional
         Maximum neighbours in the data event (univariate TIs only). Default: 32.
     max_radius : :class:`float` or None, optional
-        Exclude SG neighbours beyond this distance (univariate TIs only). Default: None.
+        Exclude SG neighbours beyond this distance in grid cells, ``>= 1``
+        (univariate TIs only). Default: None.
     distance_power, cond_weight : see :class:`Variable`
         Univariate-only sugar: forwarded verbatim to the anonymous Variable.
         Ignored when ``data`` is a Variable or list of Variable.
     penalty_matrix : :class:`numpy.ndarray` or None, optional
         Per-category mismatch penalty matrix (univariate TIs only; see
         :class:`Variable`). Default: ``None`` (binary mismatch).
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import gstools as gs
+    >>> ti = gs.mps.TrainingImage(np.zeros((100, 100)))
+    >>> ti.shape
+    (100, 100)
+    >>> ti_mv = gs.mps.TrainingImage(
+    ...     [
+    ...         gs.mps.Variable("a", np.zeros((10, 10))),
+    ...         gs.mps.Variable("b", np.ones((10, 10)), categorical=False),
+    ...     ]
+    ... )
+    >>> ti_mv.weights
+    {'a': 0.5, 'b': 0.5}
     """
 
     def __init__(
@@ -552,6 +615,12 @@ class TrainingImage:
             # Resolve sentinels to real defaults here -- the one place they
             # matter, since a bare array has no pre-existing Variable to
             # shadow.
+            if categorical is _SENTINEL and distance is not _SENTINEL:
+                raise ValueError(
+                    "TrainingImage: distance is given but categorical "
+                    "defaults to True (distance is then unused); pass "
+                    "categorical=False for continuous data."
+                )
             var = Variable(
                 None,
                 data,
@@ -636,7 +705,7 @@ class TrainingImage:
         """:class:`numpy.ndarray` or None: Raw data for univariate TIs; None for MV."""
         if self._multivariate:
             return None
-        return self._var_map[None].data
+        return self._variables[0].data
 
     @property
     def ndim(self):
@@ -754,7 +823,7 @@ class TrainingImage:
         --------
         >>> import numpy as np
         >>> import gstools as gs
-        >>> ti = gs.TrainingImage(np.zeros((100, 100)))
+        >>> ti = gs.mps.TrainingImage(np.zeros((100, 100)))
         >>> sub = ti.window(np.s_[:50, 25:75])
         >>> sub.shape
         (50, 50)
@@ -775,7 +844,7 @@ class TrainingImage:
                 "TrainingImage.categorical is not available for multivariate TIs. "
                 "Use ti.variable(name).categorical."
             )
-        return self._var_map[None].categorical
+        return self._variables[0].categorical
 
     @property
     def distance_type(self):
@@ -785,7 +854,7 @@ class TrainingImage:
                 "TrainingImage.distance_type is not available for multivariate TIs. "
                 "Use ti.variable(name).distance."
             )
-        return self._var_map[None].distance
+        return self._variables[0].distance
 
     # ------------------------------------------------------------------
     # Distance
@@ -877,12 +946,14 @@ class TrainingImage:
         data_event_ti = np.asarray(data_event_ti, dtype=np.float64)
         if data_event_sim.size == 0 or data_event_ti.size == 0:
             return ti_val
-        ti_mean = (
-            np.nanmean(data_event_ti)
-            if np.isfinite(data_event_ti).any()
-            else 0.0
+        # Both means over the positions defined in the TI event: the common
+        # support vec_variation_dist compares on.
+        ok = np.isfinite(data_event_ti)
+        if not ok.any():
+            return ti_val
+        return float(
+            ti_val - data_event_ti[ok].mean() + data_event_sim[ok].mean()
         )
-        return float(ti_val - ti_mean + np.nanmean(data_event_sim))
 
     def vec_distance_var(
         self,
@@ -960,7 +1031,7 @@ class TrainingImage:
         if self._multivariate:
             names = [v.name for v in self._variables]
             return f"TrainingImage(variables={names!r}, shape={self.shape})"
-        v = self._var_map[None]
+        v = self._variables[0]
         return (
             f"TrainingImage(shape={self.shape}, "
             f"categorical={v.categorical}, "
@@ -969,8 +1040,8 @@ class TrainingImage:
 
 
 def _resolve_post_ti(primary_ti, post_processing_variables):
-    """Build the post-processing TrainingImage: primary variables, with any
-    named override from ``post_processing_variables`` substituted in.
+    """Build the post-processing TrainingImage: primary variables, with the
+    explicitly set fields of any named override applied (unset ones inherit).
 
     Defensively validates names against ``primary_ti`` even though
     :class:`MPSModel` already does -- this function is reachable directly
@@ -986,11 +1057,42 @@ def _resolve_post_ti(primary_ti, post_processing_variables):
             f"{sorted(str(v.name) for v in primary_ti.variables)!r}."
         )
     post_vars = [
-        override_map.get(primary.name, primary)
+        primary.replace(**{f: getattr(ov, f) for f in ov._explicit})
+        if (ov := override_map.get(primary.name)) is not None
+        else primary
         for primary in primary_ti.variables
     ]
+    if primary_ti.multivariate:
+        raw = [v.weight for v in post_vars]
+        if any(w is None for w in raw) and not all(w is None for w in raw):
+            raise ValueError(
+                "MPSModel: post-processing weights must be set on every "
+                "variable (primary or override) or on none"
+            )
     return (
         TrainingImage(post_vars)
         if primary_ti.multivariate
         else TrainingImage(post_vars[0])
     )
+
+
+def _post_pass_n_neighbors(post_ti, p_f):
+    """Post-pass ``n_neighbors`` per variable: ``round(n / p_f)``, floored at 1.
+
+    Raises ``ValueError`` when a ``distance="variation"`` variable would get
+    fewer than 2 neighbours (a one-point event has no local mean).
+    """
+    n_k = {}
+    for v in post_ti.variables:
+        n = max(1, int(round(v.n_neighbors / p_f)))
+        if v.variation_p_norm is not None and n < 2:
+            raise ValueError(
+                "post-processing: "
+                + (f"variable {v.name!r}" if v.name is not None else "the TI")
+                + " has distance='variation' "
+                f"with n_neighbors={v.n_neighbors}; post_processing_factor="
+                f"{p_f:g} gives {n} post-pass neighbour(s), but variation "
+                "needs >= 2."
+            )
+        n_k[v.name] = n
+    return n_k

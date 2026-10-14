@@ -23,7 +23,7 @@ The three classes you always need:
   patterns (the analogue of a :any:`CovModel`). Multivariate training images
   are built from a list of :any:`Variable` objects, one per property.
 * :any:`MPSModel` — the algorithm configuration: a training image together
-  with the scan fraction, threshold, conditioning weight, and the optional
+  with the scan fraction, threshold, and the optional
   features below.
 * :any:`DirectSampling` — the generator that produces realizations on a
   structured grid (the analogue of :any:`SRF`).
@@ -33,7 +33,7 @@ Optional, passed to :any:`MPSModel`:
 * ``rotation=`` / ``scale=`` — geometric non-stationarity, so a stationary
   training image can produce patterns that rotate and stretch across the grid.
 * :any:`Zone` — bind a different training image (or a
-  :meth:`~gstools.TrainingImage.window` view of one large image) to a region
+  :meth:`~gstools.mps.TrainingImage.window` view of one large image) to a region
   of the simulation grid.
 * ``post_processing=`` — re-simulation passes that remove simulation noise.
 
@@ -42,8 +42,8 @@ around it (its *data event*), scans the training image for a location whose
 surroundings look similar enough, and copies that cell's value over.
 "Similar enough" is decided by a **distance** between the two surroundings,
 controlled by three parameters — the number of neighbours ``n``, the scan
-fraction ``f``, and the acceptance threshold ``t`` (with ``t = 0`` giving the
-recommended DSBC mode).
+fraction ``f``, and the acceptance threshold ``t`` (``threshold=None``, the
+default, gives the recommended DSBC mode).
 
 The following tutorials build up from a minimal unconditional simulation to
 conditioning and continuous variables.

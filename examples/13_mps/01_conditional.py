@@ -20,7 +20,7 @@ import gstools as gs
 
 gx, gy = np.meshgrid(np.arange(60), np.arange(60), indexing="ij")
 ti_data = ((np.sin(gx / 5.0) + np.sin((gx + gy) / 8.0)) > 0).astype(float)
-ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=12)
+ti = gs.mps.TrainingImage(ti_data, categorical=True, n_neighbors=12)
 
 ###############################################################################
 # Draw 40 random "hard data" points and read their facies from the TI. In a

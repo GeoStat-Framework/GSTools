@@ -25,7 +25,7 @@ from gstools.mps.neighbors import (
 )
 from gstools.mps.runner import _make_progress, _run_path
 from gstools.mps.scan import _scan_for_match, _ScanConfig
-from gstools.mps.training_image import _resolve_post_ti
+from gstools.mps.training_image import _post_pass_n_neighbors, _resolve_post_ti
 
 
 @dataclass(frozen=True)
@@ -48,7 +48,13 @@ class _Pass:
         ``None`` for the main path, whose vmap already carries the order.
     n_k : dict of {str: int}
         Per-variable neighbour count (post-passes divide by
-        ``post_processing_factor``, floored at 1).
+        ``post_processing_factor``, see :func:`training_image._post_pass_n_neighbors`).
+    max_radius_per_var : dict of {str: float or None}
+        Per-variable search radius of this pass's TI (post-passes use the
+        post-processing TI's radii).
+    max_radius : float or None
+        Shared radius for the DAG neighbour cache: ``None`` if any variable
+        is unbounded, else the largest of ``max_radius_per_var``.
     scan_fraction : float
         Likewise divided by ``post_processing_factor`` on a post-pass.
     neighbor_cache : dict
@@ -60,14 +66,16 @@ class _Pass:
         main pass uses ``self.domains`` (bound to the primary TI's search
         config); a post-processing pass uses ``self._post_domains`` (bound
         to ``_post_ti``'s, per any ``post_processing_variables`` override).
-        Both domain sets share every data buffer; only the distance kernel
-        and per-variable distance_power/cond_weight can differ between them.
+        Both domain sets share every data buffer; only the distance kernel,
+        its paste rule and per-variable distance_power/cond_weight can differ.
     """
 
     order: object
     vmap: dict
     pos_map: object
     n_k: dict
+    max_radius_per_var: dict
+    max_radius: object
     scan_fraction: float
     neighbor_cache: dict
     domains: list
@@ -79,7 +87,7 @@ class _Domain:
 
     Search hyper-parameters (n_neighbors, max_radius, weights, distance
     kernel) always come from the PRIMARY TI; the domain contributes the data
-    arrays, shape, per-variable d_max, and NaN bookkeeping (spec §3).
+    arrays, shape, per-variable d_max, and NaN bookkeeping.
     """
 
     ti: object  # TrainingImage
@@ -208,6 +216,29 @@ def _build_vmap(order, is_cond, variables, sim_shape):
     return vmap
 
 
+def _shared_radius(*radius_maps):
+    """Radius shared by per-variable maps: ``None`` (unbounded) if any entry is ``None``."""
+    radii = [r for m in radius_maps for r in m.values()]
+    if not radii or any(r is None for r in radii):
+        return None
+    return max(radii)
+
+
+def _kernel_fields(ti):
+    """The ``_ScanConfig`` fields bound to one TI's Variables (main or post-pass)."""
+    return dict(
+        weights=(
+            ti.weights
+            if ti.multivariate
+            else {v.name: 1.0 for v in ti.variables}
+        ),
+        distance_power={v.name: v.distance_power for v in ti.variables},
+        cond_weight={v.name: v.cond_weight for v in ti.variables},
+        vec_distance_var=ti.vec_distance_var,
+        adjust_value=ti.adjust_value,
+    )
+
+
 class _DirectSamplingEngine:
     """Holds one Direct Sampling run's state and orchestrates it."""
 
@@ -236,14 +267,6 @@ class _DirectSamplingEngine:
     ):
         self.training_image = training_image
         self.variables = [v.name for v in training_image.variables]
-        self.weights = (
-            {
-                v.name: training_image.weights[v.name]
-                for v in training_image.variables
-            }
-            if training_image.multivariate
-            else {None: 1.0}
-        )
         self.ti_shape = np.array(training_image.shape)
         self.sim_shape = sim_shape
         self.sim_shape_arr = np.array(sim_shape)
@@ -305,26 +328,54 @@ class _DirectSamplingEngine:
             )
         self._post_path = post_processing_path
 
+        # Post-pass TI: the primary's variables with any
+        # post_processing_variables override substituted in. Resolved once here,
+        # not per pass or per node.
+        self._post_ti = _resolve_post_ti(
+            training_image, post_processing_variables or []
+        )
+        if self.post_processing > 0:  # fail before the main pass, not after
+            _post_pass_n_neighbors(self._post_ti, self.post_processing_factor)
+        # None means "unbounded" for that variable (docstring: "None -> no
+        # limit"). The offset table is shared by the main and post passes, so
+        # if any variable of either is unbounded the shared candidate set must
+        # be too -- capping it to a finite sibling's radius would silently
+        # truncate the unbounded variable's neighbourhood. Post-pass radii
+        # count only when post-passes run.
         self.max_radius_per_var = {
             v.name: v.max_radius for v in training_image.variables
         }
-        _radii = list(self.max_radius_per_var.values())
-        # None means "unbounded" for that variable (docstring: "None -> no
-        # limit"). offset_arr is shared across variables, so if any variable
-        # is unbounded the shared candidate set must be too -- capping it to
-        # a finite sibling's radius would silently truncate the unbounded
-        # variable's neighbourhood.
-        if any(r is None for r in _radii):
-            global_max_radius = None
-        else:
-            global_max_radius = max(_radii) if _radii else None
-        max_off_int = (
-            int(np.ceil(global_max_radius))
-            if global_max_radius is not None
-            else None
+        self.max_radius = _shared_radius(self.max_radius_per_var)
+        self._post_max_radius_per_var = {
+            v.name: v.max_radius for v in self._post_ti.variables
+        }
+        self._post_max_radius = _shared_radius(self._post_max_radius_per_var)
+        offset_radius = _shared_radius(
+            self.max_radius_per_var,
+            *(
+                [self._post_max_radius_per_var]
+                if self.post_processing > 0
+                else []
+            ),
         )
+        max_off_int = (
+            int(np.ceil(offset_radius)) if offset_radius is not None else None
+        )
+        stationary = rotation_map is None and scale_map is None
+        joint_cond = all(
+            len(vd) == len(self.variables)
+            for vd in (conditions or {}).values()
+        )
+        # Offsets beyond the TI diagonal never fit a window and are truncated
+        # first, so (stationary, jointly conditioned) the table can stop there.
+        if stationary and joint_cond:
+            ti_ext = np.max(
+                [training_image.shape] + [z.shape for z in zone_tis or ()],
+                axis=0,
+            )
+            cap = int(np.ceil(np.linalg.norm(ti_ext - 1)))
+            max_off_int = cap if max_off_int is None else min(max_off_int, cap)
         self.offset_arr = _precompute_offsets(sim_shape, max_off_int)
-        self.max_radius = global_max_radius
 
         # Node path: every node with >= 1 uninformed variable.  Fully-conditioned
         # nodes need no simulation and are excluded (they stay -1 / always available).
@@ -366,27 +417,13 @@ class _DirectSamplingEngine:
 
         # Post-processing domains: same domain data as self.domains (no
         # rebuild -- primary + zones' data/shape/d_max never differ between
-        # a main pass and a post-pass), only the distance kernel and
-        # per-variable distance_power/cond_weight differ, sourced from
-        # `_post_ti` instead of `training_image`. Resolved once here, not
-        # per pass or per node.
-        self._post_ti = _resolve_post_ti(
-            training_image, post_processing_variables or []
-        )
-        post_distance_power = {
-            v.name: v.distance_power for v in self._post_ti.variables
-        }
-        post_cond_weight = {
-            v.name: v.cond_weight for v in self._post_ti.variables
-        }
+        # a main pass and a post-pass), only the kernel fields differ, sourced
+        # from `_post_ti` instead of `training_image` (see _kernel_fields).
         self._post_domains = [
             dataclasses.replace(
                 dom,
                 scan_config=dataclasses.replace(
-                    dom.scan_config,
-                    distance_power=post_distance_power,
-                    cond_weight=post_cond_weight,
-                    vec_distance_var=self._post_ti.vec_distance_var,
+                    dom.scan_config, **_kernel_fields(self._post_ti)
                 ),
             )
             for dom in self.domains
@@ -405,11 +442,9 @@ class _DirectSamplingEngine:
         """Precompute one scan domain (flat arrays, strides, d_max, NaN).
 
         ``ti`` supplies this domain's data, shape, and d_max (the primary
-        TI or a zone TI); the distance kernel and per-variable
-        distance_power/cond_weight always come from ``self.training_image``
-        -- the main pass's post-processing counterpart is derived from the
-        result via ``dataclasses.replace`` instead of rebuilding here (see
-        ``_post_domains`` in ``__init__``).
+        TI or a zone TI); the kernel fields always come from
+        ``self.training_image`` -- the post-processing counterpart is derived
+        via ``dataclasses.replace`` (see ``_post_domains`` in ``__init__``).
         """
         ti_shape = np.array(ti.shape)
         ti_shape_tuple = tuple(int(s) for s in ti.shape)
@@ -441,30 +476,22 @@ class _DirectSamplingEngine:
         else:
             finite_flat = None
         # Per-domain d_max: the selected zone TI's value range normalizes
-        # continuous distances (spec §3 — threshold/scan_fraction semantics
-        # follow the selected TI). Kernel type stays the primary's
+        # continuous distances (threshold/scan_fraction semantics follow the
+        # selected TI). Kernel type stays the primary's
         # (vec_distance_var is bound to self.training_image).
         d_max = {v.name: v.d_max for v in ti.variables}
-        distance_power = {
-            v.name: v.distance_power for v in self.training_image.variables
-        }
-        cond_weight = {
-            v.name: v.cond_weight for v in self.training_image.variables
-        }
         scan_config = _ScanConfig(
             variables=self.variables,
-            weights=self.weights,
             ti_vars=ti_vars,
             ti_flat=ti_flat,
             ti_strides=ti_strides,
             ti_shape=ti_shape,
             threshold=self.threshold,
-            cond_weight=cond_weight,
-            distance_power=distance_power,
-            vec_distance_var=self.training_image.vec_distance_var,
             d_max=d_max,
             ti_has_nan=has_nan,
+            var_has_nan={v.name: v.has_nan for v in ti.variables},
             scan_path=self.scan_path,
+            **_kernel_fields(self.training_image),
         )
         return _Domain(
             ti=ti,
@@ -571,7 +598,7 @@ class _DirectSamplingEngine:
                     if m
                     else np.empty((0, self.dim), dtype=np.intp)
                 )
-                r = self.max_radius_per_var[var]
+                r = pss.max_radius_per_var[var]
                 # The DAG cache was built with the shared (global) radius, a
                 # superset of any variable's own (possibly smaller) radius.
                 # Since _select_neighbors scans offset_arr in strictly
@@ -591,7 +618,7 @@ class _DirectSamplingEngine:
                     pss.vmap[var],
                     curr_idx,
                     self.informed[var],
-                    self.max_radius_per_var[var],
+                    pss.max_radius_per_var[var],
                     pss.n_k[var],
                 )
             if len(coords):
@@ -789,7 +816,7 @@ class _DirectSamplingEngine:
                 if il is not None
                 else np.empty(0)
             )
-            result[v] = self.training_image.adjust_value(
+            result[v] = dom.scan_config.adjust_value(
                 ti_val, de_v[v], de_ti_v, var=v
             )
         return result
@@ -805,7 +832,7 @@ class _DirectSamplingEngine:
         x_i_t = tuple(int(c) for c in x_i)
         # Zonation selects WHICH search domain this node scans; the data
         # event is built from SG neighbours regardless of their zones,
-        # which keeps zone boundaries coherent (spec §3 Mechanism).
+        # which keeps zone boundaries coherent.
         dom = (
             pss.domains[int(self.zone_selector[x_i_t])]
             if self.zone_selector is not None
@@ -858,6 +885,8 @@ class _DirectSamplingEngine:
             vmap=self.vmap,
             pos_map=None,
             n_k=self.n_k,
+            max_radius_per_var=self.max_radius_per_var,
+            max_radius=self.max_radius,
             scan_fraction=self.scan_fraction,
             neighbor_cache={},
             domains=self.domains,
@@ -881,7 +910,15 @@ class _DirectSamplingEngine:
         return self.sg
 
     def _dispatch_pass(
-        self, pss, u_start, u_fallback, node_fn, executor, progress, desc
+        self,
+        pss,
+        u_start,
+        u_fallback,
+        node_fn,
+        executor,
+        progress,
+        desc,
+        nb_cache=None,
     ):
         """Run one pass (main path or post-processing round) through :func:`runner._run_path`.
 
@@ -918,7 +955,7 @@ class _DirectSamplingEngine:
                 pss.vmap,
                 pss.n_k,
                 self.sim_shape,
-                self.max_radius,
+                pss.max_radius,
                 on_cache_ready=(
                     None
                     if executor is None
@@ -927,6 +964,7 @@ class _DirectSamplingEngine:
                     )
                 ),
                 pos_map=pss.pos_map,
+                nb_cache=nb_cache,
             )
         finally:
             close()
@@ -952,7 +990,7 @@ class _DirectSamplingEngine:
         return self._simulate_node(pss, i, x_i, u_start_i, u_fallback_i)
 
     def _run_post_passes(self, progress=None, executor=None):
-        """Post-processing (Meerschman2013 §4 / CASE 3).
+        """Post-processing (Meerschman et al. 2013, Sect. 4).
 
         Re-simulates every node with >= 1 non-conditioned variable against a
         **fully informed** neighbourhood: the pass-scoped all-``-1`` vmap makes
@@ -977,14 +1015,9 @@ class _DirectSamplingEngine:
         if not resim.any():
             return
         p_f = self.post_processing_factor
-        # Divide from _post_ti's own n_neighbors, not self.n_k (the main
-        # pass's) -- when no post_processing_variables override exists,
-        # _post_ti's variables are the primary's own Variable objects, so
-        # this is bit-identical to dividing self.n_k.
-        post_n_k = {v.name: v.n_neighbors for v in self._post_ti.variables}
-        pass_n_k = {
-            v: max(1, int(round(n / p_f))) for v, n in post_n_k.items()
-        }
+        # Divided from _post_ti's own n_neighbors (see _post_pass_n_neighbors:
+        # floor 1, and a ValueError for variation below 2).
+        pass_n_k = _post_pass_n_neighbors(self._post_ti, p_f)
         pass_scan_fraction = self.scan_fraction / p_f
         sg_size = int(np.prod(self.sim_shape))
         # Round-invariant (no order-dependence): every cell is available
@@ -992,6 +1025,9 @@ class _DirectSamplingEngine:
         pass_vmap = {
             v: np.full(sg_size, -1, dtype=np.intp) for v in self.variables
         }
+        # Per-cell neighbour lists are equally pass-invariant, so one box is
+        # shared by every round (the per-pass neighbor_cache stays per pass).
+        nb_cache = {}
 
         for _ in range(self.post_processing):
             if isinstance(self._post_path, str) and self._post_path == "same":
@@ -1012,6 +1048,8 @@ class _DirectSamplingEngine:
                 vmap=pass_vmap,
                 pos_map=_order_positions(order, self.sim_shape),
                 n_k=pass_n_k,
+                max_radius_per_var=self._post_max_radius_per_var,
+                max_radius=self._post_max_radius,
                 scan_fraction=pass_scan_fraction,
                 neighbor_cache={},
                 domains=self._post_domains,
@@ -1024,6 +1062,7 @@ class _DirectSamplingEngine:
                 executor,
                 progress,
                 "DS-post",
+                nb_cache=nb_cache,
             )
 
 
@@ -1131,7 +1170,7 @@ def ds_simulate(
         are untouched, so output stays deterministic and thread-count
         invariant regardless of zoning.
     post_processing : int, optional
-        Number of post-processing passes (Meerschman2013 §4 / CASE 3) run
+        Number of post-processing passes (Meerschman et al. 2013, Sect. 4) run
         after the main path completes. Each pass re-simulates every node
         that has at least one non-conditioned variable, using a fully
         informed neighbourhood (every other node's current value is an
@@ -1144,19 +1183,20 @@ def ds_simulate(
         parameter and consumes no extra RNG draws.
     post_processing_factor : float, optional
         Divides ``scan_fraction`` and every variable's ``n_neighbors``
-        (floored at 1) during post-processing passes only (Meerschman2013
-        §4): a larger factor trades pattern fidelity for speed on the
-        (typically much more numerous) post-pass visits. Ignored when
-        ``post_processing`` is ``0``. Default: ``1.0`` (no reduction).
+        (floored at 1; a ``distance="variation"`` variable must keep at
+        least 2, else ``ValueError``) during post-processing passes only
+        (Meerschman2013 §4): a larger factor trades pattern fidelity for
+        speed on the (typically much more numerous) post-pass visits.
+        Ignored when ``post_processing`` is ``0``. Default: ``1.0`` (no
+        reduction).
     post_processing_path : str, array-like, or None, optional
         Visit order for the post-processing passes (an implementation
         extension — Me13 §4 does not prescribe the post-pass order).
         ``None`` (default) inherits the main-path mode: a ``"sequential"``
         main ``path`` gives sequential post-passes, anything else gives a
-        fresh random permutation per pass, drawn from ``rng_path``
-        (unchanged pre-existing behaviour). ``"random"`` and
-        ``"sequential"`` behave as for the main ``path``. ``"same"`` reuses
-        the main pass's visit order every pass; it does not
+        fresh random permutation per pass, drawn from ``rng_path``.
+        ``"random"`` and ``"sequential"`` behave as for the main ``path``.
+        ``"same"`` reuses the main pass's visit order every pass; it does not
         consume ``rng_path``. An explicit ``(N, dim)`` integer array is
         validated like an explicit main ``path`` but against the post-pass
         node set (every node with at least one non-conditioned variable),
@@ -1165,8 +1205,11 @@ def ds_simulate(
         Per-variable search-config overrides used only during
         post-processing passes. Matched by ``.name`` against
         ``training_image``'s variables; a name absent there raises
-        ``ValueError``. Unnamed variables reuse the primary's own search
-        config unchanged. Default: ``None`` (no overrides).
+        ``ValueError``. Data and categorical kind must match the primary's.
+        Search fields (``distance``, ``penalty_matrix``, ``distance_power``,
+        ``cond_weight``, ``n_neighbors``, ``max_radius``, and ``weight`` for
+        multivariate) take effect in post-processing. Weights must be set on
+        every variable or on none. Default: ``None`` (no overrides).
     post_processing_mask : numpy.ndarray of bool, or None, optional
         Simulation-grid-shaped mask selecting which nodes post-processing
         may re-simulate (``True`` = eligible). ``None`` (default) -> every

@@ -3,6 +3,7 @@
 
 import unittest
 import warnings
+from unittest import mock
 
 import numpy as np
 
@@ -376,10 +377,23 @@ class TestVariable(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "max_radius"):
             Variable("x", np.zeros(4), max_radius=-5.0)
 
+    def test_max_radius_below_one_raises(self):
+        with self.assertRaisesRegex(ValueError, "max_radius"):
+            Variable("x", np.zeros(4), max_radius=0.5)
+
     def test_max_radius_read_only(self):
         v = Variable("x", np.zeros(4), max_radius=10.0)
         with self.assertRaises(AttributeError):
             v.max_radius = 20.0
+
+    def test_read_only_view_base_mutation_does_not_leak(self):
+        # The Variable holds its own copy of a read-only view's data.
+        base = np.zeros((4, 4))
+        view = base.view()
+        view.flags.writeable = False
+        v = Variable("x", view)
+        base[0, 0] = 7.0
+        self.assertEqual(v.data[0, 0], 0.0)
 
 
 class TestTrainingImage(unittest.TestCase):
@@ -1005,7 +1019,7 @@ class TestDirectSampling(unittest.TestCase):
 
     def test_gstools_namespace(self):
         self.assertIs(gs.DirectSampling, DirectSampling)
-        self.assertIs(gs.TrainingImage, TrainingImage)
+        self.assertFalse(hasattr(gs, "TrainingImage"))
         self.assertFalse(hasattr(gs, "Variable"))
         self.assertIs(gs.mps.DirectSampling, DirectSampling)
         self.assertIs(gs.mps.TrainingImage, TrainingImage)
@@ -2032,6 +2046,14 @@ class TestNonstationarity(unittest.TestCase):
         with self.assertWarns(UserWarning):
             ds([xs, ys], seed=0)
 
+    def test_nonuniform_axis_spacing_warns_without_rotation(self):
+        # The warning is unconditional: no rotation or scale is needed.
+        rng = np.random.default_rng(0)
+        ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)), n_neighbors=4)
+        ds = gs.mps.DirectSampling(MPSModel(ti, scan_fraction=0.3))
+        with self.assertWarns(UserWarning):
+            ds([np.array([0.0, 1.0, 3.0, 7.0]), np.arange(4.0)], seed=0)
+
     def test_unequal_axis_spacing_warns(self):
         rng = np.random.default_rng(0)
         ti = gs.mps.TrainingImage(rng.integers(0, 2, (15, 15)), n_neighbors=4)
@@ -2242,7 +2264,7 @@ class TestTransformLagsCollapse(unittest.TestCase):
 
 
 class TestReduceToFit(unittest.TestCase):
-    """M10 para [43]: global reduce-to-fit, drop most-outside node by rank (#3)."""
+    """Global reduce-to-fit: drop the most-outside node by rank (Mariethoz et al. 2010)."""
 
     def test_drops_oob_regardless_of_rank(self):
         # The near (low-rank) lag maps out of a 4x4 TI; the far (high-rank) lag
@@ -3586,18 +3608,18 @@ class TestMPSModelNonstationarySpec(unittest.TestCase):
         # the selected zone, so an out-of-range zone code must be rejected at
         # construction rather than raising IndexError mid-simulation.
         rng = np.random.default_rng(0)
-        primary = gs.TrainingImage(
+        primary = gs.mps.TrainingImage(
             rng.integers(0, 2, (8, 8)).astype(float),
             categorical=True,
             penalty_matrix=np.array([[0.0, 1.0], [1.0, 0.0]]),
         )
-        out_of_range = gs.TrainingImage(
+        out_of_range = gs.mps.TrainingImage(
             rng.integers(0, 4, (8, 8)).astype(float), categorical=True
         )
         z = gs.Zone(out_of_range, where=np.ones((5, 5), dtype=bool))
         with self.assertRaisesRegex(ValueError, "penalty_matrix"):
             MPSModel(primary, zones=[z])
-        in_range = gs.TrainingImage(
+        in_range = gs.mps.TrainingImage(
             rng.integers(0, 2, (8, 8)).astype(float), categorical=True
         )
         MPSModel(
@@ -3880,7 +3902,6 @@ class TestScanConfigPerVariableDicts(unittest.TestCase):
         self.assertEqual(cfg.distance_power, {"a": 0.5, "b": 1.5})
         self.assertEqual(cfg.cond_weight, {"a": 2.0, "b": 3.0})
 
-
 class TestResolvePostTi(unittest.TestCase):
     @staticmethod
     def _mv_ti():
@@ -3895,19 +3916,53 @@ class TestResolvePostTi(unittest.TestCase):
         self.assertIs(post_ti.variable("b"), ti.variable("b"))
 
     def test_resolve_post_ti_overrides_named_variable(self):
-        ti = self._mv_ti()
-        override = ti.variable("a").replace(distance_power=0.5)
+        # Explicit fields of the override apply; unset ones inherit from the
+        # primary; the data buffer stays the primary's.
+        primary_a = Variable(
+            "a", np.zeros((4, 4)), n_neighbors=7, max_radius=3.0
+        )
+        ti = TrainingImage([primary_a, Variable("b", np.zeros((4, 4)))])
+        override = Variable("a", np.zeros((4, 4)), distance_power=0.5)
         post_ti = _resolve_post_ti(ti, [override])
-        self.assertIs(post_ti.variable("a"), override)
+        post_a = post_ti.variable("a")
+        self.assertIsNot(post_a, primary_a)
+        self.assertEqual(post_a.distance_power, 0.5)
+        self.assertEqual(post_a.n_neighbors, 7)
+        self.assertEqual(post_a.max_radius, 3.0)
+        self.assertIs(post_a.data, primary_a.data)
         self.assertIs(post_ti.variable("b"), ti.variable("b"))
 
     def test_resolve_post_ti_univariate(self):
-        ti = TrainingImage(np.zeros((4, 4)))
-        override = ti.variable().replace(distance_power=0.5)
+        ti = TrainingImage(np.zeros((4, 4)), n_neighbors=7, max_radius=3.0)
+        override = Variable(None, np.zeros((4, 4)), distance_power=0.5)
         post_ti = _resolve_post_ti(ti, [override])
         self.assertFalse(post_ti.multivariate)
-        self.assertIs(post_ti.variable(), override)
+        self.assertEqual(post_ti.variable().distance_power, 0.5)
+        self.assertEqual(post_ti.variable().n_neighbors, 7)
+        self.assertEqual(post_ti.variable().max_radius, 3.0)
+        self.assertIs(post_ti.variable().data, ti.variable().data)
         self.assertTrue(hasattr(post_ti, "vec_distance_var"))
+
+    def test_resolve_post_ti_weight_and_radius_take_effect(self):
+        z = np.zeros((4, 4))
+        ti = TrainingImage(
+            [Variable("a", z, weight=1.0), Variable("b", z, weight=1.0)]
+        )
+        override = Variable("a", z, weight=3.0, max_radius=2.0)
+        post_ti = _resolve_post_ti(ti, [override])
+        self.assertEqual(post_ti.weights, {"a": 0.75, "b": 0.25})
+        self.assertEqual(post_ti.variable("a").max_radius, 2.0)
+        self.assertIsNone(post_ti.variable("b").max_radius)
+
+    def test_resolve_post_ti_explicit_none_and_default_are_kept(self):
+        # Explicit max_radius=None removes the primary's limit; an explicit
+        # n_neighbors equal to the default (32) is used, not inherited.
+        z = np.zeros((4, 4))
+        ti = TrainingImage(Variable("a", z, n_neighbors=7, max_radius=3.0))
+        override = Variable("a", z, max_radius=None, n_neighbors=32)
+        post_var = _resolve_post_ti(ti, [override]).variable()
+        self.assertIsNone(post_var.max_radius)
+        self.assertEqual(post_var.n_neighbors, 32)
 
     def test_resolve_post_ti_unknown_name_raises(self):
         ti = TrainingImage([Variable("a", np.zeros((4, 4)))])
@@ -4023,23 +4078,6 @@ class TestPostProcessingVariablesEngine(unittest.TestCase):
 
         self.assertFalse(np.array_equal(base["a"], overridden["a"]))
 
-    def test_post_processing_variables_max_radius_and_weight_ignored(self):
-        # Documented limitation: only distance/penalty_matrix/distance_power/
-        # cond_weight/n_neighbors take effect for a post-processing override;
-        # max_radius and weight are resolved once from the primary TI and
-        # shared by every pass, so an override of either is a no-op. Pinned
-        # here so a future change either preserves this or updates the
-        # MPSModel.post_processing_variables docstring deliberately.
-        rng = np.random.RandomState(15)
-        ti_arr = (rng.random((25, 25)) > 0.5).astype(float)
-        ti = TrainingImage(ti_arr, categorical=True, n_neighbors=8, max_radius=10.0)
-        kwargs = dict(ti=ti, seed=17, scan_fraction=0.25, threshold=0.2)
-
-        base = self._run(**kwargs)
-        override = ti.variable().replace(max_radius=2.0)
-        overridden = self._run(**kwargs, post_processing_variables=[override])
-        np.testing.assert_array_equal(base, overridden)
-
     def test_ds_simulate_direct_accepts_post_processing_variables(self):
         # ds_simulate is the low-level entry point MPSModel wraps; it must
         # take the override list directly too.
@@ -4135,7 +4173,7 @@ class TestPostProcessingMask(unittest.TestCase):
 
 
 class TestVecCategoricalPenaltyDist(unittest.TestCase):
-    """Unit tests for vec_categorical_penalty_dist (DS_Feature_Checklist §3.3)."""
+    """Unit tests for vec_categorical_penalty_dist."""
 
     def setUp(self):
         # Asymmetric 3-category penalty matrix: T[u,u]=0, T[u,v] in (0,1].
@@ -4204,7 +4242,7 @@ class TestVecCategoricalPenaltyDist(unittest.TestCase):
 
 
 class TestPenaltyMatrixVariable(unittest.TestCase):
-    """Variable construction validation for penalty_matrix (DS_Feature_Checklist §3.3)."""
+    """Variable construction validation for penalty_matrix."""
 
     def test_default_none(self):
         v = Variable("x", np.array([0, 1, 0, 1]))
@@ -4347,7 +4385,7 @@ class TestThresholdNoneSentinel(unittest.TestCase):
     """threshold=None is the DSBC spelling; any other value must be > 0."""
 
     def _ti(self):
-        return gs.TrainingImage(np.zeros((8, 8)), categorical=True)
+        return gs.mps.TrainingImage(np.zeros((8, 8)), categorical=True)
 
     def test_none_is_the_default_and_warns_nothing(self):
         with warnings.catch_warnings():
@@ -4374,7 +4412,7 @@ class TestThresholdNoneSentinel(unittest.TestCase):
         # ds_simulate is the low-level entry point MPSModel wraps; it must
         # accept None directly too, not just via MPSModel's validator.
         arr1d = np.tile([0, 1], 10).astype(float)
-        ti = gs.TrainingImage(arr1d, categorical=True, n_neighbors=4)
+        ti = gs.mps.TrainingImage(arr1d, categorical=True, n_neighbors=4)
         result = ds_simulate(
             ti,
             sim_shape=(6,),
@@ -4390,7 +4428,7 @@ class TestPostProcessingParams(unittest.TestCase):
     """MPSModel post-processing parameter validation (Me13 §4)."""
 
     def _ti(self):
-        return gs.TrainingImage(np.zeros((8, 8)), categorical=True)
+        return gs.mps.TrainingImage(np.zeros((8, 8)), categorical=True)
 
     def test_defaults(self):
         model = gs.MPSModel(self._ti())
@@ -4445,7 +4483,7 @@ def _isolated_count(field):
 
 
 class TestPostProcessingPass(unittest.TestCase):
-    """Me13 §4 / CASE 3: re-simulation with fully informed neighbourhoods."""
+    """Meerschman et al. 2013, Sect. 4: re-simulation with fully informed neighbourhoods."""
 
     def setUp(self):
         rng = np.random.RandomState(42)
@@ -4456,7 +4494,9 @@ class TestPostProcessingPass(unittest.TestCase):
         self.ti_data = ti
 
     def _run(self, seed=20260717, cond=None, num_threads=None, **model_kw):
-        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        ti = gs.mps.TrainingImage(
+            self.ti_data, categorical=True, n_neighbors=8
+        )
         model = gs.MPSModel(ti, scan_fraction=0.25, threshold=0.2, **model_kw)
         ds = gs.DirectSampling(model, seed=seed)
         if cond is not None:
@@ -4537,7 +4577,9 @@ class TestPostProcessingPass(unittest.TestCase):
         first-visited node with an empty neighbourhood, degrading the pass
         from a refinement of the realization into an independent redraw.
         """
-        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        ti = gs.mps.TrainingImage(
+            self.ti_data, categorical=True, n_neighbors=8
+        )
         eng = _DirectSamplingEngine(
             ti,
             (12, 12),
@@ -4553,6 +4595,8 @@ class TestPostProcessingPass(unittest.TestCase):
             vmap={v: np.full(144, -1, dtype=np.intp) for v in eng.variables},
             pos_map=None,
             n_k=eng.n_k,
+            max_radius_per_var=eng.max_radius_per_var,
+            max_radius=eng.max_radius,
             scan_fraction=eng.scan_fraction,
             neighbor_cache={},
             domains=eng.domains,
@@ -4569,7 +4613,7 @@ class TestPostProcessingPass(unittest.TestCase):
             )
 
     def test_noise_not_increased(self):
-        # Me13 CASE 3 (quantified): a post-pass must not add isolated-cell
+        # Me13 (quantified): a post-pass must not add isolated-cell
         # noise on a two-facies TI at the pinned seed.
         noisy = self._run(post_processing=0)
         cleaned = self._run(post_processing=1)
@@ -4647,7 +4691,9 @@ class TestPostProcessingPass(unittest.TestCase):
         Reading later-positioned neighbours' *old* values is what makes a pass
         a refinement, so nothing but the visited node may be erased.
         """
-        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        ti = gs.mps.TrainingImage(
+            self.ti_data, categorical=True, n_neighbors=8
+        )
         eng = _DirectSamplingEngine(
             ti,
             (8, 8),
@@ -4664,6 +4710,8 @@ class TestPostProcessingPass(unittest.TestCase):
             vmap={v: np.full(64, -1, dtype=np.intp) for v in eng.variables},
             pos_map=_order_positions(eng.path, (8, 8)),
             n_k=eng.n_k,
+            max_radius_per_var=eng.max_radius_per_var,
+            max_radius=eng.max_radius,
             scan_fraction=eng.scan_fraction,
             neighbor_cache={},
             domains=eng.domains,
@@ -4685,7 +4733,7 @@ class TestPostProcessingPass(unittest.TestCase):
     def test_multivariate_joint_subset(self):
         a = self.ti_data
         b = 1.0 - a
-        ti = gs.TrainingImage(
+        ti = gs.mps.TrainingImage(
             [
                 Variable("A", a, categorical=True, n_neighbors=6),
                 Variable("B", b, categorical=True, n_neighbors=6),
@@ -4716,6 +4764,16 @@ class TestPostPassDag(unittest.TestCase):
         self.post_vmap = {"v": np.full(25, -1, dtype=np.intp)}
         self.n_k = {"v": 4}
 
+    @staticmethod
+    def _pairs(out_edges):
+        """(source, target) pairs of a CSR successor structure."""
+        indptr, targets, _ = out_edges
+        return [
+            (a, int(b))
+            for a in range(len(indptr) - 1)
+            for b in targets[indptr[a] : indptr[a + 1]]
+        ]
+
     def _edges(self, vmap, pos_map):
         _, out_edges, _ = _build_dag_base(
             self.order,
@@ -4726,7 +4784,7 @@ class TestPostPassDag(unittest.TestCase):
             None,
             pos_map,
         )
-        return {(a, b) for a, es in enumerate(out_edges) for b, _ in es}
+        return set(self._pairs(out_edges))
 
     def _reads(self, i, vmap):
         """Visit positions node ``i`` selects as neighbours under ``vmap``."""
@@ -4749,7 +4807,7 @@ class TestPostPassDag(unittest.TestCase):
         ]
 
     def test_pos_map_none_matches_main_path(self):
-        # Default (pos_map=None) must reproduce the pre-existing main-path
+        # Default (pos_map=None) must reproduce the main-path
         # edge set, which the order-gated vmap already orients for us.
         self.assertEqual(
             self._edges(self.main_vmap, None),
@@ -4776,7 +4834,7 @@ class TestPostPassDag(unittest.TestCase):
             None,
             self.pos,
         )
-        pairs = [(a, b) for a, es in enumerate(out_edges) for b, _ in es]
+        pairs = self._pairs(out_edges)
         self.assertEqual(len(pairs), len(set(pairs)))
         self.assertEqual(int(indegree["v"].sum()), len(pairs))
 
@@ -4816,7 +4874,9 @@ class TestPostProcessingPath(unittest.TestCase):
         self.ti_data = ti
 
     def _run(self, seed=20260717, cond=None, path="random", **model_kw):
-        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        ti = gs.mps.TrainingImage(
+            self.ti_data, categorical=True, n_neighbors=8
+        )
         model = gs.MPSModel(
             ti,
             scan_fraction=0.25,
@@ -4854,7 +4914,9 @@ class TestPostProcessingPath(unittest.TestCase):
         np.testing.assert_array_equal(a, b)
 
     def test_invalid_string_and_shape_raise(self):
-        ti = gs.TrainingImage(self.ti_data, categorical=True, n_neighbors=8)
+        ti = gs.mps.TrainingImage(
+            self.ti_data, categorical=True, n_neighbors=8
+        )
         with self.assertRaises(ValueError):
             gs.MPSModel(ti, post_processing_path="bogus")
         with self.assertRaises(ValueError):
@@ -4864,6 +4926,509 @@ class TestPostProcessingPath(unittest.TestCase):
         half = np.argwhere(np.ones((24, 24), dtype=bool))[:288]
         with self.assertRaises(ValueError):
             self._run(post_processing_path=half)
+
+
+class TestReviewRegressions(unittest.TestCase):
+    """Regressions for defects found while reviewing the mps package."""
+
+    def setUp(self):
+        rng = np.random.default_rng(416)
+        self.codes = rng.integers(0, 2, (12, 12)).astype(float)  # {0, 1}
+        self.cont = rng.random((12, 12))
+        self.pos = [np.arange(8.0)] * 2
+
+    def _two_variable_ti(self):
+        return TrainingImage(
+            [
+                Variable(name, self.cont, categorical=False, n_neighbors=4)
+                for name in ("a", "b")
+            ]
+        )
+
+    def _matrix_override(self):
+        # A TI without penalty matrix, and a 2x2-matrix override of it.
+        ti = TrainingImage(self.codes)
+        return ti, ti.variable().replace(penalty_matrix=[[0, 1], [1, 0]])
+
+    def _post_pass_field(self, primary, override):
+        # scan_fraction < 1 keeps exact pattern copies (zero shift) rare.
+        ti = TrainingImage(
+            self.cont, categorical=False, distance=primary, n_neighbors=6
+        )
+        model = MPSModel(
+            ti,
+            scan_fraction=0.25,
+            post_processing=1,
+            post_processing_variables=[
+                ti.variable().replace(distance=override)
+            ],
+        )
+        return DirectSampling(model, seed=0)(self.pos, store=False)
+
+    def _conditioned_field(self, cond_pos, cond_val):
+        ti = TrainingImage(self.codes, n_neighbors=6)
+        ds = DirectSampling(MPSModel(ti, scan_fraction=0.5), seed=0)
+        ds.set_condition(cond_pos, cond_val)
+        return ds(self.pos, store=False)
+
+    def test_named_variable_univariate_ti(self):
+        # TrainingImage(Variable("f", ...)) must act like TrainingImage(array).
+        named = TrainingImage(Variable("f", self.codes, n_neighbors=6))
+        anon = TrainingImage(self.codes, n_neighbors=6)
+        np.testing.assert_array_equal(named.data, anon.data)
+        self.assertEqual(named.categorical, anon.categorical)
+        self.assertEqual(named.distance_type, anon.distance_type)
+        self.assertEqual(repr(named), repr(anon))
+        cond = ([[1.0, 4.0], [2.0, 5.0]], [5.0, 6.0])  # not TI values
+        for conditioned in (False, True):
+            fields = []
+            for ti in (named, anon):
+                ds = DirectSampling(MPSModel(ti, scan_fraction=0.5), seed=3)
+                if conditioned:
+                    ds.set_condition(*cond)
+                fields.append(ds(self.pos, store=False))
+            with self.subTest(conditioned=conditioned):
+                np.testing.assert_array_equal(*fields)
+        self.assertEqual((fields[0][1, 2], fields[0][4, 5]), (5.0, 6.0))
+
+    def test_one_value_rotation_fills_first_angle_only(self):
+        # One value per node is the x-y angle with the others zero (as in
+        # gs.tools.set_angles); a scale still broadcasts to every axis.
+        grid, pos = (2, 2, 2), _flat_pos((2, 2, 2))
+        specs = {
+            "scalar": 0.5,
+            "grid map": np.full(grid, 0.5),
+            "callable": lambda x, y, z: np.full(x.size, 0.5),
+        }
+        for name, spec in specs.items():
+            with self.subTest(name):
+                arr, _ = resolve_spec(spec, grid, 3, pos, "rotation", pad=True)
+                np.testing.assert_array_equal(arr[0, 0, 0], [0.5, 0.0, 0.0])
+        arr, _ = resolve_spec(2.0, grid, 3, pos, "scale", positive=True)
+        np.testing.assert_array_equal(arr[0, 0, 0], [2.0, 2.0, 2.0])
+
+    def test_scalar_rotation_keeps_horizontal_layers(self):
+        # A scalar rotation turns the x-y plane only, so a TI whose value
+        # depends on z alone must give a constant value in every z-slice.
+        layers = np.zeros((12, 12, 8))
+        layers += np.arange(8) % 3
+        model = MPSModel(TrainingImage(layers, n_neighbors=12), rotation=0.5)
+        pos = [np.arange(8.0), np.arange(8.0), np.arange(6.0)]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # lag collisions
+            field = DirectSampling(model, seed=0)(pos, store=False)
+        purity = np.mean(
+            [
+                np.bincount(s.astype(int).ravel()).max() / s.size
+                for s in np.moveaxis(field, 2, 0)
+            ]
+        )
+        self.assertEqual(purity, 1.0)
+
+    def test_non_finite_parameters_rejected(self):
+        nan, inf = np.nan, np.inf
+        ti = TrainingImage(self.cont, categorical=False)
+        bad_matrix = np.array([[0, nan, 1], [1, 0, 1], [1, 1, 0.0]])
+
+        def variable(field):
+            return lambda v: Variable(
+                "v", self.cont, categorical=False, **{field: v}
+            )
+
+        cases = {  # parameter: (builder taking the bad value, bad values)
+            "threshold": (lambda v: MPSModel(ti, threshold=v), [nan]),
+            "post_processing_factor": (
+                lambda v: MPSModel(ti, post_processing_factor=v),
+                [nan, inf, 1e-320],
+            ),
+            "distance": (
+                lambda v: TrainingImage(
+                    self.cont, categorical=False, distance=v
+                ),
+                ["lnan", "linf", "variationinf"],
+            ),
+            "weight": (variable("weight"), [nan, -1, inf]),
+            "max_radius": (variable("max_radius"), [nan, inf]),
+            "distance_power": (variable("distance_power"), [nan, -1, inf]),
+            "cond_weight": (variable("cond_weight"), [nan, -1, inf]),
+            "penalty_matrix": (
+                lambda v: Variable("v", self.codes, penalty_matrix=v),
+                [bad_matrix],
+            ),
+            "rotation": (
+                lambda v: MPSModel(ti, rotation=v),
+                [np.array([nan])],
+            ),
+            "scale": (lambda v: MPSModel(ti, scale=v), [inf]),
+        }
+        for name, (build, values) in cases.items():
+            for value in values:
+                with self.subTest(parameter=name, value=value):
+                    with self.assertRaises(ValueError):
+                        build(value)
+
+    def test_non_finite_rotation_callable_rejected_at_call(self):
+        # A callable is only evaluated on the simulation grid.
+        ti = TrainingImage(self.cont, categorical=False)
+        model = MPSModel(ti, rotation=lambda x, y: np.full(x.shape, np.nan))
+        with self.assertRaises(ValueError):
+            DirectSampling(model, seed=1)(self.pos, store=False)
+
+    def test_post_weight_rule_mixed_weights_rejected(self):
+        # Post-pass weights must be set on every variable or on none; a mixed
+        # set fails at construction, not mid-simulation.
+        cont = dict(categorical=False, n_neighbors=4)
+        weighted = TrainingImage(
+            [
+                Variable("a", self.cont, weight=1.0, **cont),
+                Variable("b", self.cont, weight=1.0, **cont),
+            ]
+        )
+        unweighted = self._two_variable_ti()
+        cases = {
+            "unset on override": (
+                weighted,
+                Variable("a", self.cont, weight=None, **cont),
+            ),
+            "set on override": (
+                unweighted,
+                Variable("a", self.cont, weight=2.0, **cont),
+            ),
+        }
+        for name, (ti, override) in cases.items():
+            with self.subTest(name):
+                with self.assertRaisesRegex(ValueError, "weights must be set"):
+                    MPSModel(
+                        ti,
+                        post_processing=1,
+                        post_processing_variables=[override],
+                    )
+
+    def test_override_changing_kind_or_data_rejected(self):
+        ti = self._two_variable_ti()
+        overrides = {
+            "categorical": Variable("a", self.cont, n_neighbors=4),
+            "data": Variable(
+                "a", self.cont + 1.0, categorical=False, n_neighbors=4
+            ),
+        }
+        for what, override in overrides.items():
+            with self.subTest(what):
+                with self.assertRaises(ValueError):
+                    MPSModel(
+                        ti,
+                        post_processing=1,
+                        post_processing_variables=[override],
+                    )
+
+    def test_override_replace_and_equal_buffer_accepted(self):
+        ti = self._two_variable_ti()
+        overrides = [
+            ti.variable("a").replace(distance_power=2.0),
+            Variable("a", self.cont.copy(), categorical=False, n_neighbors=4),
+        ]
+        for override in overrides:
+            model = MPSModel(
+                ti, post_processing=1, post_processing_variables=[override]
+            )
+            self.assertEqual(model.post_processing_variables, [override])
+
+    def test_override_penalty_matrix_checks_conditioning_codes(self):
+        # The post-pass indexes the override's matrix with the conditioning
+        # codes, so a code beyond it must fail in set_condition.
+        ti, override = self._matrix_override()
+        model = MPSModel(
+            ti, post_processing=1, post_processing_variables=[override]
+        )
+        with self.assertRaisesRegex(ValueError, "penalty_matrix"):
+            DirectSampling(model).set_condition([[0.0], [0.0]], [2.0])
+
+    def test_override_set_after_condition_rejected_at_call(self):
+        ti, override = self._matrix_override()
+        model = MPSModel(ti, post_processing=1)
+        ds = DirectSampling(model, seed=1)
+        ds.set_condition([[0.0], [0.0]], [2.0])  # fine: no matrix yet
+        model.post_processing_variables = [override]
+        with self.assertRaisesRegex(ValueError, "penalty_matrix"):
+            ds(self.pos, store=False)
+
+    def test_override_penalty_matrix_checks_zone_codes(self):
+        ti, override = self._matrix_override()
+        zone = gs.Zone(
+            TrainingImage(np.full((12, 12), 2.0)), where=lambda x, y: x >= 3
+        )
+        with self.assertRaisesRegex(ValueError, "penalty_matrix"):
+            MPSModel(
+                ti,
+                zones=[zone],
+                post_processing=1,
+                post_processing_variables=[override],
+            )
+
+    def test_variation_primary_l1_override_pastes_ti_values(self):
+        # The paste rule follows the pass's own metric: an l1 post-pass pastes
+        # raw TI values although the variation main pass shifted them.
+        field = self._post_pass_field("variation", "l1")
+        self.assertTrue(np.isin(field, self.cont).all())
+
+    def test_l1_primary_variation_override_applies_mean_shift(self):
+        field = self._post_pass_field("l1", "variation")
+        self.assertFalse(np.isin(field, self.cont).all())
+
+    def test_categorical_primary_rejects_variation_override(self):
+        # A continuous override of a categorical variable would invent
+        # categories through the mean shift.
+        ti = TrainingImage(
+            [Variable("c", self.codes), Variable("d", self.codes)]
+        )
+        override = Variable(
+            "c", self.codes, categorical=False, distance="variation"
+        )
+        with self.assertRaises(ValueError):
+            MPSModel(
+                ti, post_processing=1, post_processing_variables=[override]
+            )
+
+    def test_variation_post_pass_below_two_neighbours_raises(self):
+        # round(2 / 2) = 1 neighbour has no local mean, so variation would see
+        # only zero distances: raised at construction. Post-processing off, or
+        # a non-variation metric at one neighbour, stays valid.
+        ti = TrainingImage(
+            self.cont, categorical=False, distance="variation", n_neighbors=2
+        )
+        with self.assertRaisesRegex(ValueError, "variation"):
+            MPSModel(ti, post_processing=1, post_processing_factor=2)
+        MPSModel(ti, post_processing=0, post_processing_factor=2)
+        l1 = TrainingImage(self.codes, n_neighbors=1)
+        model = MPSModel(l1, post_processing=1, post_processing_factor=2)
+        self.assertEqual(
+            DirectSampling(model, seed=1)(self.pos, store=False).shape, (8, 8)
+        )
+
+    def test_variation_post_pass_setters_leave_state_unchanged(self):
+        ti = TrainingImage(
+            self.cont, categorical=False, distance="variation", n_neighbors=2
+        )
+        model = MPSModel(ti, post_processing=1, post_processing_factor=1)
+        with self.assertRaisesRegex(ValueError, "variation"):
+            model.post_processing_factor = 2
+        self.assertEqual(model.post_processing_factor, 1)
+
+        model = MPSModel(ti, post_processing=0, post_processing_factor=2)
+        with self.assertRaisesRegex(ValueError, "variation"):
+            model.post_processing = 1
+        self.assertEqual(model.post_processing, 0)
+
+    def test_variation_post_pass_raises_before_main_pass(self):
+        # ds_simulate (no MPSModel) must fail before the main pass runs.
+        ti = TrainingImage(
+            self.cont, categorical=False, distance="variation", n_neighbors=2
+        )
+        with mock.patch.object(
+            _DirectSamplingEngine, "_dispatch_pass"
+        ) as disp:
+            with self.assertRaisesRegex(ValueError, "variation"):
+                ds_simulate(
+                    ti,
+                    sim_shape=(8, 8),
+                    threshold=None,
+                    scan_fraction=1.0,
+                    rng_path=np.random.RandomState(1),
+                    rng_nodes=np.random.RandomState(1),
+                    post_processing=1,
+                    post_processing_factor=2.0,
+                )
+        disp.assert_not_called()
+
+    def test_all_has_no_duplicates_and_lists_mps(self):
+        self.assertEqual(len(gs.__all__), len(set(gs.__all__)))
+        self.assertIn("mps", gs.__all__)
+
+    def test_condition_far_outside_grid_warns(self):
+        # The snap to the nearest edge node stays, but is no longer silent.
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            field = self._conditioned_field([[50.0], [-20.0]], [5.0])
+        outside = [
+            w
+            for w in caught
+            if issubclass(w.category, UserWarning)
+            and "outside the simulation grid" in str(w.message)
+        ]
+        self.assertEqual(len(outside), 1)
+        self.assertEqual(field[7, 0], 5.0)
+
+    def test_condition_within_half_cell_of_edge_is_silent(self):
+        # Values the categorical TI reproduces, so only the edge snap is tested.
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            field = self._conditioned_field(
+                [[-0.4, 7.4], [7.4, -0.4]], [1.0, 0.0]
+            )
+        self.assertEqual((field[0, 7], field[7, 0]), (1.0, 0.0))
+
+    def test_none_seeds_accepted(self):
+        # None means a fresh random seed (as in gs.SRF), not a crash.
+        model = MPSModel(TrainingImage(self.codes, n_neighbors=6))
+        runs = {
+            "init seed": lambda: DirectSampling(model, seed=None)(self.pos),
+            "call seed": lambda: DirectSampling(model)(self.pos, seed=None),
+            "path_seed": lambda: DirectSampling(model, seed=1)(
+                self.pos, path_seed=None
+            ),
+            "node_seed": lambda: DirectSampling(model, seed=1)(
+                self.pos, node_seed=None
+            ),
+        }
+        for name, run in runs.items():
+            with self.subTest(name):
+                field = run()
+                self.assertEqual(field.shape, (8, 8))
+                self.assertTrue(np.isin(field, self.codes).all())
+
+    def test_adjust_value_uses_common_support(self):
+        # The shift is taken over the nodes defined in the TI event only:
+        # 10 - mean([2, 4]) + mean([2, 3]) -- not nanmean of each event.
+        ti = TrainingImage(self.cont, categorical=False, distance="variation")
+        shifted = ti.adjust_value(10.0, [1.0, 2.0, 3.0], [np.nan, 2.0, 4.0])
+        self.assertAlmostEqual(shifted, 9.5)
+
+    def test_infinite_ti_values_rejected(self):
+        for bad in (np.inf, -np.inf):
+            data = self.cont.copy()
+            data[0, 0] = bad
+            builders = {
+                "Variable": lambda: Variable("v", data, categorical=False),
+                "TrainingImage": lambda: TrainingImage(
+                    data, categorical=False
+                ),
+            }
+            for name, build in builders.items():
+                with self.subTest(name, value=bad):
+                    with self.assertRaises(ValueError):
+                        build()
+
+    def test_distance_on_categorical_data_rejected(self):
+        # `distance` only applies to continuous data; the categorical default
+        # would silently ignore it.
+        with self.assertRaises(ValueError):
+            TrainingImage(self.cont, distance="l2")
+        with self.assertRaises(ValueError):
+            Variable("v", self.cont, distance="l2")
+        Variable("v", self.cont, categorical=True, distance="l1")  # accepted
+
+    def test_renorm_zero_weight_rows(self):
+        # Zero-weight rows are +inf, except 0.0 for a defined row when the
+        # whole event has zero weight.
+        from gstools.mps.distance import _renorm
+
+        num = np.array([0.0, 2.0, 0.0])
+        wsum = np.array([0.0, 4.0, 0.0])
+        defined = np.array([True, True, False])
+        np.testing.assert_array_equal(
+            _renorm(num, wsum, defined, 1.0), [np.inf, 0.5, np.inf]
+        )
+        np.testing.assert_array_equal(
+            _renorm(num, wsum, defined, 0.0), [0.0, 0.5, np.inf]
+        )
+
+    def test_zero_weight_nan_variable_does_not_poison_scan(self):
+        # A weight-0 variable is carried along, never matched: its NaN cells
+        # must not turn the joint distance into NaN (0 * NaN).
+        cont = self.cont.copy()
+        cont[::3, ::3] = np.nan
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            ti = TrainingImage(
+                [
+                    Variable("a", self.codes, weight=1.0),
+                    Variable("b", cont, categorical=False, weight=0.0),
+                ]
+            )
+        ds = DirectSampling(MPSModel(ti, scan_fraction=0.5), seed=0)
+        field = ds(self.pos, store=False)
+        self.assertTrue(np.isin(field["a"], [0.0, 1.0]).all())
+
+    def test_set_condition_rejects_non_finite_positions(self):
+        # Non-finite positions raise and leave the previous conditioning intact.
+        ti = TrainingImage(self.codes, n_neighbors=6)
+        ds = DirectSampling(MPSModel(ti, scan_fraction=0.5))
+        ds.set_condition([[1.0], [2.0]], [1.0])
+        before = ds(self.pos, seed=3, store=False)
+        for bad in (np.nan, np.inf):
+            with self.subTest(bad=bad):
+                with self.assertRaisesRegex(ValueError, "finite"):
+                    ds.set_condition([[bad], [2.0]], [0.0])
+        np.testing.assert_array_equal(
+            ds(self.pos, seed=3, store=False), before
+        )
+
+    def test_set_condition_bad_penalty_code_keeps_previous(self):
+        # A code outside the penalty matrix raises and keeps the old condition.
+        data = np.tile([0.0, 1.0], (8, 4))
+        var = Variable("c", data, penalty_matrix=[[0, 1], [1, 0]])
+        ds = DirectSampling(MPSModel(TrainingImage(var), scan_fraction=0.5))
+        ds.set_condition([[1.0], [1.0]], [1.0])
+        before = ds(self.pos, seed=3, store=False)
+        with self.assertRaises(ValueError):
+            ds.set_condition([[3.0], [3.0]], [2.0])
+        np.testing.assert_array_equal(
+            ds(self.pos, seed=3, store=False), before
+        )
+
+    def test_set_condition_warns_unreproducible_and_dropped(self):
+        ti = TrainingImage(self.codes, n_neighbors=6)
+        ds = DirectSampling(MPSModel(ti, scan_fraction=0.5))
+        with self.assertWarnsRegex(UserWarning, "cannot be reproduced"):
+            ds.set_condition([[1.0], [2.0]], [99.0])
+        with self.assertWarnsRegex(UserWarning, "non-finite"):
+            ds.set_condition([[1.0, 3.0], [2.0, 4.0]], [np.nan, 1.0])
+
+    def test_collisions_warn_once_per_call(self):
+        # Three points snap to node (4, 4): two collisions, one warning.
+        ti = TrainingImage(self.codes, n_neighbors=6)
+        ds = DirectSampling(MPSModel(ti, scan_fraction=0.5))
+        ds.set_condition([[4.4, 4.1, 4.3], [4.4, 4.1, 4.3]], [0.0, 1.0, 1.0])
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            ds(self.pos, seed=3, store=False)
+        collided = [
+            str(w.message) for w in caught if "collided" in str(w.message)
+        ]
+        self.assertEqual(len(collided), 1)
+        self.assertIn("2 conditioning value(s)", collided[0])
+
+    def test_tiny_scan_warns_main_and_post_pass(self):
+        # Fewer than 2 candidates per node, from scan_fraction or from
+        # scan_fraction / post_processing_factor, warns.
+        ti = TrainingImage(self.codes)
+        with self.assertWarnsRegex(UserWarning, "fewer than 2"):
+            MPSModel(ti, scan_fraction=0.005)
+        with self.assertWarnsRegex(UserWarning, "fewer than 2"):
+            MPSModel(
+                ti,
+                scan_fraction=0.5,
+                post_processing=1,
+                post_processing_factor=100,
+            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            MPSModel(
+                ti,
+                scan_fraction=0.5,
+                post_processing=1,
+                post_processing_factor=2,
+            )
+
+    def test_full_width_path_seeds_differ(self):
+        # 329 and 505 used to collide through a 16-bit draw.
+        model = MPSModel(
+            TrainingImage(self.codes, n_neighbors=6), scan_fraction=0.5
+        )
+        ds = DirectSampling(model)
+        a = ds(self.pos, path_seed=329, node_seed=1, store=False)
+        b = ds(self.pos, path_seed=505, node_seed=1, store=False)
+        self.assertFalse(np.array_equal(a, b))
 
 
 if __name__ == "__main__":

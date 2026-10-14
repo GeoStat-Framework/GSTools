@@ -33,7 +33,7 @@ except Exception as err:
     ti_arr = ((np.sin(gx / 6.0) + np.sin((gx + gy) / 10.0)) > 0).astype(float)
     source = "synthetic fallback"
 
-ti = gs.TrainingImage(ti_arr, categorical=True, n_neighbors=30)
+ti = gs.mps.TrainingImage(ti_arr, categorical=True, n_neighbors=30)
 print(f"TI {ti.shape} ({source}), sand fraction = {ti_arr.mean():.3f}")
 
 # Grid size for simulation

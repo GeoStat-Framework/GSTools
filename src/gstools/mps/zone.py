@@ -48,8 +48,8 @@ class Zone:
     --------
     >>> import numpy as np
     >>> import gstools as gs
-    >>> ti_b = gs.TrainingImage(np.ones((50, 50)))
-    >>> zone = gs.Zone(ti_b, where=lambda x, y: x >= 20)
+    >>> ti_b = gs.mps.TrainingImage(np.ones((50, 50)))
+    >>> zone = gs.mps.Zone(ti_b, where=lambda x, y: x >= 20)
     >>> zone.ti.shape
     (50, 50)
     """

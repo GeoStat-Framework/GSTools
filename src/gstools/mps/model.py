@@ -8,6 +8,8 @@ from gstools.mps.training_image import (
     TrainingImage,
     Variable,
     _check_category_codes,
+    _post_pass_n_neighbors,
+    _resolve_post_ti,
 )
 from gstools.mps.zone import Zone
 
@@ -53,7 +55,7 @@ def _validate_threshold(value):
     if value is None:
         return None
     v = float(value)
-    if v <= 0.0:
+    if not v > 0.0:  # also rejects NaN
         raise ValueError(
             f"MPSModel: threshold must be > 0 or None, got {value!r}"
         )
@@ -81,12 +83,13 @@ def _validate_post_processing_factor(value):
 
     p_f > 1 reduces post-pass effort (Me13's intent, "to save CPU").
     p_f < 1 increases it -- a post-pass more thorough than the main pass.
-    p_f == 0 is rejected: it is a division by zero at simulate.py:917-919.
+    p_f must be finite with a finite reciprocal (it divides f and n).
     """
     v = float(value)
-    if v <= 0.0:
+    if not (np.isfinite(v) and v > 0.0 and np.isfinite(1.0 / v)):
         raise ValueError(
-            f"MPSModel: post_processing_factor must be > 0, got {value!r}"
+            "MPSModel: post_processing_factor must be finite and > 0, "
+            f"got {value!r}"
         )
     return v
 
@@ -102,7 +105,10 @@ def _validate_rotation(rotation, ndim):
         )
     if callable(rotation):
         return rotation
-    return np.asarray(rotation, dtype=np.float64)
+    arr = np.asarray(rotation, dtype=np.float64)
+    if not np.all(np.isfinite(arr)):
+        raise ValueError("MPSModel: rotation angles must be finite.")
+    return arr
 
 
 def _validate_scale(scale):
@@ -110,10 +116,9 @@ def _validate_scale(scale):
     if scale is None or callable(scale):
         return scale
     arr = np.asarray(scale, dtype=np.float64)
-    if not np.all(arr > 0):
+    if not np.all((arr > 0) & np.isfinite(arr)):
         raise ValueError(
-            f"MPSModel: scale must be positive everywhere, got minimum "
-            f"value {float(arr.min())!r}."
+            "MPSModel: scale must be finite and positive everywhere."
         )
     return arr
 
@@ -187,7 +192,9 @@ def _validate_post_processing_path(value):
     return arr
 
 
-def _validate_post_processing_variables(post_processing_variables, primary_ti):
+def _validate_post_processing_variables(
+    post_processing_variables, primary_ti, zones=()
+):
     """Validate a list[Variable] of post-processing overrides against primary_ti."""
     if post_processing_variables is None:
         return []
@@ -211,7 +218,37 @@ def _validate_post_processing_variables(post_processing_variables, primary_ti):
             f"{sorted(map(str, unknown))!r} not found in the primary TI's "
             f"variables {sorted(map(str, primary_names))!r}."
         )
+    # An override changes search settings only: post-processing pastes from
+    # the primary (and zone) data, so its data and categorical kind must match.
+    for ov in post_processing_variables:
+        pv = primary_ti.variable(ov.name)
+        label = f"post_processing_variables[{ov.name!r}]"
+        same_data = ov.data is pv.data or np.array_equal(
+            ov.data, pv.data, equal_nan=True
+        )
+        if ov.categorical != pv.categorical or not same_data:
+            raise ValueError(
+                f"MPSModel: {label} must keep the primary Variable's data "
+                "and categorical kind; build it with "
+                "ti.variable(name).replace(...)."
+            )
+        if ov.penalty_matrix is not None:
+            for i, z in enumerate(zones):
+                _check_category_codes(
+                    z.ti.variable(ov.name).data,
+                    ov.penalty_matrix.shape[0],
+                    f"MPSModel: zones[{i}].ti data (checked against "
+                    f"{label}.penalty_matrix)",
+                )
+    # Early check of the post-pass TI (weights set on all variables or none).
+    _resolve_post_ti(primary_ti, post_processing_variables)
     return post_processing_variables
+
+
+def _validate_post_pass_effort(ti, post_processing, p_f, overrides):
+    """Early check that post-pass neighbour counts are valid (variation >= 2)."""
+    if post_processing > 0:
+        _post_pass_n_neighbors(_resolve_post_ti(ti, overrides), p_f)
 
 
 def _validate_post_processing_mask(value):
@@ -266,6 +303,8 @@ class MPSModel:
         the pattern orientation is ``θ(x)``; the engine applies the inverse
         rotation to lags. Accepted forms: scalar angle, ``(n_comp,)`` vector
         of angles, materialized array, or callable ``f(x, [y, z, …])``.
+        A single value per node is the first angle (x-y plane) with the
+        others zero, as in :func:`gstools.tools.set_angles`.
         Must be ``None`` on 1-D TI. Default: ``None`` (stationary identity).
 
         **Convention:** angles and scales act on *index* lags (not coordinate
@@ -319,8 +358,7 @@ class MPSModel:
 
         - ``None`` (default): inherit the main-path mode — a
           ``"sequential"`` main ``path`` gives sequential post-passes,
-          anything else gives a fresh random permutation per pass. This
-          preserves the pre-existing behaviour exactly.
+          anything else gives a fresh random permutation per pass.
         - ``"random"``: fresh random permutation per pass, drawn from the
           same RNG stream as the main path.
         - ``"sequential"``: raster order, the same every pass; does not
@@ -343,13 +381,15 @@ class MPSModel:
         config unchanged. Uniform across every post-processing pass (Me13
         §4 treats them as identical repetitions).
 
-        Only ``distance``, ``penalty_matrix``, ``distance_power``,
-        ``cond_weight``, and ``n_neighbors`` take effect for post-processing
-        (``n_neighbors`` is further divided by ``post_processing_factor``,
-        same as the main pass). ``max_radius`` and ``weight`` are **not**
-        read from the override -- both are resolved once from the primary
-        TI and shared by every pass; set them on the primary TI's
-        ``Variable`` instead.
+        An override must keep the primary Variable's data and categorical
+        kind, else ``ValueError``. Its ``distance``, ``penalty_matrix``,
+        ``distance_power``, ``cond_weight``, ``n_neighbors`` (divided by
+        ``post_processing_factor``), ``max_radius`` and ``weight``
+        (multivariate) all take effect in post-processing passes; fields not
+        passed to the override Variable inherit the primary's value. Weights
+        must be set on every variable (primary or override) or on none. A
+        ``distance="variation"`` variable must keep at least 2 post-pass
+        neighbours, else ``ValueError``.
 
         For a univariate TI, build the override from
         ``ti.variable().replace(...)`` (the anonymous variable's name is
@@ -373,6 +413,15 @@ class MPSModel:
         contiguous run's spatial bias when ``scan_fraction < 1`` and breaks
         distance ties uniformly instead of by lowest index. Default:
         ``"sequential"``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import gstools as gs
+    >>> ti = gs.mps.TrainingImage(np.indices((20, 20)).sum(axis=0) % 3.0)
+    >>> model = gs.mps.MPSModel(ti, scan_fraction=0.5, threshold=0.05)
+    >>> model.scan_fraction
+    0.5
     """
 
     def __init__(
@@ -410,12 +459,39 @@ class MPSModel:
             post_processing_path
         )
         self._post_processing_variables = _validate_post_processing_variables(
-            post_processing_variables, ti
+            post_processing_variables, ti, self._zones
+        )
+        _validate_post_pass_effort(
+            ti,
+            self._post_processing,
+            self._post_processing_factor,
+            self._post_processing_variables,
         )
         self._post_processing_mask = _validate_post_processing_mask(
             post_processing_mask
         )
         self._scan_path = _validate_scan_path(scan_path)
+        self._warn_tiny_scan()
+
+    def _warn_tiny_scan(self):
+        """Warn when a pass scans fewer than 2 TI candidates per node."""
+        tis = [self._ti] + [z.ti for z in self._zones]
+        n_min = min(int(np.prod(t.shape)) for t in tis)
+        fractions = [self._scan_fraction]
+        if self._post_processing > 0:
+            fractions.append(
+                self._scan_fraction / self._post_processing_factor
+            )
+        for frac in fractions:
+            if int(frac * n_min) < 2:
+                warnings.warn(
+                    "MPSModel: fewer than 2 TI candidates per node: no pattern "
+                    f"matching (effective scan fraction {frac:g}, smallest TI "
+                    f"size {n_min}).",
+                    UserWarning,
+                    stacklevel=3,
+                )
+                return
 
     @property
     def ti(self):
@@ -430,6 +506,7 @@ class MPSModel:
     @scan_fraction.setter
     def scan_fraction(self, value):
         self._scan_fraction = _validate_scan_fraction(value)
+        self._warn_tiny_scan()
 
     @property
     def threshold(self):
@@ -456,7 +533,15 @@ class MPSModel:
 
     @post_processing.setter
     def post_processing(self, value):
-        self._post_processing = _validate_post_processing(value)
+        value = _validate_post_processing(value)
+        _validate_post_pass_effort(
+            self._ti,
+            value,
+            self._post_processing_factor,
+            self._post_processing_variables,
+        )
+        self._post_processing = value
+        self._warn_tiny_scan()
 
     @property
     def post_processing_factor(self):
@@ -465,7 +550,15 @@ class MPSModel:
 
     @post_processing_factor.setter
     def post_processing_factor(self, value):
-        self._post_processing_factor = _validate_post_processing_factor(value)
+        value = _validate_post_processing_factor(value)
+        _validate_post_pass_effort(
+            self._ti,
+            self._post_processing,
+            value,
+            self._post_processing_variables,
+        )
+        self._post_processing_factor = value
+        self._warn_tiny_scan()
 
     @property
     def post_processing_path(self):
@@ -485,9 +578,16 @@ class MPSModel:
 
     @post_processing_variables.setter
     def post_processing_variables(self, value):
-        self._post_processing_variables = _validate_post_processing_variables(
-            value, self._ti
+        overrides = _validate_post_processing_variables(
+            value, self._ti, self._zones
         )
+        _validate_post_pass_effort(
+            self._ti,
+            self._post_processing,
+            self._post_processing_factor,
+            overrides,
+        )
+        self._post_processing_variables = overrides
 
     @property
     def post_processing_mask(self):
@@ -511,7 +611,11 @@ class MPSModel:
 
     @property
     def rotation(self):
-        """Rotation spec (scalar, vector, array, or callable); ``None`` → stationary identity."""
+        """Rotation spec (scalar, vector, array, or callable); ``None`` → stationary identity.
+
+        Resolved per node to an array of shape ``grid_shape + (n_angles,)``:
+        the simulation grid shape followed by a trailing component axis.
+        """
         return self._rotation
 
     @property

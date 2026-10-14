@@ -28,7 +28,7 @@ ti_data = srf((x, y), mesh_type="structured")
 
 # We create a continuous Training Image and specify distance="variation"
 # This tells GSTools to use the variation-based distance (Mariethoz Eq 9)
-ti = gs.TrainingImage(
+ti = gs.mps.TrainingImage(
     ti_data, categorical=False, distance="variation", n_neighbors=15
 )
 

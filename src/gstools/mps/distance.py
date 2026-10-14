@@ -110,11 +110,14 @@ def _masked_weights(all_de_ti, node_weights):
     return valid, we, we.sum(axis=1)
 
 
-def _renorm(numerator, wsum):
-    """``numerator / wsum`` per row, with ``+inf`` where ``wsum == 0``."""
+def _renorm(numerator, wsum, defined, total):
+    """``numerator / wsum`` per row. Rows with zero ``wsum`` get ``+inf``,
+    except ``0.0`` for defined rows when the whole event has zero weight."""
     out = np.full(numerator.shape, np.inf, dtype=np.float64)
     nz = wsum > 0
     out[nz] = numerator[nz] / wsum[nz]
+    if total == 0:
+        out[defined & ~nz] = 0.0
     return out
 
 
@@ -158,11 +161,11 @@ def vec_categorical_dist(
         # ``np.dot`` upcasts the boolean mismatch mask to float64 internally, so
         # an explicit ``.astype`` only adds a second (max_scan, n) temporary.
         return np.dot(data_event_sim != all_de_ti, node_weights)
-    _, we, wsum = _masked_weights(all_de_ti, node_weights)
+    valid, we, wsum = _masked_weights(all_de_ti, node_weights)
     # NaN positions compare unequal, but ``we`` is zero there so they do not
     # contribute to the mismatch sum.
     mism = (we * (data_event_sim != all_de_ti)).sum(axis=1)
-    return _renorm(mism, wsum)
+    return _renorm(mism, wsum, valid.any(axis=1), node_weights.sum())
 
 
 def vec_categorical_penalty_dist(
@@ -171,8 +174,8 @@ def vec_categorical_penalty_dist(
     """Vectorized per-category penalty-matrix distance over all TI scan candidates.
 
     Generalizes :func:`vec_categorical_dist` by looking up an asymmetric
-    mismatch cost ``T[u, v]`` instead of a flat binary mismatch (DS_Feature_Checklist
-    §3.3): ``Σ_i w_i * T[Z(x_i), Z(y_i)] / Σ_i w_i``.
+    mismatch cost ``T[u, v]`` instead of a flat binary mismatch:
+    ``Σ_i w_i * T[Z(x_i), Z(y_i)] / Σ_i w_i``.
 
     Parameters
     ----------
@@ -199,7 +202,7 @@ def vec_categorical_penalty_dist(
     safe_ti = np.where(valid, all_de_ti, 0).astype(np.intp)
     penalties = penalty_matrix[safe_sim, safe_ti]
     mism = (we * penalties).sum(axis=1)
-    return _renorm(mism, wsum)
+    return _renorm(mism, wsum, valid.any(axis=1), node_weights.sum())
 
 
 def vec_l1_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
@@ -225,7 +228,9 @@ def vec_l1_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
         )
     valid, we, wsum = _masked_weights(all_de_ti, node_weights)
     ad = np.where(valid, np.abs(data_event_sim - all_de_ti) / d_max, 0.0)
-    return _renorm((we * ad).sum(axis=1), wsum)
+    return _renorm(
+        (we * ad).sum(axis=1), wsum, valid.any(axis=1), node_weights.sum()
+    )
 
 
 def vec_l2_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
@@ -252,7 +257,11 @@ def vec_l2_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
         return np.sqrt(np.dot(sq, node_weights))
     valid, we, wsum = _masked_weights(all_de_ti, node_weights)
     sq = np.where(valid, ((data_event_sim - all_de_ti) / d_max) ** 2, 0.0)
-    return np.sqrt(_renorm((we * sq).sum(axis=1), wsum))
+    return np.sqrt(
+        _renorm(
+            (we * sq).sum(axis=1), wsum, valid.any(axis=1), node_weights.sum()
+        )
+    )
 
 
 def vec_lp_dist(
@@ -281,7 +290,9 @@ def vec_lp_dist(
     dp = np.where(
         valid, (np.abs(data_event_sim - all_de_ti) / d_max) ** p, 0.0
     )
-    return _renorm((we * dp).sum(axis=1), wsum) ** (1.0 / p)
+    return _renorm(
+        (we * dp).sum(axis=1), wsum, valid.any(axis=1), node_weights.sum()
+    ) ** (1.0 / p)
 
 
 def vec_variation_dist(
@@ -332,7 +343,12 @@ def vec_variation_dist(
     diffs = (data_event_sim[np.newaxis, :] - m_sim) - (all_de_ti - m_ti)
     contr = np.where(valid, np.abs(diffs / (2 * d_max)) ** p, 0.0)
     we = node_weights[np.newaxis, :] * valid
-    agg = _renorm((we * contr).sum(axis=1), we.sum(axis=1)) ** (1.0 / p)
+    agg = _renorm(
+        (we * contr).sum(axis=1),
+        we.sum(axis=1),
+        valid.any(axis=1),
+        node_weights.sum(),
+    ) ** (1.0 / p)
     # Clamp only finite aggregates so a fully-undefined row keeps its +inf
     # (never selected), matching the other metrics' exclusion contract.
     return np.where(np.isfinite(agg), np.minimum(1.0, agg), np.inf)

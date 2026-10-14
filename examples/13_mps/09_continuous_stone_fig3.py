@@ -34,7 +34,7 @@ if not os.path.exists(CACHE):
 ti_data = np.array(Image.open(CACHE)).astype(float)[:200, :200]
 grid_size = 200
 
-ti = gs.TrainingImage(
+ti = gs.mps.TrainingImage(
     ti_data, categorical=False, distance="l2", n_neighbors=80, distance_power=0.5
 )
 

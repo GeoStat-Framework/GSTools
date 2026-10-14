@@ -47,12 +47,12 @@ except Exception as err:
 # right with a plain radial `rotation` and `anis` map.
 ti_arr = ti_arr.T
 
-ti = gs.TrainingImage(ti_arr, categorical=True, n_neighbors=32)
+ti = gs.mps.TrainingImage(ti_arr, categorical=True, n_neighbors=32)
 print(f"TI {ti.shape} ({source}), sand fraction = {ti_arr.mean():.3f}")
 
-# The paper used a 1000x1000 grid. To avoid grid crowding where the thick TI
-# channels collide near the center, we increase the size to 500x500.
-sg_size = 1000
+# The paper used a 1000x1000 grid; we use 100x100 so that the example runs
+# serially in under a minute.
+sg_size = 100
 xs = np.arange(sg_size, dtype=float)
 ys = np.arange(sg_size, dtype=float)
 gx, gy = np.meshgrid(xs, ys, indexing="ij")
@@ -62,7 +62,7 @@ center_y = sg_size / 2.0
 
 # 1. Rotation Map: Angle from the center, creating a radial pattern.
 # Note: GSTools rotation is in radians.
-# We measure the angle from index 0 (y) towards index 1 (x) to match GSTools' assumption.
+# We measure the angle from index 0 (x) towards index 1 (y) to match GSTools' assumption.
 rotation = np.arctan2(gy - center_y, gx - center_x)
 
 # 2. Affinity Map: Scales the channels based on distance from center.
@@ -83,7 +83,7 @@ ds = gs.DirectSampling(
 )
 
 print(f"Simulating non-stationary field ({sg_size}x{sg_size})...")
-field = ds([xs, ys], seed=1, num_threads=8)
+field = ds([xs, ys], seed=1)
 
 # Plotting the reproduction of Mariethoz Figure 7
 fig, axes = plt.subplots(2, 2, figsize=(10, 10))
