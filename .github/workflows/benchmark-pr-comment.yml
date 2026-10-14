@@ -1,0 +1,101 @@
+name: Post Benchmark PR Comment
+
+on:
+  workflow_run:
+    workflows: ["Benchmarking"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    # Only runs when the triggering event was a pull_request and the run
+    # produced a benchmark-pr-context artifact (skipped if no relevant changes).
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 1
+
+      - name: Download PR context artifact
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: benchmark-pr-context
+          path: pr-context
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Post or update benchmark PR comment
+        if: steps.download.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # The artifact was produced by an untrusted pull-request run, while
+          # this job holds a write token. From it we take the PR number, the
+          # benchmarked base/head commits, and the comparison text — each is
+          # format-validated, and the head is checked against the triggering
+          # run (workflow_run.head_sha). The base is the commit that was
+          # actually benchmarked, recorded by the producer, NOT a live
+          # .base.sha query (which drifts when the base branch advances and
+          # would report a base that was never benchmarked).
+          PR_NUMBER=$(cat pr-context/pr_number.txt)
+          if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid PR number in benchmark artifact."
+            exit 1
+          fi
+          PR_HEAD_SHA=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" \
+            --jq '.head.sha')
+          if [[ "$PR_HEAD_SHA" != "$HEAD_SHA" ]]; then
+            echo "::warning::PR #$PR_NUMBER head does not match the" \
+              "benchmarked commit $HEAD_SHA; skipping comment."
+            exit 0
+          fi
+          # Provenance: the context belongs to this triggering run, so its
+          # recorded head must equal the trusted workflow_run head.
+          ARTIFACT_HEAD_SHA=$(cat pr-context/head_sha.txt)
+          if [[ "$ARTIFACT_HEAD_SHA" != "$HEAD_SHA" ]]; then
+            echo "::warning::Benchmark context head $ARTIFACT_HEAD_SHA does not" \
+              "match the triggering run $HEAD_SHA; skipping comment."
+            exit 0
+          fi
+          BASE_SHA=$(cat pr-context/base_sha.txt)
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+            echo "::error::Invalid base SHA in benchmark artifact."
+            exit 1
+          fi
+
+          ARTIFACT_ID=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts" \
+            --jq ".artifacts[] | select(.name == \"openmp-pr-$PR_NUMBER\") | .id" \
+            | head -1)
+          ARTIFACT_URL=""
+          if [[ -n "$ARTIFACT_ID" ]]; then
+            ARTIFACT_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts/$ARTIFACT_ID"
+          fi
+
+          python benchmarks/tools/render_benchmark_comment.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --repository "$GITHUB_REPOSITORY" \
+            --artifact-url "$ARTIFACT_URL" \
+            --comparison pr-context/comparison.txt \
+            --output /tmp/benchmark_comment.md
+
+          EXISTING_ID=$(gh api \
+            "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.body | startswith("<!-- gstools-openmp-benchmark -->")) | .id' \
+            | head -1)
+          if [ -n "$EXISTING_ID" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/comments/$EXISTING_ID" \
+              -X PATCH -F body=@/tmp/benchmark_comment.md
+          else
+            gh pr comment "$PR_NUMBER" --body-file /tmp/benchmark_comment.md
+          fi

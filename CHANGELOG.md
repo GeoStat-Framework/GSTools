@@ -6,6 +6,7 @@ All notable changes to **GSTools** will be documented in this file.
 
 ### Changes
 
+- drop Cython backend and use Rust as the only backend [#420](https://github.com/GeoStat-Framework/GSTools/pull/420)
 - add decision-tree based plurigaussian fields [#387](https://github.com/GeoStat-Framework/GSTools/pull/387)
   - instead of spatial rules, as before, decision trees are a more flexible approach
   - each node of the binary tree is a decision based on the values of the SRF
@@ -13,7 +14,16 @@ All notable changes to **GSTools** will be documented in this file.
 - add collocated cokriging [#396](https://github.com/GeoStat-Framework/GSTools/pull/396)
   - new `SimpleCollocated` (SCCK) and `IntrinsicCollocated` (ICCK) classes, subclassing `CollocatedCokriging`
   - uses a `Correlogram` to relate the secondary variable to the primary at the estimation location
-- add Multiple Point Statistics with the Direct Sampling algorithm (new `gstools.mps` subpackage)
+- add comprehensive benchmark suite for two-point statistics workflows [#410](https://github.com/GeoStat-Framework/GSTools/pull/410)
+  - covers variogram estimation, kriging, and random field generation
+  - includes OpenMP thread-count scaling analysis (1/2/4/8 threads)
+  - interactive HTML report with per-case and per-thread-count comparisons
+- add benchmarking CI workflows [#410](https://github.com/GeoStat-Framework/GSTools/pull/410)
+  - automated ASV performance comparisons for benchmark-relevant pull requests
+  - benchmark results posted as PR comments with Mann-Whitney U statistical test
+  - cumulative benchmark history published to GitHub Pages for
+    benchmark-relevant changes on main
+- add Multiple Point Statistics with the Direct Sampling algorithm (new `gstools.mps` subpackage) [#416](https://github.com/GeoStat-Framework/GSTools/pull/416)
   - `TrainingImage`/`Variable` hold the training data and the per-variable pattern distance,
     `MPSModel` bundles the search parameters, `DirectSampling` generates the fields
   - univariate and multivariate (joint) simulation, conditioning, masked (NaN) training images,
