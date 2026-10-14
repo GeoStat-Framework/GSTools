@@ -35,16 +35,10 @@ except Exception as err:
     ti_arr = ((np.sin(gx / 6.0) + np.sin((gx + gy) / 10.0)) > 0).astype(float)
     source = "synthetic fallback"
 
-# GSTools' rotation/anisotropy convention always aligns the *primary*
-# (axis-0, unscaled by `anis`) direction to the `rotation` angle and scales
-# axis 1 by `anis`. The Strebelle TI's channels run along its axis 1, not
-# axis 0 (verified via structure-tensor analysis of the raw TI) -- left
-# as-is, this makes `rotation` point the channels' *short* axis radially
-# (channels end up tangential, forming concentric circles) and makes `anis`
-# compress the channels' *length* instead of their width (no visible
-# thinning). Transposing the TI swaps which array axis carries the channel
-# direction, so both the orientation and the thinning effect come out
-# right with a plain radial `rotation` and `anis` map.
+# GSTools rotates axis 0 to the `rotation` angle and scales axis 1 by `anis`.
+# The Strebelle channels run along array axis 1, so we transpose the TI to
+# put the channel direction on axis 0; then a radial rotation points the
+# channels outward and `anis` thins them.
 ti_arr = ti_arr.T
 
 ti = gs.mps.TrainingImage(ti_arr, categorical=True, n_neighbors=32)
@@ -72,9 +66,8 @@ radius = np.sqrt((gx - center_x) ** 2 + (gy - center_y) ** 2)
 max_radius = np.sqrt(center_x**2 + center_y**2)
 anis = 1.0 - 0.65 * (radius / max_radius)
 
-# 3. Configure the MPS model. rotation/scale are model configuration passed
-# straight into MPSModel; scale is a full per-axis vector, so axis 0 stays
-# pinned at 1.0 while the affinity map scales axis 1.
+# 3. Configure the MPS model. scale is given per axis: axis 0 stays at 1.0
+# while the affinity map scales axis 1.
 scale = np.stack([np.ones_like(anis), anis], axis=-1)
 ds = gs.DirectSampling(
     gs.MPSModel(

@@ -38,8 +38,8 @@ ti = gs.mps.TrainingImage(
     ti_data, categorical=False, distance="l2", n_neighbors=80, distance_power=0.5
 )
 
-# 2. Conditioning data: paper takes 100 values from the TI's marginal
-# distribution and places them at random positions in the simulation.
+# 2. Conditioning data: values drawn from the TI's marginal distribution,
+# placed at random positions in the simulation grid.
 rng = np.random.default_rng(1)
 n_cond = 200
 cond_x = rng.uniform(0, grid_size, n_cond)
@@ -60,7 +60,7 @@ print(f"Simulating continuous field ({grid_size}x{grid_size})...")
 field = ds([x, y], seed=121, num_threads=8, progress=True, path="sequential")
 
 # 4. Verification: DS pastes TI cells, so every simulated value must be a TI
-# value (CLAUDE.md MPS validity criterion).
+# value (output values are a subset of the TI values).
 assert set(np.unique(field).tolist()) <= set(np.unique(ti_data).tolist())
 print(f"mean -- TI {ti_data.mean():.4f} | simulation {field.mean():.4f}")
 

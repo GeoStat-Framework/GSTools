@@ -40,7 +40,7 @@ try:
         urllib.request.urlretrieve(TI_URL, CACHE)
     ti_arr = np.load(CACHE)["array1"].astype(float)
     source = "Strebelle (2002) via GeoDataSets (MIT)"
-except Exception as err:  # pragma: no cover - network fallback
+except Exception as err:
     print(f"download failed ({err}); using a synthetic channel TI instead")
     gx, gy = np.meshgrid(np.arange(150), np.arange(150), indexing="ij")
     ti_arr = ((np.sin(gx / 6.0) + np.sin((gx + gy) / 10.0)) > 0).astype(float)

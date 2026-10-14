@@ -25,8 +25,7 @@ ti_data = ((np.sin(gx / 5.0) + np.sin((gx + gy) / 8.0)) > 0).astype(float)
 
 ###############################################################################
 # Wrap the array in a :any:`TrainingImage`. For a categorical variable (facies
-# codes) the distance is the fraction of mismatching neighbours, so the
-# ``distance`` argument is ignored here.
+# codes) the distance is the fraction of mismatching neighbours.
 
 ti = gs.mps.TrainingImage(ti_data, categorical=True, n_neighbors=12)
 print(ti)

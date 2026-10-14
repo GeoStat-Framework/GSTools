@@ -85,7 +85,6 @@ ds.set_condition(cond_pos, cond_val)
 
 # 4. Run the simulation
 print(f"Simulating multivariate non-stationary field ({sg_size}x{sg_size})...")
-# Note: we use num_threads=1 because we found the inner loop thread overhead is high!
 fields = ds([xs_sg, ys_sg], seed=42, num_threads=1)
 channels_sim = fields["channels"]
 context_sim = fields["context"]

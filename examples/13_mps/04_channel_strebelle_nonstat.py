@@ -42,9 +42,8 @@ xs = np.arange(sg_size, dtype=float)
 ys = np.arange(sg_size, dtype=float)
 gx, gy = np.meshgrid(xs, ys, indexing="ij")
 
-# Create non-stationary rotation and anisotropy (scaling) maps. These are
-# passed straight into MPSModel as model configuration (rotation=, scale=)
-# rather than set on the engine after construction.
+# Create non-stationary rotation and anisotropy (scaling) maps, passed to
+# MPSModel as rotation= and scale=.
 # Rotation varies smoothly along the Y-axis from 0 to 45 degrees
 rotation = (gy / sg_size) * (np.pi / 4.0)
 
@@ -52,8 +51,8 @@ rotation = (gy / sg_size) * (np.pi / 4.0)
 # > 1 means wider channels, < 1 means narrower
 anis = 0.8 + (gx / sg_size) * 0.4
 
-# scale is a full per-axis vector (no implicit axis-0 pin): channels keep
-# their along-x size (1.0) while the transversal width follows the map.
+# scale is given per axis: channels keep their along-x size (1.0) while the
+# transversal width follows the map.
 scale = np.stack([np.ones_like(anis), anis], axis=-1)
 ds = gs.DirectSampling(
     gs.MPSModel(

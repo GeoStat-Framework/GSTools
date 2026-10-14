@@ -20,8 +20,8 @@ import gstools as gs
 grid_size = 250
 x = y = np.arange(grid_size, dtype=float)
 
-# Note: GSTools len_scale is roughly range / 3 for exponential models,
-# but we'll just set len_scale directly to match the spatial correlation visually.
+# The ranges are used directly as len_scale (a visual match, not an exact
+# conversion of the paper's range).
 cov_model = gs.Exponential(dim=2, var=1.0, len_scale=[35, 25], angles=0)
 srf = gs.SRF(cov_model, mean=0, seed=123)
 ti_data = srf((x, y), mesh_type="structured")
