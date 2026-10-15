@@ -32,12 +32,6 @@ All notable changes to **GSTools** will be documented in this file.
     and post-processing passes
   - the main simulation path and the post-processing passes share one dependency-DAG runner,
     so both honour `num_threads` and stay bit-identical to serial for any thread count
-- new geometric helpers in `gstools.tools`: `set_scale`, `matrix_scale`, `matrix_transform`
-  and `matrix_detransform` (rotation ∘ scaling and its exact inverse, without a pinned axis);
-  `great_circle_to_chordal` is now exported alongside `chordal_to_great_circle`
-- `matrix_isotropify` now raises `ValueError` for non-positive `anis` instead of returning an
-  infinite (degenerate) matrix, matching the three sibling `matrix_*` helpers; `CovModel`
-  already constrained `anis` to `(0, inf)`, so no model path changes
 
 ## [1.7.0] - Morphic Mint - 2025-04
 

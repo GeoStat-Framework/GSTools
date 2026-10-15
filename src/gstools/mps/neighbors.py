@@ -9,7 +9,7 @@ from math import prod
 
 import numpy as np
 
-from gstools.tools.geometric import matrix_detransform, no_of_angles
+from gstools.tools.geometric import matrix_derotate, no_of_angles
 
 
 def _precompute_offsets(shape, max_offset=None):
@@ -359,7 +359,7 @@ def _lag_transform_matrix(dim, rotation_map, scale_map, x_i):
     Returns
     -------
     M : numpy.ndarray, shape (dim, dim)
-        ``matrix_detransform(dim, θ(x_i), s(x_i))`` — the SG→TI inverse map
+        ``diag(1 / s(x_i)) @ matrix_derotate(dim, θ(x_i))`` — the SG→TI inverse map
         (Mariethoz2010 §6.2: simulated structures are θ-rotated and s×-sized
         relative to the TI, so lags are pulled back by the inverse). Lags are
         row vectors, applied as ``lags_ti = lags_sg @ M.T``.
@@ -371,4 +371,5 @@ def _lag_transform_matrix(dim, rotation_map, scale_map, x_i):
         else np.zeros(no_of_angles(dim))
     )
     scale = scale_map[idx] if scale_map is not None else np.ones(dim)
-    return matrix_detransform(dim, angles, scale)
+    inv_scale = 1.0 / np.asarray(scale, dtype=np.double)
+    return inv_scale[:, None] * matrix_derotate(dim, angles)

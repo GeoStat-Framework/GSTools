@@ -2333,14 +2333,12 @@ class TestLagTransformMatrix(unittest.TestCase):
         M = _lag_transform_matrix(2, None, scale_map, np.array([1, 1]))
         np.testing.assert_allclose(M, 0.5 * np.eye(2))
 
-    def test_rotation_only_matches_detransform(self):
-        from gstools.tools.geometric import matrix_detransform
+    def test_rotation_only_matches_derotate(self):
+        from gstools.tools.geometric import matrix_derotate
 
         rot_map = np.full((4, 4, 1), np.pi / 6)
         M = _lag_transform_matrix(2, rot_map, None, np.array([2, 3]))
-        np.testing.assert_array_equal(
-            M, matrix_detransform(2, [np.pi / 6], [1.0, 1.0])
-        )
+        np.testing.assert_array_equal(M, matrix_derotate(2, [np.pi / 6]))
 
     def test_per_node_map_indexed_at_node(self):
         rot_map = np.zeros((4, 4, 1))
