@@ -145,6 +145,26 @@ class TestNormalizer(unittest.TestCase):
             )
         )
 
+    def test_manly_negative_lambda(self):
+        values = np.array([-2.0, -1.0, 0.0, 1.0, 2.0, np.nan])
+        for lmbda in (-1.0, -0.5, -0.1):
+            with self.subTest(lmbda=lmbda):
+                normalizer = gs.normalizer.Manly(lmbda=lmbda)
+                np.testing.assert_allclose(
+                    normalizer.denormalize(normalizer.normalize(values)),
+                    values,
+                )
+
+    def test_manly_inverse_domain(self):
+        normalizer = gs.normalizer.Manly(lmbda=-1.0)
+        np.testing.assert_allclose(
+            normalizer.denormalize([-1.0, 0.0, 0.5]),
+            [-np.log(2.0), 0.0, np.log(2.0)],
+        )
+        with self.assertWarns(UserWarning):
+            result = normalizer.denormalize([1.0, 2.0])
+        self.assertTrue(np.all(np.isnan(result)))
+
     def test_parameterless(self):
         no = gs.normalizer.LogNormal()
         self.assertTrue(
