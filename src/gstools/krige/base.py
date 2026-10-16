@@ -482,12 +482,14 @@ class Krige(Field):
             For multiple external drifts, the first dimension
             should be the index of the drift term. When passing `None`, the
             extisting external drift will be used.
+            Entries matching non-finite conditioning values are ignored.
         cond_err : :class:`str`, :class :class:`float`, :class:`list`, optional
             The measurement error at the conditioning points.
             Either "nugget" to apply the model-nugget, a single value applied
             to all points or an array with individual values for each point.
             The measurement error has to be <= nugget.
             The "exact=True" variant only works with "cond_err='nugget'".
+            Entries matching non-finite conditioning values are ignored.
             Default: "nugget"
         fit_normalizer : :class:`bool`, optional
             Whether to fit the data-normalizer to the given conditioning data.
@@ -516,6 +518,19 @@ class Krige(Field):
         cond_err = "nugget" if cond_err is None else cond_err  # default
         if cond_pos is None or cond_val is None:
             raise ValueError("Krige.set_condition: missing cond_pos/cond_val.")
+        # Keep per-observation metadata aligned when non-finite values are
+        # removed. Already filtered metadata remains supported.
+        cond_val = np.asarray(cond_val, dtype=np.double).reshape(-1)
+        mask = np.isfinite(cond_val)
+        if not np.all(mask):
+            if not isinstance(cond_err, str):
+                errors = np.asarray(cond_err, dtype=np.double).reshape(-1)
+                if errors.size == mask.size:
+                    cond_err = errors[mask]
+            if ext_drift is not None:
+                drifts = np.atleast_2d(np.asarray(ext_drift, dtype=np.double))
+                if drifts.ndim == 2 and drifts.shape[1] == mask.size:
+                    ext_drift = drifts[:, mask]
         # correctly format cond_pos and cond_val
         self._cond_pos, self._cond_val = set_condition(
             cond_pos, cond_val, self.dim

@@ -254,6 +254,98 @@ class TestKrige(unittest.TestCase):
         # no cond_pos/cond_val given
         self.assertRaises(ValueError, gs.krige.Krige, gs.Stable(), None, None)
 
+    def test_missing_values_with_measurement_errors(self):
+        pos = np.arange(7.0)
+        values = np.array([1.0, np.nan, 3.0, 2.0, np.inf, 5.0, 4.0])
+        errors = np.linspace(0.01, 0.1, len(values))
+        valid = np.isfinite(values)
+        for pseudo_inv in (True, False):
+            for error in (
+                errors,
+                errors[None, :],
+                errors[valid],
+                0.1,
+                "nugget",
+            ):
+                with self.subTest(pseudo_inv=pseudo_inv, error=error):
+                    model = gs.Exponential(dim=1, nugget=0.2)
+                    krige = gs.krige.Ordinary(
+                        model,
+                        pos,
+                        values,
+                        cond_err=error,
+                        pseudo_inv=pseudo_inv,
+                    )
+                    expected = gs.krige.Ordinary(
+                        model,
+                        pos[valid],
+                        values[valid],
+                        cond_err=errors[valid]
+                        if isinstance(error, np.ndarray)
+                        else error,
+                        pseudo_inv=pseudo_inv,
+                    )
+                    np.testing.assert_allclose(krige(pos), expected(pos))
+                    krige.set_condition()
+                    np.testing.assert_allclose(krige(pos), expected(pos))
+        np.testing.assert_array_equal(values, [1, np.nan, 3, 2, np.inf, 5, 4])
+        np.testing.assert_array_equal(errors, np.linspace(0.01, 0.1, 7))
+
+    def test_missing_values_with_external_drifts(self):
+        pos = np.arange(7.0)
+        values = np.array([1.0, np.nan, 3.0, 2.0, np.nan, 5.0, 4.0])
+        errors = np.linspace(0.01, 0.1, len(values))
+        valid = np.isfinite(values)
+        for drift in (pos**2, np.array([pos, pos**2])):
+            for filtered in (True, False):
+                with self.subTest(drift=drift, filtered=filtered):
+                    model = gs.Exponential(dim=1, nugget=0.2)
+                    filtered_drift = np.atleast_2d(drift)[:, valid]
+                    krige = gs.krige.Krige(
+                        model,
+                        pos,
+                        values,
+                        ext_drift=filtered_drift if filtered else drift,
+                        cond_err=errors[valid] if filtered else errors,
+                    )
+                    expected = gs.krige.Krige(
+                        model,
+                        pos[valid],
+                        values[valid],
+                        ext_drift=filtered_drift,
+                        cond_err=errors[valid],
+                    )
+                    np.testing.assert_allclose(
+                        krige(pos, ext_drift=drift),
+                        expected(pos, ext_drift=drift),
+                    )
+                    krige.set_condition()
+                    np.testing.assert_allclose(
+                        krige(pos, ext_drift=drift),
+                        expected(pos, ext_drift=drift),
+                    )
+                    krige.set_condition(
+                        cond_pos=pos,
+                        cond_val=values,
+                        ext_drift=drift,
+                        cond_err=errors,
+                    )
+                    np.testing.assert_allclose(
+                        krige(pos, ext_drift=drift),
+                        expected(pos, ext_drift=drift),
+                    )
+
+    def test_missing_values_reject_misaligned_metadata(self):
+        model = gs.Exponential(dim=1, nugget=0.2)
+        pos = np.arange(4.0)
+        values = [1.0, np.nan, 2.0, 3.0]
+        with self.assertRaisesRegex(ValueError, "measurement errors"):
+            gs.krige.Ordinary(model, pos, values, cond_err=[0.1, 0.2])
+        for drift in (np.ones(2), np.ones((4, 2)), np.ones((1, 1, 4))):
+            with self.subTest(drift=drift):
+                with self.assertRaisesRegex(ValueError, "ext. drifts"):
+                    gs.krige.ExtDrift(model, pos, values, drift)
+
     def test_krige_mean(self):
         # check for constant mean (simple kriging)
         krige = gs.krige.Simple(gs.Gaussian(), self.cond_pos, self.cond_val)
