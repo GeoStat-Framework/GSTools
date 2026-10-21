@@ -23,6 +23,15 @@ All notable changes to **GSTools** will be documented in this file.
   - benchmark results posted as PR comments with Mann-Whitney U statistical test
   - cumulative benchmark history published to GitHub Pages for
     benchmark-relevant changes on main
+- add Multiple Point Statistics with the Direct Sampling algorithm (new `gstools.mps` subpackage) [#416](https://github.com/GeoStat-Framework/GSTools/pull/416)
+  - `TrainingImage`/`Variable` hold the training data and the per-variable pattern distance,
+    `MPSModel` bundles the search parameters, `DirectSampling` generates the fields
+  - univariate and multivariate (joint) simulation, conditioning, masked (NaN) training images,
+    categorical and continuous distances including a per-category penalty matrix
+  - geometric non-stationarity via `MPSModel(rotation=..., scale=...)`, zonation via `Zone`,
+    and post-processing passes
+  - the main simulation path and the post-processing passes share one dependency-DAG runner,
+    so both honour `num_threads` and stay bit-identical to serial for any thread count
 
 ## [1.7.0] - Morphic Mint - 2025-04
 

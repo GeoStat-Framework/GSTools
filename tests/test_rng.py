@@ -36,6 +36,17 @@ class TestRNG(unittest.TestCase):
         self.assertAlmostEqual(z2[0], z2_refs[0])
         self.assertAlmostEqual(z2[1], z2_refs[1])
 
+    def test_seed_sequence_mode(self):
+        rng = RNG(self.seed, seed_sequence=True)
+        first = rng.random.uniform(size=3)
+        self.assertFalse(np.allclose(first, rng.random.uniform(size=3)))
+        rng.seed = self.seed  # the setter keeps the mode
+        np.testing.assert_array_equal(first, rng.random.uniform(size=3))
+        self.assertIn("seed_sequence=True", repr(rng))
+        # default stays the legacy 16-bit stream
+        legacy = RNG(self.seed).random.normal(size=2)
+        self.assertAlmostEqual(legacy[0], -1.93013270)
+
     def test_sample_sphere_1d(self):
         dim = 1
         sphere_coord = self.rng.sample_sphere(dim, self.few_modes)
