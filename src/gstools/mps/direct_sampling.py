@@ -156,7 +156,7 @@ class DirectSampling(Field):
         self._mv_mean = {}
         self._mv_normalizer = {}
         self._mv_trend = {}
-        self.rng = RNG(None if _unset(seed) else int(seed))
+        self.rng = RNG(None if _unset(seed) else int(seed), seed_sequence=True)
         if model.ti.multivariate:
             for v in model.ti.variables:
                 if v.name in dir(self):
@@ -303,18 +303,15 @@ class DirectSampling(Field):
             self.rng.seed = None  # fresh random seed, as in gs.SRF
         elif not np.isnan(seed):
             self.rng.seed = int(seed)
-        # Explicit seeds seed the stream directly: RNG(seed) funnels them through
-        # a 16-bit master draw, so distinct seeds collide. Deliberate exception
-        # to the gstools RNG rule, as in scan.py.
         rng_path = (
             self.rng.random
             if _unset(path_seed)
-            else np.random.RandomState(int(path_seed))
+            else RNG(int(path_seed), seed_sequence=True).random
         )
         rng_nodes = (
             self.rng.random
             if _unset(node_seed)
-            else np.random.RandomState(int(node_seed))
+            else RNG(int(node_seed), seed_sequence=True).random
         )
         # Call-time num_threads overrides the instance default.
         n_threads = (
