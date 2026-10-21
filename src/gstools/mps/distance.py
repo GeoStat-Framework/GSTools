@@ -129,11 +129,12 @@ def _scaled_abs_diff(data_event_sim, all_de_ti, d_max):
     result in place keeps just one. Bit-identical to the naive form: a
     float32 TI stays in float32 throughout rather than being forced to
     float64, matching the naive expression's own promotion; only an
-    integer-coded TI needs the explicit widen.
+    integer-coded TI is widened (before subtracting, so it cannot wrap).
     """
-    diff = np.subtract(data_event_sim, all_de_ti)
-    if not np.issubdtype(diff.dtype, np.floating):
-        diff = diff.astype(np.float64)
+    dtype = np.result_type(data_event_sim, all_de_ti)
+    if not np.issubdtype(dtype, np.floating):
+        dtype = np.float64  # widen before subtracting: ints would wrap
+    diff = np.subtract(data_event_sim, all_de_ti, dtype=dtype)
     np.abs(diff, out=diff)
     diff /= d_max
     return diff

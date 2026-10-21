@@ -43,7 +43,7 @@ def _data_range(arr):
     array is constant or entirely undefined (avoids a zero/NaN normalizer).
     """
     finite = arr[np.isfinite(arr)]
-    dmax = float(finite.max() - finite.min()) if finite.size else 0.0
+    dmax = float(finite.max()) - float(finite.min()) if finite.size else 0.0
     return dmax if dmax > 0 else 1.0
 
 
@@ -683,12 +683,15 @@ class TrainingImage:
             )
         else:
             total = sum(raw)
+            if not np.isfinite(total):  # huge weights: rescale to avoid inf
+                raw = [w / max(raw) for w in raw]
+                total = sum(raw)
             if total <= 0:
                 raise ValueError(
                     "TrainingImage: sum of weights must be positive."
                 )
             self._normalized_weights = {
-                v.name: v.weight / total for v in var_list
+                v.name: w / total for v, w in zip(var_list, raw)
             }
 
     # ------------------------------------------------------------------

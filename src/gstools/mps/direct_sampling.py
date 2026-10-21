@@ -56,6 +56,12 @@ def _unset(seed):
     return seed is None or np.isnan(seed)
 
 
+def _check_finite_axes(axes):
+    """Raise ``ValueError`` if a simulation-grid coordinate is NaN or +-inf."""
+    if not all(np.isfinite(ax).all() for ax in axes):
+        raise ValueError("DirectSampling: grid coordinates must be finite.")
+
+
 def _warn_nonuniform_axes(axes):
     """Warn when grid spacing is non-uniform: DS works in grid-index space.
 
@@ -295,6 +301,7 @@ class DirectSampling(Field):
         selector = (
             build_zone_selector(zones, shape, flat_pos) if zones else None
         )
+        _check_finite_axes(self.pos)
         _warn_nonuniform_axes(self.pos)
         # Re-check: the model's overrides may have changed since set_condition.
         self._check_condition_codes()
@@ -506,23 +513,19 @@ class DirectSampling(Field):
             cond_pos_arr = np.asarray(cond_pos, dtype=np.double).reshape(
                 self.dim, -1
             )
-            n_cond = len(next(iter(cond_val.values())))
-            for v, arr in cond_val.items():
-                if len(arr) != n_cond:
-                    raise ValueError(
-                        "DirectSampling: all cond_val arrays must have the same "
-                        f"length; got {n_cond} for {next(iter(cond_val))!r} but "
-                        f"{len(arr)} for {v!r}."
-                    )
-            if cond_pos_arr.shape[1] != n_cond:
-                raise ValueError(
-                    "DirectSampling: cond_pos and cond_val length mismatch."
-                )
-            _check_finite_positions(cond_pos_arr)
-            self._cond_pos = cond_pos_arr
-            self._cond_val = {
+            new_val = {
                 v: np.asarray(a, dtype=np.double) for v, a in cond_val.items()
             }
+            n_cond = cond_pos_arr.shape[1]
+            for v, arr in new_val.items():
+                if arr.shape != (n_cond,):
+                    raise ValueError(
+                        "DirectSampling: cond_pos and cond_val length mismatch; "
+                        "each cond_val array must be 1-D with the same length "
+                        f"as cond_pos ({n_cond}), got {arr.shape} for {v!r}."
+                    )
+            _check_finite_positions(cond_pos_arr)
+            self._cond_pos, self._cond_val = cond_pos_arr, new_val
             # NaN means "not conditioned" here (documented); only infinities drop.
             n_dropped = sum(
                 int(np.count_nonzero(np.isinf(a)))
