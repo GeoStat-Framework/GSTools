@@ -13,9 +13,13 @@ import json
 
 import numpy as np
 from gstools_core import calc_field_krige_local as calc_field_krige_local_gsc
+from gstools_core import (
+    calc_field_krige_local_multi as calc_field_krige_local_multi_gsc,
+)
 
 from gstools.krige.base import Krige
 from gstools.krige.tools import set_condition
+from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.tools.geometric import rotated_main_axes
 from gstools.variogram import vario_estimate
 
@@ -90,10 +94,102 @@ def _calc_field_krige_local(
     )
 
 
+def _calc_field_krige_local_multi(
+    cond_pos,
+    cond_val,
+    target_pos,
+    model,
+    cond_err,
+    drift_cond,
+    drift_target,
+    unbiased,
+    exact,
+    local_radius,
+    min_neighbors=1,
+    cache="hash",
+    num_threads=None,
+):
+    """
+    A wrapper function for calling the multi-field local krige algorithm (Rust).
+
+    ``cond_val`` has the shape ``(cond_no, field_no)`` (NaN = missing in
+    that field). Returns ``field``, ``error`` and ``n_used`` with the shape
+    ``(pnt_cnt, field_no)`` and a dict with cache statistics.
+    """
+    return calc_field_krige_local_multi_gsc(
+        cond_pos,
+        cond_val,
+        target_pos,
+        _cov_model_to_json(model),
+        cond_err,
+        drift_cond,
+        drift_target,
+        unbiased,
+        exact,
+        local_radius,
+        min_neighbors=min_neighbors,
+        cache=cache,
+        num_threads=num_threads,
+    )
+
+
+def _set_local_condition(cond_pos, cond_val, dim):
+    """
+    Check and format the conditions for local kriging.
+
+    1D ``cond_val`` (one field): as :any:`gstools.krige.tools.set_condition`,
+    points with non-finite values are dropped.
+    2D ``cond_val`` of shape ``(T, cond_no)`` (one row per field): all points
+    are kept, NaN marks a missing value in that field only.
+
+    In both cases the positions have to be finite.
+    
+    TODO: Refactor this function to avoid code duplication with :any:`gstools.krige.tools.set_condition`.
+
+    Returns
+    -------
+    cond_pos : :class:`numpy.ndarray`
+        Shape ``(dim, cond_no)``.
+    cond_val : :class:`numpy.ndarray`
+        Shape ``(cond_no,)`` or ``(T, cond_no)``.
+    multi : :class:`bool`
+        Whether ``cond_val`` is 2D.
+    """
+    cond_val = np.asarray(cond_val, dtype=np.double)
+    if cond_val.ndim > 2:
+        raise ValueError(
+            "LocalKrige: cond_val has to be 1D (one field) or 2D with "
+            f"shape (T, cond_no), got {cond_val.ndim} dimensions."
+        )
+    multi = cond_val.ndim == 2
+    if multi:
+        cond_pos = np.asarray(cond_pos, dtype=np.double).reshape(dim, -1)
+        if cond_val.shape[1] != cond_pos.shape[1]:
+            raise ValueError(
+                f"LocalKrige: cond_val has shape {cond_val.shape}, expected "
+                f"(T, {cond_pos.shape[1]}) for {cond_pos.shape[1]} positions."
+            )
+        cond_val = cond_val.copy()
+    else:
+        cond_pos, cond_val = set_condition(cond_pos, cond_val, dim)
+    if not np.all(np.isfinite(cond_pos)):
+        raise ValueError(
+            "LocalKrige: cond_pos has non-finite (NaN/inf) values."
+        )
+    return cond_pos, cond_val, multi
+
+
 class LocalKrige(Krige):
     """
     Prototype class for local (moving-neighborhood) kriging.
 
+    **Multiple fields:** if ``cond_val`` is 2D with shape ``(T, cond_no)``, every call kriges
+    all ``T`` fields at once and returns arrays of shape
+    ``(T, *field_shape)``. The kriging weights of a target point only
+    depend on which neighbors have a value, so they are computed once per
+    neighbor pattern and reused for all fields with that pattern.
+    ``fit_normalizer`` and ``fit_variogram`` are not available in this
+    case, and the class can't be used in :any:`CondSRF`.
 
     Parameters
     ----------
@@ -102,7 +198,10 @@ class LocalKrige(Krige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions (nan values will be ignored)
+        the values of the conditions (nan values will be ignored).
+        Either 1D (one field) or 2D with shape ``(T, cond_no)`` for ``T``
+        fields at the same positions (e.g. one row per day); then NaN
+        marks a missing value in that field only.
     local_radius : :class:`float`
         Search radius (in the model's isometrized/isotropic distance):
         every conditioning point within this distance of a target
@@ -181,6 +280,9 @@ class LocalKrige(Krige):
         self.local_radius = local_radius
         self._cond_drift = None
         self._target_drift = None
+        self._multi = False
+        self.n_used = None
+        self.multi_stats = None
         # super().__init__ calls set_condition and set_drift_functions
         super().__init__(
             model,
@@ -207,12 +309,19 @@ class LocalKrige(Krige):
         return_var=True,
         post_process=True,
         store=True,
+        min_neighbors=1,
+        cache="hash",
+        num_threads=None,
     ):
         """
         Generate the local kriging field.
 
         The field is saved as `self.field` and is also returned.
         The error variance is saved as `self.krige_var` and is also returned.
+
+        With 2D conditioning values of shape ``(T, cond_no)`` (see
+        :any:`LocalKrige`), all ``T`` fields are kriged at once and the
+        results have the shape ``(T, *field_shape)``.
 
         Parameters
         ----------
@@ -241,13 +350,35 @@ class LocalKrige(Krige):
             or with specified names.
             The default is :any:`True` for default names
             ["field", "krige_var"].
+        min_neighbors : :class:`int`, optional
+            Only for 2D conditioning values: fields with fewer available
+            neighbors at a target point are set to NaN there.
+            Default: 1
+        cache : :class:`str`, optional
+            Only for 2D conditioning values: how kriging weights are
+            reused between fields of one target point. "hash" (any
+            neighbor pattern seen before), "last" (only the previous
+            field's pattern) or "none". The results are the same.
+            Default: "hash"
+        num_threads : :class:`int` or :any:`None`, optional
+            Number of threads for the Rust backend.
+            Default: :any:`None` (all available cores)
 
         Returns
         -------
         field : :class:`numpy.ndarray`
-            the kriged field
+            the kriged field (shape ``(T, *field_shape)`` for 2D
+            conditioning values)
         krige_var : :class:`numpy.ndarray`, optional
             the kriging error variance (if return_var is True)
+
+        Notes
+        -----
+        With 2D conditioning values, a target point without available
+        neighbors in a field gets NaN instead of raising an error. The
+        number of available neighbors is stored in ``self.n_used`` (same
+        shape as the field) and the cache statistics in
+        ``self.multi_stats``.
         """
         if only_mean:
             raise NotImplementedError(
@@ -259,8 +390,8 @@ class LocalKrige(Krige):
         iso_targ, shape = self.pre_pos(pos, mesh_type)
         pnt_cnt = iso_targ.shape[1]
 
-        # cond values already normalized/detrended/zero-mean (unpadded)
-        cond_val = self._krige_cond[: self.cond_no]
+        # cond values normalized/detrended/zero-mean, (cond_no,) or (T, cond_no)
+        cond_val = self._local_cond
         cond_err = self.cond_err
         cond_err_arr = (
             np.full(self.cond_no, cond_err, dtype=np.double)
@@ -270,11 +401,8 @@ class LocalKrige(Krige):
 
         ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
         drift_target = self._calc_target_drift(iso_targ, ext_drift, pnt_cnt)
-
-        # call the local kriging routine (Rust)
-        field, error = _calc_field_krige_local(
+        common = dict(
             cond_pos=self._krige_pos,
-            cond_val=cond_val,
             target_pos=iso_targ,
             model=self.model,
             cond_err=cond_err_arr,
@@ -283,16 +411,74 @@ class LocalKrige(Krige):
             unbiased=self.unbiased,
             exact=self.exact,
             local_radius=self.local_radius,
+            num_threads=num_threads,
         )
 
-        field = np.reshape(field, shape)
-        field = self.post_field(field, name[0], post_process, save[0])
-        if return_var:  # care about the estimated error variance
-            krige_var = np.reshape(
-                np.maximum(self.model.sill - error, 0), shape
+        if not self.is_multi:
+            # one field (Rust)
+            field, error = _calc_field_krige_local(cond_val=cond_val, **common)
+            self.n_used, self.multi_stats = None, None
+            field = np.reshape(field, shape)
+            field = self.post_field(field, name[0], post_process, save[0])
+            if return_var:  # care about the estimated error variance
+                krige_var = np.reshape(
+                    np.maximum(self.model.sill - error, 0), shape
+                )
+                krige_var = self.post_field(krige_var, name[1], False, save[1])
+                return field, krige_var
+            return field
+
+        # many fields at once (Rust): results come as (pnt_cnt, T)
+        field, error, n_used, stats = _calc_field_krige_local_multi(
+            cond_val=np.ascontiguousarray(cond_val.T),
+            min_neighbors=min_neighbors,
+            cache=cache,
+            **common,
+        )
+        out_shape = (cond_val.shape[0],) + tuple(np.atleast_1d(shape))
+        self.n_used = n_used.T.reshape(out_shape)
+        self.multi_stats = stats
+        field = self._post_stacked_field(
+            field.T.reshape(out_shape), name[0], post_process, save[0]
+        )
+        if return_var:
+            krige_var = np.maximum(self.model.sill - error, 0)
+            krige_var = self._post_stacked_field(
+                krige_var.T.reshape(out_shape), name[1], False, save[1]
             )
-            krige_var = self.post_field(krige_var, name[1], False, save[1])
             return field, krige_var
+        return field
+
+    def _post_stacked_field(self, field, name, process, save):
+        """
+        :any:`post_field` for stacked fields of shape ``(T, *field_shape)``.
+
+        Mean, normalizer and trend are applied to every field.
+        """
+        if process:
+            field = apply_mean_norm_trend(
+                pos=self.pos,
+                field=field,
+                mesh_type=self.mesh_type,
+                value_type=self.value_type,
+                mean=self.mean,
+                normalizer=self.normalizer,
+                trend=self.trend,
+                check_shape=False,
+                stacked=True,
+            )
+        if save:
+            # same name checks as Field.post_field
+            name = str(name)
+            if not name.isidentifier() or (
+                name not in self.field_names and name in dir(self)
+            ):
+                raise ValueError(
+                    f"Field: given field name '{name}' is not valid"
+                )
+            if name not in self._field_names:
+                self._field_names.append(name)
+            setattr(self, name, field)
         return field
 
     def set_condition(
@@ -308,9 +494,9 @@ class LocalKrige(Krige):
 
         This method could also be used to update the kriging setup, when
         properties were changed. Then you can call it without arguments.
-        
+
         This function is the same as :any:`Krige.set_condition`, but it also precomputes
-        the drift terms at the conditioning points for the local kriging solve. 
+        the drift terms at the conditioning points for the local kriging solve.
         (last line of this function)
         TODO: This function should be refactored to avoid code duplication with the base class.
 
@@ -320,6 +506,8 @@ class LocalKrige(Krige):
             the position tuple of the conditions (x, [y, z]). Default: current.
         cond_val : :class:`numpy.ndarray`, optional
             the values of the conditions (nan values will be ignored).
+            1D for one field or 2D with shape ``(T, cond_no)`` for many
+            fields (see :any:`LocalKrige`).
             Default: current.
         ext_drift : :class:`numpy.ndarray` or :any:`None`, optional
             the external drift values at the given conditions (only for EDK)
@@ -361,9 +549,14 @@ class LocalKrige(Krige):
         if cond_pos is None or cond_val is None:
             raise ValueError("Krige.set_condition: missing cond_pos/cond_val.")
         # correctly format cond_pos and cond_val
-        self._cond_pos, self._cond_val = set_condition(
+        self._cond_pos, self._cond_val, self._multi = _set_local_condition(
             cond_pos, cond_val, self.dim
         )
+        if self._multi and (fit_normalizer or fit_variogram):
+            raise NotImplementedError(
+                "LocalKrige: fit_normalizer and fit_variogram are not "
+                "implemented for 2D cond_val (multiple fields)."
+            )
         if fit_normalizer:  # fit normalizer to detrended data
             self.normalizer.fit(self.cond_val - self.cond_trend)
         if fit_variogram:  # fitting model to empirical variogram of data
@@ -472,6 +665,30 @@ class LocalKrige(Krige):
         return drift_target
 
     @property
+    def _local_cond(self):
+        """
+        :class:`numpy.ndarray`: The prepared conditioning values.
+
+        Detrended, normalized and zero-mean like :any:`Krige._krige_cond`,
+        but without padding. Shape ``(cond_no,)`` or ``(T, cond_no)``; the
+        per-point trend and mean broadcast over the fields, NaN stays NaN.
+        """
+        val = self.normalizer.normalize(self.cond_val - self.cond_trend)
+        return val - self.cond_mean
+
+    @property
+    def is_multi(self):
+        """:class:`bool`: Whether ``cond_val`` holds multiple fields (2D)."""
+        return self._multi
+
+    @property
+    def cond_no(self):
+        """:class:`int`: The number of the conditions (positions)."""
+        if self._cond_pos is None:
+            return 0
+        return np.shape(self._cond_pos)[1]
+
+    @property
     def local_radius(self):
         """:class:`float`: The search radius for local kriging."""
         return self._local_radius
@@ -499,7 +716,10 @@ class LocalSimple(LocalKrige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions (nan values will be ignored)
+        the values of the conditions (nan values will be ignored).
+        Either 1D (one field) or 2D with shape ``(T, cond_no)`` for ``T``
+        fields at the same positions (e.g. one row per day); then NaN
+        marks a missing value in that field only.
     local_radius : :class:`float`
         Search radius (in the model's isometrized/isotropic distance):
         every conditioning point within this distance of a target
@@ -584,7 +804,10 @@ class LocalOrdinary(LocalKrige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions (nan values will be ignored)
+        the values of the conditions (nan values will be ignored).
+        Either 1D (one field) or 2D with shape ``(T, cond_no)`` for ``T``
+        fields at the same positions (e.g. one row per day); then NaN
+        marks a missing value in that field only.
     local_radius : :class:`float`
         Search radius (in the model's isometrized/isotropic distance):
         every conditioning point within this distance of a target
@@ -665,7 +888,10 @@ class LocalUniversal(LocalKrige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions (nan values will be ignored)
+        the values of the conditions (nan values will be ignored).
+        Either 1D (one field) or 2D with shape ``(T, cond_no)`` for ``T``
+        fields at the same positions (e.g. one row per day); then NaN
+        marks a missing value in that field only.
     local_radius : :class:`float`
         Search radius (in the model's isometrized/isotropic distance):
         every conditioning point within this distance of a target
@@ -755,7 +981,10 @@ class LocalExtDrift(LocalKrige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions (nan values will be ignored)
+        the values of the conditions (nan values will be ignored).
+        Either 1D (one field) or 2D with shape ``(T, cond_no)`` for ``T``
+        fields at the same positions (e.g. one row per day); then NaN
+        marks a missing value in that field only.
     local_radius : :class:`float`
         Search radius (in the model's isometrized/isotropic distance):
         every conditioning point within this distance of a target
@@ -841,7 +1070,10 @@ class LocalDetrended(LocalKrige):
     cond_pos : :class:`list`
         tuple, containing the given condition positions (x, [y, z])
     cond_val : :class:`numpy.ndarray`
-        the values of the conditions (nan values will be ignored)
+        the values of the conditions (nan values will be ignored).
+        Either 1D (one field) or 2D with shape ``(T, cond_no)`` for ``T``
+        fields at the same positions (e.g. one row per day); then NaN
+        marks a missing value in that field only.
     local_radius : :class:`float`
         Search radius (in the model's isometrized/isotropic distance):
         every conditioning point within this distance of a target

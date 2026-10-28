@@ -104,6 +104,11 @@ class CondSRF(Field):
         field : :class:`numpy.ndarray`
             the conditioned SRF
         """
+        if getattr(self.krige, "is_multi", False):
+            raise ValueError(
+                "CondSRF: krige holds multiple fields (2D cond_val), "
+                "only one field is supported."
+            )
         name, save = self.get_store_config(store=store, fld_cnt=3)
         krige_name, krige_save = self.krige.get_store_config(
             store=krige_store, fld_cnt=2
