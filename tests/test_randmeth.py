@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 
-from gstools import Gaussian
+from gstools import Gaussian, Matern, Stable
 from gstools.field.generator import RandMeth
 
 
@@ -28,7 +28,10 @@ class TestRandMeth(unittest.TestCase):
 
         self.rm_1d = RandMeth(self.cov_model_1d, mode_no=100, seed=self.seed)
         self.rm_2d = RandMeth(self.cov_model_2d, mode_no=100, seed=self.seed)
-        self.rm_3d = RandMeth(self.cov_model_3d, mode_no=100, seed=self.seed)
+        # the 3D reference values below were created with mcmc sampling
+        self.rm_3d = RandMeth(
+            self.cov_model_3d, mode_no=100, seed=self.seed, sampling="mcmc"
+        )
 
     def test_unstruct_1d(self):
         modes = self.rm_1d((self.x_tuple,))
@@ -60,6 +63,8 @@ class TestRandMeth(unittest.TestCase):
         self.assertAlmostEqual(modes[0], -1.94278053)
         self.assertAlmostEqual(modes[1], -1.12401651)
 
+        # the 3D reference values below were created with mcmc sampling
+        self.rm_1d.sampling = "mcmc"
         self.rm_1d.model = self.cov_model_3d
         modes = self.rm_1d((self.x_tuple, self.y_tuple, self.z_tuple))
         self.assertAlmostEqual(modes[0], 1.3240234883187239)
@@ -69,6 +74,70 @@ class TestRandMeth(unittest.TestCase):
         modes = self.rm_2d((self.x_tuple, self.y_tuple))
         self.assertAlmostEqual(modes[0], -3.20809251)
         self.assertAlmostEqual(modes[1], -2.62032778)
+
+    def test_sampling_auto(self):
+        pos = (self.x_tuple, self.y_tuple, self.z_tuple)
+
+        def modes(model, sampling):
+            rm = RandMeth(
+                model, mode_no=100, seed=self.seed, sampling=sampling
+            )
+            return rm(pos[: model.dim])
+
+        # inversion if the model has a ppf (Gaussian in 2D)
+        np.testing.assert_allclose(
+            modes(self.cov_model_2d, "auto"),
+            modes(self.cov_model_2d, "inversion"),
+        )
+        # direct sampling if there is no ppf, but a direct sampler
+        np.testing.assert_allclose(
+            modes(self.cov_model_3d, "auto"),
+            modes(self.cov_model_3d, "direct"),
+        )
+        matern = Matern(dim=2, nu=1.5, len_scale=3.5)
+        np.testing.assert_allclose(
+            modes(matern, "auto"), modes(matern, "direct")
+        )
+        # mcmc otherwise
+        stable = Stable(dim=2, len_scale=3.5)
+        np.testing.assert_allclose(
+            modes(stable, "auto"), modes(stable, "mcmc")
+        )
+
+    def test_sampling_direct(self):
+        model = Matern(dim=2, var=1.5, len_scale=3.5, nu=1.5)
+        rm = RandMeth(model, mode_no=100, seed=self.seed, sampling="direct")
+        modes = rm((self.x_tuple, self.y_tuple))
+        self.assertAlmostEqual(modes[0], 0.06124152755960492)
+        self.assertAlmostEqual(modes[1], 0.5247458125683446)
+
+    def test_sampling_direct_not_available(self):
+        with self.assertRaises(ValueError):
+            RandMeth(Stable(dim=2), seed=self.seed, sampling="direct")
+        with self.assertRaises(ValueError):
+            RandMeth(Stable(dim=2, var=0), seed=self.seed, sampling="direct")
+        rm = RandMeth(Stable(dim=2), mode_no=100, seed=self.seed)
+        with self.assertRaises(ValueError):
+            rm.sampling = "direct"
+        self.assertEqual(rm.sampling, "auto")
+
+    def test_sampling_unknown(self):
+        with self.assertRaises(ValueError):
+            RandMeth(self.cov_model_2d, seed=self.seed, sampling="wrong")
+
+    def test_sampling_direct_error_keeps_state(self):
+        rm = RandMeth(Matern(dim=2), seed=self.seed, sampling="direct")
+        modes = rm._cov_sample.copy()
+        stable = Stable(dim=2, var=3.0)
+        with self.assertRaises(ValueError):
+            rm.update(stable)
+        # the failed update did not change the generator
+        self.assertEqual(rm.model, Matern(dim=2))
+        np.testing.assert_array_equal(rm._cov_sample, modes)
+        # with another sampling, the new model is used and sampled
+        rm.sampling = "mcmc"
+        rm.update(stable)
+        self.assertEqual(rm.model, stable)
 
 
 if __name__ == "__main__":

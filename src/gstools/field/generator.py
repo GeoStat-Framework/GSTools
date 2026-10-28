@@ -29,7 +29,7 @@ from gstools.tools.geometric import generate_grid
 __all__ = ["Generator", "RandMeth", "IncomprRandMeth", "Fourier"]
 
 
-SAMPLING = ["auto", "inversion", "mcmc"]
+SAMPLING = ["auto", "inversion", "mcmc", "direct"]
 
 
 class Generator(ABC):
@@ -137,6 +137,11 @@ class RandMeth(Generator):
             * "auto": select best strategy depending on given model
             * "inversion": use inversion method
             * "mcmc": use mcmc sampling
+            * "direct": draw the wave vectors directly from the spectral
+              density (if the model provides ``spectral_rvs``)
+
+        "auto" uses inversion if the model provides a ppf, direct sampling
+        if available and mcmc sampling otherwise.
 
     **kwargs
         Placeholder for keyword-args
@@ -265,6 +270,8 @@ class RandMeth(Generator):
         # check if a new model is given
         if isinstance(model, CovModel):
             if self.model != model:
+                # raises an error before anything is changed
+                self._sampling_method(model)
                 self._model = dcp(model)
                 if seed is None or not np.isnan(seed):
                     self.reset_seed(seed)
@@ -315,21 +322,25 @@ class RandMeth(Generator):
         -----
         Even if the given seed is the present one, modes will be recalculated.
         """
+        sampling = self._sampling_method()
         if seed is None or not np.isnan(seed):
             self._seed = seed
         self._rng = RNG(self._seed)
         # normal distributed samples for randmeth
         self._z_1 = self._rng.random.normal(size=self._mode_no)
         self._z_2 = self._rng.random.normal(size=self._mode_no)
-        # sample uniform on a sphere
         if self.zero_var:
             self._cov_sample = np.full((self.model.dim, self._mode_no), 0.0)
+        elif sampling == "direct":
+            # draw the wave vectors directly from the spectral density
+            self._cov_sample = self.model.spectral_rvs(
+                self._mode_no, self._rng.random
+            )
         else:
+            # sample uniform on a sphere
             sph_crd = self._rng.sample_sphere(self.model.dim, self._mode_no)
             # sample radii according to radial spectral density of the model
-            if self.sampling == "inversion" or (
-                self.sampling == "auto" and self.model.has_ppf
-            ):
+            if sampling == "inversion":
                 pdf, cdf, ppf = self.model.dist_func
                 rad = self._rng.sample_dist(
                     size=self._mode_no, pdf=pdf, cdf=cdf, ppf=ppf, a=0
@@ -343,6 +354,29 @@ class RandMeth(Generator):
             # get spatial samples by multiplying sphere samples and radii
             self._cov_sample = rad * sph_crd
 
+    def _sampling_method(self, model=None, sampling=None):
+        """Sampling method for the given model and sampling strategy.
+
+        By default, the current model and sampling strategy are used.
+        With ``sampling="auto"``, inversion is used if the model provides a
+        ppf, direct sampling if the model provides ``spectral_rvs``, and mcmc
+        sampling otherwise.
+        """
+        model = self.model if model is None else model
+        sampling = self.sampling if sampling is None else sampling
+        if sampling == "direct" and not model.has_spectral_rvs:
+            raise ValueError(
+                f"RandMeth: the spectral density of the {model.name} "
+                "model can't be sampled directly, use another sampling."
+            )
+        if sampling != "auto":
+            return sampling
+        if model.has_ppf:
+            return "inversion"
+        if model.has_spectral_rvs:
+            return "direct"
+        return "mcmc"
+
     @property
     def sampling(self):
         """:class:`str`: Sampling strategy."""
@@ -350,8 +384,11 @@ class RandMeth(Generator):
 
     @sampling.setter
     def sampling(self, sampling):
-        if sampling not in ["auto", "inversion", "mcmc"]:
+        if sampling not in SAMPLING:
             raise ValueError(f"RandMeth: sampling not in {SAMPLING}.")
+        if self._model is not None:
+            # check that the current model can be sampled this way
+            self._sampling_method(sampling=sampling)
         self._sampling = sampling
 
     @property
@@ -423,6 +460,11 @@ class IncomprRandMeth(RandMeth):
             * "auto": select best strategy depending on given model
             * "inversion": use inversion method
             * "mcmc": use mcmc sampling
+            * "direct": draw the wave vectors directly from the spectral
+              density (if the model provides ``spectral_rvs``)
+
+        "auto" uses inversion if the model provides a ppf, direct sampling
+        if available and mcmc sampling otherwise.
 
     **kwargs
         Placeholder for keyword-args

@@ -45,3 +45,9 @@ model.plot("spectral_density", ax=ax)
 #
 #    The attributes :any:`CovModel.has_cdf`
 #    and :any:`CovModel.has_ppf` will check for that.
+#
+#    If the spectral density is a known multivariate distribution, the
+#    wave vectors can also be drawn directly by defining a method
+#    ``spectral_rvs(size, rng)``, which returns an array of shape
+#    ``(dim, size)``. This is done for the Gaussian, Exponential and Matérn
+#    models and is checked by :any:`CovModel.has_spectral_rvs`.

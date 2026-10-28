@@ -27,8 +27,9 @@ class TestIncomprRandMeth(unittest.TestCase):
         self.rm_2d = IncomprRandMeth(
             self.cov_model_2d, mode_no=100, seed=self.seed
         )
+        # the 3D reference values below were created with mcmc sampling
         self.rm_3d = IncomprRandMeth(
-            self.cov_model_3d, mode_no=100, seed=self.seed
+            self.cov_model_3d, mode_no=100, seed=self.seed, sampling="mcmc"
         )
 
     def test_unstruct_2d(self):

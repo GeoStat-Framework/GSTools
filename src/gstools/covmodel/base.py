@@ -568,6 +568,10 @@ class CovModel:
         """State if a ppf is defined with 'spectral_rad_ppf'."""
         return hasattr(self, "spectral_rad_ppf")
 
+    def _has_spectral_rvs(self):
+        """State if wave vectors can be drawn with 'spectral_rvs'."""
+        return hasattr(self, "spectral_rvs")
+
     # spatial routines
 
     def isometrize(self, pos):
@@ -1076,6 +1080,17 @@ class CovModel:
     def has_ppf(self):
         """:class:`bool`: State if a ppf is defined by the user."""
         return self._has_ppf()
+
+    @property
+    def has_spectral_rvs(self):
+        """:class:`bool`: State if wave vectors can be drawn directly.
+
+        This is the case if the model defines a method ``spectral_rvs``.
+        Like ``spectral_rad_ppf``, it is inherited by subclasses, so a
+        subclass with a different correlation function needs to override
+        ``spectral_rvs`` or ``_has_spectral_rvs``.
+        """
+        return self._has_spectral_rvs()
 
     @property
     def sill(self):

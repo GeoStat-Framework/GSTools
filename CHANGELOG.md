@@ -23,6 +23,10 @@ All notable changes to **GSTools** will be documented in this file.
   - benchmark results posted as PR comments with Mann-Whitney U statistical test
   - cumulative benchmark history published to GitHub Pages for
     benchmark-relevant changes on main
+- add sampling strategy `"direct"` to `RandMeth`, which draws the wave vectors directly from the multivariate spectral density [#425](https://github.com/GeoStat-Framework/GSTools/issues/425)
+  - covariance models can provide this with a `spectral_rvs(size, rng)` method, checked by `CovModel.has_spectral_rvs`; added for the `Gaussian` (multivariate normal), `Exponential` (multivariate Cauchy) and `Matern` (multivariate t) models, in any dimension
+  - `sampling="auto"` now uses inversion if a ppf is given, direct sampling if available and mcmc otherwise
+  - fields with `sampling="auto"` therefore change for a given seed for the `Matern` model and for the `Gaussian` and `Exponential` models with `dim` of 3 or more, which were sampled by mcmc before; for heavy-tailed spectra (`Exponential`, `Matern` with small `nu`) the mcmc sampling gave too little variance at small scales
 
 ## [1.7.0] - Morphic Mint - 2025-04
 

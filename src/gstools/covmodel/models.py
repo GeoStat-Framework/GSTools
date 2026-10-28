@@ -179,6 +179,31 @@ class Gaussian(CovModel):
             return 2.0 / self.len_rescaled * np.sqrt(-np.log(1.0 - u))
         return None  # pragma: no cover
 
+    def spectral_rvs(self, size, rng):
+        r"""Draw wave vectors from the Gaussian spectral density.
+
+        The spectral density is a multivariate normal distribution:
+
+        .. math:: \mathbf{k} = \frac{\sqrt{2}}{\ell_s}\mathbf{z},
+           \quad \mathbf{z}\sim N(0, I_n)
+
+        with the rescaled length :math:`\ell_s`.
+
+        Parameters
+        ----------
+        size : :class:`int`
+            Number of wave vectors.
+        rng : :any:`numpy.random.RandomState`
+            Random number generator.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Wave vectors with shape (dim, size).
+        """
+        z = rng.standard_normal((self.dim, size))
+        return np.sqrt(2.0) / self.len_rescaled * z
+
     def _has_cdf(self):
         return self.dim in [1, 2, 3]
 
@@ -265,6 +290,34 @@ class Exponential(CovModel):
             )
             return np.sqrt(u_power - 1.0) / self.len_rescaled
         return None  # pragma: no cover
+
+    def spectral_rvs(self, size, rng):
+        r"""Draw wave vectors from the Exponential spectral density.
+
+        The spectral density is a multivariate Cauchy distribution
+        (a multivariate t distribution with one degree of freedom):
+
+        .. math:: \mathbf{k} = \frac{1}{\ell_s}
+           \frac{\mathbf{z}}{\sqrt{u}},
+           \quad \mathbf{z}\sim N(0, I_n),\ u\sim\chi^2_1
+
+        with the rescaled length :math:`\ell_s`.
+
+        Parameters
+        ----------
+        size : :class:`int`
+            Number of wave vectors.
+        rng : :any:`numpy.random.RandomState`
+            Random number generator.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Wave vectors with shape (dim, size).
+        """
+        z = rng.standard_normal((self.dim, size))
+        u = rng.chisquare(1.0, size)
+        return z / np.sqrt(u) / self.len_rescaled
 
     def _has_cdf(self):
         return self.dim in [1, 2, 3]
@@ -457,6 +510,40 @@ class Matern(CovModel):
             - sps.loggamma(self.nu)
             - self.dim * np.log(np.sqrt(self.nu))
         )
+
+    def spectral_rvs(self, size, rng):
+        r"""Draw wave vectors from the Matérn spectral density.
+
+        The spectral density is a multivariate t distribution with
+        :math:`2\nu` degrees of freedom:
+
+        .. math:: \mathbf{k} = \frac{1}{\ell_s}
+           \sqrt{\frac{\nu}{u}}\,\mathbf{z},
+           \quad \mathbf{z}\sim N(0, I_n),\ u\sim\chi^2_{2\nu}
+
+        with the rescaled length :math:`\ell_s`.
+        For :math:`\nu > 20` the Gaussian limit is used, as in ``cor``.
+        Note that ``spectral_density`` uses a corrected approximation in
+        this case, which is not exactly the spectral density of ``cor``.
+
+        Parameters
+        ----------
+        size : :class:`int`
+            Number of wave vectors.
+        rng : :any:`numpy.random.RandomState`
+            Random number generator.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Wave vectors with shape (dim, size).
+        """
+        z = rng.standard_normal((self.dim, size))
+        # for nu > 20 the correlation is exp(-(h/2)^2), see 'cor'
+        if self.nu > 20.0:
+            return z / (np.sqrt(2.0) * self.len_rescaled)
+        u = rng.chisquare(2.0 * self.nu, size)
+        return np.sqrt(self.nu / u) * z / self.len_rescaled
 
     def calc_integral_scale(self):  # noqa: D102
         return (

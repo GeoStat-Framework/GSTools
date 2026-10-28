@@ -14,7 +14,7 @@ class TestVariogramUnstructured(unittest.TestCase):
         model = gs.Exponential(dim=3, len_scale=[12, 6, 3])
         x = y = z = range(10)
         self.pos = (x, y, z)
-        srf = gs.SRF(model, seed=123456)
+        srf = gs.SRF(model, seed=123456, sampling="mcmc")
         self.field = srf((x, y, z), mesh_type="structured")
 
     def test_doubles(self):

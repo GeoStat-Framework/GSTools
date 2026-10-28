@@ -395,6 +395,34 @@ class TestCovModel(unittest.TestCase):
         self.assertTrue(np.isinf(Gaussian(var=0.0).roughness))
         self.assertAlmostEqual(Gau_cor().roughness, 2.0, places=2)
 
+    def test_spectral_rvs(self):
+        # the correlation is the characteristic function of the spectral
+        # density: cor(|h|) = E[cos(<k, h>)]
+        lags = np.array([0.5, 1.0, 2.0, 4.0])
+        for dim in [1, 2, 3, 5]:
+            # lag direction along the diagonal, to use all components of k
+            direction = np.ones(dim) / np.sqrt(dim)
+            models = [
+                Gaussian(dim=dim, len_scale=2.0),
+                Exponential(dim=dim, len_scale=2.0),
+                Matern(dim=dim, nu=0.5, len_scale=2.0),
+                Matern(dim=dim, nu=1.5, len_scale=2.0),
+                Matern(dim=dim, nu=25, len_scale=2.0),
+            ]
+            for model in models:
+                self.assertTrue(model.has_spectral_rvs)
+                rng = np.random.RandomState(20251027)
+                k = model.spectral_rvs(200000, rng)
+                self.assertEqual(k.shape, (dim, 200000))
+                k_dir = direction @ k
+                cor = [np.mean(np.cos(k_dir * h)) for h in lags]
+                np.testing.assert_allclose(
+                    cor, model.correlation(lags), atol=0.01
+                )
+        # models without a direct sampler
+        self.assertFalse(Stable(dim=2).has_spectral_rvs)
+        self.assertFalse(Gau_var(dim=2).has_spectral_rvs)
+
     def test_rescale(self):
         model1 = Exponential()
         model2 = Exponential(rescale=2.1)

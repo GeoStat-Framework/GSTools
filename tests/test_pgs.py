@@ -81,15 +81,15 @@ class TestPGS(unittest.TestCase):
         pos = [np.arange(n1), np.arange(n2), np.arange(n3)]
 
         model1 = gs.Gaussian(dim=3, var=1, len_scale=10)
-        srf1 = gs.SRF(model1, seed=20170519)
+        srf1 = gs.SRF(model1, seed=20170519, sampling="mcmc")
         field1 = srf1.structured(pos)
 
         model2 = gs.Gaussian(dim=3, var=5, len_scale=20)
-        srf2 = gs.SRF(model2, seed=20160519)
+        srf2 = gs.SRF(model2, seed=20160519, sampling="mcmc")
         field2 = srf2.structured(pos)
 
         model3 = gs.Gaussian(dim=3, var=0.1, len_scale=5)
-        srf3 = gs.SRF(model3, seed=20191219)
+        srf3 = gs.SRF(model3, seed=20191219, sampling="mcmc")
         field3 = srf3.structured(pos)
 
         # create rectangle in middle of L
