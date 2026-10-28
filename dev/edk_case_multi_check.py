@@ -23,7 +23,7 @@ from pathlib import Path
 import numpy as np
 
 import gstools as gs
-from local_kriging_multi_numpy import CACHE_MODES, local_krige_multi
+from local_kriging_multi_numpy import CACHE_MODES, RUST_AVAILABLE, local_krige_multi
 
 DEFAULT_COMPARISON = Path(__file__).resolve().parents[2] / "edk_gstools_comparison"
 
@@ -71,29 +71,37 @@ def main():
                                           local_radius=opt["max_dist"])
         drift_kw = {}
 
+    backends = ["python"] + (["rust"] if RUST_AVAILABLE else [])
     results = {}
-    print(f"\n{'cache':<6} {'solves':>8} {'hits last':>10} {'hits hash':>10} "
-          f"{'skipped':>8} {'masks/target':>13} {'time [s]':>9}")
-    for cache in CACHE_MODES:
-        t0 = time.perf_counter()
-        field_m, info = local_krige_multi(
-            template, targets, case.sta_val, return_var=False,
-            min_neighbors=3, cache=cache, return_info=True, **drift_kw,
-        )
-        dt = time.perf_counter() - t0
-        results[cache] = field_m
-        print(f"{cache:<6} {info['n_solves']:>8} {info['n_hits_last']:>10} "
-              f"{info['n_hits_hash']:>10} {info['n_skipped']:>8} "
-              f"{info['max_masks_per_target']:>13} {dt:>9.3f}")
-    print("(multi times are pure NumPy, the day-by-day kriging runs in Rust)")
+    print(f"\n{'backend':<7} {'cache':<6} {'solves':>8} {'hits last':>10} "
+          f"{'hits hash':>10} {'skipped':>8} {'masks/target':>13} {'time [s]':>9}")
+    for backend in backends:
+        for cache in CACHE_MODES:
+            t0 = time.perf_counter()
+            field_m, info = local_krige_multi(
+                template, targets, case.sta_val, return_var=False,
+                min_neighbors=3, cache=cache, return_info=True,
+                backend=backend, **drift_kw,
+            )
+            dt = time.perf_counter() - t0
+            results[backend, cache] = field_m
+            print(f"{backend:<7} {cache:<6} {info['n_solves']:>8} "
+                  f"{info['n_hits_last']:>10} {info['n_hits_hash']:>10} "
+                  f"{info['n_skipped']:>8} {info['max_masks_per_target']:>13} "
+                  f"{dt:>9.4f}")
 
-    # cache modes must not change the result
-    for cache in ("last", "hash"):
-        np.testing.assert_array_equal(results[cache], results["none"])
+    # cache modes must not change the result, backends only by rounding
+    for backend in backends:
+        for cache in ("last", "hash"):
+            np.testing.assert_array_equal(results[backend, cache],
+                                          results[backend, "none"])
+    if "rust" in backends:
+        d = np.nanmax(np.abs(results["rust", "hash"] - results["python", "hash"]))
+        print(f"\nrust vs python: max |diff| = {d:.3e}")
 
     # --- combine with EDK special cases and compare ----------------------
     field_multi = np.full_like(field_day, np.nan)
-    field_multi[:, valid] = results["hash"]
+    field_multi[:, valid] = results[backends[-1], "hash"]
     if opt["correct_neg"]:
         field_multi[field_multi < 0] = 0.0
     diff = np.abs(field_multi - field_day)[krige_mask]

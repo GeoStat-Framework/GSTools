@@ -34,7 +34,42 @@ from scipy.spatial.distance import cdist
 
 from local_kriging_numpy import _calc_cond_drift, _calc_target_drift
 
+try:
+    from gstools_core import (
+        calc_field_krige_local_multi as calc_field_krige_local_multi_gsc,
+    )
+    from gstools.krige.local import _cov_model_to_json
+
+    RUST_AVAILABLE = True
+except ImportError:
+    RUST_AVAILABLE = False
+
 CACHE_MODES = ("none", "last", "hash")
+BACKENDS = ("auto", "rust", "python")
+
+
+def calc_field_krige_local_multi(*args, backend="auto", **kwargs):
+    """
+    Dispatch to the Rust implementation (GSTools-Core) or the NumPy
+    stand-in. Same arguments and returns as
+    :any:`calc_field_krige_local_multi_python`.
+    """
+    if backend not in BACKENDS:
+        raise ValueError(f"backend must be one of {BACKENDS}, got '{backend}'")
+    if backend == "python" or (backend == "auto" and not RUST_AVAILABLE):
+        return calc_field_krige_local_multi_python(*args, **kwargs)
+    if not RUST_AVAILABLE:
+        raise ImportError("gstools_core.calc_field_krige_local_multi not available")
+    names = (
+        "cond_pos", "cond_val", "target_pos", "model", "cond_err", "drift_cond",
+        "drift_target", "unbiased", "exact", "local_radius",
+    )
+    kwargs.update(zip(names, args))
+    kwargs["cov_model_json"] = _cov_model_to_json(kwargs.pop("model"))
+    for name in ("cond_pos", "cond_val", "target_pos", "cond_err", "drift_cond", "drift_target"):
+        kwargs[name] = np.asarray(kwargs[name], dtype=np.double)
+    field, error, n_used, stats = calc_field_krige_local_multi_gsc(**kwargs)
+    return field, error, n_used.astype(np.int64), stats
 
 
 def local_krige_multi(
@@ -48,6 +83,8 @@ def local_krige_multi(
     min_neighbors=1,
     cache="hash",
     return_info=False,
+    backend="auto",
+    num_threads=None,
 ):
     """
     Evaluate local kriging for many fields sharing the same conditioning
@@ -84,6 +121,11 @@ def local_krige_multi(
         Only for comparison in this prototype. Default: "hash"
     return_info : :class:`bool`, optional
         Also return ``n_used`` (shape like the field) and the solve stats.
+    backend : :class:`str`, optional
+        "rust" (GSTools-Core), "python" (NumPy stand-in) or "auto"
+        (Rust if available). Default: "auto"
+    num_threads : :class:`int` or :any:`None`, optional
+        Threads for the Rust backend. Default: rayon's global pool
 
     Returns
     -------
@@ -130,10 +172,10 @@ def local_krige_multi(
     drift_target = _calc_target_drift(krige, iso_targ, ext_drift, pnt_cnt)
 
     # ================================================================
-    # RUST BOUNDARY: in production this becomes a single call to
-    #   gstools_core.calc_field_krige_local_multi(...)
+    # RUST BOUNDARY: gstools_core.calc_field_krige_local_multi(...)
+    # (or the NumPy stand-in, see `backend`)
     # ================================================================
-    field, error, n_used, stats = calc_field_krige_local_multi_python(
+    field, error, n_used, stats = calc_field_krige_local_multi(
         cond_pos=iso_cond,
         cond_val=val,
         target_pos=iso_targ,
@@ -146,6 +188,8 @@ def local_krige_multi(
         local_radius=local_radius,
         min_neighbors=min_neighbors,
         cache=cache,
+        num_threads=num_threads,
+        backend=backend,
     )
     # ================================================================
     # END RUST BOUNDARY

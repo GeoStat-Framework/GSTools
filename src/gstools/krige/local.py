@@ -271,7 +271,7 @@ class LocalKrige(Krige):
         ext_drift = self._pre_ext_drift(pnt_cnt, ext_drift)
         drift_target = self._calc_target_drift(iso_targ, ext_drift, pnt_cnt)
 
-        # call the local kriging routine (Rust or NumPy fallback)
+        # call the local kriging routine (Rust)
         field, error = _calc_field_krige_local(
             cond_pos=self._krige_pos,
             cond_val=cond_val,

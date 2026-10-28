@@ -16,6 +16,8 @@ from scipy.spatial import cKDTree
 
 import gstools as gs
 from local_kriging_multi_numpy import (
+    RUST_AVAILABLE,
+    calc_field_krige_local_multi,
     calc_field_krige_local_multi_python,
     local_krige_multi,
 )
@@ -42,6 +44,11 @@ MODEL = gs.Exponential(dim=2, var=1.5, len_scale=3, nugget=0.1)
 
 # (unbiased, use external drift): simple, ordinary, external drift kriging
 SETUPS = [(False, False), (True, False), (True, True)]
+
+needs_rust = pytest.mark.skipif(
+    not RUST_AVAILABLE, reason="GSTools-Core without calc_field_krige_local_multi"
+)
+BACKENDS = ["python", pytest.param("rust", marks=needs_rust)]
 
 
 def run_multi(cond_pos, cond_val, target_pos, drift_cond, drift_target,
@@ -126,13 +133,16 @@ def test_min_neighbors_gives_nan():
     assert stats["n_skipped"] == target_pos.shape[1]
 
 
-def test_wrapper_ext_drift_matches_global_per_day():
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_wrapper_ext_drift_matches_global_per_day(backend):
     cond_pos, cond_val, target_pos, d_cond, d_targ = make_data()
     template = gs.krige.LocalExtDrift(
         MODEL, cond_pos, np.zeros(cond_pos.shape[1]),
         local_radius=FULL_RADIUS, ext_drift=d_cond[0],
     )
-    field, var = local_krige_multi(template, target_pos, cond_val, ext_drift=d_targ[0])
+    field, var = local_krige_multi(
+        template, target_pos, cond_val, ext_drift=d_targ[0], backend=backend
+    )
     assert field.shape == (cond_val.shape[1], target_pos.shape[1])
     for t in range(cond_val.shape[1]):
         avail = np.isfinite(cond_val[:, t])
@@ -144,13 +154,16 @@ def test_wrapper_ext_drift_matches_global_per_day():
         np.testing.assert_allclose(var[t], v_ref, rtol=1e-6, atol=1e-8)
 
 
-def test_wrapper_simple_with_mean_matches_global_per_day():
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_wrapper_simple_with_mean_matches_global_per_day(backend):
     cond_pos, cond_val, target_pos, _, _ = make_data()
     template = gs.krige.LocalSimple(
         MODEL, cond_pos, np.zeros(cond_pos.shape[1]),
         local_radius=FULL_RADIUS, mean=0.3,
     )
-    field = local_krige_multi(template, target_pos, cond_val, return_var=False)
+    field = local_krige_multi(
+        template, target_pos, cond_val, return_var=False, backend=backend
+    )
     for t in range(cond_val.shape[1]):
         avail = np.isfinite(cond_val[:, t])
         ref = gs.krige.Simple(MODEL, cond_pos[:, avail], cond_val[avail, t], mean=0.3)
@@ -164,3 +177,41 @@ def test_wrapper_rejects_template_without_all_stations():
     template = gs.krige.LocalOrdinary(MODEL, cond_pos, first_day, local_radius=RADIUS)
     with pytest.raises(ValueError, match="holds every station"):
         local_krige_multi(template, target_pos, cond_val)
+
+
+@needs_rust
+@pytest.mark.parametrize("cache", ["none", "last", "hash"])
+@pytest.mark.parametrize("exact", [False, True])
+@pytest.mark.parametrize("unbiased, ext", SETUPS)
+def test_rust_matches_python(unbiased, ext, exact, cache):
+    cond_pos, cond_val, target_pos, d_cond, d_targ = make_data()
+    if not ext:
+        d_cond, d_targ = d_cond[:0], d_targ[:0]
+    args = (
+        cond_pos, cond_val, target_pos, MODEL, np.full(cond_pos.shape[1], MODEL.nugget),
+        d_cond, d_targ, unbiased, exact, RADIUS,
+    )
+    f_py, e_py, n_py, s_py = calc_field_krige_local_multi(
+        *args, min_neighbors=2, cache=cache, backend="python"
+    )
+    f_rs, e_rs, n_rs, s_rs = calc_field_krige_local_multi(
+        *args, min_neighbors=2, cache=cache, backend="rust"
+    )
+    np.testing.assert_allclose(f_rs, f_py, rtol=1e-10, atol=1e-12)
+    np.testing.assert_allclose(e_rs, e_py, rtol=1e-10, atol=1e-12)
+    np.testing.assert_array_equal(n_rs, n_py)
+    assert s_rs == s_py
+
+
+@needs_rust
+def test_rust_rejects_bad_input():
+    cond_pos, cond_val, target_pos, d_cond, d_targ = make_data()
+    n = cond_pos.shape[1]
+    args = (cond_pos, cond_val[:-1], target_pos, MODEL, np.full(n, 0.1),
+            d_cond, d_targ, True, False, RADIUS)
+    with pytest.raises(ValueError, match="cond_val has"):
+        calc_field_krige_local_multi(*args, backend="rust")
+    args = (cond_pos, cond_val, target_pos, MODEL, np.full(n, 0.1),
+            d_cond, d_targ, True, False, RADIUS)
+    with pytest.raises(ValueError, match="unknown cache mode"):
+        calc_field_krige_local_multi(*args, cache="lru", backend="rust")
