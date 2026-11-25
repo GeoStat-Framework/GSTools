@@ -1,0 +1,277 @@
+{
+  "domain": {
+    "nx": 64,
+    "ny": 64,
+    "nz": 8,
+    "x0": 224,
+    "y0": 217,
+    "z0": 24
+  },
+  "facies_proportions": {
+    "0": 0.68194580078125,
+    "1": 0.1978302001953125,
+    "2": 0.025390625,
+    "3": 0.0796661376953125,
+    "4": 0.0,
+    "5": 0.015167236328125
+  },
+  "hashes": {
+    "counts_sha256": "618dc9c31ae94b247a5a889503bee9c8deebd39b7f15f2e94f5c82775a28f819",
+    "first_realization_sha256": "d2b2a398a590c57896f0cae0d44cab18a1dd37187620d722961b868e17a4c28e"
+  },
+  "label": "with_vertical_sampling",
+  "mode": "small",
+  "paper_comparison": {
+    "entropy_mean_abs_diff": 0.28926047628064155,
+    "entropy_rmse": 0.3487569303809191,
+    "probability_mean_abs_diff_by_facies": {
+      "0": 0.3597589111328125,
+      "1": 0.32395812988281253,
+      "2": 0.0351568603515625,
+      "3": 0.1327557373046875,
+      "4": 9.94873046875e-05,
+      "5": 0.019695434570312503
+    },
+    "probability_rmse_by_facies": {
+      "0": 0.4294753027177829,
+      "1": 0.3903537964792725,
+      "2": 0.11982067696731749,
+      "3": 0.2064995235409909,
+      "4": 0.001410583600411546,
+      "5": 0.08949258818384766
+    }
+  },
+  "realization_diagnostics": [
+    {
+      "facies_counts": {
+        "0": 23028,
+        "1": 5884,
+        "2": 796,
+        "3": 2575,
+        "5": 485
+      },
+      "hard_conditions_per_layer": [
+        30,
+        10,
+        30,
+        10,
+        30,
+        10,
+        30,
+        10
+      ],
+      "next_vertical_conditions_per_layer": [
+        7,
+        8,
+        14,
+        8,
+        12,
+        8,
+        8,
+        9
+      ],
+      "seed": 202010,
+      "vertical_sampling": true
+    },
+    {
+      "facies_counts": {
+        "0": 21664,
+        "1": 7081,
+        "2": 868,
+        "3": 2646,
+        "5": 509
+      },
+      "hard_conditions_per_layer": [
+        30,
+        10,
+        30,
+        10,
+        30,
+        10,
+        30,
+        10
+      ],
+      "next_vertical_conditions_per_layer": [
+        9,
+        14,
+        14,
+        13,
+        14,
+        8,
+        6,
+        9
+      ],
+      "seed": 302010,
+      "vertical_sampling": true
+    }
+  ],
+  "reproducibility_check": {
+    "enabled": false
+  },
+  "settings": {
+    "boundary": "partial",
+    "cond_weight": 1.0,
+    "facies_neighbors": 24,
+    "max_radius": 20.0,
+    "max_successive_layers": 6,
+    "num_threads": 4,
+    "path": "random",
+    "realizations": 2,
+    "rotation_map": "mean",
+    "scan_fraction": 0.75,
+    "seed": 202010,
+    "threshold": 0.05,
+    "trend_neighbors": 5,
+    "vertical_facies": [
+      1,
+      2,
+      4
+    ],
+    "vertical_sample_rate": 0.01,
+    "vertical_sampling": true,
+    "z_origin": -201.0
+  },
+  "source": {
+    "archive": "/private/tmp/roussillon_mps_2020_dallalba.zip",
+    "dataset": "https://doi.org/10.5281/zenodo.4110278",
+    "paper": "https://hess.copernicus.org/articles/24/4997/2020/"
+  },
+  "vertical_run_histograms": [
+    {
+      "0": [
+        0,
+        2672,
+        2023,
+        911,
+        752,
+        784,
+        284,
+        255,
+        395
+      ],
+      "1": [
+        0,
+        3055,
+        946,
+        173,
+        67,
+        30,
+        0,
+        0,
+        0
+      ],
+      "2": [
+        0,
+        487,
+        60,
+        27,
+        27,
+        0,
+        0,
+        0,
+        0
+      ],
+      "3": [
+        0,
+        2086,
+        188,
+        27,
+        8,
+        0,
+        0,
+        0,
+        0
+      ],
+      "4": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "5": [
+        0,
+        434,
+        24,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "0": [
+        0,
+        2878,
+        1602,
+        1749,
+        720,
+        485,
+        300,
+        186,
+        241
+      ],
+      "1": [
+        0,
+        2671,
+        1304,
+        355,
+        139,
+        35,
+        1,
+        0,
+        0
+      ],
+      "2": [
+        0,
+        746,
+        58,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "3": [
+        0,
+        2106,
+        198,
+        44,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      "4": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "5": [
+        0,
+        429,
+        40,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

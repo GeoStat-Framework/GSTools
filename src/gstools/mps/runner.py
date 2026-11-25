@@ -2,7 +2,7 @@
 
 Drives a node visit order — the main simulation path or one post-processing
 pass — either serially or in parallel over a dependency DAG (deterministic
-regardless of thread count), plus the optional progress display. Pure stdlib +
+regardless of thread count). Pure stdlib +
 NumPy; no TrainingImage, no engine import.
 """
 
@@ -23,22 +23,30 @@ def _build_dag_base(
     pos_map=None,
     nb_cache=None,
 ):
-    """Unified dependency-DAG builder for both univariate and multivariate DS.
+    """Build the dependency DAG of one pass (one key per variable).
 
     Parameters
     ----------
+    path : numpy.ndarray, shape (N, dim)
+        The pass's visit order.
+    sim_shape : tuple of int
+        Simulation grid shape.
+    offset_arr : numpy.ndarray, shape (M, dim)
+        Distance-sorted neighbour offsets (:func:`neighbors._precompute_offsets`).
     vmap_dict : dict of {key: numpy.ndarray}
-        One position map per key.  For univariate DS pass ``{"": path_pos_map}``.
+        One position map per key (the variable name).
     n_k_dict : dict of {key: int}
         Maximum neighbours per key, matching ``vmap_dict``.
+    max_radius : float or None, optional
+        Shared neighbour radius (see Notes); ``None`` → unlimited.
     pos_map : numpy.ndarray of numpy.intp or None, optional
         Flat-cell → index in ``path`` (``-1`` for cells absent from it), used
         **only** to orient edges.  ``None`` (default, main simulation path)
         takes the orientation from the gating index returned by
         :func:`neighbors._select_neighbors`, which is what the serial path
-        uses.  Pass it when ``vmap_dict`` no longer carries visit order —
+        uses.  Pass it when ``vmap_dict`` does not carry the visit order —
         i.e. for a post-processing pass, whose all-``-1`` vmap makes every
-        informed cell available (Me13 §4 "fully informed neighbourhood") and
+        informed cell available (Meerschman2013 §4 "fully informed neighbourhood") and
         therefore returns no usable ordering information.  See Notes.
     nb_cache : dict or None, optional
         Cell-ordered neighbour lists shared by the post-processing passes of
@@ -47,6 +55,7 @@ def _build_dag_base(
         lists from it instead of calling ``_select_neighbors``.  Exact because
         an all-``-1`` vmap with ``informed=None`` makes a cell's list depend
         on the cell alone.  ``None`` (default) disables it.
+
     Returns
     -------
     indegree : dict of {key: numpy.ndarray of int32, shape (N,)}
@@ -63,15 +72,16 @@ def _build_dag_base(
         ``_gather_neighborhood`` unravels them back to ``(m, dim)`` coordinates.
 
         Stored flat rather than as a list of ``N`` dicts of ``(m, dim)`` arrays
-        because that shape dominates memory on large grids: one int32 cell
-        index replaces ``dim`` int64 coordinates, and the fixed stride removes
-        the per-node dict/ndarray object overhead entirely.
+        because that shape dominates memory on large grids: one cell index
+        (int32 below 2**31 cells, else ``intp``) replaces ``dim`` int64
+        coordinates, and the fixed stride removes the per-node dict/ndarray
+        object overhead.
 
         Selection uses the shared (global) ``max_radius`` -- a superset of any
         variable's own, possibly smaller, radius. The parallel engine reuses
         these directly for the DAG edges, but ``_gather_neighborhood`` must
         re-filter them by each variable's own radius before use; because
-        ``_select_neighbors`` scans ``offset_arr`` in strictly increasing
+        ``_select_neighbors`` scans ``offset_arr`` in non-decreasing
         distance order, that filtered result is bit-identical to what a second,
         per-variable ``_select_neighbors`` call would have produced.
 
@@ -109,8 +119,7 @@ def _build_dag_base(
     N = len(path)
     sim_shape_arr = np.array(sim_shape)
 
-    # Flat cell indices fit int32 for any grid under 2**31 cells, which is
-    # every grid the pure-Python engine can traverse in practice.
+    # Flat cell indices fit int32 for any grid under 2**31 cells.
     n_cells = int(np.prod(sim_shape))
     flat_dt = np.int32 if n_cells < 2**31 else np.intp
 
@@ -225,65 +234,12 @@ def _build_dag_base(
     return indegree, out_edges, coord_cache
 
 
-def _make_progress(progress, total, desc):
-    """Build ``(update, close)`` callbacks for an optional progress display.
-
-    Parameters
-    ----------
-    progress : bool or callable or None
-        ``None``/``False`` disables it. ``True`` prints the percentage at 5 %
-        steps on a single overwritten line (no third-party dependency). A
-        callable is invoked as ``progress(n_done, total)`` once per completed
-        simulation node.
-    total : int
-        Number of nodes that will be simulated (``len(path)``).
-    desc : str
-        Short label for the progress line (e.g. ``"DS"``).
-
-    Returns
-    -------
-    update : callable
-        Call (no arguments) once per completed node.
-    close : callable
-        Call once when the simulation finishes.
-    """
-    if not progress or total <= 0:
-        return (lambda: None), (lambda: None)
-    if callable(progress):
-        state = {"done": 0}
-
-        def update():
-            state["done"] += 1
-            progress(state["done"], total)
-
-        return update, (lambda: None)
-    # Dependency-free progress: overwrite a single line at 5 % steps.
-    state = {"done": 0, "last": -1}
-
-    def update():
-        state["done"] += 1
-        pct = 5 * (state["done"] * 20 // total)
-        if pct != state["last"]:
-            state["last"] = pct
-            print(
-                f"\r{desc}: {pct:3d}% ({state['done']}/{total})",
-                end="",
-                flush=True,
-            )
-
-    def close():
-        print()
-
-    return update, close
-
-
 def _run_path(
     path,
     u_start,
     u_fallback,
     simulate_fn,
     write_fn,
-    update_fn,
     executor,
     offset_arr,
     vmap,
@@ -310,8 +266,6 @@ def _run_path(
     write_fn : callable
         ``write_fn(node_tuple, result)`` → None.  Writes the result dict
         into the simulation grid and marks the node informed.
-    update_fn : callable
-        ``update_fn()`` → None.  Called once per completed node (progress).
     executor : concurrent.futures.ThreadPoolExecutor or None
         If not ``None``, nodes are dispatched in parallel over the DAG built
         by :func:`_build_dag_base`.  ``None`` → strictly serial execution.
@@ -330,10 +284,10 @@ def _run_path(
         ``on_cache_ready(coord_cache)`` immediately after :func:`_build_dag_base`
         returns and before any futures are submitted.  ``coord_cache[key]`` is
         the ``(flat_buf, counts, stride)`` triple of pre-selected neighbour cell
-        indices for variable ``key`` from the DAG pass.  The engine stores it as
-        ``self._neighbor_cache`` so :meth:`_gather_neighborhood` can skip the
-        redundant ``_select_neighbors`` call on the parallel path.  ``None`` in
-        serial mode (no DAG built, no cache).
+        indices for variable ``key`` from the DAG pass.  The engine stores it
+        in ``pss.neighbor_cache["coords"]`` so ``_gather_neighborhood`` can skip
+        the redundant ``_select_neighbors`` call on the parallel path.  Never
+        called in serial mode (no DAG built, no cache).
     pos_map : numpy.ndarray of numpy.intp or None, optional
         Forwarded to :func:`_build_dag_base` to orient edges by visit position
         rather than by ``vmap``'s gating index.  Required for a
@@ -348,9 +302,7 @@ def _run_path(
     Drives both the main simulation path and every post-processing pass; the
     two differ only in the ``vmap``/``pos_map`` pair they hand in (main:
     order-gated reads, orientation from the gate; post-pass: fully informed
-    reads, orientation from ``pos_map``).  Note that syn-processing — which
-    re-opens *already-decided* nodes mid-path rather than after it — is not
-    expressible this way and would need its own dispatcher.
+    reads, orientation from ``pos_map``).
     """
     variables = list(vmap)
 
@@ -394,7 +346,6 @@ def _run_path(
             i, result = done_q.get().result()
             counts["done"] += 1
             write_fn(tuple(int(c) for c in path[i]), result)
-            update_fn()
             lo_e, hi_e = out_indptr[i], out_indptr[i + 1]
             for j, k_id in zip(
                 out_targets[lo_e:hi_e].tolist(), out_keys[lo_e:hi_e].tolist()
@@ -406,4 +357,3 @@ def _run_path(
         for i in range(len(path)):
             result = simulate_fn(i, path[i], u_start[i], u_fallback[i])
             write_fn(tuple(int(c) for c in path[i]), result)
-            update_fn()

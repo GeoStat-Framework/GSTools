@@ -1,0 +1,75 @@
+{
+  "status": "passed",
+  "input_sha256": "c88baaeff13f58539889477180fcf685107dcf78d9e6561308d04f196d1fcc74",
+  "crop": "section[:160, :]",
+  "shape": [
+    160,
+    140
+  ],
+  "spacing_m": 0.05,
+  "categories": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    7,
+    8,
+    9
+  ],
+  "coordinate_convention": "index axes; physical cell-edge plot extent",
+  "seed_contract": "ds-seedsequence-mt19937-v1",
+  "seed": 13,
+  "requested_threads": 2,
+  "controls": {
+    "n_neighbors": 50,
+    "scan_fraction": 0.3,
+    "threshold": 0.05,
+    "scan_path": "random",
+    "path": "random",
+    "post_processing": 1,
+    "cleanup_controls": "inherited defaults",
+    "boundary": "partial",
+    "scale": null,
+    "rotation_degrees": [
+      0.0,
+      -12.0
+    ]
+  },
+  "python": "3.14.6",
+  "numpy": "2.5.4",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "frontend": {
+    "origin": "/private/tmp/ds-release-cleanup-20261022/paired-final/venv/lib/python3.14/site-packages/gstools/__init__.py",
+    "version": "0.0.4.dev122"
+  },
+  "source_checkouts": {
+    "frontend": {
+      "head": "b553a6c0fc0d68c7ea7a34f4c5fb461090e5b791",
+      "dirty": true
+    },
+    "core": {
+      "head": "eb1637bf84c6b67fec5384a314051de87fca1ff8",
+      "dirty": true
+    }
+  },
+  "core": {
+    "origin": "/private/tmp/ds-release-cleanup-20261022/paired-final/venv/lib/python3.14/site-packages/gstools_core/__init__.py",
+    "version": "1.4.0"
+  },
+  "elapsed_seconds": {
+    "stationary": 10.955609541968442,
+    "rotated": 12.987973082927056
+  },
+  "native": {
+    "origin": "/private/tmp/ds-release-cleanup-20261022/paired-final/venv/lib/python3.14/site-packages/gstools_core/gstools_core.abi3.so",
+    "sha256": "24389983ac525290a6e668f34290507c0487f271fadfeb718be795edeab7b6e9",
+    "interface_revision": 7
+  },
+  "outputs": {
+    "herten_nonstationary.npz": "fde0e0154cd3bba7af3f92066a0c0375ee6612638ce28db860904ff1abacd095",
+    "herten_nonstationary.png": "cb38ce2a03ffa1fdf7eb0e90da11a4a540dda11eed6f8c69408a1db95b85d08a"
+  },
+  "example_source_sha256": "1eb6dca0976381cbe580793fdc84e8a8c7f1ae0dcb23d2bb45126a7a53942bfa",
+  "evidence_note": "Full working-tree status and validation logs are retained separately; this gallery manifest records source HEADs and dirty flags."
+}

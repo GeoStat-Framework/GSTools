@@ -34,6 +34,12 @@ def _precompute_offsets(shape, max_offset=None):
     Returns
     -------
     numpy.ndarray, shape (N, dim)
+
+    Raises
+    ------
+    ValueError
+        If the table would hold more than 5 million offsets; set
+        ``max_radius`` on the variables to bound it.
     """
     dim = len(shape)
     half = [
@@ -79,9 +85,10 @@ def _select_neighbors(
     distance-sorted, so slicing the first ``n_neighbors`` survivors yields the
     closest ones.
 
-    Passing ``informed=None`` treats every in-bounds lower-index/conditioning
-    cell as available; this is correct when building the dependency DAG, where
-    all earlier-path nodes are informed by definition.
+    Passing ``informed=None`` treats every in-bounds candidate that passes the
+    path-index test as available; this is correct when building the dependency
+    DAG, where every cell the test admits is informed (earlier-path nodes in
+    the main pass, every cell in a post-pass).
 
     Returns
     -------
@@ -215,7 +222,7 @@ def _transform_lags(lags, M, *arrays):
 def _reduce_to_fit(lags_ti, ti_shape, *arrays):
     """Globally reduce an over-large (transformed) data event to fit the TI.
 
-    Implements Mariethoz2010 para [43]: *"rotation or affinity may result in
+    Implements Mariethoz2010 ¶43: *"rotation or affinity may result in
     large data events that do not fit in the TI. In such cases, the data event
     nodes located outside of the TI are ignored until it becomes possible to
     scan the TI with this new, reduced data event."*
@@ -224,7 +231,7 @@ def _reduce_to_fit(lags_ti, ti_shape, *arrays):
     most-violating dimension — is dropped first and the test repeated, until a
     non-empty TI scan window exists for the reduced event. Nodes are dropped by
     being *outside the TI* (geometry), **regardless of SG neighbour rank**,
-    which is the explicit distinction from :func:`_window_bounds` partial mode
+    which is the explicit distinction from :func:`_window_bounds`
     (furthest-first). The reduction is **global** — computed once per simulation
     node from the transformed lags and the TI shape alone, independent of which
     TI cell is being scanned. The collocated ``h=0`` row is never dropped.
@@ -268,7 +275,7 @@ def _reduce_to_fit(lags_ti, ti_shape, *arrays):
     return (lags_ti[idx],) + tuple(a[idx] for a in arrays)
 
 
-def _window_bounds(lags_ti, ti_shape, boundary):
+def _window_bounds(lags_ti, ti_shape):
     """Compute the TI search window for a set of lag vectors (Mariethoz2010 ¶18, Juda2022 Eq. 5).
 
     h=0 rows (collocated constraints) do not constrain the window — they map
@@ -280,43 +287,22 @@ def _window_bounds(lags_ti, ti_shape, boundary):
         Lag vectors in TI frame (integer-valued float64).  May include h=0 rows.
     ti_shape : numpy.ndarray, shape (dim,)
         TI shape as an integer array.
-    boundary : str
-        ``"strict"`` or ``"partial"``.
 
     Returns
     -------
-    win_lo : numpy.ndarray, shape (dim,), dtype int
-    win_hi : numpy.ndarray, shape (dim,), dtype int
+    win_lo : numpy.ndarray, shape (dim,), dtype int, or None
+    win_hi : numpy.ndarray, shape (dim,), dtype int, or None
     valid_count : int
         Number of lags to use (``lags_ti[:valid_count]``).  ``-1`` signals that
-        no subset of the data event fits inside the TI; the caller should draw a
-        random TI value instead of scanning.
+        no subset of the data event fits inside the TI (``win_lo`` and
+        ``win_hi`` are then ``None``); the caller should draw a random TI value
+        instead of scanning.
     """
     ti_shape_arr = np.asarray(ti_shape, dtype=int)
     dim = len(ti_shape_arr)
     nz = np.flatnonzero(np.any(lags_ti != 0, axis=1))
     if not len(nz):
         return np.zeros(dim, dtype=int), ti_shape_arr - 1, len(lags_ti)
-
-    lags_nz = lags_ti[nz]
-    if boundary == "strict":
-        win_lo = np.maximum(0, np.ceil(-lags_nz.min(axis=0))).astype(int)
-        win_hi = np.minimum(
-            ti_shape_arr - 1,
-            np.floor(ti_shape_arr - 1 - lags_nz.max(axis=0)),
-        ).astype(int)
-        if np.all(win_lo <= win_hi):
-            return win_lo, win_hi, len(lags_ti)
-        # Strict window infeasible (TI too small for the full data event).
-        # Fall through to partial truncation, but do not do so silently.
-        warnings.warn(
-            "gstools.mps: boundary='strict' could not fit the full data event inside the "
-            "TI; falling back to partial mode (dropping the furthest "
-            "neighbour(s)). Ensure the TI is at least as large as the data "
-            "event extent to enforce strict mode.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
 
     keep = len(lags_ti)
     while keep > 0:
@@ -331,6 +317,14 @@ def _window_bounds(lags_ti, ti_shape, boundary):
         ).astype(int)
         if np.all(sw_lo <= sw_hi):
             return sw_lo, sw_hi, keep
+        if keep == len(lags_ti):
+            warnings.warn(
+                "gstools.mps: could not fit the full data event inside the TI; "
+                "dropping the furthest neighbour(s). Use a TI at least as large "
+                "as the data event extent to keep all neighbours.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         keep -= 1
     return None, None, -1
 
@@ -352,7 +346,7 @@ def _lag_transform_matrix(dim, rotation_map, scale_map, x_i):
         ``None`` → no rotation.
     scale_map : numpy.ndarray or None
         Canonical scale map, shape ``grid_shape + (dim,)``. ``None`` → no
-        dilation. No axis-0 pin: a uniform value is M10's affinity ``r``.
+        dilation. No axis-0 pin: a uniform value is Mariethoz2010's affinity ``r``.
     x_i : numpy.ndarray, shape (dim,)
         Integer grid coordinates of the current simulation node.
 

@@ -24,7 +24,7 @@ class DataEvent:
         Euclidean norm of each SG lag vector.
     lags_ti : numpy.ndarray, shape (k, dim) or None, optional
         Lag vectors mapped into the training-image frame.  ``None`` until
-        seam 2 (:meth:`_transform_and_reduce_lags`) computes them.
+        step 2 (``_DirectSamplingEngine._transform_and_reduce_lags``) sets them.
     """
 
     __slots__ = ("lags_sg", "values", "cond_mask", "lag_norms", "lags_ti")
@@ -49,11 +49,11 @@ class DataEvent:
     def truncate(self, k):
         """Return a new :class:`DataEvent` with every array sliced to ``[:k]``.
 
-        Each field is a new array reference (a slice) on the returned object;
-        because ``truncate`` is functional — it never writes in place — the
-        SG/TI aliasing invariant holds regardless of whether ``lags_ti`` shares
-        ``lags_sg``'s buffer. Callers that need a buffer-independent ``lags_ti``
-        must pass a copy (see :meth:`with_lags_ti`).
+        Each field is a slice (a view of the original array). ``truncate``
+        never writes in place, so the SG/TI aliasing invariant holds whether
+        or not ``lags_ti`` shares ``lags_sg``'s buffer. Callers that need a
+        buffer-independent ``lags_ti`` must pass a copy (see
+        :meth:`with_lags_ti`).
         """
         return DataEvent(
             self.lags_sg[:k],

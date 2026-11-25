@@ -14,10 +14,12 @@ import warnings
 import numpy as np
 
 from gstools.field.base import Field
+from gstools.mps._validation import check_float64_integers, exact_count
 from gstools.mps.model import MPSModel
 from gstools.mps.nonstationary import build_zone_selector, resolve_spec
-from gstools.mps.simulate import ds_simulate
+from gstools.mps.simulate import _Run, _simulate
 from gstools.mps.training_image import _check_category_codes
+from gstools.normalizer.base import Normalizer
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
 from gstools.tools.geometric import generate_grid, no_of_angles
@@ -25,20 +27,19 @@ from gstools.tools.geometric import generate_grid, no_of_angles
 __all__ = ["DirectSampling"]
 
 
-def _check_penalty_matrix_conditioning(var_name, penalty_matrix, values):
-    """Validate conditioning values against a Variable's penalty_matrix, if set.
+def _check_penalty_matrix_conditioning(
+    var_name, penalty_matrix, values, context
+):
+    """Check conditioning values against a penalty matrix (if set); ``context`` prefixes the error.
 
-    Fails fast at ``set_condition()`` time with a clear ``ValueError`` rather
-    than raising a raw ``IndexError`` deep in the scan loop when the matrix
-    is later indexed by an out-of-range or non-integer category code.
+    A bad code would otherwise be a raw ``IndexError`` deep in the scan loop.
     """
     if penalty_matrix is None:
         return
-    label = "the TI" if var_name is None else f"variable {var_name!r}"
     _check_category_codes(
         values,
         penalty_matrix.shape[0],
-        f"DirectSampling.set_condition: conditioning values for {label}",
+        f"{context}: conditioning values for variable {var_name!r}",
     )
 
 
@@ -51,9 +52,29 @@ def _check_finite_positions(pos):
         )
 
 
-def _unset(seed):
-    """``None`` or NaN: no explicit seed given."""
-    return seed is None or np.isnan(seed)
+def _check_num_threads(value):
+    """Return ``None`` or ``value`` as an exact int >= 1."""
+    if value is None:
+        return None
+    return exact_count(value, minimum=1, context="DirectSampling: num_threads")
+
+
+def _unset(seed, name="seed"):
+    """``True`` for ``None`` or NaN; ints of any size are explicit seeds. ``name`` labels the error."""
+    if seed is None:
+        return True
+    if isinstance(seed, (int, np.integer)):
+        return False
+    if isinstance(seed, (float, np.floating)):
+        return bool(np.isnan(seed))
+    raise TypeError(
+        f"DirectSampling: {name} must be an int, None or NaN, not {type(seed).__name__}."
+    )
+
+
+def _exact_seed(seed, name="seed"):
+    """Return a set ``seed`` as an int; reject fractional, infinite or negative values."""
+    return exact_count(seed, minimum=0, context=f"DirectSampling: {name}")
 
 
 def _check_finite_axes(axes):
@@ -95,6 +116,54 @@ def _warn_nonuniform_axes(axes):
         )
 
 
+# The transforms that need a covariance model, as dispatched by
+# ``gstools.transform.field.apply``.
+_MODEL_TRANSFORMS = ("binary", "discrete", "zinnharvey")
+_MODEL_TRANSFORM_SUFFIXES = (
+    "force_moments",
+    "uniform",
+    "arcsin",
+    "uquad",
+)
+
+
+def _check_entry(kind, name, value):
+    """Validate one per-variable entry; return it (normalizer classes instantiated)."""
+    if kind == "normalizer":
+        if isinstance(value, type) and issubclass(value, Normalizer):
+            value = value()
+        if not isinstance(value, Normalizer):
+            raise ValueError(
+                f"DirectSampling: normalizer for {name!r} must be a "
+                "Normalizer instance or subclass."
+            )
+        return value
+    if not callable(value) and (
+        isinstance(value, (str, bytes, bool)) or not np.isscalar(value)
+    ):
+        raise ValueError(
+            f"DirectSampling: {kind} for {name!r} must be a number or callable."
+        )
+    return value
+
+
+def _processing_property(kind, base):
+    """Field property that also accepts a ``{variable name: value}`` dict."""
+
+    def fset(self, value):
+        if isinstance(value, dict):
+            value = {k: _check_entry(kind, k, v) for k, v in value.items()}
+            self._check_processing_names(value)
+            setattr(self, "_" + kind, value)
+        else:
+            base.fset(self, value)
+
+    def fget(self):
+        return getattr(self, "_" + kind)
+
+    return property(fget, fset, doc=base.__doc__)
+
+
 class DirectSampling(Field):
     """Multiple Point Statistics simulation using Direct Sampling.
 
@@ -105,19 +174,50 @@ class DirectSampling(Field):
     Parameters
     ----------
     model : MPSModel
-        Algorithm configuration: training image, scan fraction, threshold,
-        and boundary strategy. Neighbour count, maximum search radius and
-        conditioning weight live on each :class:`Variable` inside the
-        :class:`TrainingImage`. Build one with
-        ``MPSModel(ti, scan_fraction=…, threshold=…)``.
-    seed : int or nan, optional
-        Master RNG seed. Default: nan.
+        Algorithm configuration: the training image and every search
+        parameter (see :class:`MPSModel`). Per-variable settings live on the
+        :class:`Variable` objects of its :class:`TrainingImage`.
+    seed : int or None or nan, optional
+        Master RNG seed; ``None`` or nan draws a fresh random seed.
+        Default: nan.
+    mean : None or float or callable, optional
+        Mean added to every continuous variable when ``post_process=True``.
+        Default: None.
+    normalizer : None or Normalizer, optional
+        Normalizer applied to continuous variables; the simulated values are
+        treated as normalized values and back-transformed. Default: None.
+    trend : None or float or callable, optional
+        Trend of the denormalized continuous variables. Default: None.
 
     Notes
     -----
-    Runtime concerns (thread count, progress reporting) are set on the
-    instance via :attr:`num_threads` or passed as keyword arguments to
-    :meth:`__call__`.
+    ``mean``, ``normalizer`` and ``trend`` are applied by the inherited
+    :class:`Field` post-processing. Each also accepts a dict
+    ``{variable name: value}`` (number or callable for mean and trend,
+    ``Normalizer`` instance or subclass for the normalizer); variables missing
+    from the dict are not processed by that argument. Keys must be continuous
+    variables of the training image. :meth:`transform` with ``process=True``
+    is not available while a dict is set. Categorical variables are never processed,
+    so their values stay within the training-image codes; with
+    ``post_process=True`` and a mean, trend or normalizer set, a
+    ``UserWarning`` names the skipped variables. :meth:`transform` works as in
+    :class:`Field` with ``field=<variable name>``, except for transformations
+    that need a covariance model.
+
+    Resolution is per argument: a dict applies only to its listed variables,
+    a single value to every continuous variable.
+
+    The thread count is a call argument (``num_threads``).
+
+    Raises
+    ------
+    TypeError
+        If ``model`` is not an :class:`MPSModel` or ``seed`` is not an int,
+        None or nan.
+    ValueError
+        If a variable name of a TI built from a list of Variables collides
+        with an attribute of the instance, or ``seed`` is fractional or
+        negative.
 
     See Also
     --------
@@ -134,6 +234,19 @@ class DirectSampling(Field):
     >>> field = dsim([np.arange(10.), np.arange(10.)])
     >>> field.shape
     (10, 10)
+
+    Per-variable mean for a two-variable training image:
+
+    >>> ti2 = gs.mps.TrainingImage(
+    ...     [gs.mps.Variable("a", ti.variable().data, categorical=False),
+    ...      gs.mps.Variable("b", ti.variable().data, categorical=False)]
+    ... )
+    >>> dsim = gs.mps.DirectSampling(
+    ...     gs.mps.MPSModel(ti2, scan_fraction=0.5), mean={"a": 10.0}
+    ... )
+    >>> a, b = dsim([np.arange(10.), np.arange(10.)], seed=1)
+    >>> bool(a.min() >= 10.0 and b.max() < 10.0)
+    True
     """
 
     default_field_names = ["field"]
@@ -142,6 +255,10 @@ class DirectSampling(Field):
         self,
         model,
         seed=np.nan,
+        *,
+        mean=None,
+        normalizer=None,
+        trend=None,
     ):
         if not isinstance(model, MPSModel):
             raise TypeError(
@@ -150,26 +267,48 @@ class DirectSampling(Field):
                 "DirectSampling(MPSModel(ti, scan_fraction=…))"
             )
 
-        super().__init__(model=None, dim=model.ti.ndim, value_type="scalar")
-        # Retain the MPSModel as the single source of truth for search
-        # parameters. It is NOT stored in Field._model (which stays None) —
-        # Field.pre_pos/field_dim/latlon/temporal assume a CovModel there.
+        # DirectSampling has no covariance model; the MPSModel is kept apart.
+        super().__init__(
+            model=None,
+            dim=model.ti.ndim,
+            value_type="scalar",
+            mean=mean,
+            normalizer=normalizer,
+            trend=trend,
+        )
         self._mps_model = model
-        self._ti = model.ti
-        self._num_threads = None
         self._cond_pos = None
         self._cond_val = None
-        self._mv_mean = {}
-        self._mv_normalizer = {}
-        self._mv_trend = {}
-        self.rng = RNG(None if _unset(seed) else int(seed), seed_sequence=True)
-        if model.ti.multivariate:
-            for v in model.ti.variables:
-                if v.name in dir(self):
-                    raise ValueError(
-                        f"DirectSampling: variable name {v.name!r} collides with an "
-                        f"existing attribute."
-                    )
+        self._stored_vars = {}  # stored field name -> variable name
+        self.rng = RNG(
+            None if _unset(seed) else _exact_seed(seed), seed_sequence=True
+        )
+        self._checked_names = None
+        self._check_ti_names()
+        for kind in ("mean", "normalizer", "trend"):
+            self._check_processing_names(getattr(self, kind))
+
+    mean = _processing_property("mean", Field.mean)
+    normalizer = _processing_property("normalizer", Field.normalizer)
+    trend = _processing_property("trend", Field.trend)
+
+    def _check_processing_names(self, value):
+        """Raise if a dict argument names a missing or categorical variable."""
+        ti = getattr(getattr(self, "_mps_model", None), "ti", None)
+        if not isinstance(value, dict) or ti is None:
+            return
+        cont = {v.name for v in ti.variables if not v.categorical}
+        bad = sorted(set(value) - cont, key=str)
+        if bad:
+            raise ValueError(
+                f"DirectSampling: mean/normalizer/trend dict names {bad} are "
+                f"not continuous variables of the TI (continuous: {sorted(cont)})."
+            )
+
+    def _per_variable(self, kind, name):
+        """Value of ``kind`` for variable ``name`` (a dict is looked up)."""
+        value = getattr(self, "_" + kind)
+        return value.get(name) if isinstance(value, dict) else value
 
     def __call__(
         self,
@@ -182,16 +321,12 @@ class DirectSampling(Field):
         mesh_type="structured",
         post_process=True,
         store=True,
-        progress=None,
         num_threads=None,
     ):
         """Generate the spatial random field via Direct Sampling.
 
-        For a univariate training image the field is saved as ``self.field``
-        and is also returned. For a multivariate training image no single
-        ``self.field`` is set — each variable is stored under its own name
-        (accessible via ``self[variable]`` / :attr:`all_fields`) and a
-        ``{variable: numpy.ndarray}`` dict is returned.
+        One variable gives an array (stored as ``self.field``); several give
+        a tuple of arrays in variable order, each stored under its own name.
 
         Parameters
         ----------
@@ -201,15 +336,16 @@ class DirectSampling(Field):
         seed : :class:`int` or :any:`None`, optional
             Seed for the RNG. If ``np.nan``, the master RNG stream continues,
             so each call draws a new realization (pass a seed to reproduce
-            one); ``None`` draws a fresh random seed.
-            Default: ``np.nan``
+            one); ``None`` draws a fresh random seed (see also the
+            constructor's ``seed``). Default: ``np.nan``
         path_seed : :class:`int` or :any:`numpy.nan`, optional
             Seed controlling the order in which simulation grid nodes are
             visited. If ``np.nan`` (default), derived from the master RNG
             together with ``node_seed``. Fix this while varying ``node_seed``
             to study the effect of TI search randomness under a constant
-            visit order, or vice versa.  Only has an effect when
-            ``path="random"``; inert for ``"sequential"`` and explicit arrays.
+            visit order, or vice versa. Only has an effect when a random visit
+            order is drawn: ``path="random"``, or post-processing passes whose
+            ``path`` resolves to random (see :class:`PostProcessing`).
             Default: ``np.nan``
         node_seed : :class:`int` or :any:`numpy.nan`, optional
             Seed controlling the TI scan entry point and fallback cell for
@@ -221,45 +357,52 @@ class DirectSampling(Field):
             standard DS behaviour.  ``"sequential"`` visits nodes in raster
             (lexicographic) order, which is deterministic regardless of
             ``path_seed``.  An explicit integer array of shape ``(N, dim)``
-            provides a caller-supplied visit order and must be a permutation
-            of exactly the unknown-node set (missing nodes, extra nodes, and
-            duplicate rows all raise :class:`ValueError`).
-            Default: ``"random"``
+            provides a caller-supplied visit order: it must contain every
+            unknown node once. Conditioned nodes in it are dropped, while a
+            missing unknown node, a duplicate row or an out-of-bounds
+            coordinate raises :class:`ValueError`. Default: ``"random"``
         mesh_type : :class:`str`, optional
             Grid type. Must be ``"structured"``.
             Default: ``"structured"``
         post_process : :class:`bool`, optional
             Whether to apply post-processing transformations (mean,
-            normalizer, trend) to the field. Default: :any:`True`
-        store : :class:`bool` or :class:`str`, optional
-            Whether to store the field (``True``), not store it (``False``),
-            or store it under a custom name (string).
+            normalizer, trend) to the field. Categorical variables are never
+            processed. Default: :any:`True`
+        store : :class:`str` or :class:`bool` or :class:`list`, optional
+            Whether to store the fields (``True``/``False``) under the default
+            names (``"field"`` for one variable, else the variable names) or
+            under given names (a string for one variable, a list for several).
             Default: :any:`True`
-        progress : :class:`bool` or callable or None, optional
-            Show simulation progress. ``True`` prints a plain percentage line
-            (no third-party dependency); a callable is invoked as
-            ``progress(n_done, n_total)`` once per completed node.
-            ``None``/``False`` (default) disables it.
         num_threads : :class:`int` or :any:`None`, optional
-            Threads for the node dependency graph; overrides
-            :attr:`num_threads`. The output is identical for any thread count,
-            but the pure-Python engine is largely GIL-bound, so speed-ups are
-            small (about 1.0-1.25x measured at 4-8 threads).
-            Default: :any:`None` (``config.NUM_THREADS``)
+            Threads for the node dependency graph. The output is identical for
+            any thread count. Default: :any:`None` (``config.NUM_THREADS``,
+            else 1)
 
         Returns
         -------
-        field : :class:`numpy.ndarray` or :class:`dict`
-            For a univariate training image, the simulated field (also saved as
-            ``self.field``). For a multivariate training image, a
-            ``{variable: numpy.ndarray}`` dict with all variables on equal
-            footing — each is also stored as a named field accessible via
-            ``self[variable]`` / :attr:`all_fields`.
+        field : :class:`numpy.ndarray` or :class:`tuple` of :class:`numpy.ndarray`
+            The simulated field for one variable, else a tuple of fields in
+            variable order; each is also stored under its name
+            (``self[name]`` / :attr:`all_fields`).
+
+        Raises
+        ------
+        ValueError
+            If ``mesh_type`` is not ``"structured"``, ``path`` is
+            invalid, ``num_threads`` is not an integer >= 1, the TI
+            dimension differs from the instance's, a grid axis is non-finite,
+            stored conditioning refers to variables absent from the TI or
+            fails a penalty-matrix check, a variable name collides with an
+            attribute, a rotation, scale or zone spec does not fit the
+            grid, or a seed is fractional or negative.
+        TypeError
+            If ``seed``, ``path_seed`` or ``node_seed`` is not an int, None
+            or nan.
 
         Notes
         -----
-        DS post-processing passes (``MPSModel(post_processing=..., post_processing_factor=...)``,
-        Me13 §4) run after the main simulation pass, over the same
+        DS post-processing passes (``MPSModel(post_processing=PostProcessing(...))``,
+        Meerschman2013 §4) run after the main simulation pass, over the same
         ``num_threads``-parallel dependency DAG. They are distinct from this
         method's ``post_process`` kwarg (Field mean/normalizer/trend pipeline).
         """
@@ -267,17 +410,16 @@ class DirectSampling(Field):
             raise ValueError(
                 "DirectSampling: only structured grids are supported."
             )
-        if self._ti.multivariate and isinstance(store, str):
-            # A multivariate run produces one field per variable; there is no
-            # single privileged field to store under a custom name. Reject it
-            # explicitly rather than silently dropping the name (the fields are
-            # always stored under their variable names).
-            raise ValueError(
-                "DirectSampling: a custom store name is not supported for "
-                "multivariate training images; each variable is stored under "
-                "its own name. Use store=True/False instead."
+        variables = self._ti.variables
+        for kind in ("mean", "normalizer", "trend"):
+            self._check_processing_names(getattr(self, kind))
+        if len(variables) == 1:
+            name, save = self.get_store_config(store)
+            names, saves = [name], [save]
+        else:
+            names, saves = self.get_store_config(
+                store, [v.name for v in variables], len(variables)
             )
-        name, save = self.get_store_config(store)
         pos, shape = self.pre_pos(pos, mesh_type)
         dim = len(shape)
         flat_pos = generate_grid(self.pos)
@@ -297,107 +439,115 @@ class DirectSampling(Field):
             "scale",
             positive=True,
         )
+        # Identity transforms are dropped so they match the no-transform path.
+        if rot_stat and rotation_map is not None and not np.any(rotation_map):
+            rotation_map = None
+        if scale_stat and scale_map is not None and np.all(scale_map == 1):
+            scale_map = None
         zones = self._mps_model.zones
         selector = (
             build_zone_selector(zones, shape, flat_pos) if zones else None
         )
         _check_finite_axes(self.pos)
         _warn_nonuniform_axes(self.pos)
-        # Re-check: the model's overrides may have changed since set_condition.
+        if self._ti.ndim != self.dim:
+            raise ValueError(
+                f"DirectSampling: the model's TI is {self._ti.ndim}-D, but "
+                f"this instance was built for {self.dim}-D."
+            )
+        self._check_ti_names()
+        self._check_conditioning_names()
+        # The model is mutable: its penalty matrices may differ from set time.
         self._check_condition_codes()
         conditions = self._conditions_to_grid(self.pos)
         if seed is None:
             self.rng.seed = None  # fresh random seed, as in gs.SRF
-        elif not np.isnan(seed):
-            self.rng.seed = int(seed)
+        elif not _unset(seed):
+            self.rng.seed = _exact_seed(seed)
         rng_path = (
             self.rng.random
-            if _unset(path_seed)
-            else RNG(int(path_seed), seed_sequence=True).random
+            if _unset(path_seed, "path_seed")
+            else RNG(
+                _exact_seed(path_seed, "path_seed"), seed_sequence=True
+            ).random
         )
         rng_nodes = (
             self.rng.random
-            if _unset(node_seed)
-            else RNG(int(node_seed), seed_sequence=True).random
+            if _unset(node_seed, "node_seed")
+            else RNG(
+                _exact_seed(node_seed, "node_seed"), seed_sequence=True
+            ).random
         )
-        # Call-time num_threads overrides the instance default.
         n_threads = (
-            num_threads if num_threads is not None else self._num_threads
+            None if num_threads is None else _check_num_threads(num_threads)
         )
-        # ds_simulate returns {name: array} for every variable. A univariate
-        # TI's single variable is named None (bare-array sugar) or by its
-        # Variable; its conditions {idx: value} are remapped under that key.
-        uv_key = self._ti.variables[0].name
-        if self._ti.multivariate:
-            sim_conditions = conditions  # already {idx: {var: val}}
-        else:
-            sim_conditions = (
-                {idx: {uv_key: val} for idx, val in conditions.items()}
-                if conditions
-                else None
+        result = _simulate(
+            self._mps_model,
+            shape,
+            _Run(
+                rng_path=rng_path,
+                rng_nodes=rng_nodes,
+                conditions=conditions,
+                path=path,
+                rotation_map=rotation_map,
+                scale_map=scale_map,
+                stationary_transform=rot_stat and scale_stat,
+                zone_selector=selector,
+                num_threads=n_threads,
+            ),
+        )
+        # Every variable is a named field; the output is unwrapped in one place.
+        # Categorical variables are never mean/normalizer/trend-processed.
+        skipped = [v.name for v in self._ti.variables if v.categorical]
+        if (
+            post_process
+            and skipped
+            and (
+                not isinstance(self.mean, dict)
+                and self.mean is not None
+                or not isinstance(self.trend, dict)
+                and self.trend is not None
+                or not isinstance(self.normalizer, dict)
+                and type(self.normalizer) is not Normalizer
             )
-        result = ds_simulate(
-            training_image=self._ti,
-            sim_shape=shape,
-            threshold=self.threshold,
-            scan_fraction=self.scan_fraction,
-            rng_path=rng_path,
-            rng_nodes=rng_nodes,
-            conditions=sim_conditions,
-            boundary=self.boundary,
-            num_threads=n_threads,
-            rotation_map=rotation_map,
-            scale_map=scale_map,
-            stationary_transform=rot_stat and scale_stat,
-            progress=progress,
-            path=path,
-            zone_tis=[z.ti for z in zones] if zones else None,
-            zone_selector=selector,
-            post_processing=self._mps_model.post_processing,
-            post_processing_factor=self._mps_model.post_processing_factor,
-            post_processing_path=self._mps_model.post_processing_path,
-            post_processing_variables=self._mps_model.post_processing_variables,
-            post_processing_mask=self._mps_model.post_processing_mask,
-            scan_path=self._mps_model.scan_path,
+        ):
+            warnings.warn(
+                "DirectSampling: mean/normalizer/trend are not applied to "
+                f"categorical variable(s) {skipped}.",
+                UserWarning,
+                stacklevel=2,
+            )
+        out = []
+        self._stored_vars = {}
+        per_var = any(
+            isinstance(getattr(self, k), dict)
+            for k in ("mean", "normalizer", "trend")
         )
-        # Branch only on the return type: multivariate → dict of named arrays;
-        # univariate → bare array (unwrap the single None key).
-        if self._ti.multivariate:
-            # Equal treatment: every variable is a first-class named field
-            # (no privileged primary). Returned as a dict keyed by variable name.
-            # Per-variable transforms (mean/normalizer/trend) are applied here
-            # using the dicts set via set_mv_transforms(); variables absent from
-            # those dicts fall back to the inherited self.mean/normalizer/trend.
-            # post_field is then called with process=False to handle storage only.
-            out = {}
-            for v in self._ti.variables:
-                fld = result[v.name]
-                if post_process:
-                    mv_mean = self._mv_mean.get(v.name, self.mean)
-                    mv_norm = self._mv_normalizer.get(v.name, self.normalizer)
-                    mv_trend = self._mv_trend.get(v.name, self.trend)
-                    fld = apply_mean_norm_trend(
-                        pos=self.pos,
-                        field=fld,
-                        mesh_type=self.mesh_type,
-                        value_type=self.value_type,
-                        mean=mv_mean,
-                        normalizer=mv_norm,
-                        trend=mv_trend,
-                        check_shape=False,
-                        stacked=False,
-                    )
-                out[v.name] = self.post_field(
-                    fld, name=v.name, process=False, save=save
+        for v, name, save in zip(variables, names, saves):
+            process = post_process and not v.categorical
+            field = result[v.name]
+            if process and per_var:
+                field = apply_mean_norm_trend(
+                    self.pos,
+                    np.array(field, dtype=np.double).reshape(self.field_shape),
+                    mean=self._per_variable("mean", v.name),
+                    normalizer=self._per_variable("normalizer", v.name),
+                    trend=self._per_variable("trend", v.name),
+                    mesh_type=self.mesh_type,
+                    check_shape=False,
                 )
-            return out
-        return self.post_field(result[uv_key], name, post_process, save)
+                process = False
+            out.append(
+                self.post_field(field, name=name, process=process, save=save)
+            )
+            if save:
+                self._stored_vars[name] = v.name
+        return out[0] if len(out) == 1 else tuple(out)
 
     def _conditions_to_grid(self, axes):
         """Snap conditioning points to nearest grid nodes (Mariethoz2010 §3 ¶12).
 
-        Univariate returns ``{idx: value}``; multivariate returns
-        ``{idx: {variable: value}}`` with non-finite (NaN) entries skipped. When
+        Returns ``{idx: {variable: value}}`` with NaN entries skipped. When
         two points snap to the same node, the conflict is resolved
         **per variable**: for each variable the closest colliding point with a
         finite value wins. A farther point therefore still contributes its
@@ -431,39 +581,26 @@ class DirectSampling(Field):
                 stacklevel=3,
             )
         n_collided = 0  # finite values landing on an occupied (node, variable)
-        if self._ti.multivariate and isinstance(self._cond_val, dict):
-            if not self._cond_val:
-                raise ValueError("DirectSampling: cond_val must not be empty")
-            # idx -> {variable: (value, dist_sq)}; the closest finite value per
-            # variable wins, so a farther point fills variables the closer one
-            # left NaN (per-variable collision resolution).
-            candidates = {}
-            n_cond = len(next(iter(self._cond_val.values())))
-            for k in range(n_cond):
-                idx, dist_sq = self._snap_to_nearest(axes, k)
-                var_best = candidates.setdefault(idx, {})
-                for v in self._cond_val:
-                    val = self._cond_val[v][k]
-                    if not np.isfinite(val):
-                        continue
-                    if v in var_best:
-                        n_collided += 1
-                    if v not in var_best or dist_sq < var_best[v][1]:
-                        var_best[v] = (float(val), dist_sq)
-            result = {
-                idx: {v: val for v, (val, _) in var_best.items()}
-                for idx, var_best in candidates.items()
-            }
-        else:
-            # univariate (NaN values were already dropped in set_condition)
-            candidates = {}  # idx -> (val, dist_sq)
-            for k in range(self._cond_val.shape[0]):
-                idx, dist_sq = self._snap_to_nearest(axes, k)
-                if idx in candidates:
+        # idx -> {variable: (value, dist_sq)}; the closest finite value per
+        # variable wins, so a farther point fills variables the closer one
+        # left NaN (per-variable collision resolution).
+        candidates = {}
+        n_cond = self._cond_pos.shape[1]
+        for k in range(n_cond):
+            idx, dist_sq = self._snap_to_nearest(axes, k)
+            var_best = candidates.setdefault(idx, {})
+            for v in self._cond_val:
+                val = self._cond_val[v][k]
+                if not np.isfinite(val):
+                    continue
+                if v in var_best:
                     n_collided += 1
-                if idx not in candidates or dist_sq < candidates[idx][1]:
-                    candidates[idx] = (self._cond_val[k], dist_sq)
-            result = {idx: val for idx, (val, _) in candidates.items()}
+                if v not in var_best or dist_sq < var_best[v][1]:
+                    var_best[v] = (float(val), dist_sq)
+        result = {
+            idx: {v: val for v, (val, _) in var_best.items()}
+            for idx, var_best in candidates.items()
+        }
         if n_collided:
             warnings.warn(
                 f"DirectSampling: {n_collided} conditioning value(s) collided "
@@ -490,76 +627,76 @@ class DirectSampling(Field):
         """Set the conditioning data for the simulation.
 
         Conditioning weight is configured per :class:`Variable` (``cond_weight=``).
+        Points beyond half a cell outside the grid snap to its edge at call
+        time and warn.
 
         Parameters
         ----------
         cond_pos : :class:`list`
             The position tuple of the conditioning data ``(x, [y, z])``.
         cond_val : :class:`numpy.ndarray` or :class:`dict`
-            Univariate: values at the conditioning positions. Multivariate: a
-            ``{variable: numpy.ndarray}`` mapping (use ``numpy.nan`` for a
-            variable that is not conditioned at a given point).
-        """
-        prev = (self._cond_pos, self._cond_val)
-        if self._ti.multivariate and isinstance(cond_val, dict):
-            if not cond_val:
-                raise ValueError("DirectSampling: cond_val must not be empty")
-            unknown = set(cond_val) - {v.name for v in self._ti.variables}
-            if unknown:
-                raise ValueError(
-                    f"cond_val contains unknown variable(s): {sorted(unknown)}. "
-                    f"TI variables are: {sorted(v.name for v in self._ti.variables)}"
-                )
-            cond_pos_arr = np.asarray(cond_pos, dtype=np.double).reshape(
-                self.dim, -1
-            )
-            new_val = {
-                v: np.asarray(a, dtype=np.double) for v, a in cond_val.items()
-            }
-            n_cond = cond_pos_arr.shape[1]
-            for v, arr in new_val.items():
-                if arr.shape != (n_cond,):
-                    raise ValueError(
-                        "DirectSampling: cond_pos and cond_val length mismatch; "
-                        "each cond_val array must be 1-D with the same length "
-                        f"as cond_pos ({n_cond}), got {arr.shape} for {v!r}."
-                    )
-            _check_finite_positions(cond_pos_arr)
-            self._cond_pos, self._cond_val = cond_pos_arr, new_val
-            # NaN means "not conditioned" here (documented); only infinities drop.
-            n_dropped = sum(
-                int(np.count_nonzero(np.isinf(a)))
-                for a in self._cond_val.values()
-            )
-            uncovered = {
-                v: self._count_uncovered(v, a)
-                for v, a in self._cond_val.items()
-            }
-        elif self._ti.multivariate:
-            raise ValueError(
-                "DirectSampling: cond_val must be a dict {variable: array} "
-                "for multivariate TrainingImages."
-            )
-        else:
-            from gstools.krige.tools import set_condition as _gs_set_condition
+            A ``{variable: numpy.ndarray}`` mapping; for a one-variable
+            training image a plain array is also accepted. ``numpy.nan`` marks a
+            variable as not conditioned at a point; ``+-inf`` raises
+            :class:`ValueError`.
 
-            n_dropped = int(
-                np.count_nonzero(~np.isfinite(np.asarray(cond_val, np.double)))
+        Raises
+        ------
+        ValueError
+            If ``cond_val`` is empty, names an unknown variable, is not a
+            dict for a multi-variable TI, has a length different from
+            ``cond_pos``, or holds ``+-inf`` or integers not exact in
+            float64; if positions are not finite; or if a categorical value
+            is not a valid code of a variable's ``penalty_matrix``.
+        """
+        names = [v.name for v in self._ti.variables]
+        if not isinstance(cond_val, dict):
+            if len(names) != 1:
+                raise ValueError(
+                    "DirectSampling: cond_val must be a dict {variable: array} "
+                    "for a training image with several variables."
+                )
+            cond_val = {names[0]: cond_val}
+        if not cond_val:
+            raise ValueError("DirectSampling: cond_val must not be empty")
+        unknown = set(cond_val) - set(names)
+        if unknown:
+            raise ValueError(
+                f"cond_val contains unknown variable(s): {sorted(unknown)}. "
+                f"TI variables are: {sorted(names)}"
             )
-            pos, val = _gs_set_condition(cond_pos, cond_val, self.dim)
-            _check_finite_positions(pos)
-            self._cond_pos, self._cond_val = pos, val
-            uv_name = self._ti.variables[0].name
-            uncovered = {uv_name: self._count_uncovered(uv_name, val)}
-        try:
-            self._check_condition_codes()
-        except ValueError:  # keep the previous conditioning on error
-            self._cond_pos, self._cond_val = prev
-            raise
+        ctx = "DirectSampling.set_condition: cond_val"
+        categorical = {v.name: v.categorical for v in self._ti.variables}
+        for name, a in cond_val.items():
+            check_float64_integers(a, categorical[name], ctx)
+        pos = np.asarray(cond_pos, dtype=np.double).reshape(self.dim, -1)
+        n_cond = pos.shape[1]
+        vals = {v: np.asarray(a, dtype=np.double) for v, a in cond_val.items()}
+        for v, arr in vals.items():
+            if arr.shape != (n_cond,):
+                raise ValueError(
+                    "DirectSampling: cond_pos and cond_val length mismatch; "
+                    "each cond_val array must be 1-D with the same length "
+                    f"as cond_pos ({n_cond}), got {arr.shape} for {v!r}."
+                )
+        _check_finite_positions(pos)
+        if any(np.isinf(a).any() for a in vals.values()):
+            raise ValueError(
+                "DirectSampling.set_condition: conditioning values must not "
+                "be +-inf; use NaN for a variable that is not conditioned."
+            )
+        # NaN means "not conditioned": drop points with no value at all.
+        keep = np.any([np.isfinite(a) for a in vals.values()], axis=0)
+        n_dropped = int(np.count_nonzero(~keep))
+        pos = pos[:, keep]
+        vals = {v: a[keep] for v, a in vals.items()}
+        uncovered = {v: self._count_uncovered(v, a) for v, a in vals.items()}
+        self._check_condition_codes(vals)
+        self._cond_pos, self._cond_val = pos, vals
         if n_dropped:
             warnings.warn(
-                f"DirectSampling.set_condition: {n_dropped} non-finite "
-                "conditioning value(s) were dropped.",
+                f"DirectSampling.set_condition: {n_dropped} conditioning "
+                "point(s) without any finite value were dropped.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -589,56 +726,91 @@ class DirectSampling(Field):
             return int(np.count_nonzero(~np.isin(vals, pool)))
         return int(np.count_nonzero((vals < pool.min()) | (vals > pool.max())))
 
-    def _check_condition_codes(self):
-        """Check conditioning codes against every penalty matrix indexing
-        them: the primary Variable's and any post-processing override's."""
-        if self._cond_pos is None:
+    def _check_ti_names(self):
+        """Reject variable names that collide with an attribute (once per distinct name set)."""
+        names = tuple(v.name for v in self._ti.variables)
+        if names == self._checked_names:
             return
-        overrides = self._mps_model.post_processing_variables
-        for v in self._ti.variables:
-            vals = (
-                self._cond_val.get(v.name)
-                if isinstance(self._cond_val, dict)
-                else self._cond_val
+        if len(names) > 1:
+            for name in names:
+                if name in dir(self):
+                    raise ValueError(
+                        f"DirectSampling: variable name {name!r} collides "
+                        "with an existing attribute."
+                    )
+        self._checked_names = names
+
+    def _check_conditioning_names(self):
+        """Raise if stored conditioning names a variable the TI does not have."""
+        names = {v.name for v in self._ti.variables}
+        extra = set(self._cond_val or {}) - names
+        if extra:
+            raise ValueError(
+                f"DirectSampling: conditioning refers to variable(s) "
+                f"{sorted(extra)} that are not in the model's TI "
+                f"({sorted(names)}). The TI was replaced after it was "
+                "set; call set_condition again."
             )
+
+    def _check_condition_codes(self, cond_val=None):
+        """Check conditioning codes (default the stored ones) against the primary
+        and post-pass penalty matrices; run at set time and again at call time."""
+        context = "DirectSampling.set_condition"
+        if cond_val is None:
+            cond_val = self._cond_val
+            context = "DirectSampling (checked at call time)"
+        if cond_val is None:
+            return
+        post_ti = self._mps_model._resolved.post_ti
+        for v in self._ti.variables:
+            vals = cond_val.get(v.name)
             if vals is None:
                 continue
             mats = [v.penalty_matrix]
-            mats += [o.penalty_matrix for o in overrides if o.name == v.name]
+            if post_ti is not None:
+                mats.append(post_ti.variable(v.name).penalty_matrix)
             for mat in mats:
-                _check_penalty_matrix_conditioning(v.name, mat, vals)
+                _check_penalty_matrix_conditioning(v.name, mat, vals, context)
 
-    def set_mv_transforms(self, mean=None, normalizer=None, trend=None):
-        """Set per-variable post-processing transforms for multivariate simulations.
+    def transform(self, method, field="field", **kwargs):
+        """Apply a field transformation to the stored field ``field``.
 
-        Only meaningful when the training image is multivariate. Variables not
-        listed here fall back to the instance-level ``self.mean``,
-        ``self.normalizer``, and ``self.trend``.
+        Same as :meth:`Field.transform`; use the variable name as ``field``
+        for multivariate output. Transformations that read the covariance
+        model (``binary``, ``discrete``, ``zinnharvey``, ``normal_force_moments``,
+        ``normal_to_uniform``, ``normal_to_arcsin``, ``normal_to_uquad``)
+        raise :class:`ValueError`.
 
-        Parameters
-        ----------
-        mean : dict of {str: scalar or callable}, optional
-            Per-variable mean.
-        normalizer : dict of {str: Normalizer}, optional
-            Per-variable normalizer.
-        trend : dict of {str: scalar or callable}, optional
-            Per-variable trend (applied after denormalization).
+        Raises
+        ------
+        ValueError
+            If ``method`` needs a covariance model.
         """
-        from gstools.field.base import _set_mean_trend
-        from gstools.normalizer.tools import _check_normalizer
-
-        if mean is not None:
-            self._mv_mean = {
-                v: _set_mean_trend(m, self.dim) for v, m in mean.items()
-            }
-        if normalizer is not None:
-            self._mv_normalizer = {
-                v: _check_normalizer(n) for v, n in normalizer.items()
-            }
-        if trend is not None:
-            self._mv_trend = {
-                v: _set_mean_trend(t, self.dim) for v, t in trend.items()
-            }
+        if str(method) in _MODEL_TRANSFORMS or str(method).endswith(
+            _MODEL_TRANSFORM_SUFFIXES
+        ):
+            raise ValueError(
+                f"DirectSampling.transform: {method!r} needs a covariance "
+                "model, which DirectSampling does not have."
+            )
+        if kwargs.get("process") and any(
+            isinstance(getattr(self, k), dict)
+            for k in ("mean", "normalizer", "trend")
+        ):
+            raise ValueError(
+                "DirectSampling.transform: process=True is not available with "
+                "per-variable mean/normalizer/trend dicts; process the field "
+                "yourself or use process=False."
+            )
+        var = self._stored_vars.get(field)
+        if var is not None and self._ti.variable(var).categorical:
+            warnings.warn(
+                f"DirectSampling.transform: variable {var!r} is categorical; "
+                "the result leaves the training-image code set.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return super().transform(method, field=field, **kwargs)
 
     @property
     def mps_model(self):
@@ -646,86 +818,27 @@ class DirectSampling(Field):
         return self._mps_model
 
     @property
+    def _ti(self):
+        return self._mps_model.ti
+
+    @property
     def ti(self):
         """:any:`TrainingImage`: The training image model."""
         return self._ti
 
-    def _collapse_per_var(self, attr):
-        """Read ``attr`` from every TI Variable; scalar if all equal, else a dict.
-
-        Read-only view over the variables' values. Used by the
-        :attr:`n_neighbors`, :attr:`cond_weight`, and :attr:`max_radius`
-        getters.
-        """
-        vars_ = self._ti.variables
-        vals = [getattr(v, attr) for v in vars_]
-        if len(set(vals)) == 1:
-            return vals[0]
-        return {v.name: getattr(v, attr) for v in vars_}
-
-    @property
-    def n_neighbors(self):
-        """:class:`int` or :class:`dict`: n_neighbors per variable (scalar if all equal).
-
-        Read-only. Configure on the :class:`Variable`
-        (``Variable(..., n_neighbors=…)``) or via
-        ``variable.replace(n_neighbors=…)``.
-        """
-        return self._collapse_per_var("n_neighbors")
-
-    @property
-    def cond_weight(self):
-        """:class:`float` or :class:`dict`: cond_weight per variable (scalar if all equal).
-
-        Read-only. Configure on the :class:`Variable`
-        (``Variable(..., cond_weight=…)``) or via
-        ``variable.replace(cond_weight=…)``.
-        """
-        return self._collapse_per_var("cond_weight")
-
-    @property
-    def scan_fraction(self):
-        """:class:`float`: Fraction of the TI scanned per node. Read-only; set on the MPSModel."""
-        return self._mps_model.scan_fraction
-
-    @property
-    def threshold(self):
-        """:class:`float` or None: Distance threshold (None → DSBC mode). Read-only; set on the MPSModel."""
-        return self._mps_model.threshold
-
-    @property
-    def boundary(self):
-        """:class:`str`: Search-window strategy. Read-only; set on the MPSModel."""
-        return self._mps_model.boundary
-
-    @property
-    def scan_path(self):
-        """:class:`str`: TI window scan order. Read-only; set on the MPSModel."""
-        return self._mps_model.scan_path
-
-    @property
-    def max_radius(self):
-        """:class:`float` or :any:`None` or :class:`dict`: Euclidean neighbour cap in grid cells (scalar if all equal).
-
-        Read-only. Configure at :class:`Variable`/:class:`TrainingImage` construction.
-        """
-        return self._collapse_per_var("max_radius")
-
-    @property
-    def num_threads(self):
-        """:class:`int` or :any:`None`: Number of threads for outer DAG parallelism."""
-        return self._num_threads
-
-    @num_threads.setter
-    def num_threads(self, value):
-        self._num_threads = None if value is None else int(value)
-
     def __repr__(self):
-        parts = [
-            f"DirectSampling(dim={self.dim}, ",
-            f"n_neighbors={self.n_neighbors}, ",
-            f"scan_fraction={self.scan_fraction}, ",
-            f"threshold={self.threshold}, ",
-            f"boundary={self.boundary!r}",
-        ]
-        return "".join(parts) + ")"
+        args = [repr(self._mps_model)]
+        if self.rng.seed is not None:
+            args.append(f"seed={self.rng.seed!r}")
+        for name in ("mean", "trend"):
+            val = getattr(self, name)
+            if val is not None:
+                shown = (
+                    getattr(val, "__name__", "callable")
+                    if callable(val)
+                    else repr(val)
+                )
+                args.append(f"{name}={shown}")
+        if type(self.normalizer) is not Normalizer:
+            args.append(f"normalizer={self.normalizer!r}")
+        return f"DirectSampling({', '.join(args)})"

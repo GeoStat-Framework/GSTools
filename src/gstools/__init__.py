@@ -29,17 +29,6 @@ Subpackages
 Classes
 =======
 
-Multiple Point Statistics
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Classes for Multiple Point Statistics (MPS) simulations
-
-.. currentmodule:: gstools.mps
-
-.. autosummary::
-   DirectSampling
-   MPSModel
-   Zone
-
 Kriging
 ^^^^^^^
 Swiss-Army-Knife for Kriging. For short cut classes see: :any:`gstools.krige`
@@ -204,7 +193,6 @@ from gstools.covmodel import (
 )
 from gstools.field import PGS, SRF, CondSRF
 from gstools.krige import Krige
-from gstools.mps import DirectSampling, MPSModel, Zone
 from gstools.tools import (
     DEGREE_SCALE,
     EARTH_RADIUS,
@@ -286,9 +274,6 @@ __all__ += [
     "SRF",
     "CondSRF",
     "PGS",
-    "DirectSampling",
-    "MPSModel",
-    "Zone",
     "rotated_main_axes",
     "generate_grid",
     "generate_st_grid",

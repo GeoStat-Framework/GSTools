@@ -1,14 +1,16 @@
 """Pure distance functions for MPS pattern comparison.
 
-No class state — takes arrays and scalars, returns floats.
-``TrainingImage.distance()`` uses these internally; other algorithms
-can import them directly.
+No class state: the functions take arrays (and a :class:`Variable` where the
+metric is declared) and return one distance per TI scan candidate. The scan in
+``gstools.mps.scan`` uses them; other algorithms can import them directly.
 """
 
 import numpy as np
 
 __all__ = [
+    "adjust_value",
     "compute_node_weights",
+    "variable_distance",
     "vec_categorical_dist",
     "vec_categorical_penalty_dist",
     "vec_l1_dist",
@@ -45,7 +47,8 @@ def compute_node_weights(
     Returns
     -------
     numpy.ndarray, shape (n,)
-        Node weights normalized to sum to 1.
+        Node weights normalized to sum to 1. All-zero only when every node
+        is conditioning with ``cond_weight == 0``.
     """
     raw_w = np.ones(n, dtype=np.float64)
     if lag_norms is not None and distance_power != 0.0:
@@ -63,19 +66,41 @@ def compute_node_weights(
         # place), so no defensive copy is needed before scaling.
         raw_w[np.asarray(cond_mask, dtype=bool)] *= cond_weight
 
-    total = raw_w.sum()
-    if total == 0.0:
-        # Every neighbour was zeroed out — the canonical case is an all-
-        # conditioning data event with cond_weight == 0 (δ_c = 0 → conditioning
-        # ignored entirely, Me13 p.323 → unconditional behaviour). Returning
-        # zero weights makes the data event non-informative so the node is drawn
-        # unconditionally, rather than re-weighting the ignored nodes uniformly.
+    with np.errstate(over="ignore", invalid="ignore"):
+        total = raw_w.sum()
+    if np.isfinite(total) and total > 0.0:
+        # Direct normalization preserves the ordinary-case arithmetic order.
+        return raw_w / total
+
+    # Degenerate direct sum: the raw weights overflowed to +inf (e.g. a large
+    # finite ``cond_weight``) or every positive weight underflowed to 0 (e.g. a
+    # large ``distance_power``). Rebuild in the log domain so the relative
+    # weighting is kept instead of collapsing to uniform or all-zero weights.
+    cm = None if cond_mask is None else np.asarray(cond_mask, dtype=bool)
+    # A node is a structural zero only when it is conditioning with
+    # cond_weight == 0 (δ_c = 0 → conditioning ignored, Meerschman2013 p.323).
+    structural_zero = (
+        np.zeros(n, dtype=bool) if cm is None or cond_weight != 0.0 else cm
+    )
+    active = ~structural_zero
+    if not active.any():
         return np.zeros(n, dtype=np.float64)
-    if not np.isfinite(total):
-        # Defensive: non-finite weight sum should be unreachable for grid lags
-        # (‖h‖ >= 1) — fall back to uniform rather than emit NaNs.
-        return np.full(n, 1.0 / n, dtype=np.float64)
-    return raw_w / total
+
+    # Weight is ``r_i**(-power) * c_i`` with ``r_i = 1`` for the zero-lag
+    # baseline. Subtract the min log-lag before scaling and the max log-weight
+    # before exponentiating; underflowed entries become an exact 0.
+    log_lag = np.zeros(n, dtype=np.float64)
+    if lag_norms is not None and distance_power != 0.0:
+        norms = np.asarray(lag_norms, dtype=np.float64)
+        nz = norms != 0.0
+        log_lag[nz] = np.log(norms[nz])
+    log_w = -distance_power * (log_lag - log_lag[active].min())
+    if cm is not None and cond_weight > 0.0:
+        log_w[cm] += np.log(cond_weight)
+    log_w[structural_zero] = -np.inf
+    log_w -= log_w[active].max()
+    weights = np.where(active, np.exp(log_w), 0.0)
+    return weights / weights.sum()
 
 
 # ---------------------------------------------------------------------------
@@ -88,8 +113,8 @@ def compute_node_weights(
 # those positions are excluded per-row and the weights are renormalized over
 # the defined positions (a proper convex combination); a candidate whose data
 # event is *entirely* undefined gets distance ``+inf`` so it is never selected.
-# ``has_nan=False`` (the default) is the original, NaN-free computation, kept
-# byte-identical and overhead-free for the common case.
+# ``has_nan=False`` (the default) is the NaN-free computation, with no
+# masking overhead.
 # ---------------------------------------------------------------------------
 
 
@@ -124,12 +149,10 @@ def _renorm(numerator, wsum, defined, total):
 def _scaled_abs_diff(data_event_sim, all_de_ti, d_max):
     """``|data_event_sim - all_de_ti| / d_max`` with one (max_scan, n) temporary.
 
-    The naive expression allocates three full ``(max_scan, n)`` blocks (one per
-    operator); folding ``abs`` and the ``d_max`` scaling into the subtraction
-    result in place keeps just one. Bit-identical to the naive form: a
-    float32 TI stays in float32 throughout rather than being forced to
-    float64, matching the naive expression's own promotion; only an
-    integer-coded TI is widened (before subtracting, so it cannot wrap).
+    Applies ``abs`` and the ``d_max`` scaling in place on the subtraction
+    result, so only one full ``(max_scan, n)`` block is allocated. A float32
+    TI stays in float32; only an integer-coded TI is widened (before
+    subtracting, so it cannot wrap).
     """
     dtype = np.result_type(data_event_sim, all_de_ti)
     if not np.issubdtype(dtype, np.floating):
@@ -222,6 +245,8 @@ def vec_l1_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
     Returns
     -------
     numpy.ndarray, shape (max_scan,)
+        Non-negative; at most 1 when the data-event values lie within the TI
+        value range (not clamped).
     """
     if not has_nan:
         return np.dot(
@@ -237,8 +262,9 @@ def vec_l1_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
 def vec_l2_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
     """Vectorized L2 distance over all TI scan candidates (Mariethoz2010 Eq. 4–5).
 
-    Weighted RMSE normalized by the TI value range ``d_max``; spatial-decay
-    weights ``α_i`` embed the ``d_max²`` denominator (Mariethoz2010 Eq. 5).
+    Weighted RMSE normalized by the TI value range ``d_max``: the differences
+    are divided by ``d_max`` and the spatial-decay weights ``α_i`` sum to 1
+    (equivalent to Mariethoz2010 Eq. 5).
 
     Parameters
     ----------
@@ -251,6 +277,8 @@ def vec_l2_dist(data_event_sim, all_de_ti, node_weights, d_max, has_nan=False):
     Returns
     -------
     numpy.ndarray, shape (max_scan,)
+        Non-negative; at most 1 when the data-event values lie within the TI
+        value range (not clamped).
     """
     if not has_nan:
         sq = _scaled_abs_diff(data_event_sim, all_de_ti, d_max)
@@ -282,6 +310,8 @@ def vec_lp_dist(
     Returns
     -------
     numpy.ndarray, shape (max_scan,)
+        Non-negative; at most 1 when the data-event values lie within the TI
+        value range (not clamped).
     """
     if not has_nan:
         diffs = _scaled_abs_diff(data_event_sim, all_de_ti, d_max)
@@ -314,7 +344,7 @@ def vec_variation_dist(
     Returns
     -------
     numpy.ndarray, shape (max_scan,)
-        Distance in [0, 1].
+        Distance, clamped to [0, 1].
     """
     if not has_nan:
         de_sim_c = data_event_sim - data_event_sim.mean()
@@ -353,3 +383,108 @@ def vec_variation_dist(
     # Clamp only finite aggregates so a fully-undefined row keeps its +inf
     # (never selected), matching the other metrics' exclusion contract.
     return np.where(np.isfinite(agg), np.minimum(1.0, agg), np.inf)
+
+
+def variable_distance(var, de_sim, all_de_ti, weights, d_max, has_nan=False):
+    """Distance of one variable's data event to every TI scan candidate.
+
+    Dispatches on the metric declared by *var* (categorical, penalty matrix,
+    l1, l2, lp or variation) to the matching ``vec_*`` kernel.
+
+    Parameters
+    ----------
+    var : Variable
+        Declares the metric, its p-norm and the penalty matrix.
+    de_sim : array-like of shape (n,)
+        Simulation-grid data event for this variable.
+    all_de_ti : array-like of shape (max_scan, n)
+        TI data events, one row per scan candidate.
+    weights : numpy.ndarray of shape (n,)
+        Node weights, see :func:`compute_node_weights`.
+    d_max : float or None
+        Normalization range for continuous metrics.
+    has_nan : bool, optional
+        Exclude undefined (NaN) TI positions per row, renormalizing the
+        weights. Default ``False``.
+
+    Returns
+    -------
+    numpy.ndarray of shape (max_scan,)
+        Distance for each candidate. Categorical and variation distances lie
+        in [0, 1]; l1, l2 and lp are not clamped and can exceed 1 when the
+        data event lies outside the TI range. ``+inf`` marks a candidate
+        whose data event is entirely undefined (NaN).
+    """
+    # Categorical distance only uses !=, which is dtype-agnostic; skip the
+    # float64 allocation on the categorical path and keep it for continuous.
+    if var.categorical:
+        de_sim = np.asarray(de_sim)
+        all_de_ti = np.asarray(all_de_ti)
+    else:
+        de_sim = np.asarray(de_sim, dtype=np.float64)
+        all_de_ti = np.asarray(all_de_ti, dtype=np.float64)
+    if len(de_sim) == 0:
+        return np.zeros(len(all_de_ti))
+    # Dispatch order: categorical > l1 (p==1) > l2 (p==2) > lp > variation.
+    # l1/l2 are explicit fast-paths (not folded into lp) so the specialised
+    # BLAS-friendly kernels are always selected for p in {1, 2}.
+    if var.categorical:
+        if var.penalty_matrix is not None:
+            return vec_categorical_penalty_dist(
+                de_sim, all_de_ti, weights, var.penalty_matrix, has_nan=has_nan
+            )
+        return vec_categorical_dist(
+            de_sim, all_de_ti, weights, has_nan=has_nan
+        )
+    p = var.p_norm
+    if p == 1.0:
+        return vec_l1_dist(de_sim, all_de_ti, weights, d_max, has_nan=has_nan)
+    if p == 2.0:
+        return vec_l2_dist(de_sim, all_de_ti, weights, d_max, has_nan=has_nan)
+    if p is not None:
+        return vec_lp_dist(
+            de_sim, all_de_ti, weights, d_max, p, has_nan=has_nan
+        )
+    return vec_variation_dist(
+        de_sim,
+        all_de_ti,
+        weights,
+        d_max,
+        var.variation_p_norm,
+        has_nan=has_nan,
+    )
+
+
+def adjust_value(var, ti_val, de_sim, de_ti):
+    """Adjust a matched TI value before it is pasted into the simulation grid.
+
+    For variation metrics applies the mean shift of Mariethoz2010 Eq. 9 on the
+    TI event's defined positions; otherwise returns *ti_val*.
+
+    Parameters
+    ----------
+    var : Variable
+        Declares the metric.
+    ti_val : float
+        Raw value at the matched TI node.
+    de_sim : array-like of shape (n,)
+        Simulation-grid data event.
+    de_ti : array-like of shape (n,)
+        TI data event; NaN marks undefined positions.
+
+    Returns
+    -------
+    float
+    """
+    if var.variation_p_norm is None or var.categorical:
+        return ti_val
+    de_sim = np.asarray(de_sim, dtype=np.float64)
+    de_ti = np.asarray(de_ti, dtype=np.float64)
+    if de_sim.size == 0 or de_ti.size == 0:
+        return ti_val
+    # Both means over the positions defined in the TI event: the common
+    # support vec_variation_dist compares on.
+    ok = np.isfinite(de_ti)
+    if not ok.any():
+        return ti_val
+    return float(ti_val - de_ti[ok].mean() + de_sim[ok].mean())

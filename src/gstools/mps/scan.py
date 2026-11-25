@@ -1,9 +1,12 @@
 """TI search-window scanning for Direct Sampling.
 
 Scans a candidate window for the best weighted-distance match (greedy
-early-exit in DS mode, running-best argmin in DSBC mode). Depends only on
-distance.py; receives TI arrays and the vectorized distance callable as
-parameters (does not own a TrainingImage).
+early-exit in DS mode, running-best argmin in DSBC mode). Candidates are
+visited in the order set by ``scan_path``: ``"sequential"`` is a contiguous
+wrap-around walk from a random start (Mariethoz2010 ¶19, Juda2022 §2),
+``"random"`` visits distinct cells in random order (Juda2022 §2; DeeSse,
+Straubhaar2020 §2.1). Depends only on distance.py; the TI arrays arrive in a
+:class:`_ScanConfig` (no TrainingImage is owned here).
 """
 
 from dataclasses import dataclass
@@ -11,38 +14,39 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.random import default_rng
 
-from gstools.mps.distance import compute_node_weights
+from gstools.mps.distance import compute_node_weights, variable_distance
 
 
 @dataclass(frozen=True)
 class _ScanConfig:
     """Domain-constant inputs to :func:`_scan_for_match`, built once per domain.
 
-    Every field is invariant across the whole node path of a pass.  The
-    kernel fields (``weights``, ``distance_power``, ``cond_weight``,
-    ``vec_distance_var``, ``adjust_value``) come from the pass's TI (main or
-    post-processing); the rest describe the domain (TI data, shape, per-variable
-    ``d_max``).  ``scan_fraction`` is a per-pass value (Meerschman2013 §4 divides
-    it by ``post_processing_factor``) and is passed to :func:`_scan_for_match`
-    directly instead, from the caller's ``_Pass``.
+    Every field is constant over the node path of a pass. The kernel fields
+    (``weights``, ``distance_power``, ``cond_weight``, ``kernel_vars``) come
+    from the pass's kernel TI (the primary TI, or the post-processing TI in
+    post-passes); the others describe the domain (TI data, shape, per-variable
+    ``d_max``). ``scan_fraction`` differs per pass (Meerschman2013 §4 divides it
+    by ``PostProcessing.factor``), so it is an argument of
+    :func:`_scan_for_match`.
     """
 
-    variables: tuple
+    variables: list
     weights: dict
     ti_vars: dict
     ti_flat: dict
     ti_strides: dict
     ti_shape: object
-    threshold: float  # or None -> DSBC (see _scan_window's dsbc computation)
-    cond_weight: dict  # {var: float} -- per-variable, from the kernel TI
-    distance_power: dict  # {var: float} -- per-variable, from the kernel TI
-    vec_distance_var: object
-    adjust_value: object  # paste rule paired with vec_distance_var (same TI)
-    d_max: dict  # {var: float or None} — normalization range per variable,
-    # from the domain's (zone) TI; kernel type stays primary's.
+    threshold: float  # None -> DSBC
+    cond_weight: dict  # {var: float}, from the kernel TI
+    distance_power: dict  # {var: float}, from the kernel TI
+    kernel_vars: dict  # {var: Variable} (the metrics), from the kernel TI
+    d_max: dict  # {var: float or None}, normalization range of the domain's TI
     ti_has_nan: bool
     var_has_nan: dict  # {var: bool}; NaN-free variables skip the NaN path
-    scan_path: str = "sequential"  # window scan order; see module docstring
+    scan_path: str = "sequential"  # window scan order (module docstring)
+    finite_flat: object = (
+        None  # flat cells defined in every variable (NaN TIs)
+    )
 
 
 # DS-mode scan block size.  Large enough that per-call NumPy overhead is
@@ -61,7 +65,7 @@ def _scan_window(
     dist_fn,
     scan_path="sequential",
 ):
-    """Chunked vectorized TI window scan (pure-Python path).
+    """Chunked vectorized TI window scan.
 
     Parameters
     ----------
@@ -81,7 +85,7 @@ def _scan_window(
         ``dist_fn(y_blk)`` → 1-D distance array for a block of candidate
         anchor coordinates ``y_blk`` of shape ``(b, dim)``.
     scan_path : str, optional
-        ``"sequential"`` (default) or ``"random"``.  See the module docstring.
+        ``"sequential"`` (default) or ``"random"``; see the module docstring.
 
     Returns
     -------
@@ -93,8 +97,9 @@ def _scan_window(
     """
     win_size = int(np.prod(win_shape))
     # "sequential": wrap-around walk from a random start (Mariethoz2010 ¶19,
-    # Juda2022 §2). "random": max_scan distinct cells in random order, keyed on
-    # the node's own u_start_i so no extra RNG draw is needed.
+    # Juda2022 §2). "random": max_scan distinct cells in random order
+    # (Juda2022 §2; DeeSse, Straubhaar2020 §2.1), keyed on the node's own
+    # u_start_i so no extra RNG draw is needed.
     #
     # Deliberate exception to the "use gstools.random.RNG" rule: reproducibility
     # is unaffected, since the only entropy is u_start_i, itself drawn from the
@@ -106,8 +111,7 @@ def _scan_window(
     # Positions are built per ``_SCAN_BLOCK`` inside the loop below rather than
     # for all ``max_scan`` candidates upfront, since the greedy DS scan
     # typically exits long before the last block. This is unconditional
-    # rather than mode-gated: the sequential walk's block is a cheap arange
-    # either way, and it is bit-identical to building everything upfront.
+    # rather than mode-gated: the sequential walk's block is a cheap arange.
     if scan_path == "random":
         positions = default_rng(int(u_start_i * 2**53)).choice(
             win_size, max_scan, replace=False
@@ -118,8 +122,8 @@ def _scan_window(
         start = int(u_start_i * win_size)
 
     # DSBC has no threshold-based early exit, but an exact match d == 0 is
-    # the best attainable candidate, so accept it immediately (retained for
-    # categorical, where d == 0 is common — Juda2022 §2). Both modes
+    # the best attainable candidate, so accept it immediately (this matters
+    # for categorical, where d == 0 is common — Juda2022 §2). Both modes
     # therefore scan in blocks of ``_SCAN_BLOCK`` and track the running best,
     # so a full-window DSBC scan never materialises one giant distance array.
     # Block argmin + strict ``<`` keep the first-in-scan-order winner,
@@ -133,9 +137,8 @@ def _scan_window(
     best_d, best_y = np.inf, None
     for b0 in range(0, max_scan, _SCAN_BLOCK):
         b1 = min(b0 + _SCAN_BLOCK, max_scan)
-        # Same integers the upfront build produced for this slice: the
-        # sequential walk is ``(start + k) % win_size`` elementwise, and
-        # ``unravel_index`` is elementwise, so blocking changes nothing.
+        # The sequential walk is ``(start + k) % win_size`` and
+        # ``unravel_index`` acts elementwise, so a block is a slice of the walk.
         pos_blk = (
             (start + np.arange(b0, b1)) % win_size
             if positions is None
@@ -154,8 +157,8 @@ def _scan_window(
             best_y = y_blk[k]
     # ``best_y is None`` means every candidate had a non-finite (excluded)
     # distance — only reachable on a masked TI where the whole window is
-    # undefined. Signal the caller to fall back to a defined TI draw (M10
-    # para [15] empty-neighbourhood handling). For a fully-defined TI the loop
+    # undefined. Signal the caller to fall back to a defined TI draw
+    # (Mariethoz2010 ¶15 empty-neighbourhood handling). For a fully-defined TI the loop
     # always sets best_y, so this returns a real anchor unchanged.
     return best_y
 
@@ -172,11 +175,11 @@ def _scan_for_match(
     scan_fraction,
     cfg,
 ):
-    """Joint multivariate DS scan over a TI search window.
+    """Joint DS scan over a TI search window.
 
-    Scans candidates in randomized order (greedy DS early-exit when the first
-    candidate with distance ``< threshold`` is found; DSBC running-best argmin
-    when ``threshold`` is ``None``).  The window is the per-variable intersection so
+    Scans candidates in the order given by ``cfg.scan_path`` (module docstring;
+    greedy DS early-exit at the first candidate with distance ``< threshold``,
+    DSBC running-best argmin when ``threshold`` is ``None``).  The window is the per-variable intersection so
     every ``y + lag`` is in bounds and the gather needs no clipping; the h=0
     lag maps to ``y`` itself.  Returns the single best TI anchor coordinate
     ``y``, or ``None`` when every candidate in the window is undefined (masked
@@ -184,10 +187,23 @@ def _scan_for_match(
 
     Parameters
     ----------
+    lo : numpy.ndarray, shape (dim,)
+        Lower corner of the search window in TI coordinates.
+    win_shape : tuple of int
+        Shape of the search window.
+    int_lags : dict of {str: numpy.ndarray}
+        TI-frame integer lags per variable that has a data event.
+    de_v, cm_v, ln_v : dict of {str: numpy.ndarray}
+        Per variable: data-event values, conditioning mask and SG lag norms.
+    u_start_i : float
+        The node's pre-drawn uniform in ``[0, 1)`` (see :func:`_scan_window`).
+    scan_targets : list of str
+        Variables being simulated at this node.
     scan_fraction : float
         This pass's scan fraction (main path, or divided by
-        ``post_processing_factor`` for a post-pass) — the one field of the
-        old ``_ScanConfig`` that varies per pass rather than per domain.
+        ``PostProcessing.factor`` for a post-pass).
+    cfg : _ScanConfig
+        The scan domain.
     """
     win_size = int(np.prod(win_shape))
     ti_size = int(np.prod(cfg.ti_shape))
@@ -220,19 +236,17 @@ def _scan_for_match(
                 continue  # carried along, not matched; also avoids 0 * inf
             base = y_blk @ cfg.ti_strides[v]  # shape (B,)
             all_de_ti = cfg.ti_flat[v][base[:, None] + flat_il[v][None, :]]
-            d += cfg.weights[v] * cfg.vec_distance_var(
-                v,
+            d += cfg.weights[v] * variable_distance(
+                cfg.kernel_vars[v],
                 de_v[v],
                 all_de_ti,
-                cm_v[v],
-                cfg.cond_weight[v],
-                ln_v[v],
-                weights=precomp_w[v],
-                d_max=cfg.d_max[v],
+                precomp_w[v],
+                cfg.d_max[v],
                 has_nan=cfg.var_has_nan[v],
             )
-        # Renormalize so the joint distance stays in [0, 1] even when
-        # some variables have no data event and are excluded from int_lags.
+        # Renormalize by the active weights so the joint distance keeps the
+        # same scale when some variables have no data event and are excluded
+        # from int_lags.
         # Without this, the threshold fires on a compressed scale and
         # accepts matches that should be rejected.
         if 0.0 < active_w_total < 1.0:

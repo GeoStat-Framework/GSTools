@@ -19,7 +19,7 @@ __all__ = ["Zone"]
 class Zone:
     """A training image bound to a region of the simulation grid.
 
-    Zonated Direct Sampling (Mariethoz et al. 2010, para [40]): nodes inside
+    Zonated Direct Sampling (Mariethoz2010 ¶40): nodes inside
     the zone's region scan this zone's TI instead of the primary one. The
     data event is still built from simulation-grid neighbours regardless of
     their zones, which keeps zone boundaries coherent.
@@ -29,13 +29,8 @@ class Zone:
     ti : :any:`TrainingImage`
         Zone training image. May be a sub-region view created with
         :meth:`TrainingImage.window`. Must share the primary TI's variable
-        set (validated by :class:`MPSModel`).
-
-        Only the zone TI's **data, shape and continuous range** (``d_max``)
-        are used. Search hyper-parameters and the distance kernel —
-        ``n_neighbors``, ``max_radius``, ``distance``, ``weight``,
-        ``penalty_matrix`` — always come from the primary TI; setting them
-        here has no effect.
+        set (validated by :class:`MPSModel`). Only its data, shape and
+        continuous range are used; see :attr:`MPSModel.zones`.
     where : :class:`numpy.ndarray` of :class:`bool` or callable
         Region of the simulation grid this zone covers: a boolean array of
         the grid shape, or a callable ``f(x, [y, z, ...]) -> bool mask``
@@ -43,6 +38,15 @@ class Zone:
         Non-boolean arrays raise — no silent ``!= 0`` coercion. A user
         holding an integer zonation raster writes
         ``Zone(ti_k, where=(labels == k))``.
+
+    Raises
+    ------
+    TypeError
+        If ``ti`` is not a :class:`TrainingImage`.
+    ValueError
+        If ``where`` is an array that is not boolean. A callable is checked
+        when the simulation runs (it must return a boolean mask of the grid
+        shape).
 
     Examples
     --------

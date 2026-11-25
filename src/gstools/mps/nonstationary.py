@@ -106,6 +106,14 @@ def resolve_spec(
         True when the value is node-independent (the engine may hoist the
         transform-matrix construction out of the node loop).
 
+    Raises
+    ------
+    ValueError
+        If a value is non-finite (callable) or, with ``positive``, not > 0; a
+        callable returns neither ``(n_nodes,)`` nor ``(n_nodes, n_comp)``; or
+        an array matches no accepted form or is ambiguous (see the module
+        docstring).
+
     Examples
     --------
     >>> import numpy as np
@@ -189,6 +197,12 @@ def resolve_where(where, grid_shape, pos):
     -------
     numpy.ndarray of bool, shape grid_shape
         Boolean mask indicating the region.
+
+    Raises
+    ------
+    ValueError
+        If the mask (or the callable's result) is not boolean or does not
+        have the grid shape (a callable may also return ``(n_nodes,)``).
 
     Examples
     --------
