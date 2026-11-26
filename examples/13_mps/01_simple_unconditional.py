@@ -1,6 +1,6 @@
 r"""
 A first Direct Sampling (DS) simulation
-----------------------------------
+---------------------------------------
 
 This is the minimal Multiple Point Statistics example: build a training image,
 wrap it in a :any:`TrainingImage`, and generate one unconditional realization

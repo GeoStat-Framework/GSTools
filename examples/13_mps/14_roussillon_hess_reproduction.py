@@ -1,6 +1,6 @@
 r"""
 Roussillon-inspired Direct Sampling case study
----------------------------------------------
+----------------------------------------------
 
 This example illustrates the main ingredients of the
 Roussillon Continental Pliocene aquifer workflow from

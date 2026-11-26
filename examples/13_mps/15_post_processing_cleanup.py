@@ -36,7 +36,7 @@ import gstools as gs
 
 ###############################################################################
 # Load the Strebelle channel training image bundled next to this example
-# (see :ref:`the conditioning example <sphx_glr_examples_13_mps>` for the data
+# (see :ref:`the conditioning example <sphx_glr_examples_13_mps_02_conditional.py>` for the data
 # source and license).
 
 example_dir = (
