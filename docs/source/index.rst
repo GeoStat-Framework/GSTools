@@ -457,14 +457,13 @@ Requirements
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
 - `meshio >= 5.1.0 <https://github.com/nschloe/meshio>`_
+- `GSTools-Core >= 1.4.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
+  with MPS API 8 for Direct Sampling
 
 
 Optional
 --------
 
-- `GSTools-Core >= 0.2.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
-  (optional for random fields and kriging; version >= 1.4.0 is required for
-  MPS Direct Sampling)
 - `matplotlib <https://matplotlib.org>`_
 - `pyvista <https://docs.pyvista.org>`_
 

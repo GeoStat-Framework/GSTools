@@ -47,54 +47,56 @@ def _mps_assets(subdir, suffixes):
     asset_dir = (
         Path(__file__).resolve().parents[2] / "examples" / "13_mps" / subdir
     )
-    if not asset_dir.exists():
-        return []
     return sorted(
         path
-        for path in asset_dir.iterdir()
+        for path in asset_dir.glob("*")
         if path.is_file() and path.suffix in suffixes
     )
 
 
+def _mps_zip_assets(gallery_dir):
+    """Copy only the MPS example inputs, notices, and curated previews."""
+    assets = []
+    for subdir, suffixes in {
+        "input": {".npz", ".txt", ".inc"},
+        "output": {".png", ".txt"},
+    }.items():
+        target_dir = gallery_dir / subdir
+        target_dir.mkdir(exist_ok=True)
+        for source in _mps_assets(subdir, suffixes):
+            target = target_dir / source.name
+            shutil.copy2(source, target)
+            assets.append(target)
+    return assets
+
+
 def _patch_mps_gallery_zipfiles():
-    """Include bundled MPS assets in per-example Sphinx-Gallery zip files."""
-    try:
-        from sphinx_gallery import gen_rst
-    except Exception:
-        return
+    """Include MPS dependencies in individual and bulk gallery downloads."""
+    from sphinx_gallery import downloads, gen_rst
 
-    original_zip_files = gen_rst.zip_files
-    if getattr(original_zip_files, "_gstools_mps_inputs", False):
-        return
+    def with_assets(zip_files):
+        if getattr(zip_files, "_gstools_mps_assets", False):
+            return zip_files
 
-    def zip_files_with_mps_inputs(
-        file_list, zipname, relative_to, extension=None
-    ):
-        zip_path = Path(zipname)
-        relative_dir = Path(relative_to)
+        def zip_mps_files(file_list, zipname, relative_to, extension=None):
+            gallery_dir = Path(relative_to)
+            if gallery_dir.name != "13_mps":
+                return zip_files(file_list, zipname, relative_to, extension)
+            sources = (
+                file_list
+                if extension is None
+                else [Path(path).with_suffix(extension) for path in file_list]
+            )
+            return zip_files(
+                [*sources, *_mps_zip_assets(gallery_dir)], zipname, relative_to
+            )
 
-        if (
-            extension is None
-            and zip_path.suffix == ".zip"
-            and relative_dir.name == "13_mps"
-        ):
-            copied_assets = []
-            for subdir, suffixes in {
-                "input": {".npz", ".txt", ".inc"},
-                "output": {".png", ".txt"},
-            }.items():
-                target_asset_dir = relative_dir / subdir
-                target_asset_dir.mkdir(exist_ok=True)
-                for src in _mps_assets(subdir, suffixes):
-                    dst = target_asset_dir / src.name
-                    shutil.copy2(src, dst)
-                    copied_assets.append(str(dst))
-            file_list = [*file_list, *copied_assets]
+        zip_mps_files._gstools_mps_assets = True
+        return zip_mps_files
 
-        return original_zip_files(file_list, zipname, relative_to, extension)
-
-    zip_files_with_mps_inputs._gstools_mps_inputs = True
-    gen_rst.zip_files = zip_files_with_mps_inputs
+    for module in (gen_rst, downloads):
+        if hasattr(module, "zip_files"):
+            module.zip_files = with_assets(module.zip_files)
 
 
 def skip(app, what, name, obj, skip, options):

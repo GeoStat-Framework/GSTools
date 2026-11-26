@@ -15,7 +15,7 @@ from gstools.mps import DirectSampling, MPSModel, TrainingImage, Variable, Zone
         np.array([-3e38, 3e38], np.float32),
     ],
 )
-def test_ds02_endpoint_distance_is_one(data):
+def test_endpoint_distance_is_one(data):
     ti = TrainingImage(data, categorical=False, distance="l1")
     # The normalized L1 distance between the two extrema is 1.0 regardless of
     # the storage dtype (the range is computed in float64).
@@ -24,7 +24,7 @@ def test_ds02_endpoint_distance_is_one(data):
     ) == [1.0]
 
 
-def test_ds02_range_too_large_for_float64_errors():
+def test_range_too_large_for_float64_errors():
     with pytest.raises(ValueError, match="not finite"):
         TrainingImage(
             np.array([-1e308, 1e308]), categorical=False, distance="l1"
@@ -32,7 +32,7 @@ def test_ds02_range_too_large_for_float64_errors():
 
 
 # --- DS03: zero-weight variables must not alter geometry or poison scores ---
-def test_ds03_zero_weight_does_not_change_match():
+def test_zero_weight_does_not_change_match():
     ti = TrainingImage(
         [
             Variable(
@@ -71,7 +71,7 @@ def test_ds03_zero_weight_does_not_change_match():
 
 # --- DS04: variation paste shifts over the common finite support ------------
 @pytest.mark.parametrize("post_processing", [0, 1])
-def test_ds04_variation_common_support_paste(post_processing):
+def test_variation_common_support_paste(post_processing):
     ti = TrainingImage(
         np.array([10.0, 1.0, np.nan]),
         categorical=False,
@@ -96,7 +96,7 @@ def test_ds04_variation_common_support_paste(post_processing):
 
 
 # --- DS05: invalid native input raises instead of aborting ------------------
-def test_ds05_out_of_bounds_path_raises():
+def test_out_of_bounds_path_raises():
     import gstools_core as core
 
     base = dict(
@@ -137,7 +137,7 @@ def test_ds05_out_of_bounds_path_raises():
         core.mps_simulate(**base)
 
 
-def test_ds05_fallback_uniform_one_raises():
+def test_fallback_uniform_one_raises():
     import gstools_core as core
 
     base = dict(
@@ -178,7 +178,7 @@ def test_ds05_fallback_uniform_one_raises():
         core.mps_simulate(**base)
 
 
-def test_ds05_dist_block_negative_index_raises():
+def test_dist_block_negative_index_raises():
     import gstools_core as core
 
     with pytest.raises(ValueError):
@@ -192,7 +192,7 @@ def test_ds05_dist_block_negative_index_raises():
 
 
 # --- DS06: envelope covers all effective radii, bounded per axis ------------
-def test_ds06_unlimited_radius_matches_full_grid_finite():
+def test_unlimited_radius_matches_full_grid_finite():
     fields = {}
     for radius in (None, 8):
         ti = TrainingImage(
@@ -222,7 +222,7 @@ def test_ds06_unlimited_radius_matches_full_grid_finite():
     np.testing.assert_array_equal(fields[None], fields[8])
 
 
-def test_ds06_thin_grid_does_not_overallocate():
+def test_thin_grid_does_not_overallocate():
     ti = TrainingImage((np.arange(8) % 2).reshape(2, 2, 2), n_neighbors=1)
     field = DirectSampling(MPSModel(ti), seed=3)(
         [np.arange(1000.0), np.arange(2.0), np.arange(2.0)],
@@ -235,7 +235,7 @@ def test_ds06_thin_grid_does_not_overallocate():
 
 
 # --- DS07: identity transform must equal no transform -----------------------
-def test_ds07_identity_scale_equals_no_transform():
+def test_identity_scale_equals_no_transform():
     data = np.array([[0, 1], [1, 0], [0, 1], [0, 1], [0, 1]])
     base = np.argwhere(np.ones((5, 5), dtype=bool))
     path = np.vstack([[2, 2], base[np.any(base != [2, 2], axis=1)]])
@@ -255,7 +255,7 @@ def test_ds07_identity_scale_equals_no_transform():
 
 
 # --- DS08: conditioning updates are transactional ---------------------------
-def test_ds08_failed_update_preserves_prior_state():
+def test_failed_update_preserves_prior_state():
     ti = TrainingImage(
         [
             Variable("a", np.array([[0.0, 1.0], [1.0, 0.0]]), n_neighbors=2),
@@ -270,7 +270,7 @@ def test_ds08_failed_update_preserves_prior_state():
     assert ds._cond_val["a"].tolist() == [1.0]
 
 
-def test_ds08_2d_value_array_rejected():
+def test_2d_value_array_rejected():
     ti = TrainingImage(
         [
             Variable("a", np.array([[0.0, 1.0], [1.0, 0.0]]), n_neighbors=2),
@@ -285,7 +285,7 @@ def test_ds08_2d_value_array_rejected():
         )
 
 
-def test_ds08_univariate_nonfinite_position_rollback():
+def test_univariate_nonfinite_position_rollback():
     ds = DirectSampling(
         MPSModel(TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2)),
         seed=7,
@@ -297,7 +297,7 @@ def test_ds08_univariate_nonfinite_position_rollback():
 
 
 # --- DS09: penalty category screening on conditioning -----------------------
-def test_ds09_invalid_hard_category_rejected():
+def test_invalid_hard_category_rejected():
     ti = TrainingImage(
         Variable(
             None,
@@ -318,7 +318,7 @@ def test_ds09_invalid_hard_category_rejected():
     "mask",
     [np.array([True, False]), np.array([[True], [False]]), np.array(True)],
 )
-def test_ds11_wrong_shaped_cleanup_mask_rejected(mask):
+def test_wrong_shaped_cleanup_mask_rejected(mask):
     ti = TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2)
     with pytest.raises(ValueError, match="post_processing_mask shape"):
         DirectSampling(
@@ -327,7 +327,7 @@ def test_ds11_wrong_shaped_cleanup_mask_rejected(mask):
 
 
 # --- DS12: named univariate TI conveniences work ----------------------------
-def test_ds12_named_univariate_accessors():
+def test_named_univariate_accessors():
     ti = TrainingImage(
         Variable("facies", np.array([[0, 1], [1, 0]]), n_neighbors=2)
     )
@@ -338,7 +338,7 @@ def test_ds12_named_univariate_accessors():
 
 
 # --- DS13: threshold None / None seeds / cleanup setters --------------------
-def test_ds13_threshold_none_is_dsbc():
+def test_threshold_none_is_dsbc():
     assert (
         MPSModel(
             TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2),
@@ -348,7 +348,7 @@ def test_ds13_threshold_none_is_dsbc():
     )
 
 
-def test_ds13_none_seeds_accepted():
+def test_none_seeds_accepted():
     ds = DirectSampling(
         MPSModel(TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2)),
         seed=None,
@@ -363,7 +363,7 @@ def test_ds13_none_seeds_accepted():
     assert out.shape == (2, 2)
 
 
-def test_ds13_post_processing_setters():
+def test_post_processing_setters():
     m = MPSModel(TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2))
     m.post_processing = 2
     m.post_processing_factor = 2.0
@@ -376,7 +376,7 @@ def test_ds13_post_processing_setters():
 
 
 # --- DS14: zones setter enforces the cleanup-penalty invariant --------------
-def test_ds14_zone_setter_validates_cleanup_penalty():
+def test_zone_setter_validates_cleanup_penalty():
     primary = TrainingImage(
         Variable("facies", np.array([[0, 1], [1, 0]]), n_neighbors=2)
     )
@@ -399,7 +399,7 @@ def test_ds14_zone_setter_validates_cleanup_penalty():
 
 
 # --- DS15: normalization + fractional counts + nonfinite axes ---------------
-def test_ds15_large_weights_normalize_to_half():
+def test_large_weights_normalize_to_half():
     w = TrainingImage(
         [
             Variable("a", np.array([0, 1]), weight=1e308),
@@ -410,7 +410,7 @@ def test_ds15_large_weights_normalize_to_half():
 
 
 @pytest.mark.parametrize("bad", [0.9, 1.9, -0.5])
-def test_ds15_fractional_post_processing_rejected(bad):
+def test_fractional_post_processing_rejected(bad):
     with pytest.raises(ValueError, match="integer"):
         MPSModel(
             TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2),
@@ -419,7 +419,7 @@ def test_ds15_fractional_post_processing_rejected(bad):
 
 
 @pytest.mark.parametrize("axis", [[0.0, np.nan, 2.0], [0.0, 1.0, np.inf]])
-def test_ds15_nonfinite_grid_axis_rejected(axis):
+def test_nonfinite_grid_axis_rejected(axis):
     ds = DirectSampling(
         MPSModel(TrainingImage(np.array([[0, 1], [1, 0]]), n_neighbors=2)),
         seed=1,
@@ -429,7 +429,7 @@ def test_ds15_nonfinite_grid_axis_rejected(axis):
 
 
 # --- DS17: per-zone missingness flags ---------------------------------------
-def test_ds17_whole_grid_zone_matches_standalone_masked_ti():
+def test_whole_grid_zone_matches_standalone_masked_ti():
     data = np.ascontiguousarray(
         [[0, np.nan, 0, 1, 1], [10, 20, 30, 40, 50]], float
     )
@@ -468,7 +468,7 @@ def test_ds17_whole_grid_zone_matches_standalone_masked_ti():
 
 
 # --- DS18: native random scan prefix is unbiased ----------------------------
-def test_ds18_random_scan_reaches_all_categories():
+def test_random_scan_reaches_all_categories():
     ti = TrainingImage(
         [
             Variable("guide", np.zeros(4), weight=1.0, n_neighbors=1),
