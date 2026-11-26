@@ -3,10 +3,12 @@
 The vectorized pattern distances themselves (categorical / L1 / L2 / Lp /
 variation) are computed by the Rust backend (``gstools_core.mps_dist_block_*``);
 this module keeps only the shared spatial-decay weighting used to build a data
-event. See ``RUST_ONLY_MIGRATION.md`` for the Rust-only backend change.
+event.
 """
 
 import numpy as np
+
+from gstools.mps._validation import _validate_real_data
 
 __all__ = ["compute_node_weights"]
 
@@ -40,32 +42,37 @@ def compute_node_weights(
     numpy.ndarray, shape (n,)
         Node weights normalized to sum to 1.
     """
-    raw_w = np.ones(n, dtype=np.float64)
-    if lag_norms is not None and distance_power != 0.0:
+    raw = np.ones(n, dtype=np.float64)
+    conditioned = (
+        np.zeros(n, dtype=bool)
+        if cond_mask is None
+        else np.asarray(cond_mask, dtype=bool)
+    )
+    if lag_norms is not None:
+        _validate_real_data(lag_norms, False, "lag_norms")
         norms = np.asarray(lag_norms, dtype=np.float64)
-        # Only non-zero lags decay with distance.  A *true* zero lag-norm is a
-        # collocated/conditioning entry (h=0, e.g. the multivariate same-node
-        # constraint); it keeps the unit-cell baseline weight 1.0 rather than the
-        # divergent norm**(-power), and its importance is governed by the
-        # cond_weight multiplier below (it always carries cond_mask=True).
-        nz = norms != 0.0
-        raw_w[nz] = norms[nz] ** (-distance_power)
+    else:
+        norms = np.zeros(n)
+    nonzero = (norms != 0.0) & (distance_power != 0.0)
+    with np.errstate(over="ignore", under="ignore", invalid="ignore"):
+        raw[nonzero] = norms[nonzero] ** (-distance_power)
+        raw[conditioned] *= cond_weight
+        total = raw.sum()
+    if np.isfinite(total) and total > 0.0:
+        return raw / total
 
-    if cond_mask is not None:
-        # ``raw_w`` is a freshly allocated array (np.ones above, modified in
-        # place), so no defensive copy is needed before scaling.
-        raw_w[np.asarray(cond_mask, dtype=bool)] *= cond_weight
-
-    total = raw_w.sum()
-    if total == 0.0:
-        # Every neighbour was zeroed out — the canonical case is an all-
-        # conditioning data event with cond_weight == 0 (δ_c = 0 → conditioning
-        # ignored entirely, Me13 p.323 → unconditional behaviour). Returning
-        # zero weights makes the data event non-informative so the node is drawn
-        # unconditionally, rather than re-weighting the ignored nodes uniformly.
-        return np.zeros(n, dtype=np.float64)
-    if not np.isfinite(total):
-        # Defensive: non-finite weight sum should be unreachable for grid lags
-        # (‖h‖ >= 1) — fall back to uniform rather than emit NaNs.
-        return np.full(n, 1.0 / n, dtype=np.float64)
-    return raw_w / total
+    # Shift before multiplying by the exponent, matching the native fallback.
+    # A zero conditioning multiplier excludes a node even after recomputing.
+    eligible = ~(conditioned & (cond_weight == 0.0))
+    weights = np.zeros(n, dtype=np.float64)
+    if not eligible.any():
+        return weights
+    log_lag = np.zeros(n)
+    log_lag[nonzero] = np.log(norms[nonzero])
+    log_lag = log_lag[eligible]
+    with np.errstate(over="ignore", under="ignore"):
+        log_weights = -distance_power * (log_lag - log_lag.min())
+        if cond_weight > 0.0:
+            log_weights[conditioned[eligible]] += np.log(cond_weight)
+        weights[eligible] = np.exp(log_weights - log_weights.max())
+    return weights / weights.sum()

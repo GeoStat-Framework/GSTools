@@ -1,8 +1,8 @@
 r"""
-HESS Roussillon aquifer reproduction
-------------------------------------
+Roussillon-inspired Direct Sampling case study
+---------------------------------------------
 
-This example shows how GSTools can reproduce the main ingredients of the
+This example illustrates the main ingredients of the
 Roussillon Continental Pliocene aquifer workflow from
 `Dall'Alba et al. (2020) <https://hess.copernicus.org/articles/24/4997/2020/>`_.
 The original open dataset is available from
@@ -18,16 +18,20 @@ hard data, then writes generated TI, input-map, 2D-result, facies/vertical,
 For normal documentation/gallery execution this file only displays the saved
 figures. Regenerate them explicitly with::
 
-    python examples/13_mps/12_roussillon_hess_reproduction.py small \
-        --archive /private/tmp/roussillon_mps_2020_dallalba.zip \
+    python examples/13_mps/14_roussillon_hess_reproduction.py small \
+        --archive /path/to/roussillon_mps_2020_dallalba.zip \
         --realizations 2 --num-threads 4
 
 After a run exists, redraw only the figures with::
 
-    python examples/13_mps/12_roussillon_hess_reproduction.py figures \
-        --archive /private/tmp/roussillon_mps_2020_dallalba.zip
+    python examples/13_mps/14_roussillon_hess_reproduction.py figures \
+        --archive /path/to/roussillon_mps_2020_dallalba.zip
 
-If the archive is missing, the command downloads it automatically. For
+Stage and verify the archive before running on compute nodes.
+The explicit CLI can download a missing archive; documentation builds only
+display saved previews.
+A completed run and longer vertical runs do not establish independent
+geological validation or performance superiority over DeeSse. For
 byte-identical reproducibility checks, keep ``--num-threads 1`` and add
 ``--repeat-check``. The heavy implementation lives in
 ``input/roussillon_hess_tools.inc`` so the example stays readable.
@@ -36,14 +40,15 @@ byte-identical reproducibility checks, keep ``--num-threads 1`` and add
 
     Current GSTools differs from the paper's DeeSse setup in two relevant
     places: GSTools currently has one global threshold instead of separate
-    facies/trend thresholds, and the Direct Sampling engine has no true
-    inactive-cell mask. The small mode therefore selects a fully active real
-    subdomain from the Roussillon transformed grid.
+    facies/trend thresholds. The legacy CLI default simulates rectangular
+    layers, retaining the historical workload. Pass ``--active-mask`` for the
+    separately versioned ABI-8 active-cell workflow: inactive cells are never
+    simulated or used as neighbors. Mapping and rotation assumptions still
+    require qualification; an active mask alone does not validate the geology.
 """
 
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 example_dir = (
     Path(__file__).resolve().parent if "__file__" in globals() else Path(".")
@@ -103,8 +108,8 @@ def show_saved_figure(path, figsize):
     if not path.exists():
         raise FileNotFoundError(
             f"Missing precomputed figure: {path}. Run:\n"
-            "python examples/13_mps/12_roussillon_hess_reproduction.py small "
-            "--archive /private/tmp/roussillon_mps_2020_dallalba.zip "
+            "python examples/13_mps/14_roussillon_hess_reproduction.py small "
+            "--archive /path/to/roussillon_mps_2020_dallalba.zip "
             "--realizations 2 --num-threads 4"
         )
     image = plt.imread(path)

@@ -91,10 +91,10 @@ sequential path.
 Finally, the 3D examples change the dimensionality rather than the variable
 type. **Large 3D multi-facies channel simulation** uses a five-facies GAIA-UNIL
 Fluvsim crop with sparse conditioning points and paper-style validation plots
-for facies proportions and two-point correlation, and **HESS Roussillon aquifer
-reproduction** closes the gallery with an end-to-end real-world reproduction
-combining a nonstationary training image, a 3D trend, rotation maps, and hard
-conditioning data. Both display saved figures by default, with expensive
+for facies proportions and two-point correlation. **Roussillon-inspired Direct
+Sampling case study** closes the gallery with a real-data workflow combining a
+nonstationary training image, a 3D trend, rotation maps, and hard conditioning
+data. Both display saved figures by default, with expensive
 regeneration kept explicit. Full regeneration of the Fluvsim example took
 approximately **41 minutes on our machine with four threads** in the previous
 measured run; runtime varies with hardware and backend version. Its page gives

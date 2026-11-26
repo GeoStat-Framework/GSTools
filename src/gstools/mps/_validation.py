@@ -24,15 +24,26 @@ def exact_count(value, *, minimum, context):
     return result
 
 
-def _validate_float64_integers(values, categorical, context):
-    """Reject integer values whose conversion to the engine's float64 loses bits.
+def _validate_real_data(values, categorical, context):
+    """Require real numeric arrays with values representable in float64.
 
     Python integers make the comparison safe at signed/unsigned endpoints.
     Exactly representable large powers of two remain supported. This checks
     representation, not whether a value is a valid penalty matrix index.
     """
     array = np.asarray(values)
-    if not np.issubdtype(array.dtype, np.integer) or not array.size:
+    if array.dtype.kind not in "biuf":
+        raise ValueError(
+            f"{context}: expected real numeric data, got dtype {array.dtype}."
+        )
+    if array.dtype.kind == "f" and array.dtype.itemsize > 8:
+        with np.errstate(over="ignore", under="ignore"):
+            finite = array[np.isfinite(array)]
+            if np.any(finite != finite.astype(np.float64).astype(array.dtype)):
+                raise ValueError(
+                    f"{context}: values must be exactly representable in float64."
+                )
+    if array.dtype.kind not in "iu" or not array.size:
         return
     if int(array.min()) >= -(2**53) and int(array.max()) <= 2**53:
         return

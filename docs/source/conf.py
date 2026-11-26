@@ -67,7 +67,9 @@ def _patch_mps_gallery_zipfiles():
     if getattr(original_zip_files, "_gstools_mps_inputs", False):
         return
 
-    def zip_files_with_mps_inputs(file_list, zipname, relative_to, extension=None):
+    def zip_files_with_mps_inputs(
+        file_list, zipname, relative_to, extension=None
+    ):
         zip_path = Path(zipname)
         relative_dir = Path(relative_to)
 
@@ -78,7 +80,7 @@ def _patch_mps_gallery_zipfiles():
         ):
             copied_assets = []
             for subdir, suffixes in {
-                "input": {".npz", ".txt"},
+                "input": {".npz", ".txt", ".inc"},
                 "output": {".png", ".txt"},
             }.items():
                 target_asset_dir = relative_dir / subdir

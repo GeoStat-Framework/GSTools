@@ -32,11 +32,11 @@ ti = gs.TrainingImage(ti_data, categorical=True, n_neighbors=12)
 patch_x, patch_y = np.meshgrid(
     np.arange(12, 20), np.arange(12, 20), indexing="ij"
 )
-outline = (
-    (patch_x == 12) | (patch_x == 19) | (patch_y == 12) | (patch_y == 19)
-)
+outline = (patch_x == 12) | (patch_x == 19) | (patch_y == 12) | (patch_y == 19)
 cond_x_idx = np.concatenate([patch_x[outline], np.tile(np.arange(14, 18), 3)])
-cond_y_idx = np.concatenate([patch_y[outline], np.repeat(np.arange(14, 17), 4)])
+cond_y_idx = np.concatenate(
+    [patch_y[outline], np.repeat(np.arange(14, 17), 4)]
+)
 cond_x = cond_x_idx.astype(float)
 cond_y = cond_y_idx.astype(float)
 cond_val = np.ones(cond_x_idx.size, dtype=int)

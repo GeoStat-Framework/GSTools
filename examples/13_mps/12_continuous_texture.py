@@ -38,6 +38,7 @@ data_path = example_dir / "input" / "gaia_unil_stone_texture.npz"
 output_dir = example_dir / "output"
 output_path = output_dir / "continuous_stone_conditioning.png"
 
+
 ###############################################################################
 # **Small display and plotting helpers.**
 #

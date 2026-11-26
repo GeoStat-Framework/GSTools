@@ -135,3 +135,6 @@ docs/source/sg_execution_times.rst
 !examples/13_mps/input/
 !examples/13_mps/input/*.npz
 !examples/13_mps/input/*.txt
+
+# Ignore new MPS example outputs. Tracked gallery previews remain assets.
+/examples/13_mps/output/

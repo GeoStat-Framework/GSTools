@@ -75,7 +75,6 @@ from pathlib import Path
 
 import numpy as np
 
-
 ARCHIVE_URL = (
     "https://zenodo.org/api/records/4110278/files/"
     "roussillon_mps_2020_dallalba.zip/content"
@@ -580,6 +579,7 @@ def build_training_image(data: HESSData, args):
                 categorical=True,
                 n_neighbors=args.facies_neighbors,
                 max_radius=args.max_radius,
+                cond_weight=args.cond_weight,
             ),
             gs.mps.Variable(
                 "trend",
@@ -588,6 +588,7 @@ def build_training_image(data: HESSData, args):
                 distance="l1",
                 n_neighbors=args.trend_neighbors,
                 max_radius=args.max_radius,
+                cond_weight=args.cond_weight,
             ),
         ]
     )
@@ -596,11 +597,14 @@ def build_training_image(data: HESSData, args):
 def condition_grid_for_layer(
     trend: np.ndarray,
     facies_condition: np.ndarray,
+    active_mask: np.ndarray | None = None,
 ) -> dict[tuple[int, int], dict[str, float]]:
     conditions: dict[tuple[int, int], dict[str, float]] = {}
     ny, nx = trend.shape
     for iy in range(ny):
         for ix in range(nx):
+            if active_mask is not None and not active_mask[iy, ix]:
+                continue
             vd = {"trend": float(trend[iy, ix])}
             facies = facies_condition[iy, ix]
             if np.isfinite(facies):
@@ -731,11 +735,12 @@ def simulate_layer(
     rotation: np.ndarray,
     facies_condition: np.ndarray,
     seed: int,
+    active_mask: np.ndarray | None = None,
 ) -> np.ndarray:
     from gstools.mps.simulate import ds_simulate
     from gstools.random.rng import RNG
 
-    conditions = condition_grid_for_layer(trend, facies_condition)
+    conditions = condition_grid_for_layer(trend, facies_condition, active_mask)
     rng = RNG(seed)
     result = ds_simulate(
         training_image=ti,
@@ -745,13 +750,17 @@ def simulate_layer(
         rng_path=rng.random,
         rng_nodes=rng.random,
         conditions=conditions,
-        cond_weight=args.cond_weight,
         boundary=args.boundary,
         num_threads=args.num_threads,
         rotation_map=rotation,
         path=args.path,
+        active_mask=active_mask,
     )
-    return np.rint(result["facies"]).astype(np.uint8)
+    field = result["facies"]
+    volume = np.full(field.shape, INACTIVE, dtype=np.uint8)
+    finite = np.isfinite(field)
+    volume[finite] = np.rint(field[finite]).astype(np.uint8)
+    return volume
 
 
 def simulate_volume(
@@ -771,10 +780,14 @@ def simulate_volume(
     hard_counts = []
     vertical_counts = []
     layer_times = []
+    active_hard_counts = []
+    inactive_hard_omitted = []
+    applied_vertical_counts = []
+    hard_mismatches = []
 
     for local_z in range(domain.nz):
         global_z = domain.z0 + local_z
-        t0 = time.time()
+        t0 = time.perf_counter()
         active = data.sim_grid[global_z, domain.yslice, domain.xslice]
         trend = data.trend[global_z, domain.yslice, domain.xslice]
         trend = fill_nan_2d(trend, fallback=float(np.nanmean(data.ti_trend)))
@@ -802,6 +815,17 @@ def simulate_volume(
             np.isfinite(hard_condition)
         ]
 
+        active_hard = active & np.isfinite(hard_condition)
+        active_hard_counts.append(int(active_hard.sum()))
+        inactive_hard_omitted.append(
+            int(np.count_nonzero(~active & np.isfinite(hard_condition)))
+        )
+        applied_vertical_counts.append(
+            int(np.count_nonzero(
+                active & np.isfinite(vertical_condition)
+                & ~np.isfinite(hard_condition)
+            )) if use_vertical else 0
+        )
         layer = simulate_layer(
             ti,
             args,
@@ -809,7 +833,13 @@ def simulate_volume(
             rotation=rotation,
             facies_condition=facies_condition,
             seed=seed + local_z,
+            active_mask=active if getattr(args, "active_mask", False) else None,
         )
+        hard_mismatches.append(int(np.count_nonzero(
+            layer[active_hard] != hard_condition[active_hard]
+        )))
+        if hard_mismatches[-1]:
+            raise RuntimeError("Mapped active hard conditions were not honored")
         layer[~active] = INACTIVE
         volume[local_z] = layer
 
@@ -829,16 +859,24 @@ def simulate_volume(
 
         hard_counts.append(int(hard_count))
         vertical_counts.append(int(vertical_condition_count))
-        layer_times.append(time.time() - t0)
+        layer_times.append(time.perf_counter() - t0)
         print(
             f"  layer {local_z + 1:03d}/{domain.nz:03d} "
             f"(global z={global_z:03d}): hard={hard_count}, "
             f"next_vertical={vertical_condition_count}, "
-            f"active={int(active.sum())}, time={layer_times[-1]:.1f}s"
+            f"active={int(active.sum())}, time={layer_times[-1]:.1f}s",
+            flush=True,
         )
 
     diagnostics = {
         "seed": int(seed),
+        "active_mask": getattr(args, "active_mask", False),
+        "active_hard_cells_per_layer": active_hard_counts,
+        "inactive_hard_cells_omitted_per_layer": (
+            inactive_hard_omitted if getattr(args, "active_mask", False) else None
+        ),
+        "applied_active_vertical_conditions_per_layer": applied_vertical_counts,
+        "hard_condition_mismatches_per_layer": hard_mismatches,
         "vertical_sampling": bool(vertical_sampling),
         "hard_conditions_per_layer": hard_counts,
         "next_vertical_conditions_per_layer": vertical_counts,
@@ -965,25 +1003,23 @@ def vertical_run_histogram_from_hard_data(
 
     hist = {str(facies): np.zeros(domain.nz + 1, dtype=np.int64) for facies in FACIES}
     for values in columns.values():
-        values.sort()
-        current = None
-        run_len = 0
-        for _, facies in values:
-            if facies not in FACIES:
-                if current is not None:
-                    hist[str(int(current))][min(run_len, domain.nz)] += 1
-                current = None
-                run_len = 0
-                continue
-            if current is None or facies != current:
-                if current is not None:
-                    hist[str(int(current))][min(run_len, domain.nz)] += 1
-                current = int(facies)
-                run_len = 1
-            else:
-                run_len += 1
+        # One code per mapped cell: majority, smallest code on a tie, matching
+        # transition_matrix_from_hard_data. Missing layers split observed runs.
+        by_layer = {}
+        for iz, facies in values:
+            by_layer.setdefault(iz, []).append(facies)
+        current, length, previous_z = None, 0, None
+        for iz in sorted(by_layer):
+            codes, counts = np.unique(by_layer[iz], return_counts=True)
+            facies = int(codes[counts.argmax()])
+            if current is not None and (facies != current or iz != previous_z + 1):
+                hist[str(current)][length] += 1
+                current, length = None, 0
+            if facies in FACIES:
+                current, length = facies, length + 1
+            previous_z = iz
         if current is not None:
-            hist[str(int(current))][min(run_len, domain.nz)] += 1
+            hist[str(current)][length] += 1
     return {key: val.astype(int).tolist() for key, val in hist.items()}
 
 
@@ -1290,8 +1326,8 @@ def save_input_3d_figure(
     """Create clean 3D masked views of the trend and rotation input maps."""
     try:
         import matplotlib.pyplot as plt
-        from matplotlib.colors import Normalize
         from matplotlib.cm import ScalarMappable
+        from matplotlib.colors import Normalize
         from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
     except Exception as exc:
         print(f"Skipping 3D input-map figure; matplotlib unavailable: {exc}")
@@ -1513,11 +1549,45 @@ def save_result_figure(
     plt.close(fig)
     print(f"Saved result figure to {path}")
 
+def facies_proportion_panel_data(data, domain, summaries):
+    """Assemble fractions in stable facies order; convert to percent only at plot time.
+
+    TI cells, mapped conditioning rows, and simulated active cells are different
+    populations. Empty populations are represented by zeros, not fabricated
+    uniform probabilities. Invalid ensemble fractions are rejected.
+    """
+    sources = {
+        "training image": proportions_from_plain_counts(
+            facies_counts(data.ti_facies.astype(float))
+        ),
+        "hard data": proportions_from_plain_counts(
+            hard_data_facies_counts(data, domain)
+        ),
+    }
+    for label, key in (
+        ("with vertical sampling", "with_vertical_sampling"),
+        ("without vertical sampling", "without_vertical_sampling"),
+    ):
+        if key in summaries:
+            sources[label] = summaries[key]["facies_proportions"]
+    result = {}
+    for label, values in sources.items():
+        fractions = np.array([values.get(str(code), 0.0) for code in FACIES])
+        if (not np.all(np.isfinite(fractions)) or np.any(fractions < 0)
+                or np.any(fractions > 1)
+                or (fractions.sum() > 0 and not np.isclose(fractions.sum(), 1))):
+            raise ValueError(f"Invalid facies fractions for {label}: {fractions}")
+        result[label] = dict(zip(map(str, FACIES), fractions.tolist()))
+    return result
+
+
 def save_facies_vertical_figure(
     path: Path,
     data: HESSData,
     args,
     summaries: dict[str, dict[str, object]],
+    vertical_reference: HESSData | None = None,
+    vertical_reference_name: str = "mixed conditioning rows",
 ) -> None:
     """Create a Fig. 10-style facies proportion and vertical-run comparison."""
     try:
@@ -1530,14 +1600,15 @@ def save_facies_vertical_figure(
         return
 
     domain = Domain(**summaries["with_vertical_sampling"]["domain"])
-    ti_props = facies_counts(data.ti_facies.astype(float))
-    hard_props = proportions_from_plain_counts(hard_data_facies_counts(data, domain))
-    with_props = summaries["with_vertical_sampling"].get("facies_proportions", {})
-    without_props = summaries.get("without_vertical_sampling", {}).get(
-        "facies_proportions", {}
-    )
+    panel = facies_proportion_panel_data(data, domain, summaries)
+    ti_props = panel["training image"]
+    hard_props = panel["hard data"]
+    with_props = panel["with vertical sampling"]
+    without_props = panel.get("without vertical sampling", {})
 
-    hard_hist = vertical_run_histogram_from_hard_data(data, domain)
+    hard_hist = vertical_run_histogram_from_hard_data(
+        data if vertical_reference is None else vertical_reference, domain
+    )
     with_hists = summaries["with_vertical_sampling"].get("vertical_run_histograms", [])
     without_hists = summaries.get("without_vertical_sampling", {}).get(
         "vertical_run_histograms", []
@@ -1608,7 +1679,8 @@ def save_facies_vertical_figure(
     ax_prop.set_title("a) Facies percentages")
     ax_prop.set_xticks(x)
     ax_prop.set_xticklabels(facies_names)
-    ax_prop.set_ylabel("percentage")
+    ax_prop.set_ylabel("Facies proportion (%)")
+    ax_prop.set_ylim(0, 100)
     ax_prop.grid(axis="y", alpha=0.25)
     ax_prop.legend(frameon=False, fontsize=8, ncol=2)
 
@@ -1648,13 +1720,14 @@ def save_facies_vertical_figure(
             ha="center",
             va="center",
         )
-    ax_run.set_title("b) Vertical run-length dissimilarity")
-    ax_run.set_ylabel("distance to hard-data run lengths")
+    ax_run.set_title(f"b) In-sample run dissimilarity\nReference: {vertical_reference_name}")
+    ax_run.set_ylabel("RMS difference of run probabilities")
     ax_run.grid(axis="y", alpha=0.25)
     ax_run.legend(frameon=False, fontsize=8)
 
     fig.suptitle(
-        "Generated facies proportion and vertical-transition comparison",
+        "TI cells; conditioning rows (logs + map points); simulated active cells\n"
+        "Vertical runs in transformed-grid cells, not restored physical thickness",
         fontsize=13,
     )
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -2076,6 +2149,7 @@ def run_ensemble(
             "realizations": args.realizations,
             "seed": args.seed,
             "num_threads": args.num_threads,
+            "active_mask": getattr(args,"active_mask",False),
             "path": args.path,
             "scan_fraction": args.scan_fraction,
             "threshold": args.threshold,
@@ -2248,6 +2322,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=(8, 64, 64),
         help="Small-mode real subdomain shape in archive axis order z y x.",
     )
+    parser.add_argument("--active-mask", action="store_true",
+                        help="Use true Rust active-cell exclusion (new workload; default keeps legacy rectangle).")
     parser.add_argument("--realizations", type=int, default=None)
     parser.add_argument("--seed", type=int, default=202010)
     parser.add_argument(

@@ -1,10 +1,4 @@
-"""Regression tests for the Direct Sampling audit (2026-10-21) fixes.
-
-One independent numerical/behavioural test per corrected finding (DS02-DS18).
-Each reproduces the audit's own witness and asserts the *corrected* outcome, so
-a regression re-introducing the defect fails here. These run against the
-installed ABI-7 Core wheel and the Wrapper frontend.
-"""
+"""Regression witnesses for Direct Sampling numerical edge cases."""
 
 import numpy as np
 import pytest

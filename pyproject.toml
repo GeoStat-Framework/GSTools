@@ -87,16 +87,21 @@ fallback_version = "0.0.0.dev0"
 
 [tool.hatch.version.raw-options]
 local_scheme = "no-local-version"
-tag_regex = "^v?(?P<version>[0-9]+\\.[0-9]+.*)$"
-# Ignore workflow/checkpoint tags that do not represent package versions.
-git_describe_command = "git describe --dirty --tags --long --match v[0-9]* --match [0-9]*"
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/gstools/_version.py"
 template = "__version__ = '{version}'"
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests"]
+include = [
+    "/src", "/tests", "/scripts",
+    "/AUTHORS.md", "/CONTRIBUTING.md", "/CHANGELOG.md",
+    "/examples/13_mps/*.py", "/examples/13_mps/README.rst",
+    "/examples/13_mps/input/*.npz", "/examples/13_mps/input/*.txt",
+    "/examples/13_mps/input/*.inc", "/examples/13_mps/output/*.png",
+    "/examples/13_mps/output/LICENSE.txt",
+]
+artifacts = ["/examples/13_mps/output/*.png", "/examples/13_mps/output/LICENSE.txt"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gstools"]

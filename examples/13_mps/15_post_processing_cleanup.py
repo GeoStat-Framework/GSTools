@@ -13,11 +13,11 @@ conditioning components are never changed in the raw DS field. Cleanup can
 change distributions and connectivity; it does not guarantee improvement of
 every statistic.
 
-Set it with :class:`MPSModel`'s ``post_processing`` (number of passes) and
-``post_processing_factor`` (divides the per-pass neighbourhood/scan effort).
+Pass :any:`PostProcessing` to the model to configure the number of passes
+and optionally divide the per-pass neighbourhood and scan effort.
 The passes run in the Rust engine over a dependency DAG, so the result is
 bit-identical across thread counts within a fixed supported build and
-dependency environment. ``post_processing_mask`` restricts eligible nodes;
+dependency environment. The cleanup mask restricts eligible nodes;
 partially conditioned components remain fixed. Effective cleanup variables
 inherit the primary settings unless explicitly overridden.
 
@@ -55,9 +55,9 @@ grid = [np.arange(64, dtype=float), np.arange(64, dtype=float)]
 
 common = dict(scan_fraction=0.05, threshold=0.0)
 field_raw = gs.DirectSampling(gs.MPSModel(ti, **common))(grid, seed=20240520)
-field_clean = gs.DirectSampling(gs.MPSModel(ti, post_processing=3, **common))(
-    grid, seed=20240520
-)
+field_clean = gs.DirectSampling(
+    gs.MPSModel(ti, post_processing=gs.mps.PostProcessing(3), **common)
+)(grid, seed=20240520)
 
 
 ###############################################################################
@@ -92,7 +92,7 @@ fig.tight_layout()
 
 ###############################################################################
 # Inspect both the visual change and the printed counts for these realizations.
-# A larger ``post_processing_factor`` divides the requested neighbor count
+# A larger ``PostProcessing.factor`` divides the requested neighbor count
 # (rounded, minimum one; requested variation count at least two) and scan
 # fraction; the candidate budget remains capped by the valid window. Additional
 # passes can alter scientific statistics as well as isolated pixels.

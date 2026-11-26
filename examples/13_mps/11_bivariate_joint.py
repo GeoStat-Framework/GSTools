@@ -43,6 +43,7 @@ data_path = example_dir / "input" / "strebelle_facies_resistivity_ti.npz"
 output_dir = example_dir / "output"
 output_path = output_dir / "bivariate_joint_channels.png"
 
+
 ###############################################################################
 # **Small display and plotting helpers.**
 #
@@ -146,7 +147,9 @@ x = y = np.arange(grid_size, dtype=float)
 generate_output = False
 if generate_output:
     output_dir.mkdir(exist_ok=True)
-    print(f"Simulating unconditional bivariate field ({grid_size}x{grid_size})...")
+    print(
+        f"Simulating unconditional bivariate field ({grid_size}x{grid_size})..."
+    )
     fields = ds([x, y], seed=123, num_threads=4)
 
     sim_var1 = fields["facies"]

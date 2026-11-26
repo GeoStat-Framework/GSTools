@@ -184,9 +184,9 @@ def test_nonstationary_explicit_path_uses_complete_engine(monkeypatch):
     calls = []
     original = _simulate._mps_simulate_gsc
 
-    def spy(*args):
+    def spy(*args, **kwargs):
         calls.append(1)
-        return original(*args)
+        return original(*args, **kwargs)
 
     monkeypatch.setattr(_simulate, "_mps_simulate_gsc", spy)
     ti = TrainingImage(_training_data(), categorical=True, n_neighbors=8)

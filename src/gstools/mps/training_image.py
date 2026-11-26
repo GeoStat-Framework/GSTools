@@ -15,8 +15,8 @@ import warnings
 
 import numpy as np
 
-# MPS is Rust-only: the block-distance kernels come from gstools.mps._core,
-# which hard-imports and version-checks gstools_core (see RUST_ONLY_MIGRATION.md).
+# MPS block-distance kernels come from gstools.mps._core, which checks the
+# installed gstools_core package and its supported MPS API revision.
 from gstools.mps._core import (
     mps_dist_block_cat,
     mps_dist_block_cat_masked,
@@ -29,7 +29,7 @@ from gstools.mps._core import (
     mps_dist_block_variation,
     mps_dist_block_variation_masked,
 )
-from gstools.mps._validation import _validate_float64_integers, exact_count
+from gstools.mps._validation import _validate_real_data, exact_count
 from gstools.mps.distance import compute_node_weights
 
 __all__ = ["Variable", "TrainingImage"]
@@ -276,9 +276,7 @@ class Variable:
         # of a writable base is not safe to share, so the flag is never
         # inferred from ``flags.writeable``. has_nan/d_max are still recomputed.
         data_arr = np.asarray(data)
-        _validate_float64_integers(
-            data_arr, bool(categorical), f"Variable {name!r}"
-        )
+        _validate_real_data(data_arr, bool(categorical), f"Variable {name!r}")
         self._data = data_arr if _trusted else np.array(data_arr, copy=True)
         if (
             np.issubdtype(self._data.dtype, np.floating)
@@ -355,6 +353,7 @@ class Variable:
                 f"Variable {self._name!r}: penalty_matrix is only valid for "
                 "categorical variables (categorical=False was given)."
             )
+        _validate_real_data(penalty_matrix, False, "penalty_matrix")
         mat = np.array(penalty_matrix, copy=True, dtype=np.float64)
         if mat.ndim != 2 or mat.shape[0] != mat.shape[1]:
             raise ValueError(
@@ -513,7 +512,11 @@ class Variable:
         # suppress the NaN warning re-firing on every replace().
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
-            return Variable(self._name, self._data, _trusted=True, **kwargs)
+            variable = Variable(
+                self._name, self._data, _trusted=True, **kwargs
+            )
+        variable._explicit = frozenset(overrides)
+        return variable
 
     def __repr__(self):
         parts = [
@@ -972,6 +975,9 @@ class TrainingImage:
             if var is None and len(self._variables) == 1
             else self.variable(var)
         )
+        _validate_real_data(ti_val, v.categorical, "TI center")
+        _validate_real_data(data_event_sim, v.categorical, "SG event")
+        _validate_real_data(data_event_ti, v.categorical, "TI event")
         if v.variation_p_norm is None or v.categorical:
             return ti_val
         sim = np.asarray(data_event_sim, dtype=np.float64)
@@ -1048,8 +1054,8 @@ class TrainingImage:
             if var is None and len(self._variables) == 1
             else self.variable(var)
         )
-        _validate_float64_integers(de_sim, v.categorical, "SG event")
-        _validate_float64_integers(all_de_ti, v.categorical, "TI events")
+        _validate_real_data(de_sim, v.categorical, "SG event")
+        _validate_real_data(all_de_ti, v.categorical, "TI events")
         de_sim = np.asarray(de_sim, dtype=np.float64)
         all_de_ti = np.asarray(all_de_ti, dtype=np.float64)
         if (
@@ -1080,6 +1086,10 @@ class TrainingImage:
                 raise ValueError(
                     f"vec_distance_var: {name} must have shape ({n},)"
                 )
+        if lag_norms is not None:
+            _validate_real_data(lag_norms, False, "lag_norms")
+        if weights is not None:
+            _validate_real_data(weights, False, "weights")
         if lag_norms is not None and (
             not np.isfinite(lag_norms).all()
             or np.any(np.asarray(lag_norms) < 0)

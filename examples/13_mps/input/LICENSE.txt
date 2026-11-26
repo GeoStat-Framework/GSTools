@@ -81,3 +81,9 @@ synthetic_variation_ti.npz
     Preparation: generated once as a 250x250 continuous multi-Gaussian field
     with anisotropic spatial correlation, using an exponential covariance model
     with ``len_scale=[35, 25]`` and ``seed=123``.
+
+Herten section S1: herten_s1_section.npz
+--------------------------------------
+Bayer, P.; Comunian, A.; Höyng, D.; Mariethoz, G. (2015), PANGAEA,
+https://doi.pangaea.de/10.1594/PANGAEA.844167. Dataset: CC BY 3.0 Unported.
+See HERTEN-CC-BY-3.0.txt for file-level attribution and conversion provenance.

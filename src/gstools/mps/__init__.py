@@ -21,6 +21,7 @@ Configuration class bundling a training image with Direct Sampling search parame
    :toctree:
 
    MPSModel
+   PostProcessing
 
 Simulation
 ^^^^^^^^^^
@@ -42,8 +43,15 @@ Region-bound training images for zonated simulation.
 """
 
 from gstools.mps.direct_sampling import DirectSampling
-from gstools.mps.model import MPSModel
+from gstools.mps.model import MPSModel, PostProcessing
 from gstools.mps.training_image import TrainingImage, Variable
 from gstools.mps.zone import Zone
 
-__all__ = ["DirectSampling", "MPSModel", "TrainingImage", "Variable", "Zone"]
+__all__ = [
+    "DirectSampling",
+    "MPSModel",
+    "PostProcessing",
+    "TrainingImage",
+    "Variable",
+    "Zone",
+]

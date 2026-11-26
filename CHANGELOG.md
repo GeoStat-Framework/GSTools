@@ -21,8 +21,17 @@ All notable changes to **GSTools** will be documented in this file.
     comparing results
   - `threshold=0.0` remains the default best-in-budget mode and accepts `None`
     equivalently; `Zone` remains available through `gstools.mps.Zone`
-  - native DS inputs and retained numerical helpers receive consistent boundary
-    validation; unsupported lossy integer TI inputs require rescaling or recoding
+  - use gs.mps.PostProcessing to group cleanup controls and override only named
+    search settings. Multivariate fields retain their dictionary return and
+    named storage. Categorical fields preserve their labels through post-processing
+  - DS accepts real numeric input and rejects unsupported dtypes and lossy
+    integer conversions. Wholly missing conditioning rows are ignored.
+  - extreme finite spatial and conditioning weights retain their relative
+    importance in simulation, cleanup, and distance diagnostics
+  - add true active simulation masks through `MPSModel(active_mask=...)` and
+    `ds_simulate(active_mask=...)`; inactive cells remain NaN and are excluded
+    from simulation, neighborhood events, scheduling, and cleanup. Conditions
+    outside the mask are rejected. This requires paired Core MPS ABI 8
   - remove the Python node scheduler and per-node progress callback; all MPS
     simulations now run through the complete Rust engine
   - exact categorical golden fields should be generated with the Rust engine;

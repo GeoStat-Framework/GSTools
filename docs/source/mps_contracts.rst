@@ -11,7 +11,22 @@ hash when comparing development builds.
 
 Construct training images and zones with ``gs.mps.TrainingImage`` and
 ``gs.mps.Zone``. ``gs.MPSModel`` and ``gs.DirectSampling`` are available at the
-top level. No top-level ``gs.Zone`` alias is needed.
+top level.
+
+Large grids
+-----------
+
+Large structured grids require a finite search radius when the unbounded
+lag table would exceed five million entries. Set the radius for each variable
+in the main and cleanup configurations. This example simulates a 100 × 100 ×
+100 grid with one-cell search radius in index units::
+
+    import numpy as np
+    import gstools as gs
+
+    image = gs.mps.TrainingImage(np.ones((3, 3, 3)), n_neighbors=1, max_radius=1)
+    ds = gs.DirectSampling(gs.MPSModel(image, scan_fraction=0.1), seed=42)
+    field = ds([np.arange(100)] * 3, num_threads=4, store=False)
 
 Candidate selection
 -------------------
@@ -26,8 +41,9 @@ minimum encountered.
 For a finite positive threshold, the first selectable candidate with distance
 **strictly below** the threshold is accepted. If none qualifies, DS uses the
 best visited candidate. Negative and nonfinite thresholds are rejected. Values
-above one retain the warning policy for normalized distances. Hard conditioning
-is preserved independently of the threshold in the raw DS field.
+above one accept the first selectable match for distances bounded by one. Lp
+distances can exceed one when conditioning lies outside the training-image
+range. The raw DS field preserves hard conditioning at every threshold.
 
 For a nonempty valid candidate window, the budget is
 ``max(1, min(window_size, floor(scan_fraction * selected_TI_size)))``. The
@@ -96,27 +112,25 @@ ensemble.
 Cleanup and zones
 ------------------
 
-``MPSModel(post_processing=p)`` requests DS resimulation passes. Each pass uses
-the current field, including updates earlier in that pass. In contrast,
-``ds(..., post_process=False)`` disables the Field mean/normalizer/trend
-pipeline; it does not disable DS cleanup. Assess hard-data invariants on the
-raw DS field: a later configured Field transformation can change displayed
-numeric values.
+**PostProcessing** groups the number of passes, search effort, revisit order,
+sparse variable overrides, and the cleanup mask. For example, for a training
+image with a named variable "facies"::
 
-Cleanup revisits nodes with at least one unconditioned variable, intersected
-with the exact-grid-shaped ``post_processing_mask`` when supplied. Conditioned
-components of a partially conditioned node remain fixed. Cleanup inherits the
-primary variable configuration unless ``post_processing_variables`` overrides
-it. Its requested neighbor counts use ``max(1, round(n/post_processing_factor))``
-(Python's tie-to-even rounding); requested variation counts must remain at
-least two. The effective scan fraction is divided by the same factor, with the
-candidate budget still capped by the window. ``post_processing_path=None``
-uses sequential order for a sequential main path and random order otherwise;
-``"same"`` reuses the eligible main order, while
-``"random"``, ``"sequential"``, or an explicit path select another order.
-Zero cleanup passes consume no cleanup random draws. Cleanup can alter
-connectivity and distributions as well as isolated pixels; improvement of any
-one measure is not guaranteed.
+    cleanup = gs.mps.PostProcessing(2, factor=2, path="same",
+                                   overrides={"facies": {"n_neighbors": 12}})
+    model = gs.MPSModel(ti, post_processing=cleanup)
+
+The effective neighbor count is max(1, round(n / factor)) with ties rounded
+to even. Variation metrics require at least two requested neighbors. The
+factor also divides the scan fraction, with the candidate budget capped by
+the window. Cleanup revisits active nodes, restricted by its own optional
+grid-shaped mask. Partially conditioned components remain fixed. Each pass
+uses values updated earlier in that pass.
+
+For continuous variables, the separate call-time option ``post_process=False`` disables
+the Field mean/normalizer/trend pipeline for access to raw values. Categorical
+variables retain their labels. Multivariate calls return a dictionary keyed by
+variable name and, when saved, store the fields under those names.
 
 Zones select TI data, shape, value ranges, and missingness by domain. Search
 settings come from the effective primary or cleanup configuration, not the
@@ -184,3 +198,30 @@ recover distinctions already lost in an input converted to floating point.
 them through float. Integral floats and booleans remain accepted for
 compatibility; fractional values, strings, and nonfinite numbers are rejected.
 Neighbor counts must be positive; cleanup pass counts may be zero.
+
+
+Active simulation domains
+-------------------------
+
+``MPSModel(active_mask=mask)`` accepts a boolean array with exactly the grid
+shape. True cells are active. False cells are excluded from the main simulation
+path, all neighbor events and cleanup paths/dependency graphs, and remain NaN
+in every output variable. They are not filled and subsequently erased. Hard
+conditions outside the active mask are rejected before control RNG streams are
+acquired. ``post_processing_mask`` narrows cleanup targets only; it does not
+replace an active simulation mask. Zone TIs and partial multivariate conditions
+use the same active domain.
+
+``None`` preserves the full rectangular domain. An all-True mask is tested to
+match ``None`` exactly within a fixed build; an all-False mask yields NaN output.
+An explicit path may contain inactive extras (which are dropped) but must cover
+every unknown active node. The mask excludes contributors, not geometric lines
+between nodes: two active cells across a hole may remain neighbors if within
+radius. Disconnected components farther apart than the search radius do not
+exchange event values. Grid-index distance and transformed-coordinate units
+remain unchanged.
+
+The paired Python/Core implementation requires MPS native ABI 8. Development
+Core versions sharing the package version are distinguished by ABI and binary
+hash, not by version number alone. When benchmarking, report the active mask
+and active cell count so readers can identify the workload.

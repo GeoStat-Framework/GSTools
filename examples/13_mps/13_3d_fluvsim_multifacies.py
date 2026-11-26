@@ -60,8 +60,10 @@ output_dir = example_dir / "output"
 output_paths = {
     "3d": output_dir / "three_dimensional_fluvsim_multifacies_3d.png",
     "slices": output_dir / "three_dimensional_fluvsim_multifacies_slices.png",
-    "proportions": output_dir / "three_dimensional_fluvsim_multifacies_proportions.png",
-    "correlation": output_dir / "three_dimensional_fluvsim_multifacies_two_point_correlation.png",
+    "proportions": output_dir
+    / "three_dimensional_fluvsim_multifacies_proportions.png",
+    "correlation": output_dir
+    / "three_dimensional_fluvsim_multifacies_two_point_correlation.png",
 }
 
 FACIES_COLORS = ["#d8c69f", "#1f78b4", "#74a661", "#b85c38", "#7b61a8"]
@@ -172,7 +174,9 @@ def center_slices(volume):
     ]
 
 
-def overlay_conditioning(ax, cond_idx, cond_val, axis_name, slice_coord, window=1):
+def overlay_conditioning(
+    ax, cond_idx, cond_val, axis_name, slice_coord, window=1
+):
     """Overlay conditioning points that lie near an orthogonal slice."""
     if cond_idx is None or cond_val is None:
         return
@@ -203,7 +207,9 @@ def overlay_conditioning(ax, cond_idx, cond_val, axis_name, slice_coord, window=
 
 def plot_slices(row_axes, volume, prefix, cond_idx=None, cond_val=None):
     """Plot the three centre slices of a categorical volume."""
-    for ax, (slc, title, axis_name, slice_coord) in zip(row_axes, center_slices(volume)):
+    for ax, (slc, title, axis_name, slice_coord) in zip(
+        row_axes, center_slices(volume)
+    ):
         ax.imshow(
             slc,
             cmap=FACIES_CMAP,
@@ -213,7 +219,9 @@ def plot_slices(row_axes, volume, prefix, cond_idx=None, cond_val=None):
             vmax=4,
         )
         if cond_idx is not None:
-            overlay_conditioning(ax, cond_idx, cond_val, axis_name, slice_coord)
+            overlay_conditioning(
+                ax, cond_idx, cond_val, axis_name, slice_coord
+            )
             ax.set_title(f"{prefix} {title}; hard data +/-1 cell")
         else:
             ax.set_title(f"{prefix} {title}")
@@ -326,7 +334,9 @@ ds = gs.DirectSampling(model)
 # the TI crop. They keep rare facies visible and give the lower simulation
 # slices meaningful markers, similar to the validation-oriented figures used in
 # applied MPS papers.
-cond_idx, cond_val = sample_conditioning_from_ti(ti_data, SIMULATION_SHAPE, seed=SEED)
+cond_idx, cond_val = sample_conditioning_from_ti(
+    ti_data, SIMULATION_SHAPE, seed=SEED
+)
 ds.set_condition(
     [
         cond_idx[:, 0].astype(float),
@@ -368,6 +378,7 @@ if generate_output:
         field[cond_idx[:, 0], cond_idx[:, 1], cond_idx[:, 2]] == cond_val
     )
 
+
 ###############################################################################
 # **3D comparison.**
 #
@@ -395,6 +406,7 @@ def plot_3d_views(ti_data, field):
 if generate_output:
     save_figure(plot_3d_views(ti_data, field), output_paths["3d"])
 show_saved_figure(output_paths["3d"], width=10.5)
+
 
 ###############################################################################
 # **Orthogonal slices.**
@@ -428,6 +440,7 @@ if generate_output:
     )
 show_saved_figure(output_paths["slices"], width=10.5)
 
+
 ###############################################################################
 # **Facies proportions.**
 #
@@ -435,7 +448,9 @@ show_saved_figure(output_paths["slices"], width=10.5)
 # simulation keeps approximately the same facies mix as the training image.
 def plot_proportion_comparison(ti_data, field):
     """Compare facies proportions as stacked TI/simulation bars."""
-    proportions = np.vstack([facies_proportions(ti_data), facies_proportions(field)])
+    proportions = np.vstack(
+        [facies_proportions(ti_data), facies_proportions(field)]
+    )
     x = np.arange(2)
     bottoms = np.zeros(2)
     fig, ax = plt.subplots(figsize=(8.8, 5.2), constrained_layout=True)
@@ -480,8 +495,11 @@ def plot_proportion_comparison(ti_data, field):
 
 
 if generate_output:
-    save_figure(plot_proportion_comparison(ti_data, field), output_paths["proportions"])
+    save_figure(
+        plot_proportion_comparison(ti_data, field), output_paths["proportions"]
+    )
 show_saved_figure(output_paths["proportions"], width=8.8)
+
 
 ###############################################################################
 # **Two-point correlation.**
@@ -517,13 +535,17 @@ def plot_two_point_comparison(ti_data, field):
     ax.set_ylabel("S2(h) / S2(0)")
     ax.set_ylim(0, 1.05)
     ax.grid(color="0.88", linewidth=0.8)
-    ax.legend(title="solid=simulation, dashed=TI", frameon=False, fontsize=10, ncol=2)
+    ax.legend(
+        title="solid=simulation, dashed=TI", frameon=False, fontsize=10, ncol=2
+    )
     ax.tick_params(labelsize=9)
     return fig
 
 
 if generate_output:
-    save_figure(plot_two_point_comparison(ti_data, field), output_paths["correlation"])
+    save_figure(
+        plot_two_point_comparison(ti_data, field), output_paths["correlation"]
+    )
 show_saved_figure(output_paths["correlation"], width=9.5)
 
 ###############################################################################

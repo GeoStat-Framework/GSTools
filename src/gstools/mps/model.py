@@ -1,11 +1,13 @@
 """MPS configuration object — training image and search parameters."""
 
 import warnings
+from copy import deepcopy
 
 import numpy as np
 
 from gstools.mps._validation import exact_count
 from gstools.mps.training_image import (
+    _REPLACE_FIELDS,
     TrainingImage,
     Variable,
     _check_category_codes,
@@ -15,7 +17,7 @@ from gstools.mps.training_image import (
 from gstools.mps.zone import Zone
 from gstools.tools.geometric import no_of_angles
 
-__all__ = ["MPSModel"]
+__all__ = ["MPSModel", "PostProcessing"]
 
 _VALID_BOUNDARY = ("strict", "partial")
 _VALID_SCAN_PATH = ("sequential", "random")
@@ -135,6 +137,67 @@ def _validate_post_processing_mask(value):
     return arr
 
 
+class PostProcessing:
+    """Settings for Direct Sampling cleanup passes.
+
+    Pass this object as the post_processing argument of MPSModel. The factor
+    divides the scan fraction and neighbor counts. The path determines the
+    revisit order, and a boolean mask selects the active nodes to revisit.
+    The overrides dictionary maps variable names (None for an anonymous TI)
+    to dictionaries of search settings. Omitted settings inherit from the
+    primary variable.
+    """
+
+    def __init__(
+        self, passes, *, factor=1.0, path=None, overrides=None, mask=None
+    ):
+        self.passes = exact_count(
+            passes, minimum=1, context="PostProcessing.passes"
+        )
+        self.factor = _validate_post_processing_factor(factor)
+        self.path = deepcopy(_validate_post_processing_path(path))
+        self.mask = deepcopy(_validate_post_processing_mask(mask))
+        if overrides is not None and not isinstance(overrides, dict):
+            raise TypeError("PostProcessing.overrides must be a dictionary")
+        self.overrides = deepcopy(overrides) if overrides is not None else {}
+        for name, fields in self.overrides.items():
+            if not isinstance(fields, dict):
+                raise TypeError(
+                    f"PostProcessing.overrides[{name!r}] must be a dictionary"
+                )
+            unknown = set(fields) - _REPLACE_FIELDS
+            if unknown:
+                raise ValueError(
+                    f"PostProcessing.overrides[{name!r}]: unknown search fields "
+                    f"{sorted(map(str, unknown))!r}"
+                )
+
+    def _variables(self, ti):
+        variables = {v.name: v for v in ti.variables}
+        unknown = set(self.overrides) - variables.keys()
+        if unknown:
+            raise ValueError(
+                "PostProcessing.overrides: unknown variables "
+                f"{sorted(map(str, unknown))!r}"
+            )
+        return [
+            variables[name].replace(**fields)
+            for name, fields in self.overrides.items()
+        ]
+
+
+def _validate_active_mask(value):
+    """Require an explicit boolean array; shape is checked against each grid."""
+    if value is None:
+        return None
+    arr = np.asarray(value)
+    if arr.dtype != bool:
+        raise TypeError(
+            "MPSModel: active_mask must be a boolean array or None"
+        )
+    return arr.copy()
+
+
 def _validate_boundary(value):
     """Validate boundary; return normalized value or raise ValueError."""
     if value not in _VALID_BOUNDARY:
@@ -165,18 +228,7 @@ def _validate_scan_fraction(value):
 
 
 def _validate_threshold(value):
-    """Validate threshold: finite and >= 0, warn if > 1; return float.
-
-    ``None`` selects DSBC (best-candidate) mode and maps to the native
-    ``threshold <= 0`` sentinel, i.e. ``0.0`` (audit DS13; the PR #416 review
-    asked for the ``None``/zero distinction). ``0.0`` is also accepted and is
-    equivalent to ``None`` (both select DSBC) — a deliberate, documented
-    departure from the pure-Python reference, which rejects ``0`` to force
-    ``None``; keeping ``0`` preserves the existing backend default and API.
-
-    NaN/inf are rejected up front (a NaN threshold would otherwise slip past
-    the ``< 0`` / ``> 1`` comparisons; cf. GeoStat-Framework/GSTools#416).
-    """
+    """Validate a finite threshold, with None equivalent to zero."""
     if value is None:
         return 0.0
     v = float(value)
@@ -186,7 +238,9 @@ def _validate_threshold(value):
         raise ValueError(f"MPSModel: threshold must be >= 0, got {value!r}")
     if v > 1.0:
         warnings.warn(
-            "MPSModel: threshold > 1.0 guarantees the first candidate is always accepted.",
+            "MPSModel: threshold > 1.0 accepts the first selectable "
+            "candidate for distances bounded by one. Lp distances can "
+            "exceed one with conditioning outside the training-image range.",
             UserWarning,
             stacklevel=3,
         )
@@ -321,8 +375,8 @@ class MPSModel:
         data event still spans all simulation-grid neighbours. Every zone TI
         must share the primary TI's variable set and kinds. ``None`` → no zones.
         Default: ``None``.
-    post_processing : :class:`int`, optional
-        Number of cleanup passes (Meerschman et al. 2013, Sect. 4): each
+    post_processing : :any:`PostProcessing` or int, optional
+        Configuration or number of cleanup passes (Meerschman et al. 2013, Sect. 4): each
         re-simulates already-simulated nodes against a fully informed
         neighbourhood *after* the main path, to reduce noise. This is the
         repeated-sweep cleanup of Meerschman 2013, not Mariethoz 2010 §7
@@ -346,6 +400,11 @@ class MPSModel:
     post_processing_mask : :class:`numpy.ndarray` of bool or None, optional
         Which simulation-grid nodes are eligible for cleanup update (shape
         checked at call time). ``None`` → all simulated nodes. Default: ``None``.
+    active_mask : numpy.ndarray of bool or None, optional
+        True cells are eligible for simulation and may contribute to neighbor
+        events. False cells remain NaN and are excluded as targets and
+        neighbors; hard conditions on them are rejected. Shape must equal the
+        simulation grid. ``None`` keeps the full rectangular workload.
     rotation : scalar, array-like, or callable, optional
         Grid-independent non-stationary rotation spec (radians, GSTools
         Tait-Bryan ordering;
@@ -375,12 +434,14 @@ class MPSModel:
         post_processing_path=None,
         post_processing_variables=None,
         post_processing_mask=None,
+        active_mask=None,
     ):
         if not isinstance(ti, TrainingImage):
             raise TypeError(
                 f"MPSModel: ti must be a TrainingImage, got {type(ti)!r}"
             )
         self._ti = ti
+        self._active_mask = _validate_active_mask(active_mask)
         self._scan_fraction = _validate_scan_fraction(scan_fraction)
         self._threshold = _validate_threshold(threshold)
         self._boundary = _validate_boundary(boundary)
@@ -389,6 +450,18 @@ class MPSModel:
         self._rotation = _validate_rotation(rotation, dim)
         self._scale = _validate_scale(scale, dim)
         self._zones = _validate_zones(zones, ti)
+        if isinstance(post_processing, PostProcessing):
+            if (
+                post_processing_factor != 1.0
+                or post_processing_path is not None
+                or post_processing_variables is not None
+                or post_processing_mask is not None
+            ):
+                raise ValueError(
+                    "Use the PostProcessing object or individual cleanup settings."
+                )
+            self.post_processing = post_processing
+            return
         self._post_processing = _validate_post_processing(post_processing)
         self._post_processing_factor = _validate_post_processing_factor(
             post_processing_factor
@@ -446,6 +519,20 @@ class MPSModel:
         self._boundary = _validate_boundary(value)
 
     @property
+    def active_mask(self):
+        """Boolean array or None: True cells are eligible for simulation.
+
+        Active cells may contribute to events. Inactive output remains NaN;
+        conditions outside the mask are rejected. The mask applies to the main
+        simulation and every cleanup pass.
+        """
+        return self._active_mask
+
+    @active_mask.setter
+    def active_mask(self, value):
+        self._active_mask = _validate_active_mask(value)
+
+    @property
     def rotation(self):
         """scalar, array-like, callable, or None: non-stationary rotation spec."""
         return self._rotation
@@ -496,6 +583,23 @@ class MPSModel:
 
     @post_processing.setter
     def post_processing(self, value):
+        if isinstance(value, PostProcessing):
+            passes = exact_count(
+                value.passes, minimum=1, context="PostProcessing.passes"
+            )
+            factor = _validate_post_processing_factor(value.factor)
+            path = deepcopy(_validate_post_processing_path(value.path))
+            mask = deepcopy(_validate_post_processing_mask(value.mask))
+            variables = _validate_post_processing_variables(
+                value._variables(self._ti), self._ti, self._zones
+            )
+            _validate_post_pass_effort(self._ti, passes, factor, variables)
+            self._post_processing = passes
+            self._post_processing_factor = factor
+            self._post_processing_path = path
+            self._post_processing_variables = variables
+            self._post_processing_mask = mask
+            return
         new_value = _validate_post_processing(value)
         _validate_post_pass_effort(
             self._ti,
@@ -580,6 +684,8 @@ class MPSModel:
             args.append(
                 f"post_processing_variables=<{len(self._post_processing_variables)}>"
             )
+        if self._active_mask is not None:
+            args.append("active_mask=<set>")
         if self._post_processing_mask is not None:
             args.append("post_processing_mask=<set>")
         if self._zones:

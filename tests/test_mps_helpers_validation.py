@@ -7,7 +7,13 @@ import types
 import numpy as np
 import pytest
 
-from gstools.mps import MPSModel, TrainingImage, Variable, _core
+from gstools.mps import (
+    DirectSampling,
+    MPSModel,
+    TrainingImage,
+    Variable,
+    _core,
+)
 from gstools.mps.model import _validate_post_processing
 from gstools.mps.training_image import _data_range, _validate_n_neighbors
 
@@ -185,7 +191,7 @@ def test_core_pep440(version, supported):
     assert _core._supported_version(version) is supported
 
 
-@pytest.mark.parametrize("revision", [6, 8, 100, "7", None, 7.5])
+@pytest.mark.parametrize("revision", [6, 7, 9, 100, "8", None, 8.5])
 def test_unknown_interface_revision_rejected(revision):
     fake = types.ModuleType("gstools_core")
     for name in _core._REQUIRED_EXPORTS:
@@ -199,7 +205,7 @@ def test_unknown_interface_revision_rejected(revision):
     try:
         sys.modules["gstools_core"] = fake
         sys.modules.pop("gstools.mps._core", None)
-        with pytest.raises(ImportError, match="exactly 7"):
+        with pytest.raises(ImportError, match="exactly 8"):
             importlib.import_module("gstools.mps._core")
     finally:
         for name, module in saved.items():
@@ -231,3 +237,40 @@ def test_penalty_helper_rejects_overflowing_weight_total():
         ti.vec_distance_var(
             None, [0.0, 1.0], [[1.0, 0.0]], weights=[1e308, 1e308]
         )
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([2**60 + 1, 2**60 + 3], dtype=object),
+        np.array([1 + 2j, 1 + 3j]),
+    ],
+)
+def test_real_data_required_before_float64_conversion(values):
+    with pytest.raises(ValueError, match="real numeric"):
+        TrainingImage(values)
+    image = TrainingImage(np.array([0, 1]))
+    ds = DirectSampling(MPSModel(image))
+    with pytest.raises(ValueError, match="real numeric"):
+        ds.set_condition([[0, 1]], values)
+    with pytest.raises(ValueError, match="real numeric"):
+        image.vec_distance_var(None, [0, 1], [values])
+    with pytest.raises(ValueError, match="real numeric"):
+        image.adjust_value(0, values, [0, 1])
+
+
+def test_extreme_event_weights_preserve_candidate_ranking():
+    image = TrainingImage(np.array([0, 1]))
+    actual = image.vec_distance_var(
+        None,
+        [0, 0, 0],
+        [[0, 0, 1], [1, 1, 0]],
+        cond_mask=[True, True, False],
+        cond_weight=1e308,
+    )
+    assert actual[0] < actual[1]
+    image = TrainingImage(np.array([0, 1]), distance_power=2048)
+    actual = image.vec_distance_var(
+        None, [0, 0], [[0, 1], [1, 0]], lag_norms=[2, 3]
+    )
+    np.testing.assert_array_equal(actual, [0, 1])

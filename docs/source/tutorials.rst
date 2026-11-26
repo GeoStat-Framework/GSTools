@@ -42,4 +42,4 @@ explore its whole beauty and power.
 
    .. minigallery::
 
-      ../../examples/**/*.py
+      ../../examples/*/[0-9][0-9]_*.py

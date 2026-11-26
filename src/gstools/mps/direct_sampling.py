@@ -14,10 +14,10 @@ import warnings
 import numpy as np
 
 from gstools.field.base import Field
-from gstools.mps._validation import _validate_float64_integers, exact_count
+from gstools.mps._validation import _validate_real_data, exact_count
 from gstools.mps.model import MPSModel
 from gstools.mps.nonstationary import build_zone_selector, resolve_spec
-from gstools.mps.simulate import ds_simulate
+from gstools.mps.simulate import _simulate_model
 from gstools.normalizer.tools import apply_mean_norm_trend
 from gstools.random.rng import RNG
 from gstools.tools.geometric import no_of_angles
@@ -26,13 +26,17 @@ __all__ = ["DirectSampling"]
 
 
 def _is_unset(value):
-    """True for an unset seed control: ``None`` or NaN (audit DS13)."""
-    if value is None:
-        return True
-    try:
-        return bool(np.isnan(value))
-    except (TypeError, ValueError):
-        return False
+    """True for an unset seed control (None or a real floating NaN)."""
+    return value is None or (
+        isinstance(value, (float, np.floating)) and np.isnan(value)
+    )
+
+
+def _seed_value(value, name):
+    """Validate a Direct Sampling seed before creating or changing streams."""
+    if _is_unset(value):
+        return None
+    return exact_count(value, minimum=0, context=f"DirectSampling.{name}")
 
 
 def _check_finite_positions(pos):
@@ -46,7 +50,7 @@ def _check_finite_positions(pos):
 
 def _condition_values(values, variable):
     """Convert hard data without silently dropping infinities or integer bits."""
-    _validate_float64_integers(
+    _validate_real_data(
         values, variable.categorical, "DirectSampling conditioning values"
     )
     result = np.asarray(values, dtype=np.double)
@@ -82,6 +86,43 @@ def _warn_nonuniform_axes(axes):
             UserWarning,
             stacklevel=3,
         )
+
+
+def _nearest_axis_index(ax, p):
+    """Index of the ``ax`` entry nearest to each of ``p`` (lower index on ties).
+
+    Equals ``np.argmin(np.abs(ax - p_k))`` for every point. A strictly
+    increasing axis is bisected; any other axis uses a chunked brute force.
+    """
+    if len(ax) == 1:
+        return np.zeros(p.size, dtype=np.intp)
+    if np.all(np.diff(ax) > 0):
+        right = np.clip(np.searchsorted(ax, p), 1, len(ax) - 1)
+        left = right - 1
+        return np.where(
+            np.abs(ax[left] - p) <= np.abs(ax[right] - p), left, right
+        )
+    idx = np.empty(p.size, dtype=np.intp)
+    step = max(1, 2**22 // len(ax))
+    for s in range(0, p.size, step):
+        idx[s : s + step] = np.argmin(
+            np.abs(ax[None, :] - p[s : s + step, None]), axis=1
+        )
+    return idx
+
+
+def _closest_per_node(flat, dist_sq):
+    """Pick one point per node: the closest, the first one on ties.
+
+    Returns the sorted unique node indices and, for each, the position of the
+    winning point in ``flat``. ``np.lexsort`` is stable, so among equally
+    close points the earliest keeps its place.
+    """
+    order = np.lexsort((dist_sq, flat))
+    sorted_flat = flat[order]
+    first = np.ones(sorted_flat.size, dtype=bool)
+    first[1:] = sorted_flat[1:] != sorted_flat[:-1]
+    return sorted_flat[first], order[first]
 
 
 class DirectSampling(Field):
@@ -144,9 +185,7 @@ class DirectSampling(Field):
         self._mv_mean = {}
         self._mv_normalizer = {}
         self._mv_trend = {}
-        self.rng = RNG(
-            None if _is_unset(seed) else int(seed), seed_sequence=True
-        )
+        self.rng = RNG(_seed_value(seed, "seed"), seed_sequence=True)
         if model.ti.multivariate:
             for v in model.ti.variables:
                 if v.name in dir(self):
@@ -188,10 +227,10 @@ class DirectSampling(Field):
             Default: ``np.nan``
         path_seed : :class:`int` or :any:`numpy.nan`, optional
             Seed controlling the order in which simulation grid nodes are
-            visited. If ``np.nan`` (default) or ``None``, derived from the master RNG
-            together with ``node_seed``. Fix this while varying ``node_seed``
-            to study the effect of TI search randomness under a constant
-            visit order, or vice versa.  Only has an effect when
+            visited. If ``np.nan`` (default) or ``None``, derived from the
+            master RNG together with ``node_seed``. Fix this while varying
+            ``node_seed`` to study the effect of TI search randomness under a
+            constant visit order, or vice versa. Only has an effect when
             ``path="random"``; inert for ``"sequential"`` and explicit arrays.
             Default: ``np.nan``
         node_seed : :class:`int` or :any:`numpy.nan`, optional
@@ -293,6 +332,16 @@ class DirectSampling(Field):
         zone_selector = (
             build_zone_selector(zones, shape, grid_coords) if zones else None
         )
+        active_mask = self._mps_model.active_mask
+        if active_mask is not None:
+            if active_mask.shape != tuple(shape):
+                raise ValueError(
+                    "DirectSampling: active_mask shape must match the simulation grid"
+                )
+            if active_mask.dtype != bool:
+                raise TypeError(
+                    "DirectSampling: active_mask must remain boolean"
+                )
         # Settings may have changed since set_condition. Reject invalid active
         # matrices before acquiring streams or entering native simulation.
         if self._cond_val is not None:
@@ -306,6 +355,11 @@ class DirectSampling(Field):
                 include_cleanup=self._mps_model.post_processing > 0,
             )
         conditions = self._conditions_to_grid(self.pos)
+        if active_mask is not None and conditions is not None:
+            if not active_mask[conditions[0]].all():
+                raise ValueError(
+                    "DirectSampling: hard conditions outside active_mask are not allowed"
+                )
         # Validate the effective thread setting before acquiring control streams.
         n_threads = (
             num_threads if num_threads is not None else self._num_threads
@@ -314,56 +368,32 @@ class DirectSampling(Field):
             n_threads = exact_count(
                 n_threads, minimum=0, context="DirectSampling.num_threads"
             )
-        if seed is None:
-            self.rng.seed = None
-        elif not _is_unset(seed):
-            self.rng.seed = int(seed)
+        master_seed = _seed_value(seed, "seed")
+        path_seed = _seed_value(path_seed, "path_seed")
+        node_seed = _seed_value(node_seed, "node_seed")
+        if seed is None or master_seed is not None:
+            self.rng.seed = master_seed
         rng_path = (
             self.rng.random
-            if _is_unset(path_seed)
-            else RNG(int(path_seed), seed_sequence=True).random
+            if path_seed is None
+            else RNG(path_seed, seed_sequence=True).random
         )
         rng_nodes = (
             self.rng.random
-            if _is_unset(node_seed)
-            else RNG(int(node_seed), seed_sequence=True).random
+            if node_seed is None
+            else RNG(node_seed, seed_sequence=True).random
         )
-        # ds_simulate now accepts both univariate and multivariate TIs directly.
-        # Univariate TIs produce {None: array}; multivariate produce {name: array}.
-        # Conditions for univariate are {idx: value}; ds_simulate expects
-        # {idx: {var: value}} so we remap using the sentinel key None.
-        if self._ti.multivariate:
-            sim_conditions = conditions  # already {idx: {var: val}}
-        else:
-            # Univariate: key conditions by the single variable's actual name
-            # (``None`` for the anonymous bare-array sugar, else the given name).
-            uv_name = self._ti.variables[0].name
-            sim_conditions = (
-                {idx: {uv_name: val} for idx, val in conditions.items()}
-                if conditions
-                else None
-            )
-        result = ds_simulate(
-            training_image=self._ti,
-            sim_shape=shape,
-            threshold=self.threshold,
-            scan_fraction=self.scan_fraction,
-            rng_path=rng_path,
-            rng_nodes=rng_nodes,
-            conditions=sim_conditions,
-            boundary=self.boundary,
+        result = _simulate_model(
+            self._mps_model,
+            shape,
+            rng_path,
+            rng_nodes,
+            conditions=conditions,
             num_threads=n_threads,
             rotation_map=rotation_map,
             scale_map=scale_map,
             path=path,
-            scan_path=self._mps_model.scan_path,
-            zones=zones,
             zone_selector=zone_selector,
-            post_processing=self._mps_model.post_processing,
-            post_processing_factor=self._mps_model.post_processing_factor,
-            post_processing_path=self._mps_model.post_processing_path,
-            post_processing_variables=self._mps_model.post_processing_variables,
-            post_processing_mask=self._mps_model.post_processing_mask,
         )
         # Branch only on the return type: multivariate → dict of named arrays;
         # univariate → bare array (unwrap the single None key).
@@ -377,7 +407,7 @@ class DirectSampling(Field):
             out = {}
             for v in self._ti.variables:
                 fld = result[v.name]
-                if post_process:
+                if post_process and not v.categorical:
                     mv_mean = self._mv_mean.get(v.name, self.mean)
                     mv_norm = self._mv_normalizer.get(v.name, self.normalizer)
                     mv_trend = self._mv_trend.get(v.name, self.trend)
@@ -397,19 +427,23 @@ class DirectSampling(Field):
                 )
             return out
         return self.post_field(
-            result[self._ti.variables[0].name], name, post_process, save
+            result[self._ti.variables[0].name],
+            name,
+            post_process and not self._ti.variables[0].categorical,
+            save,
         )
 
     def _conditions_to_grid(self, axes):
         """Snap conditioning points to nearest grid nodes (Mariethoz2010 §3 ¶12).
 
-        Univariate returns ``{idx: value}``; multivariate returns
-        ``{idx: {variable: value}}`` with non-finite (NaN) entries skipped. When
-        two points snap to the same node, the conflict is resolved
-        **per variable**: for each variable the closest colliding point with a
-        finite value wins. A farther point therefore still contributes its
-        finite values for any variable the closer point left ``NaN``, so valid
-        conditioning data is never silently discarded.
+        Each point snaps to the nearest node along every axis (the lower index
+        on ties). When two points snap to the same node, the conflict is
+        resolved **per variable**: for each variable the closest colliding
+        point with a finite value wins (the first one on ties). A farther point
+        therefore still contributes its finite values for any variable the
+        closer point left ``NaN``, so valid conditioning data is never silently
+        discarded. All steps are vectorized, so exhaustive auxiliary data (one
+        point per grid node) stays cheap on large grids.
 
         Parameters
         ----------
@@ -418,16 +452,27 @@ class DirectSampling(Field):
 
         Returns
         -------
-        dict
+        tuple or None
+            ``(nodes, values)``: ``nodes`` is a tuple of per-axis index arrays
+            of the conditioned nodes, ``values`` maps each variable name to one
+            value per node (``NaN`` where that variable is not conditioned).
+            ``None`` if there is no conditioning data.
         """
         if self._cond_pos is None:
-            return {}
+            return None
+        if self._ti.multivariate and not self._cond_val:
+            raise ValueError("DirectSampling: cond_val must not be empty")
+        axes = [np.asarray(ax, dtype=np.double) for ax in axes]
+        points = [
+            np.asarray(self._cond_pos[d], dtype=np.double)
+            for d in range(self.dim)
+        ]
+        if not points[0].size:
+            return None
         # Points beyond half a cell outside the grid snap to its edge: warn.
         outside = 0
-        for d, ax in enumerate(axes):
-            ax = np.asarray(ax, dtype=np.double)
+        for ax, p in zip(axes, points):
             tol = 0.5 * np.abs(np.diff(ax)).max() if len(ax) > 1 else 0.0
-            p = np.asarray(self._cond_pos[d], dtype=np.double)
             outside |= (p < ax.min() - tol) | (p > ax.max() + tol)
         if np.any(outside):
             warnings.warn(
@@ -437,40 +482,41 @@ class DirectSampling(Field):
                 UserWarning,
                 stacklevel=3,
             )
-        n_collided = 0  # finite values landing on an occupied (node, variable)
-        if self._ti.multivariate and isinstance(self._cond_val, dict):
-            if not self._cond_val:
-                raise ValueError("DirectSampling: cond_val must not be empty")
-            # idx -> {variable: (value, dist_sq)}; the closest finite value per
-            # variable wins, so a farther point fills variables the closer one
-            # left NaN (per-variable collision resolution).
-            candidates = {}
-            n_cond = len(next(iter(self._cond_val.values())))
-            for k in range(n_cond):
-                idx, dist_sq = self._snap_to_nearest(axes, k)
-                var_best = candidates.setdefault(idx, {})
-                for v in self._cond_val:
-                    val = self._cond_val[v][k]
-                    if not np.isfinite(val):
-                        continue
-                    if v in var_best:
-                        n_collided += 1
-                    if v not in var_best or dist_sq < var_best[v][1]:
-                        var_best[v] = (float(val), dist_sq)
-            result = {
-                idx: {v: val for v, (val, _) in var_best.items()}
-                for idx, var_best in candidates.items()
-            }
+        nearest = [_nearest_axis_index(ax, p) for ax, p in zip(axes, points)]
+        dist_sq = sum(
+            (ax[i] - p) ** 2 for ax, i, p in zip(axes, nearest, points)
+        )
+        shape = tuple(len(ax) for ax in axes)
+        flat = np.ravel_multi_index(nearest, shape)
+        if self._ti.multivariate:
+            # Fill each variable from its own closest finite point.
+            node_flat = np.unique(flat)
+            values = {}
+            # finite values landing on an occupied (node, variable)
+            n_collided = 0
+            for v, val in self._cond_val.items():
+                val = np.asarray(val, dtype=np.double)
+                finite = np.flatnonzero(np.isfinite(val))
+                won_flat, won = _closest_per_node(
+                    flat[finite], dist_sq[finite]
+                )
+                n_collided += finite.size - won_flat.size
+                column = np.full(node_flat.size, np.nan)
+                column[np.searchsorted(node_flat, won_flat)] = val[finite[won]]
+                values[v] = column
+            informed = np.logical_or.reduce(
+                [np.isfinite(column) for column in values.values()]
+            )
+            if not informed.any():
+                return None
+            node_flat = node_flat[informed]
+            values = {v: column[informed] for v, column in values.items()}
         else:
             # univariate (NaN values were already dropped in set_condition)
-            candidates = {}  # idx -> (val, dist_sq)
-            for k in range(self._cond_val.shape[0]):
-                idx, dist_sq = self._snap_to_nearest(axes, k)
-                if idx in candidates:
-                    n_collided += 1
-                if idx not in candidates or dist_sq < candidates[idx][1]:
-                    candidates[idx] = (self._cond_val[k], dist_sq)
-            result = {idx: val for idx, (val, _) in candidates.items()}
+            node_flat, won = _closest_per_node(flat, dist_sq)
+            n_collided = flat.size - node_flat.size
+            val = np.asarray(self._cond_val, dtype=np.double)
+            values = {self._ti.variables[0].name: val[won]}
         if n_collided:
             warnings.warn(
                 f"DirectSampling: {n_collided} conditioning value(s) collided "
@@ -479,19 +525,7 @@ class DirectSampling(Field):
                 UserWarning,
                 stacklevel=3,
             )
-        return result
-
-    def _snap_to_nearest(self, axes, k):
-        """Return (grid_index_tuple, dist_sq) for the k-th conditioning point."""
-        idx = tuple(
-            int(np.argmin(np.abs(axes[d] - self._cond_pos[d][k])))
-            for d in range(self.dim)
-        )
-        dist_sq = sum(
-            (axes[d][idx[d]] - self._cond_pos[d][k]) ** 2
-            for d in range(self.dim)
-        )
-        return idx, dist_sq
+        return np.unravel_index(node_flat, shape), values
 
     def set_condition(self, cond_pos, cond_val):
         """Set the conditioning data for the simulation.
@@ -512,6 +546,9 @@ class DirectSampling(Field):
         # converted and validated into locals first, and ``self._cond_pos`` /
         # ``self._cond_val`` are reassigned only after every check passes, so a
         # rejected update never corrupts the state a later simulation reuses.
+        _validate_real_data(
+            cond_pos, False, "DirectSampling conditioning positions"
+        )
         if self._ti.multivariate and isinstance(cond_val, dict):
             if not cond_val:
                 raise ValueError("DirectSampling: cond_val must not be empty")

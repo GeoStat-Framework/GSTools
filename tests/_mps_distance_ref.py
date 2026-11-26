@@ -1,10 +1,8 @@
 """NumPy reference distances for MPS tests (test-only oracle).
 
-These are the pure-NumPy pattern-distance implementations that used to live in
-``gstools.mps.distance``. On the Rust-only backend branch the production code
-computes these in Rust (``gstools_core.mps_dist_block_*``); the reference copies
-are kept here so the tests can check the Rust results against an *independent*
-NumPy oracle. See ``RUST_ONLY_MIGRATION.md``.
+These pure-NumPy implementations serve as independent oracles for the
+production Rust kernels (``gstools_core.mps_dist_block_*``). They remain in the
+test suite so expected values do not share the implementation under test.
 """
 
 import numpy as np

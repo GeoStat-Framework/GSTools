@@ -20,20 +20,17 @@ def capture_controls(monkeypatch):
     """Observe actual acquired streams, without relying on field differences."""
     captured = []
 
-    def simulate(**kwargs):
+    def simulate(model, sim_shape, rng_path, rng_nodes, **kwargs):
         captured.append(
             (
-                kwargs["rng_path"].uniform(size=32),
-                kwargs["rng_nodes"].uniform(size=32),
+                rng_path.uniform(size=32),
+                rng_nodes.uniform(size=32),
             )
         )
-        return {
-            var.name: np.zeros(kwargs["sim_shape"])
-            for var in kwargs["training_image"].variables
-        }
+        return {var.name: np.zeros(sim_shape) for var in model.ti.variables}
 
     module = importlib.import_module("gstools.mps.direct_sampling")
-    monkeypatch.setattr(module, "ds_simulate", simulate)
+    monkeypatch.setattr(module, "_simulate_model", simulate)
     return captured
 
 
@@ -327,3 +324,19 @@ def test_lossy_integer_condition_rejected(categorical):
 def test_index_space_warning(axes, message):
     with pytest.warns(UserWarning, match=message):
         DirectSampling(_model(), seed=7)(axes, store=False)
+
+
+@pytest.mark.parametrize("value", [-1, 1.25, np.inf, "7", [7], 1 + 0j])
+def test_seed_controls_validate_before_acquiring_rng(value):
+    model = _model()
+    with pytest.raises(ValueError, match="seed"):
+        DirectSampling(model, seed=value)
+    ds = DirectSampling(model, seed=7)
+    control = DirectSampling(model, seed=7)
+    pos = [np.arange(4)] * 2
+    for role in ("seed", "path_seed", "node_seed"):
+        with pytest.raises(ValueError, match=role):
+            ds(pos, **{"seed": 99, role: value}, store=False)
+    np.testing.assert_array_equal(
+        ds(pos, store=False), control(pos, store=False)
+    )

@@ -8,6 +8,7 @@ and was created by following people.
 
 - Sebastian Müller, GitHub: [@MuellerSeb](https://github.com/MuellerSeb), Email:  <sebastian@geostat-framework.org>
 - Lennart Schüler, GitHub: [@LSchueler](https://github.com/LSchueler), Email:  <lennart@geostat-framework.org>
+- Jeisson Leal, GitHub: [@jeilealr](https://github.com/jeilealr), Email:  <jeisson@geostat-framework.org>
 
 
 ## Contributors (in order of contributions)
@@ -17,4 +18,3 @@ and was created by following people.
 - Tobias Glaubach, GitHub: [@TobiasGlaubach](https://github.com/TobiasGlaubach)
 - Evan Ricketts, GithHub [@EJRicketts](https://github.com/EJRicketts)
 - Niklas Abele, GitHub: [@n0228a](https://github.com/n0228a)
-- Jeisson Leal, GitHub: [@jeilealr](https://github.com/jeilealr)

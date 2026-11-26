@@ -1,7 +1,7 @@
 """Port-contract guards for the Rust-only MPS backend.
 
 These lock in the invariants that the port of Niklas's features
-(``docs/NIKLAS_FEATURE_PORT_PLAN.md``) must never break:
+must hold across the Python and native integration:
 
 1. the deleted Python scheduler modules stay gone,
 2. ``DirectSampling.__call__`` exposes no ``progress`` hook (there is no

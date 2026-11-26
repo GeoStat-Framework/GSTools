@@ -11,10 +11,11 @@ import numpy as np
 
 from gstools import config
 
-# MPS is Rust-only: the complete engine comes from gstools.mps._core, which
-# hard-imports and version-checks gstools_core (see RUST_ONLY_MIGRATION.md).
+# The complete engine comes from gstools.mps._core, which checks the installed
+# gstools_core package and its supported MPS API revision.
 from gstools.mps._core import mps_cleanup_pass as _mps_cleanup_pass_gsc
 from gstools.mps._core import mps_simulate as _mps_simulate_gsc
+from gstools.mps._validation import _validate_real_data
 from gstools.mps.neighbors import _lag_transform_matrix, _precompute_offsets
 from gstools.mps.training_image import (
     _post_pass_n_neighbors,
@@ -121,38 +122,49 @@ def _build_path(unknown, path, rng_path, sim_shape):
     return arr
 
 
+def _condition_arrays(conditions, dim):
+    """Return conditioning data as ``(nodes, {variable: values})`` arrays.
+
+    The array form passes through unchanged; a ``{node_index: {variable:
+    value}}`` dict is converted, with ``NaN`` where a node lacks a variable.
+    """
+    if not isinstance(conditions, dict):
+        return conditions
+    idx = np.array(list(conditions), dtype=np.intp).reshape(
+        len(conditions), dim
+    )
+    values = {}
+    for k, vd in enumerate(conditions.values()):
+        for v, val in vd.items():
+            _validate_real_data(
+                val, False, f"DirectSampling conditioning {v!r}"
+            )
+            values.setdefault(v, np.full(len(conditions), np.nan))[k] = val
+    return tuple(idx.T), values
+
+
 class _DirectSamplingEngine:
     """Holds one Direct Sampling run's state and orchestrates it."""
 
     def __init__(
         self,
-        training_image,
+        model,
         sim_shape,
-        threshold,
-        scan_fraction,
         rng_path,
         rng_nodes,
         conditions=None,
-        boundary="strict",
         rotation_map=None,
         scale_map=None,
         path="random",
-        scan_path="sequential",
-        zones=None,
         zone_selector=None,
-        post_processing=0,
-        post_processing_factor=1.0,
-        post_processing_path=None,
-        post_processing_variables=None,
-        post_processing_mask=None,
     ):
+        training_image = model.ti
         self.training_image = training_image
-        self.zones = list(zones) if zones else []
+        self.zones = model.zones
         self.zone_selector = zone_selector
         self.variables = [v.name for v in training_image.variables]
-        # Per-variable categorical penalty matrices (native ABI rev 3). A
-        # variable with a penalty_matrix uses metric kind 3; its CxC matrix is
-        # concatenated into penalty_flat with a per-variable start offset.
+        # A variable with a penalty matrix uses metric kind 3; its CxC matrix
+        # is concatenated into penalty_flat with a per-variable start offset.
         self.var_penalty = {
             v.name: v.penalty_matrix for v in training_image.variables
         }
@@ -169,12 +181,12 @@ class _DirectSamplingEngine:
         self.ti_shape = np.array(training_image.shape)
         self.sim_shape = sim_shape
         self.dim = len(sim_shape)
-        self.threshold = threshold
-        self.scan_fraction = scan_fraction
-        self.boundary = boundary
-        self.random_scan = scan_path == "random"
+        self.threshold = model.threshold
+        self.scan_fraction = model.scan_fraction
+        self.boundary = model.boundary
+        self.random_scan = model.scan_path == "random"
         # Per-variable spatial-decay exponent and conditioning-node weight,
-        # keyed by variable name (native ABI rev 2 consumes them per variable).
+        # keyed by variable name.
         self.var_distance_power = {
             v.name: v.distance_power for v in training_image.variables
         }
@@ -207,21 +219,51 @@ class _DirectSamplingEngine:
             )
         )
 
+        active_mask = model.active_mask
+        self.active_mask = None
+        if active_mask is not None:
+            mask = np.asarray(active_mask)
+            if mask.dtype != bool:
+                raise TypeError("DirectSampling: active_mask must be boolean")
+            if mask.shape != tuple(sim_shape):
+                raise ValueError(
+                    "DirectSampling: active_mask shape must match the simulation grid"
+                )
+            self.active_mask = mask.copy()
         self.sg = {v: np.full(sim_shape, np.nan) for v in self.variables}
         self.is_cond = {
             v: np.zeros(sim_shape, dtype=bool) for v in self.variables
         }
         if conditions:
-            for idx, vd in conditions.items():
-                for v, val in vd.items():
-                    self.sg[v][idx] = val
-                    self.is_cond[v][idx] = True
+            nodes, values = _condition_arrays(conditions, self.dim)
+            for v, column in values.items():
+                _validate_real_data(
+                    column, False, f"DirectSampling conditioning {v!r}"
+                )
+                column = np.asarray(column, dtype=np.float64)
+                if np.isinf(column).any():
+                    raise ValueError(
+                        "DirectSampling: conditioning values must be finite or NaN"
+                    )
+                known = ~np.isnan(column)
+                at = tuple(n[known] for n in nodes)
+                if (
+                    self.active_mask is not None
+                    and not self.active_mask[at].all()
+                ):
+                    raise ValueError(
+                        "DirectSampling: hard conditions outside active_mask are not allowed"
+                    )
+                self.sg[v][at] = column[known]
+                self.is_cond[v][at] = True
 
         # Post-processing (Meerschman et al. 2013, Sect. 4): resolved once here.
         # The cleanup passes run after the main path through the Rust
         # ``mps_cleanup_pass`` engine (serial Gauss-Seidel reopen/resimulate).
-        self.post_processing = int(post_processing)
-        self.post_processing_factor = float(post_processing_factor)
+        self.post_processing = model.post_processing
+        self.post_processing_factor = model.post_processing_factor
+        post_processing_path = model.post_processing_path
+        post_processing_mask = model.post_processing_mask
         self._rng_path = rng_path
         self._rng_nodes = rng_nodes
         # None inherits the main-path mode (an explicit main-path array has no
@@ -237,7 +279,7 @@ class _DirectSamplingEngine:
         # Post-pass TI: the primary's variables with any override's explicitly
         # set search fields substituted in (data/kind preserved).
         self._post_ti = _resolve_post_ti(
-            training_image, post_processing_variables or []
+            training_image, model.post_processing_variables
         )
         if self.post_processing > 0:  # fail before the main pass, not after
             _post_pass_n_neighbors(self._post_ti, self.post_processing_factor)
@@ -285,6 +327,8 @@ class _DirectSamplingEngine:
         unknown = np.zeros(sim_shape, dtype=bool)
         for v in self.variables:
             unknown |= np.isnan(self.sg[v])
+        if self.active_mask is not None:
+            unknown &= self.active_mask
         self.path = _build_path(unknown, path, rng_path, sim_shape)
         n_nodes = len(self.path)
         self.u_start = rng_nodes.uniform(size=n_nodes)
@@ -496,7 +540,7 @@ class _DirectSamplingEngine:
             self.threshold,
             self.scan_fraction,
             self.random_scan,
-            # Per-variable (native ABI rev 2), indexed in self.variables order.
+            # Per-variable values, indexed in self.variables order.
             np.fromiter(
                 (self.var_distance_power[v] for v in self.variables),
                 dtype=np.float64,
@@ -514,6 +558,9 @@ class _DirectSamplingEngine:
             zone_shapes,
             zone_d_max,
             node_domain,
+            active_mask=None
+            if self.active_mask is None
+            else self.active_mask.astype(np.uint8).ravel(),
         )
         for row, variable in enumerate(self.variables):
             self.sg[variable][...] = result[row].reshape(self.sim_shape)
@@ -522,6 +569,10 @@ class _DirectSamplingEngine:
             "max_ready_width": int(max_ready_width),
             "requested_threads": int(n_threads),
             "used_threads": int(used_threads),
+            "visited_sim_nodes": int(len(self.path)),
+            "active_cells": int(np.prod(self.sim_shape))
+            if self.active_mask is None
+            else int(self.active_mask.sum()),
         }
         if _MPS_RUST_ENGINE_STATS_HOOK is not None:
             _MPS_RUST_ENGINE_STATS_HOOK(self._rust_engine_stats.copy())
@@ -739,6 +790,9 @@ class _DirectSamplingEngine:
                 zone_shapes,
                 zone_d_max,
                 node_domain,
+                active_mask=None
+                if self.active_mask is None
+                else self.active_mask.astype(np.uint8).ravel(),
             )
         )
         for row, variable in enumerate(names):
@@ -779,6 +833,8 @@ class _DirectSamplingEngine:
         resim = np.zeros(self.sim_shape, dtype=bool)
         for v in self.variables:
             resim |= ~self.is_cond[v]
+        if self.active_mask is not None:
+            resim &= self.active_mask
         if self._post_processing_mask is not None:
             resim &= self._post_processing_mask
         if not resim.any():
@@ -824,8 +880,14 @@ def ds_simulate(
     post_processing_path=None,
     post_processing_variables=None,
     post_processing_mask=None,
+    active_mask=None,
 ):
     """Node-wise multivariate Direct Sampling (Mariethoz2010 §3, Eq. 8).
+
+    ``active_mask`` is an optional boolean array matching ``sim_shape``. False
+    cells are never targets or neighbors and remain NaN, including in cleanup.
+    Hard conditions outside the mask are rejected. ``None`` preserves the full
+    rectangular domain.
 
     Co-simulates every variable of a dict-valued :class:`TrainingImage` on one
     structured grid, treating all variables equally. The path visits every
@@ -867,9 +929,17 @@ def ds_simulate(
         and must include every unknown node (conditioned nodes are ignored;
         missing unknown nodes and duplicate rows raise ``ValueError``).
         Default: ``"random"``.
-    conditions : dict, optional
-        ``{node_index: {variable: value}}`` conditioning data. Per-variable
-        conditioning-node weights are read from each :class:`Variable`.
+    conditions : dict or tuple, optional
+        ``{node_index: {variable: value}}`` conditioning data, or the
+        equivalent array form ``(nodes, {variable: values})`` with ``nodes`` a
+        tuple of per-axis index arrays and ``NaN`` marking a variable that is
+        not conditioned at a node. Per-variable conditioning-node weights are
+        read from each :class:`Variable`.
+    active_mask : numpy.ndarray of bool or None, optional
+        Boolean array with shape ``sim_shape``. False cells remain NaN and are
+        excluded as simulation targets and neighbors in the main run and
+        cleanup passes. Conditions on inactive cells raise ``ValueError``.
+        ``None`` uses the full rectangular domain.
     boundary : str, optional
         ``"strict"`` (default) or ``"partial"`` search-window strategy.
     num_threads : int or None, optional
@@ -887,25 +957,40 @@ def ds_simulate(
     dict
         ``{variable: numpy.ndarray}`` — one simulated field per variable.
     """
-    engine = _DirectSamplingEngine(
+    from gstools.mps.model import MPSModel
+
+    model = MPSModel(
         training_image,
-        sim_shape,
-        threshold,
-        scan_fraction,
-        rng_path,
-        rng_nodes,
-        conditions=conditions,
+        threshold=threshold,
+        scan_fraction=scan_fraction,
         boundary=boundary,
-        rotation_map=rotation_map,
-        scale_map=scale_map,
-        path=path,
         scan_path=scan_path,
         zones=zones,
-        zone_selector=zone_selector,
         post_processing=post_processing,
         post_processing_factor=post_processing_factor,
         post_processing_path=post_processing_path,
         post_processing_variables=post_processing_variables,
         post_processing_mask=post_processing_mask,
+        active_mask=active_mask,
     )
-    return engine.run(num_threads=num_threads)
+    return _simulate_model(
+        model,
+        sim_shape,
+        rng_path,
+        rng_nodes,
+        conditions=conditions,
+        rotation_map=rotation_map,
+        scale_map=scale_map,
+        path=path,
+        zone_selector=zone_selector,
+        num_threads=num_threads,
+    )
+
+
+def _simulate_model(
+    model, sim_shape, rng_path, rng_nodes, *, num_threads, **preparation
+):
+    """Simulate with a validated configuration and resolved grid settings."""
+    return _DirectSamplingEngine(
+        model, sim_shape, rng_path, rng_nodes, **preparation
+    ).run(num_threads=num_threads)

@@ -2249,7 +2249,9 @@ class TestMVTransformsAndReporting(unittest.TestCase):
         }
         cls.mv_ti = TrainingImage(
             [
-                Variable("a", cls.mv_data["a"], n_neighbors=4),
+                Variable(
+                    "a", cls.mv_data["a"], categorical=False, n_neighbors=4
+                ),
                 Variable("b", cls.mv_data["b"], n_neighbors=4),
             ]
         )

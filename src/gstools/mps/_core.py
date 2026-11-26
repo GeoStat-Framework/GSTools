@@ -36,7 +36,7 @@ _MIN_VERSION = Version("1.4.0")
 # stay 1.4.0 across an ABI change, so version alone is insufficient; the Core
 # exports ``mps_api_version()`` and we gate on it. Bump in lockstep with the
 # Rust ``mps_api_version_py`` whenever an MPS entry-point signature changes.
-_REQUIRED_MPS_API = 7
+_REQUIRED_MPS_API = 8
 _MSG = "GSTools MPS requires gstools-core>=1.4.0 with MPS support"
 
 
