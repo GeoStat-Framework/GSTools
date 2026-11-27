@@ -1,0 +1,77 @@
+Bundled MPS saved results
+=========================
+
+This directory contains the precomputed figures and result files that the
+large MPS gallery examples display by default, so that the documentation can
+show high-quality results without running the expensive simulations during
+every Sphinx-Gallery build.
+
+Provenance
+----------
+
+All files below, except ``variation_distance_conditioning.png``, were produced
+with the Direct Sampling engine of the ``jeilealr/GSTools`` fork (branch
+``feature/mps-direct-sampling``, commit ef7f80c) with the settings stated in
+each example script. ``variation_distance_conditioning.png`` was produced once
+with this GSTools code (code checksum recorded at the end of
+this file).
+
+Setting the example's switch regenerates its saved result with this code
+(``generate_output = True`` inside the script; for 07 the environment variables
+``GSTOOLS_MPS_HERTEN_REGENERATE=1`` and ``GSTOOLS_MPS_HERTEN_OUTPUT_DIR``; for
+14 ``GSTOOLS_GENERATE_EXAMPLE_OUTPUT=1``; for 15 the command in its docstring).
+For examples 07, 09, 11, 12 and 13 the regeneration was run with this code and
+compared with the saved result: the pattern character is the same, but the
+result is not byte-identical. Examples 08 and 14 were only checked to start
+without error (300 s smoke runs, no traceback); their regenerated results were
+not compared. Example 15 was run with this code in ``small`` mode (2
+realizations, with the external Zenodo archive) and finished without error;
+its saved figures were not replaced.
+
+``herten_nonstationary.json`` is the fork's original manifest and records the
+environment that produced it (including the fork's engine and its paths), not
+this code.
+
+Saved file to example
+---------------------
+
+* ``herten_nonstationary.png``, ``.npz``, ``.json`` -- example 07
+  (``07_herten_nonstationary.py``).
+* ``radial_nonstationarity.png`` -- example 08.
+* ``multivariate_context_channels.png`` -- example 09.
+* ``variation_distance_conditioning.png`` -- example 11.
+* ``bivariate_joint_channels.png`` -- example 12.
+* ``continuous_stone_conditioning.png`` -- example 13.
+* ``three_dimensional_fluvsim_multifacies_3d.png``, ``..._slices.png``,
+  ``..._proportions.png``, ``..._two_point_correlation.png`` -- example 14.
+* ``roussillon_hess_small_*.png`` and ``roussillon_hess_reproduction/`` --
+  example 15.
+
+Licences of the underlying data
+-------------------------------
+
+Input provenance and third-party license information is documented in
+``../input/LICENSE.txt``. In particular:
+
+* ``radial_nonstationarity.png`` and ``bivariate_joint_channels.png`` are
+  derived from the bundled GeoDataSets/Strebelle channel input (MIT).
+* ``variation_distance_conditioning.png`` and
+  ``multivariate_context_channels.png`` are generated from synthetic GSTools
+  documentation input.
+* ``continuous_stone_conditioning.png`` is derived from the bundled GAIA-UNIL
+  stone texture (GPL-3.0).
+* ``three_dimensional_fluvsim_multifacies_*.png`` are derived from the bundled
+  GAIA-UNIL Fluvsim five-facies 3D input (GPL-3.0).
+* ``herten_nonstationary.*`` are derived from the bundled Herten section
+  (CC BY 3.0).
+* ``roussillon_hess_*`` are derived from the open dataset of Dall'Alba et al.
+  (2020), Zenodo, https://doi.org/10.5281/zenodo.4110278.
+
+Provenance of variation_distance_conditioning.png
+-------------------------------------------------
+
+Produced once by ``11_variation_distance.py`` with ``generate_output = True``
+(seed 42, four threads, 2026-11-19) using the GSTools change set that added this file, identified by the checksum
+of ``src/gstools/mps/*.py`` below.
+SHA-256 over those files (sorted by name; for each, the file name, a NUL byte
+and the file content): 06a1b7a2ca3798b9399f3787a1014feba66f13d766539f3447ca87036d531bec

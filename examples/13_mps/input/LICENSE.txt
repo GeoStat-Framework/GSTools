@@ -1,0 +1,90 @@
+Bundled MPS input data
+======================
+
+This directory contains small input arrays used by the MPS documentation
+examples. They are bundled so the Sphinx-Gallery build can run without network
+downloads or expensive training-image preparation steps.
+
+Third-party inputs
+------------------
+
+strebelle_channel_ti.npz
+    Source: GeoDataSets by Michael Pyrcz (GeostatsGuy)
+    https://github.com/GeostatsGuy/GeoDataSets
+
+    Upstream file:
+    MPS_Training_image_and_Realizations_500.npz
+
+    License: MIT. The local copy of the GeoDataSets MIT license is stored in
+    GEODATASETS-MIT.txt.
+
+    Citation: Strebelle, S. (2002), "Conditional simulation of complex
+    geological structures using multiple-point statistics", Mathematical
+    Geology, 34(1), 1-21, https://doi.org/10.1023/A:1014009426274.
+
+    Preparation: copied into this directory as an offline documentation asset.
+    The examples use the ``array1`` channel training image.
+
+strebelle_facies_resistivity_ti.npz
+    Source: derived from strebelle_channel_ti.npz.
+
+    License: MIT, inherited from the bundled GeoDataSets/Strebelle input above.
+
+    Preparation: contains a 250x250 Strebelle facies subset and a continuous
+    secondary variable prepared by smoothing the facies field and adding seeded
+    uniform noise.
+
+gaia_unil_stone_texture.npz
+    Source: stone.tiff from the GAIA-UNIL TrainingImagesTIFF repository
+    https://github.com/GAIA-UNIL/TrainingImagesTIFF
+
+    The TIFF repository states that the images were converted from the
+    GAIA-UNIL trainingimages repository:
+    https://github.com/GAIA-UNIL/trainingimages
+
+    License: GPL-3.0. The local copy of the GPL-3.0 license text is stored in
+    GAIA-UNIL-GPL-3.0.txt.
+
+    Preparation: converted from TIFF into a 200x200 floating-point NumPy array
+    for offline documentation use.
+
+gaia_unil_fluvsim_5facies_crop.npz
+    Source: ti_fluvsim_big_channels3D.zip from the MPS_book_data/Part2
+    directory of the GAIA-UNIL trainingimages repository
+    https://github.com/GAIA-UNIL/trainingimages
+
+    Upstream file:
+    MPS_book_data/Part2/ti_fluvsim_big_channels3D.zip
+
+    License: GPL-3.0. The local copy of the GPL-3.0 license text is stored in
+    GAIA-UNIL-GPL-3.0.txt.
+
+    Preparation: extracted ``ti_fluvsim_big_channels3D.SGEMS`` from the
+    upstream zip, parsed the 250x250x100 five-facies source volume using NumPy
+    ``reshape(..., order="F")``, and stored the channel-rich crop
+    ``[110:230, 0:120, 10:70]`` as a compressed ``uint8`` array for offline
+    documentation use.
+
+Generated documentation inputs
+------------------------------
+
+synthetic_channel_context_ti.npz
+    License: GSTools documentation/example license.
+
+    Preparation: generated as a 250x250 input from deterministic formulas for
+    a categorical channel field and a continuous context field. The context
+    variable is the normalized x-coordinate.
+
+synthetic_variation_ti.npz
+    License: GSTools documentation/example license.
+
+    Preparation: generated once as a 250x250 continuous multi-Gaussian field
+    with anisotropic spatial correlation, using an exponential covariance model
+    with ``len_scale=[35, 25]`` and ``seed=123``.
+
+Herten section S1: herten_s1_section.npz
+--------------------------------------
+Bayer, P.; Comunian, A.; Höyng, D.; Mariethoz, G. (2015), PANGAEA,
+https://doi.pangaea.de/10.1594/PANGAEA.844167. Dataset: CC BY 3.0 Unported.
+See HERTEN-CC-BY-3.0.txt for file-level attribution and supplied conversion
+provenance. This notice applies to the data, not to the repository's code.

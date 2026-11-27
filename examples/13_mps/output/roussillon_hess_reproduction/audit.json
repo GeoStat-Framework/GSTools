@@ -1,0 +1,100 @@
+{
+  "alignment": {
+    "active_cells_with_finite_rotation": 3751281,
+    "active_cells_with_finite_trend": 3742185,
+    "aux_alignment_offsets": {
+      "x": 1,
+      "y": 6
+    },
+    "hard_data_facies_counts": {
+      "0": 2350,
+      "1": 1538,
+      "2": 180,
+      "4": 867
+    },
+    "hard_data_inside_mapped_grid": 4693,
+    "hard_data_rows": 4935,
+    "rotation_mean_degrees": {
+      "finite": 3831414,
+      "max": 65.0,
+      "mean": -31.23244885122551,
+      "min": -102.53288952,
+      "nan": 18732666,
+      "shape": [
+        110,
+        504,
+        407
+      ]
+    },
+    "sim_grid_active": 3824771,
+    "sim_grid_shape": [
+      110,
+      504,
+      407
+    ],
+    "trend": {
+      "finite": 3816934,
+      "max": 1.442321071,
+      "mean": 0.4965948625673906,
+      "min": -0.2537535508,
+      "nan": 18747146,
+      "shape": [
+        110,
+        504,
+        407
+      ]
+    },
+    "z_origin": -201.0
+  },
+  "gstools_deesse_gaps": [
+    "GSTools currently has one global threshold; paper used facies=0.05 and trend=0.25.",
+    "GSTools uses one rotation map; paper used two maps as angular bounds.",
+    "GSTools currently has no inactive-cell mask in Direct Sampling."
+  ],
+  "selected_small_domain": {
+    "active": 32768,
+    "active_fraction": 1.0,
+    "nx": 64,
+    "ny": 64,
+    "nz": 8,
+    "size": 32768,
+    "x0": 224,
+    "y0": 217,
+    "z0": 24
+  },
+  "source": {
+    "archive": "/Users/lealroja/Documents/UFZ/MPS-Tools/GSTools/examples/13_mps/input/roussillon_mps_2020_dallalba.zip",
+    "archive_md5": "4d598a59c64bf5eb28362987dceba432",
+    "dataset": "https://doi.org/10.5281/zenodo.4110278",
+    "paper": "https://hess.copernicus.org/articles/24/4997/2020/"
+  },
+  "ti": {
+    "ti_facies_counts": {
+      "0": 7193,
+      "1": 1818,
+      "2": 787,
+      "3": 1206,
+      "4": 3388,
+      "5": 608
+    },
+    "ti_facies_shape": [
+      150,
+      100
+    ],
+    "ti_trend": {
+      "finite": 15000,
+      "max": 1.0,
+      "mean": 0.5000000000004999,
+      "min": 0.0,
+      "nan": 0,
+      "shape": [
+        150,
+        100
+      ]
+    },
+    "ti_trend_shape": [
+      150,
+      100
+    ]
+  }
+}

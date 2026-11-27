@@ -24,6 +24,7 @@ explore its whole beauty and power.
    examples/10_normalizer/index
    examples/11_plurigaussian/index
    examples/12_sum_model/index
+   examples/13_mps/index
    examples/00_misc/index
 
 .. only:: html

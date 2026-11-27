@@ -1,0 +1,30 @@
+Herten section S1: data attribution and preparation
+=================================================
+
+File scope: herten_s1_section.npz (data only; code licensing is separate).
+SHA-256: c88baaeff13f58539889477180fcf685107dcf78d9e6561308d04f196d1fcc74
+
+Bayer, P.; Comunian, A.; Höyng, D.; Mariethoz, G. (2015).
+Physicochemical properties and 3D geostatistical simulations of the Herten and
+the Descalvado aquifer analogs. PANGAEA.
+https://doi.pangaea.de/10.1594/PANGAEA.844167
+
+Dataset license: Creative Commons Attribution 3.0 Unported (CC BY 3.0).
+https://creativecommons.org/licenses/by/3.0/
+Dataset description: https://store.pangaea.de/Publications/Bayer_et_al_2015/README.html
+See the dataset record for its linked content description and original files.
+
+Related article: Bayer, Comunian, Höyng, and Mariethoz (2015),
+High resolution multi-facies realizations of sedimentary reservoir and aquifer
+analogs. Scientific Data 2, 150033. https://doi.org/10.1038/sdata.2015.33
+The article's separate license does not replace the dataset's CC BY 3.0 notice.
+
+Supplied compressed NumPy representation of the digitized Herten section S1:
+array order [x, z], int8 shape (320, 140), scalar spacing 0.05 m. The full section
+contains codes 0 through 9. The gallery reads section[:160, :] (8 m by 7 m local
+cell extent) without resampling or category recoding. This crop has codes
+1, 2, 3, 4, 5, 7, 8, 9. Codes 0 and 6 are absent from the crop.
+The original section-to-NPZ conversion procedure was not included with this
+contribution; this representation was supplied rather than independently
+reconstructed from the upstream files. No geological name-to-code mapping is
+asserted. The NPZ source attribution string is preserved unchanged.

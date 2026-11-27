@@ -35,6 +35,7 @@ GSTools provides geostatistical tools for various purposes:
 - metric spatio-temporal modelling
 - plurigaussian field simulations (PGS)
 - collocated cokriging
+- multiple point statistics (Direct Sampling)
 - plotting and exporting routines
 
 
@@ -131,6 +132,7 @@ showing the most important use cases of GSTools, which are
 - `Spatio-Temporal Modelling <examples/09_spatio_temporal/index.html>`__
 - `Normalizing Data <examples/10_normalizer/index.html>`__
 - `Plurigaussian Field Generation (PGS) <examples/11_plurigaussian/index.html>`__
+- `Multiple Point Statistics (MPS) <examples/13_mps/index.html>`__
 - `Miscellaneous examples <examples/00_misc/index.html>`__
 
 

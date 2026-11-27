@@ -302,6 +302,7 @@ sphinx_gallery_conf = {
         "../../examples/10_normalizer/",
         "../../examples/11_plurigaussian/",
         "../../examples/12_sum_model/",
+        "../../examples/13_mps/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -318,6 +319,7 @@ sphinx_gallery_conf = {
         "examples/10_normalizer/",
         "examples/11_plurigaussian/",
         "examples/12_sum_model/",
+        "examples/13_mps/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",

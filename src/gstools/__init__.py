@@ -24,6 +24,7 @@ Subpackages
     tools
     transform
     normalizer
+    mps
 
 Classes
 =======
@@ -153,6 +154,7 @@ from gstools import (  # noqa: I001
     covmodel,
     field,
     krige,
+    mps,
     cokriging,
     normalizer,
     random,
@@ -230,7 +232,7 @@ __all__ += [
     "random",
     "tools",
 ]
-__all__ += ["transform", "normalizer", "config"]
+__all__ += ["transform", "normalizer", "config", "mps"]
 __all__ += [
     "CovModel",
     "SumModel",
