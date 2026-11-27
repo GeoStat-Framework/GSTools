@@ -24,9 +24,21 @@ Subpackages
     tools
     transform
     normalizer
+    mps
 
 Classes
 =======
+
+Multiple Point Statistics
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Classes for Multiple Point Statistics (MPS) simulations
+
+.. currentmodule:: gstools.mps
+
+.. autosummary::
+   DirectSampling
+   MPSModel
+   TrainingImage
 
 Kriging
 ^^^^^^^
@@ -230,7 +242,7 @@ __all__ += [
     "random",
     "tools",
 ]
-__all__ += ["transform", "normalizer", "config"]
+__all__ += ["transform", "normalizer", "config", "mps"]
 __all__ += [
     "CovModel",
     "SumModel",
@@ -272,6 +284,9 @@ __all__ += [
     "SRF",
     "CondSRF",
     "PGS",
+    "DirectSampling",
+    "MPSModel",
+    "TrainingImage",
     "rotated_main_axes",
     "generate_grid",
     "generate_st_grid",
@@ -286,3 +301,17 @@ __all__ += [
     "to_vtk_structured",
     "to_vtk_unstructured",
 ]
+
+# MPS (DirectSampling/MPSModel/TrainingImage and the `mps` submodule) requires
+# the Rust backend gstools_core. Import it lazily so plain ``import gstools`` and
+# the SRF/kriging paths keep working without the Rust core — the requirement
+# applies only when MPS is actually used.
+_MPS_LAZY = ("DirectSampling", "MPSModel", "TrainingImage")
+
+
+def __getattr__(name):
+    if name == "mps" or name in _MPS_LAZY:
+        import gstools.mps as _mps
+
+        return _mps if name == "mps" else getattr(_mps, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

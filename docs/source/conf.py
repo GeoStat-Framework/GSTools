@@ -22,7 +22,10 @@
 # import os
 # import sys
 import datetime
+import shutil
+import sys
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings(
     "ignore",
@@ -30,10 +33,70 @@ warnings.filterwarnings(
     message="Matplotlib is currently using agg, which is a non-GUI backend, so cannot show the figure.",
 )
 
-# local module should not be added to sys path if it's installed on RTFD
-# see: https://stackoverflow.com/a/31882049/6696397
-# sys.path.insert(0, os.path.abspath("../../"))
+# Build documentation for this checkout, including with an uninstalled source
+# tree or an editable installation that points to another checkout.
+_SOURCE_DIR = Path(__file__).resolve().parents[2] / "src"
+if _SOURCE_DIR.is_dir():
+    sys.path.insert(0, str(_SOURCE_DIR))
+
 from gstools import __version__ as ver
+
+
+def _mps_assets(subdir, suffixes):
+    """Return bundled MPS assets that should travel with examples."""
+    asset_dir = (
+        Path(__file__).resolve().parents[2] / "examples" / "13_mps" / subdir
+    )
+    return sorted(
+        path
+        for path in asset_dir.glob("*")
+        if path.is_file() and path.suffix in suffixes
+    )
+
+
+def _mps_zip_assets(gallery_dir):
+    """Copy only the MPS example inputs, notices, and curated previews."""
+    assets = []
+    for subdir, suffixes in {
+        "input": {".npz", ".txt", ".inc"},
+        "output": {".png", ".txt"},
+    }.items():
+        target_dir = gallery_dir / subdir
+        target_dir.mkdir(exist_ok=True)
+        for source in _mps_assets(subdir, suffixes):
+            target = target_dir / source.name
+            shutil.copy2(source, target)
+            assets.append(target)
+    return assets
+
+
+def _patch_mps_gallery_zipfiles():
+    """Include MPS dependencies in individual and bulk gallery downloads."""
+    from sphinx_gallery import downloads, gen_rst
+
+    def with_assets(zip_files):
+        if getattr(zip_files, "_gstools_mps_assets", False):
+            return zip_files
+
+        def zip_mps_files(file_list, zipname, relative_to, extension=None):
+            gallery_dir = Path(relative_to)
+            if gallery_dir.name != "13_mps":
+                return zip_files(file_list, zipname, relative_to, extension)
+            sources = (
+                file_list
+                if extension is None
+                else [Path(path).with_suffix(extension) for path in file_list]
+            )
+            return zip_files(
+                [*sources, *_mps_zip_assets(gallery_dir)], zipname, relative_to
+            )
+
+        zip_mps_files._gstools_mps_assets = True
+        return zip_mps_files
+
+    for module in (gen_rst, downloads):
+        if hasattr(module, "zip_files"):
+            module.zip_files = with_assets(module.zip_files)
 
 
 def skip(app, what, name, obj, skip, options):
@@ -44,6 +107,7 @@ def skip(app, what, name, obj, skip, options):
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
+    _patch_mps_gallery_zipfiles()
 
 
 # -- General configuration ------------------------------------------------
@@ -302,6 +366,7 @@ sphinx_gallery_conf = {
         "../../examples/10_normalizer/",
         "../../examples/11_plurigaussian/",
         "../../examples/12_sum_model/",
+        "../../examples/13_mps/",
     ],
     # path where to save gallery generated examples
     "gallery_dirs": [
@@ -318,6 +383,7 @@ sphinx_gallery_conf = {
         "examples/10_normalizer/",
         "examples/11_plurigaussian/",
         "examples/12_sum_model/",
+        "examples/13_mps/",
     ],
     # Pattern to search for example files
     "filename_pattern": r"\.py",

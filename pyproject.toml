@@ -43,11 +43,12 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "gstools_core>=1.3.0",
+    "gstools_core>=1.4.0",
     "emcee>=3.0.0",
     "hankel>=1.0.0",
     "meshio>=5.1.0",
     "numpy>=1.20.0",
+    "packaging>=20",
     "pyevtk>=1.1.1",
     "scipy>=1.1.0",
 ]
@@ -65,7 +66,9 @@ doc = [
     "sphinxcontrib-youtube>=1.1",
 ]
 plotting = ["matplotlib>=3.7", "pyvista>=0.40"]
-rust = ["gstools_core>=1.3.0"]
+# Compatibility extra: Core is already a mandatory dependency above.
+# Retained so existing installs using gstools[rust] continue to work.
+rust = ["gstools_core>=1.4.0"]
 benchmark = ["asv"]
 test = ["pytest-cov>=3"]
 lint = ["ruff"]
@@ -90,7 +93,15 @@ version-file = "src/gstools/_version.py"
 template = "__version__ = '{version}'"
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests"]
+include = [
+    "/src", "/tests", "/scripts",
+    "/AUTHORS.md", "/CONTRIBUTING.md", "/CHANGELOG.md",
+    "/examples/13_mps/*.py", "/examples/13_mps/README.rst",
+    "/examples/13_mps/input/*.npz", "/examples/13_mps/input/*.txt",
+    "/examples/13_mps/input/*.inc", "/examples/13_mps/output/*.png",
+    "/examples/13_mps/output/LICENSE.txt",
+]
+artifacts = ["/examples/13_mps/output/*.png", "/examples/13_mps/output/LICENSE.txt"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gstools"]

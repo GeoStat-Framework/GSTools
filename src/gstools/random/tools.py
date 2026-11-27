@@ -24,16 +24,24 @@ class MasterRNG:
     seed : :class:`int` or :any:`None`, optional
         The seed of the master RNG, if ``None``,
         a random seed is used. Default: ``None``
+    seed_sequence : :class:`bool`, optional
+        Spawn child :class:`numpy.random.SeedSequence` objects rather than
+        legacy 16-bit integer seeds. Default: ``False``.
 
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed, seed_sequence=False):
         self._seed = seed
-        self._master_rng_fct = rand.RandomState(seed)
-        self._master_rng = lambda: self._master_rng_fct.randint(1, 2**16)
+        self._seed_sequence = bool(seed_sequence)
+        if self._seed_sequence:
+            self._ss = rand.SeedSequence(seed)
+            self._master_rng = lambda: self._ss.spawn(1)[0]
+        else:
+            self._master_rng_fct = rand.RandomState(seed)
+            self._master_rng = lambda: self._master_rng_fct.randint(1, 2**16)
 
     def __call__(self):
-        """Return a random seed."""
+        """Return an integer seed, or a spawned SeedSequence when enabled."""
         return self._master_rng()
 
     @property  # pragma: no cover

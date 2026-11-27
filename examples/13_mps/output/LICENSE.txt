@@ -1,0 +1,19 @@
+Bundled MPS output previews
+===========================
+
+The gallery examples use these PNGs to illustrate simulations from prior runs.
+Each script documents its regeneration procedure. Displaying a saved preview
+does not re-run the simulation.
+
+See ../input/LICENSE.txt for source data and third-party notices.
+
+* radial_nonstationarity.png and bivariate_joint_channels.png use the
+  bundled GeoDataSets/Strebelle channel input.
+* continuous_stone_conditioning.png uses the GAIA-UNIL stone texture.
+* three_dimensional_fluvsim_multifacies_*.png use the GAIA-UNIL Fluvsim
+  five-facies input.
+* multivariate_context_channels.png uses synthetic documentation input.
+* roussillon_hess_small_*.png illustrate the reduced Roussillon workflow.
+  See 14_roussillon_hess_reproduction.py for study and data attribution.
+* herten_nonstationary.png uses the Herten S1 section (CC BY 3.0 Unported).
+  See ../input/HERTEN-CC-BY-3.0.txt for attribution.

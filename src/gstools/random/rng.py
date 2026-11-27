@@ -28,11 +28,16 @@ class RNG:
     seed : :class:`int` or :any:`None`, optional
         The seed of the master RNG, if ``None``,
         a random seed is used. Default: ``None``
+    seed_sequence : :class:`bool`, optional
+        Derive streams by spawning :class:`numpy.random.SeedSequence` objects
+        and initializing MT19937 from each child. The default ``False`` keeps
+        the legacy integer-seed streams used by existing GSTools features.
     """
 
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, seed_sequence=False):
         # set seed
         self._master_rng = None
+        self._seed_sequence = bool(seed_sequence)
         self.seed = seed
 
     def sample_ln_pdf(
@@ -200,7 +205,10 @@ class RNG:
         You can use this, to call any provided distribution
         from :any:`numpy.random.RandomState`.
         """
-        return rand.RandomState(self._master_rng())
+        child = self._master_rng()
+        if self._seed_sequence:
+            return rand.RandomState(rand.MT19937(child))
+        return rand.RandomState(child)
 
     @property  # pragma: no cover
     def seed(self):
@@ -213,8 +221,10 @@ class RNG:
 
     @seed.setter
     def seed(self, new_seed=None):
-        self._master_rng = MasterRNG(new_seed)
+        self._master_rng = MasterRNG(new_seed, self._seed_sequence)
 
     def __repr__(self):
         """Return String representation."""
+        if self._seed_sequence:
+            return f"RNG(seed={self.seed}, seed_sequence=True)"
         return f"RNG(seed={self.seed})"

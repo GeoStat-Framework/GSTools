@@ -96,8 +96,25 @@ To get the latest development version you can install it directly from GitHub:
 
 **Running GSTools in parallel**
 
-The number of parallel threads can be set with the global variable
-`config.NUM_THREADS`. If not set, all available cores are used.
+`GSTools-Core <https://github.com/GeoStat-Framework/GSTools-Core>`_ is the Rust
+backend for random fields, kriging, and Multiple Point Statistics (MPS) Direct
+Sampling, and is installed automatically with GSTools (version 1.4.0 or newer).
+To (re)install it explicitly:
+
+.. code-block:: none
+
+    pip install "gstools-core>=1.4.0"
+
+GSTools-Core supports parallel execution without OpenMP or a local C compiler.
+For non-DS routines, the number of parallel threads can be set with
+:code:`config.NUM_THREADS`; the unset default uses the available cores.
+
+MPS Direct Sampling requires GSTools-Core >= 1.4.0 and its MPS kernels.
+DS resolves the thread count from the call, the instance, then
+``config.NUM_THREADS``, falling back to one thread when unset. Small DS paths
+can run serially even when several workers are requested. See
+:ref:`mps-contracts` for DS controls, grid-index units, and the scope of seeded
+reproducibility.
 
 
 Citation
@@ -440,12 +457,13 @@ Requirements
 - `emcee >= 3.0.0 <https://github.com/dfm/emcee>`_
 - `pyevtk >= 1.1.1 <https://github.com/pyscience-projects/pyevtk>`_
 - `meshio >= 5.1.0 <https://github.com/nschloe/meshio>`_
+- `GSTools-Core >= 1.4.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
+  with MPS API 8 for Direct Sampling
 
 
 Optional
 --------
 
-- `GSTools-Core >= 0.2.0 <https://github.com/GeoStat-Framework/GSTools-Core>`_
 - `matplotlib <https://matplotlib.org>`_
 - `pyvista <https://docs.pyvista.org>`_
 
