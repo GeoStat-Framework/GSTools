@@ -29,7 +29,7 @@ with your idea or suggestion and we'd love to discuss about it.
 
 - Fork the repo on [GitHub](https://github.com/GeoStat-Framework/GSTools)
 - Add yourself to AUTHORS.md (if you want to).
-- We use [Ruff](https://github.com/psf/black) to check and format the code.
+- We use [Ruff](https://github.com/astral-sh/ruff) to check and format the code.
   Please use the scripts `ruff check src/gstools` and
   `ruff format --diff src/gstools/` after you have written your code.
 - Add some tests if possible.
