@@ -9,11 +9,13 @@ import json
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
-from gstools import config
 
-
-if config._GSTOOLS_CORE_AVAIL:
+try:
     from gstools_core import calc_field_krige_local as calc_field_krige_local_gsc
+
+    RUST_AVAILABLE = True
+except ImportError:
+    RUST_AVAILABLE = False
 
 
 # model classes GSTools-Core's CovModelSpec (covmodel_spec.rs) currently
@@ -62,7 +64,7 @@ def calc_field_krige_local(
     num_threads=None,
 ):
     """One field: Rust (GSTools-Core) if available, else the NumPy stand-in."""
-    if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
+    if RUST_AVAILABLE:
         # the Rust function takes (n, T) values: one field is one column
         field, error, _, _ = calc_field_krige_local_gsc(
             cond_pos,
