@@ -13,9 +13,6 @@ import json
 
 import numpy as np
 from gstools_core import calc_field_krige_local as calc_field_krige_local_gsc
-from gstools_core import (
-    calc_field_krige_local_multi as calc_field_krige_local_multi_gsc,
-)
 
 from gstools.krige.base import Krige
 from gstools.krige.tools import set_condition
@@ -76,9 +73,17 @@ def _calc_field_krige_local(
     unbiased,
     exact,
     local_radius,
+    min_neighbors=1,
     num_threads=None,
 ):
-    """A wrapper function for calling the local krige algorithm (Rust)."""
+    """
+    A wrapper function for calling the local krige algorithm (Rust).
+
+    ``cond_val`` has the shape ``(cond_no, field_no)``: one column per field
+    (NaN = missing in that field), a single field is one column. Returns
+    ``field``, ``error`` and ``n_used`` with the shape ``(pnt_cnt, field_no)``
+    and a dict with statistics.
+    """
     return calc_field_krige_local_gsc(
         cond_pos,
         cond_val,
@@ -90,45 +95,7 @@ def _calc_field_krige_local(
         unbiased,
         exact,
         local_radius,
-        num_threads=num_threads,
-    )
-
-
-def _calc_field_krige_local_multi(
-    cond_pos,
-    cond_val,
-    target_pos,
-    model,
-    cond_err,
-    drift_cond,
-    drift_target,
-    unbiased,
-    exact,
-    local_radius,
-    min_neighbors=1,
-    cache="hash",
-    num_threads=None,
-):
-    """
-    A wrapper function for calling the multi-field local krige algorithm (Rust).
-
-    ``cond_val`` has the shape ``(cond_no, field_no)`` (NaN = missing in
-    that field). Returns ``field``, ``error`` and ``n_used`` with the shape
-    ``(pnt_cnt, field_no)`` and a dict with cache statistics.
-    """
-    return calc_field_krige_local_multi_gsc(
-        cond_pos,
-        cond_val,
-        target_pos,
-        _cov_model_to_json(model),
-        cond_err,
-        drift_cond,
-        drift_target,
-        unbiased,
-        exact,
-        local_radius,
         min_neighbors=min_neighbors,
-        cache=cache,
         num_threads=num_threads,
     )
 
@@ -190,6 +157,25 @@ class LocalKrige(Krige):
     neighbor pattern and reused for all fields with that pattern.
     ``fit_normalizer`` and ``fit_variogram`` are not available in this
     case, and the class can't be used in :any:`CondSRF`.
+    A 1D ``cond_val`` (one field) runs through the same code as one field.
+
+    **Target points without neighbors** (or with fewer than
+    ``min_neighbors``, see :any:`LocalKrige.__call__`) get NaN, not an
+    error; ``self.n_used`` holds the number of neighbors used.
+
+    **Too few neighbors for the drift:** a target point is kriged without
+    any drift terms (ordinary kriging, or simple kriging if not
+    ``unbiased``) when it has no more neighbors than constraints::
+
+        n_neighbors <= unbiased + number of drift terms   ->   drift dropped
+
+    With that few neighbors the constraints alone would fix the weights
+    (e.g. two neighbors with an external drift: a straight line through
+    two points, which extrapolates or is singular), so the covariance
+    model would have no influence. All drift terms are dropped together.
+    Without drift terms nothing changes. For 2D conditioning values only
+    the neighbors with a value in that field count; the affected values
+    are those with ``self.n_used <= unbiased + drift terms``.
 
     Parameters
     ----------
@@ -282,7 +268,7 @@ class LocalKrige(Krige):
         self._target_drift = None
         self._multi = False
         self.n_used = None
-        self.multi_stats = None
+        self.stats = None
         # super().__init__ calls set_condition and set_drift_functions
         super().__init__(
             model,
@@ -310,7 +296,6 @@ class LocalKrige(Krige):
         post_process=True,
         store=True,
         min_neighbors=1,
-        cache="hash",
         num_threads=None,
     ):
         """
@@ -351,15 +336,9 @@ class LocalKrige(Krige):
             The default is :any:`True` for default names
             ["field", "krige_var"].
         min_neighbors : :class:`int`, optional
-            Only for 2D conditioning values: fields with fewer available
-            neighbors at a target point are set to NaN there.
+            Fields with fewer available neighbors at a target point are set
+            to NaN there (a target point without neighbors is always NaN).
             Default: 1
-        cache : :class:`str`, optional
-            Only for 2D conditioning values: how kriging weights are
-            reused between fields of one target point. "hash" (any
-            neighbor pattern seen before), "last" (only the previous
-            field's pattern) or "none". The results are the same.
-            Default: "hash"
         num_threads : :class:`int` or :any:`None`, optional
             Number of threads for the Rust backend.
             Default: :any:`None` (all available cores)
@@ -374,11 +353,16 @@ class LocalKrige(Krige):
 
         Notes
         -----
-        With 2D conditioning values, a target point without available
-        neighbors in a field gets NaN instead of raising an error. The
-        number of available neighbors is stored in ``self.n_used`` (same
-        shape as the field) and the cache statistics in
-        ``self.multi_stats``.
+        A target point with no more neighbors than constraints
+        (``unbiased`` + drift terms) is kriged **without drift** (see
+        :any:`LocalKrige`).
+
+        A target point without (enough) available neighbors in a field gets
+        NaN instead of raising an error. The number of available neighbors
+        is stored in ``self.n_used`` (same shape as the field) and the
+        statistics (cache hits, solves) in ``self.stats``;
+        ``self.stats["n_without_drift"]`` counts the values kriged
+        without drift. Both are set for one field as well.
         """
         if only_mean:
             raise NotImplementedError(
@@ -414,30 +398,31 @@ class LocalKrige(Krige):
             num_threads=num_threads,
         )
 
+        # Rust works on (cond_no, T), one column per field: one field is T = 1
+        vals = cond_val if self.is_multi else cond_val[np.newaxis, :]
+        field, error, n_used, stats = _calc_field_krige_local(
+            cond_val=np.ascontiguousarray(vals.T),
+            min_neighbors=min_neighbors,
+            **common,
+        )
+        self.stats = stats
+
         if not self.is_multi:
-            # one field (Rust)
-            field, error = _calc_field_krige_local(cond_val=cond_val, **common)
-            self.n_used, self.multi_stats = None, None
-            field = np.reshape(field, shape)
+            # one field: results back to the field's shape
+            self.n_used = np.reshape(n_used[:, 0], shape)
+            field = np.reshape(field[:, 0], shape)
             field = self.post_field(field, name[0], post_process, save[0])
             if return_var:  # care about the estimated error variance
                 krige_var = np.reshape(
-                    np.maximum(self.model.sill - error, 0), shape
+                    np.maximum(self.model.sill - error[:, 0], 0), shape
                 )
                 krige_var = self.post_field(krige_var, name[1], False, save[1])
                 return field, krige_var
             return field
 
-        # many fields at once (Rust): results come as (pnt_cnt, T)
-        field, error, n_used, stats = _calc_field_krige_local_multi(
-            cond_val=np.ascontiguousarray(cond_val.T),
-            min_neighbors=min_neighbors,
-            cache=cache,
-            **common,
-        )
+        # many fields: results come as (pnt_cnt, T)
         out_shape = (cond_val.shape[0],) + tuple(np.atleast_1d(shape))
         self.n_used = n_used.T.reshape(out_shape)
-        self.multi_stats = stats
         field = self._post_stacked_field(
             field.T.reshape(out_shape), name[0], post_process, save[0]
         )
@@ -881,6 +866,10 @@ class LocalUniversal(LocalKrige):
 
     This estimator is set to be unbiased by default.
 
+    **Too few neighbors:** with ``n_neighbors <= 1 + number of drift
+    terms`` (e.g. 3 for a linear drift in 2D) the drift is dropped and the
+    target point is kriged with ordinary kriging. See :any:`LocalKrige`.
+
     Parameters
     ----------
     model : :any:`CovModel`
@@ -973,6 +962,11 @@ class LocalExtDrift(LocalKrige):
     See :any:`LocalKrige` and :any:`gstools.krige.ExtDrift`.
 
     This estimator is set to be unbiased by default.
+
+    **Too few neighbors:** with ``n_neighbors <= 1 + number of external
+    drifts`` (2 for a single drift such as elevation) the drift is dropped
+    and the target point is kriged with ordinary kriging. See
+    :any:`LocalKrige`.
 
     Parameters
     ----------

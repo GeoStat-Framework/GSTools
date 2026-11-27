@@ -3,7 +3,7 @@ Validation script for the NumPy multi-field local-kriging prototype.
 
 Checks that kriging many fields at once with cached weights
 (local_kriging_multi_numpy) gives the same result as calling the
-single-field prototype once per field with only the available stations,
+single-field prototype once per field with only the available conditioning points,
 and that the cache actually saves solves.
 
 Run with:
@@ -28,7 +28,7 @@ RADIUS = 4.0
 
 
 def make_data(n=40, m=25, t_cnt=30, missing=0.2, seed=1):
-    """Stations in [0, 10]^2 with random gaps, targets in the same box."""
+    """Conditioning points in [0, 10]^2 with random gaps, target points in the same box."""
     rng = np.random.RandomState(seed)
     cond_pos = rng.uniform(0, 10, (2, n))
     target_pos = rng.uniform(0, 10, (2, m))
@@ -46,20 +46,20 @@ MODEL = gs.Exponential(dim=2, var=1.5, len_scale=3, nugget=0.1)
 SETUPS = [(False, False), (True, False), (True, True)]
 
 needs_rust = pytest.mark.skipif(
-    not RUST_AVAILABLE, reason="GSTools-Core without calc_field_krige_local_multi"
+    not RUST_AVAILABLE, reason="GSTools-Core not available"
 )
 BACKENDS = ["python", pytest.param("rust", marks=needs_rust)]
 
 
 def run_multi(cond_pos, cond_val, target_pos, drift_cond, drift_target,
-              unbiased, radius=RADIUS, min_neighbors=1, cache="hash"):
+              unbiased, radius=RADIUS, min_neighbors=1):
     n = cond_pos.shape[1]
     return calc_field_krige_local_multi_python(
         cond_pos, cond_val, target_pos, MODEL,
         cond_err=np.full(n, MODEL.nugget),
         drift_cond=drift_cond, drift_target=drift_target,
         unbiased=unbiased, exact=False, local_radius=radius,
-        min_neighbors=min_neighbors, cache=cache,
+        min_neighbors=min_neighbors,
     )
 
 
@@ -73,7 +73,7 @@ def test_matches_single_field_calls(unbiased, ext):
     )
     for t in range(cond_val.shape[1]):
         avail = np.isfinite(cond_val[:, t])
-        # independent neighbor count with only today's stations
+        # independent neighbor count with only this field's conditioning points
         counts = np.array([
             len(lst) for lst in cKDTree(cond_pos[:, avail].T).query_ball_point(
                 target_pos.T, r=RADIUS)
@@ -90,39 +90,29 @@ def test_matches_single_field_calls(unbiased, ext):
         assert np.isnan(field[~ok, t]).all()
 
 
-def test_cache_modes_give_identical_results():
-    data = make_data()
-    results = {c: run_multi(*data, unbiased=True, cache=c) for c in ("none", "last", "hash")}
-    for c in ("last", "hash"):
-        np.testing.assert_array_equal(results[c][0], results["none"][0])
-        np.testing.assert_array_equal(results[c][1], results["none"][1])
-    solves = {c: results[c][3]["n_solves"] for c in results}
-    assert solves["none"] >= solves["last"] >= solves["hash"]
-
-
 def test_one_solve_per_target_without_missing_data():
     cond_pos, cond_val, target_pos, d_cond, d_targ = make_data(missing=0.0)
     m, t_cnt = target_pos.shape[1], cond_val.shape[1]
-    for cache, expected in (("hash", m), ("last", m), ("none", m * t_cnt)):
-        stats = run_multi(cond_pos, cond_val, target_pos, d_cond, d_targ,
-                          True, cache=cache)[3]
-        assert stats["n_solves"] == expected
+    stats = run_multi(cond_pos, cond_val, target_pos, d_cond, d_targ, True)[3]
+    assert stats["n_solves"] == m
+    assert stats["n_hits_last"] == (t_cnt - 1) * m
 
 
-def test_hash_cache_reuses_recurring_masks():
-    """Alternating outages A, B, A, B, ...: 'last' re-solves every day."""
+def test_cache_reuses_recurring_masks():
+    """Alternating outages A, B, A, B, ...: the hash map finds them."""
     cond_pos, cond_val, target_pos, d_cond, d_targ = make_data(missing=0.0)
     cond_val[0, ::2] = np.nan
     cond_val[1, 1::2] = np.nan
     m, t_cnt = target_pos.shape[1], cond_val.shape[1]
     args = (cond_pos, cond_val, target_pos, d_cond, d_targ, True, FULL_RADIUS)
-    assert run_multi(*args, cache="hash")[3]["n_solves"] == 2 * m
-    assert run_multi(*args, cache="last")[3]["n_solves"] == t_cnt * m
+    stats = run_multi(*args)[3]
+    assert stats["n_solves"] == 2 * m
+    assert stats["n_hits_hash"] == (t_cnt - 2) * m
 
 
 def test_min_neighbors_gives_nan():
     cond_pos, cond_val, target_pos, d_cond, d_targ = make_data(missing=0.0)
-    cond_val[2:, 0] = np.nan  # only 2 stations on day 0
+    cond_val[2:, 0] = np.nan  # only 2 points with a value in field 0
     field, error, n_used, stats = run_multi(
         cond_pos, cond_val, target_pos, d_cond, d_targ, True,
         radius=FULL_RADIUS, min_neighbors=3,
@@ -171,19 +161,18 @@ def test_wrapper_simple_with_mean_matches_global_per_day(backend):
         np.testing.assert_allclose(field[t], f_ref, rtol=1e-6, atol=1e-8)
 
 
-def test_wrapper_rejects_template_without_all_stations():
+def test_wrapper_rejects_template_without_all_conditioning_points():
     cond_pos, cond_val, target_pos, _, _ = make_data()
-    first_day = cond_val[:, 0]  # contains NaN -> template drops stations
+    first_day = cond_val[:, 0]  # contains NaN -> template drops conditioning points
     template = gs.krige.LocalOrdinary(MODEL, cond_pos, first_day, local_radius=RADIUS)
-    with pytest.raises(ValueError, match="holds every station"):
+    with pytest.raises(ValueError, match="holds every conditioning point"):
         local_krige_multi(template, target_pos, cond_val)
 
 
 @needs_rust
-@pytest.mark.parametrize("cache", ["none", "last", "hash"])
 @pytest.mark.parametrize("exact", [False, True])
 @pytest.mark.parametrize("unbiased, ext", SETUPS)
-def test_rust_matches_python(unbiased, ext, exact, cache):
+def test_rust_matches_python(unbiased, ext, exact):
     cond_pos, cond_val, target_pos, d_cond, d_targ = make_data()
     if not ext:
         d_cond, d_targ = d_cond[:0], d_targ[:0]
@@ -192,10 +181,10 @@ def test_rust_matches_python(unbiased, ext, exact, cache):
         d_cond, d_targ, unbiased, exact, RADIUS,
     )
     f_py, e_py, n_py, s_py = calc_field_krige_local_multi(
-        *args, min_neighbors=2, cache=cache, backend="python"
+        *args, min_neighbors=2, backend="python"
     )
     f_rs, e_rs, n_rs, s_rs = calc_field_krige_local_multi(
-        *args, min_neighbors=2, cache=cache, backend="rust"
+        *args, min_neighbors=2, backend="rust"
     )
     np.testing.assert_allclose(f_rs, f_py, rtol=1e-10, atol=1e-12)
     np.testing.assert_allclose(e_rs, e_py, rtol=1e-10, atol=1e-12)
@@ -211,7 +200,3 @@ def test_rust_rejects_bad_input():
             d_cond, d_targ, True, False, RADIUS)
     with pytest.raises(ValueError, match="cond_val has"):
         calc_field_krige_local_multi(*args, backend="rust")
-    args = (cond_pos, cond_val, target_pos, MODEL, np.full(n, 0.1),
-            d_cond, d_targ, True, False, RADIUS)
-    with pytest.raises(ValueError, match="unknown cache mode"):
-        calc_field_krige_local_multi(*args, cache="lru", backend="rust")

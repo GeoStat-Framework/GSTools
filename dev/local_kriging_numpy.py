@@ -61,17 +61,28 @@ def calc_field_krige_local(
     local_radius,
     num_threads=None,
 ):
+    """One field: Rust (GSTools-Core) if available, else the NumPy stand-in."""
     if config.USE_GSTOOLS_CORE and config._GSTOOLS_CORE_AVAIL:
-        calc_field_krige_local = calc_field_krige_local_gsc
-        model_arg = _cov_model_to_json(model)
-    else:
-        calc_field_krige_local = calc_field_krige_local_python
-        model_arg = model
-    return calc_field_krige_local(
+        # the Rust function takes (n, T) values: one field is one column
+        field, error, _, _ = calc_field_krige_local_gsc(
+            cond_pos,
+            np.ascontiguousarray(np.asarray(cond_val, dtype=np.double)[:, np.newaxis]),
+            target_pos,
+            _cov_model_to_json(model),
+            cond_err,
+            drift_cond,
+            drift_target,
+            unbiased,
+            exact,
+            local_radius,
+            num_threads=num_threads,
+        )
+        return field[:, 0], error[:, 0]
+    return calc_field_krige_local_python(
         cond_pos,
         cond_val,
         target_pos,
-        model_arg,
+        model,
         cond_err,
         drift_cond,
         drift_target,
@@ -80,6 +91,7 @@ def calc_field_krige_local(
         local_radius,
         num_threads=num_threads,
     )
+
 
 def local_krige(
     krige,
@@ -312,12 +324,14 @@ def calc_field_krige_local_python(
 
     Returns
     -------
-    field : (m,) ndarray -- raw, not yet post-processed
+    field : (m,) ndarray -- raw, not yet post-processed; NaN for target
+        points without neighbors (as the Rust backend)
     error : (m,) ndarray -- raw RHS . w, not yet ``sill - error``
+
+    A target point with ``k <= unbiased + drift terms`` neighbors is kriged
+    without any drift terms (as the Rust backend, ``drift_terms_used``).
     """
     pnt_cnt = target_pos.shape[1]
-    drift_no = drift_cond.shape[0]
-    pad = drift_no + int(unbiased)
 
     tree = cKDTree(cond_pos.T)
     # Diese Querry ist halt nur abhängig vom Radius. Es könnte also sein dass kein Nachbar gefunden wird
@@ -326,18 +340,19 @@ def calc_field_krige_local_python(
 
     cov_fct = model.cov_nugget if exact else model.covariance
 
-    field = np.empty(pnt_cnt, dtype=np.double)
-    error = np.empty(pnt_cnt, dtype=np.double)
+    field = np.full(pnt_cnt, np.nan)
+    error = np.full(pnt_cnt, np.nan)
 
     for j in range(pnt_cnt):  # <- becomes `par_iter` over target points in Rust
         nbrs = np.asarray(neighbor_lists[j], dtype=np.intp)
         k = nbrs.size
         if k == 0:
-            raise ValueError(
-                f"local_krige: no conditioning points within "
-                f"local_radius={local_radius} for target point {j}. "
-                "Increase local_radius."
-            )
+            continue  # no neighbors: NaN
+        # too few neighbors for the drift -> drop ALL drift terms
+        drift_no = drift_cond.shape[0]
+        if k <= int(unbiased) + drift_no:
+            drift_no = 0
+        pad = drift_no + int(unbiased)
         sys_size = k + pad
         nbr_pos = cond_pos[:, nbrs]  # (d, k)
 

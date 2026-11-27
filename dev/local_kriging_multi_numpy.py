@@ -1,7 +1,7 @@
 """
 Pure Python/NumPy prototype for local kriging of *many fields at once*
-(e.g. daily station data on a fixed target grid) with reuse of the
-kriging weights.
+(e.g. repeated measurements at fixed conditioning points, interpolated onto
+a fixed target grid) with reuse of the kriging weights.
 
 Idea
 ----
@@ -22,8 +22,9 @@ The cache lives only while one target is processed, so memory stays at
 ``O(#distinct masks * k)`` per thread.
 
 ``calc_field_krige_local_multi_python`` is the NumPy stand-in for the
-planned Rust function ``gstools_core.calc_field_krige_local_multi`` (same
-role as ``calc_field_krige_local_python`` in ``local_kriging_numpy.py``).
+Rust function ``gstools_core.calc_field_krige_local`` (which takes one or
+many fields; same role as ``calc_field_krige_local_python`` in
+``local_kriging_numpy.py``).
 """
 
 from __future__ import annotations
@@ -35,16 +36,13 @@ from scipy.spatial.distance import cdist
 from local_kriging_numpy import _calc_cond_drift, _calc_target_drift
 
 try:
-    from gstools_core import (
-        calc_field_krige_local_multi as calc_field_krige_local_multi_gsc,
-    )
+    from gstools_core import calc_field_krige_local as calc_field_krige_local_gsc
     from gstools.krige.local import _cov_model_to_json
 
     RUST_AVAILABLE = True
 except ImportError:
     RUST_AVAILABLE = False
 
-CACHE_MODES = ("none", "last", "hash")
 BACKENDS = ("auto", "rust", "python")
 
 
@@ -59,7 +57,7 @@ def calc_field_krige_local_multi(*args, backend="auto", **kwargs):
     if backend == "python" or (backend == "auto" and not RUST_AVAILABLE):
         return calc_field_krige_local_multi_python(*args, **kwargs)
     if not RUST_AVAILABLE:
-        raise ImportError("gstools_core.calc_field_krige_local_multi not available")
+        raise ImportError("gstools_core.calc_field_krige_local not available")
     names = (
         "cond_pos", "cond_val", "target_pos", "model", "cond_err", "drift_cond",
         "drift_target", "unbiased", "exact", "local_radius",
@@ -68,7 +66,7 @@ def calc_field_krige_local_multi(*args, backend="auto", **kwargs):
     kwargs["cov_model_json"] = _cov_model_to_json(kwargs.pop("model"))
     for name in ("cond_pos", "cond_val", "target_pos", "cond_err", "drift_cond", "drift_target"):
         kwargs[name] = np.asarray(kwargs[name], dtype=np.double)
-    field, error, n_used, stats = calc_field_krige_local_multi_gsc(**kwargs)
+    field, error, n_used, stats = calc_field_krige_local_gsc(**kwargs)
     return field, error, n_used.astype(np.int64), stats
 
 
@@ -81,7 +79,6 @@ def local_krige_multi(
     ext_drift=None,
     return_var=True,
     min_neighbors=1,
-    cache="hash",
     return_info=False,
     backend="auto",
     num_threads=None,
@@ -96,14 +93,14 @@ def local_krige_multi(
         Template instance holding model, *all* conditioning positions,
         drift functions, external drift at the conditions, ``unbiased``,
         ``exact``, ``cond_err``, ``mean``, ``trend`` and ``normalizer``.
-        It must contain every station, so build it without NaN values,
+        It must contain every conditioning point, so build it without NaN values,
         e.g. with ``cond_val=np.zeros(n)``. Prefer a ``Local*`` class:
         global classes build the full ``n x n`` kriging matrix on init.
     pos : :class:`list`
         Position tuple of the target points (x, [y, z]).
     cond_val : :class:`numpy.ndarray`
         Shape ``(cond_no, n_fields)``; NaN marks a missing value
-        (that station is left out for that field only).
+        (that conditioning point is left out for that field only).
     local_radius : :class:`float`, optional
         Search radius. Default: ``krige.local_radius``.
     mesh_type : :class:`str`, optional
@@ -115,10 +112,6 @@ def local_krige_multi(
     min_neighbors : :class:`int`, optional
         Targets with fewer available neighbors in a field get NaN there.
         Default: 1
-    cache : :class:`str`, optional
-        "hash" (all masks seen for this target), "last" (only the previous
-        field's mask, as EDK does) or "none" (solve every time).
-        Only for comparison in this prototype. Default: "hash"
     return_info : :class:`bool`, optional
         Also return ``n_used`` (shape like the field) and the solve stats.
     backend : :class:`str`, optional
@@ -150,7 +143,7 @@ def local_krige_multi(
         raise ValueError(
             f"local_krige_multi: cond_val has {cond_val.shape[0]} rows but the "
             f"template krige has {cond_no} conditions. Build the template "
-            "without NaN values so it holds every station."
+            "without NaN values so it holds every conditioning point."
         )
     iso_cond = krige._krige_pos
     iso_targ, shape = krige.pre_pos(pos, mesh_type)
@@ -172,7 +165,7 @@ def local_krige_multi(
     drift_target = _calc_target_drift(krige, iso_targ, ext_drift, pnt_cnt)
 
     # ================================================================
-    # RUST BOUNDARY: gstools_core.calc_field_krige_local_multi(...)
+    # RUST BOUNDARY: gstools_core.calc_field_krige_local(...)
     # (or the NumPy stand-in, see `backend`)
     # ================================================================
     field, error, n_used, stats = calc_field_krige_local_multi(
@@ -187,7 +180,6 @@ def local_krige_multi(
         exact=krige.exact,
         local_radius=local_radius,
         min_neighbors=min_neighbors,
-        cache=cache,
         num_threads=num_threads,
         backend=backend,
     )
@@ -223,7 +215,6 @@ def calc_field_krige_local_multi_python(
     exact,
     local_radius,
     min_neighbors=1,
-    cache="hash",
     num_threads=None,
 ):
     """
@@ -256,8 +247,6 @@ def calc_field_krige_local_multi_python(
     local_radius : :class:`float`
     min_neighbors : :class:`int`
         Minimal number of available neighbors to krige. Default: 1
-    cache : :class:`str`
-        "hash", "last" or "none" -- prototype only, to count solves.
     num_threads : :class:`int` or :any:`None`
         Unused here; signature parity with the future Rust call.
 
@@ -267,10 +256,13 @@ def calc_field_krige_local_multi_python(
     error : (m, T) ndarray -- raw RHS . w, NaN where not kriged
     n_used : (m, T) int ndarray -- available neighbors per target/field
     stats : dict -- ``n_solves``, ``n_hits_last``, ``n_hits_hash``,
-        ``n_skipped``, ``max_masks_per_target``
+        ``n_skipped``, ``n_without_drift``, ``max_masks_per_target``
+
+    Weights are cached per target and neighbor mask (first the previous
+    field's mask, then all masks seen for this target), as in the Rust
+    backend. A field with ``n <= unbiased + drift terms`` neighbors is
+    kriged without any drift terms (``drift_terms_used`` in Rust).
     """
-    if cache not in CACHE_MODES:
-        raise ValueError(f"cache must be one of {CACHE_MODES}, got '{cache}'")
     min_neighbors = max(int(min_neighbors), 1)
     cond_val = np.asarray(cond_val, dtype=np.double)
     if cond_val.ndim == 1:
@@ -291,7 +283,7 @@ def calc_field_krige_local_multi_python(
     n_used = np.zeros((pnt_cnt, t_cnt), dtype=np.int64)
     stats = dict(
         n_solves=0, n_hits_last=0, n_hits_hash=0, n_skipped=0,
-        max_masks_per_target=0,
+        n_without_drift=0, max_masks_per_target=0,
     )
 
     for j in range(pnt_cnt):  # <- becomes `par_iter` over target points in Rust
@@ -323,11 +315,13 @@ def calc_field_krige_local_multi_python(
             if n_used[j, t] < min_neighbors:
                 stats["n_skipped"] += 1
                 continue
+            if n_used[j, t] <= int(unbiased) + drift_nbrs.shape[0] and drift_nbrs.shape[0]:
+                stats["n_without_drift"] += 1
             key = keys[:, t].tobytes()
-            if cache != "none" and key == last_key:
+            if key == last_key:
                 entry = last_entry
                 stats["n_hits_last"] += 1
-            elif cache == "hash" and key in weights_cache:
+            elif key in weights_cache:
                 entry = weights_cache[key]
                 stats["n_hits_hash"] += 1
             else:
@@ -337,8 +331,7 @@ def calc_field_krige_local_multi_python(
                 )
                 entry = (sel, weights, err)
                 stats["n_solves"] += 1
-                if cache == "hash":
-                    weights_cache[key] = entry
+                weights_cache[key] = entry
             last_key, last_entry = key, entry
 
             sel, weights, err = entry
@@ -366,6 +359,8 @@ def _solve_subsystem(cov_full, rhs_full, drift_nbrs, drift_targ, sel, unbiased):
     """
     k = sel.size
     drift_no = drift_nbrs.shape[0]
+    if k <= int(unbiased) + drift_no:
+        drift_no = 0  # too few neighbors for the drift -> drop ALL drift terms
     pad = drift_no + int(unbiased)
     size = k + pad
 
@@ -378,9 +373,9 @@ def _solve_subsystem(cov_full, rhs_full, drift_nbrs, drift_targ, sel, unbiased):
         lhs[:k, k] = 1
         rhs[k] = 1
     if drift_no:
-        lhs[-drift_no:, :k] = drift_nbrs[:, sel]
-        lhs[:k, -drift_no:] = drift_nbrs[:, sel].T
-        rhs[-drift_no:] = drift_targ
+        lhs[-drift_no:, :k] = drift_nbrs[:drift_no, sel]
+        lhs[:k, -drift_no:] = drift_nbrs[:drift_no, sel].T
+        rhs[-drift_no:] = drift_targ[:drift_no]
 
     try:
         weights = np.linalg.solve(lhs, rhs)

@@ -170,15 +170,15 @@ def test_local_radius_restricts_neighborhood():
     assert np.all(var_restricted >= var_unrestricted - 1e-12)
 
 
-def test_local_radius_raises_when_no_neighbor_in_radius():
+def test_no_neighbor_in_radius_gives_nan():
     dim = 2
     cond_pos, cond_val = make_cond(dim)
     model = gs.Gaussian(dim=dim, var=1.5, len_scale=3, nugget=0.1)
     krige = gs.krige.Ordinary(model, cond_pos, cond_val)
 
     far_away = [np.array([1e6]), np.array([1e6])]
-    with pytest.raises(ValueError, match="no conditioning points within"):
-        local_krige(krige, far_away, local_radius=1.0)
+    field, var = local_krige(krige, far_away, local_radius=1.0)
+    assert np.isnan(field).all() and np.isnan(var).all()
 
 
 def test_ext_drift_matches_global():

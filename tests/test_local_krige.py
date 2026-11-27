@@ -263,14 +263,18 @@ class TestLocalKrige(unittest.TestCase):
             -1.0,
         )
 
-    def test_no_neighbors_raises(self):
-        # a target point far outside of local_radius has no neighbors
-        # at all -- this has to be reported, not silently mis-evaluated
+    def test_no_neighbors_gives_nan(self):
+        # a target point far outside of local_radius has no neighbors at
+        # all: NaN (not an error), and n_used tells why
         model = gs.Gaussian(dim=2, var=1, len_scale=1)
         local = gs.krige.LocalOrdinary(
             model, self.cond_pos[:2], self.cond_val, 1e-3
         )
-        self.assertRaises(ValueError, local, ([100.0], [100.0]))
+        field, var = local(([100.0, self.cond_pos[0][0]], [100.0, self.cond_pos[1][0]]))
+        self.assertTrue(np.isnan(field[0]) and np.isnan(var[0]))
+        self.assertTrue(np.isfinite(field[1]) and np.isfinite(var[1]))
+        np.testing.assert_array_equal(local.n_used, [0, 1])
+        self.assertEqual(local.stats["n_skipped"], 1)
 
     def test_smaller_radius_gives_similar_result(self):
         # a denser, random conditioning setup: with a small radius only a
@@ -329,7 +333,7 @@ class TestLocalKrigeMulti(unittest.TestCase):
         self.grid_drift = rng.normal(size=(6, 5))
         self.points = tuple(rng.uniform(1, 9, (2, 15)))
         # every target has neighbors in every field, so the 1D reference
-        # (which raises for targets without neighbors) always works
+        # has no NaN
         self.radius = 6.0
         self.model = gs.Exponential(dim=2, var=1.5, len_scale=3, nugget=0.1)
 
@@ -424,24 +428,27 @@ class TestLocalKrigeMulti(unittest.TestCase):
         )
         np.testing.assert_array_equal(np.isnan(field), expected < min_nb)
 
-    def test_cache_modes_give_same_result(self):
+    def test_weights_are_reused(self):
+        # weights are cached per target and neighbor pattern: never more
+        # solves than kriged values, and the counters add up
         multi = self._krige(gs.krige.LocalExtDrift, self.cond_val)
-        res = {}
-        for cache in ("none", "last", "hash"):
-            res[cache] = multi.structured(
-                self.grid, ext_drift=self.grid_drift, cache=cache
-            )
-            self.assertIn("n_solves", multi.multi_stats)
-        for cache in ("last", "hash"):
-            np.testing.assert_array_equal(res[cache][0], res["none"][0])
-            np.testing.assert_array_equal(res[cache][1], res["none"][1])
+        multi.structured(self.grid, ext_drift=self.grid_drift)
+        st = multi.stats
+        values = self.t * 6 * 5
+        self.assertEqual(
+            st["n_solves"] + st["n_hits_last"] + st["n_hits_hash"] + st["n_skipped"],
+            values,
+        )
+        self.assertLessEqual(st["n_solves"], values)
+        # there is no cache option anymore
+        self.assertRaises(TypeError, multi.structured, self.grid, cache="hash")
 
     def test_set_condition_switches_between_1d_and_2d(self):
         krige = self._krige(gs.krige.LocalOrdinary, self.cond_val)
         krige.set_condition(self.cond_pos, self.cond_val[0])
         self.assertFalse(krige.is_multi)
         self.assertEqual(krige.unstructured(self.points)[0].shape, (15,))
-        self.assertIsNone(krige.n_used)
+        self.assertEqual(krige.n_used.shape, (15,))
         krige.set_condition(self.cond_pos, self.cond_val)
         self.assertTrue(krige.is_multi)
         self.assertEqual(
