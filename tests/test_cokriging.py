@@ -318,7 +318,7 @@ class TestCokriging(unittest.TestCase):
             b[:n] = cz0
             b[n:2 * n] = cyz0
             b[2 * n] = C_YZ0
-            w = np.linalg.solve(A, b)
+            w = np.linalg.pinv(A) @ b
             ref[j] = (
                 mZ + w[:n] @ (self.cond_val - mZ)
                 + w[n:2 * n] @ (self.sec_cond_val - mY)
@@ -468,7 +468,7 @@ class TestCokriging(unittest.TestCase):
             b[:n] = cz0
             b[n:2 * n] = k * cz0
             b[2 * n] = C_YZ0
-            w = np.linalg.solve(A, b)
+            w = np.linalg.pinv(A) @ b
             ref[j] = (
                 mZ + w[:n] @ (self.cond_val - mZ)
                 + w[n:2 * n] @ (self.sec_cond_val - mY)
