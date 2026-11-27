@@ -130,3 +130,7 @@ docs/source/sg_execution_times.rst
 *.vtu
 *.vtr
 *.vtk
+
+test.ipynb
+benchmarking_local_krige.py
+benchmarking_local_krige_results.csv
